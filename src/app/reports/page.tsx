@@ -4,7 +4,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CHART_OF_ACCOUNTS, type COAEntry } from "@/lib/coa-data";
+import { CHART_OF_ACCOUNTS as INITIAL_COA, type COAEntry } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, Calendar, FileText, PieChart } from "lucide-react";
@@ -19,8 +19,24 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [selectedFY, setSelectedFY] = useState("");
 
+  // Fetch dynamic COA
+  const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
+  const { data: coaData, isLoading: isCoaLoading } = useCollection(coaRef);
+
+  // Combine Firestore COA with initial fallback
+  const activeCOA = useMemo(() => {
+    if (!coaData || coaData.length === 0) return INITIAL_COA;
+    
+    // Merge: Firestore accounts take precedence by code
+    const mergedMap = new Map<string, any>();
+    INITIAL_COA.forEach(acc => mergedMap.set(acc.code, acc));
+    coaData.forEach(acc => mergedMap.set(acc.code, acc));
+    
+    return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
+  }, [coaData]);
+
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
-  const { data: entries, isLoading } = useCollection(entriesRef);
+  const { data: entries, isLoading: isEntriesLoading } = useCollection(entriesRef);
 
   // Dynamically calculate available Fiscal Years from transactions
   const availableFYs = useMemo(() => {
@@ -81,7 +97,7 @@ export default function ReportsPage() {
       const entryLines = entry.lines || [];
       entryLines.forEach((line: any) => {
         const code = line.accountCode;
-        const coa = CHART_OF_ACCOUNTS.find(a => a.code === code);
+        const coa = activeCOA.find(a => a.code === code);
         if (!coa) return;
 
         const debit = Number(line.debit) || 0;
@@ -99,7 +115,7 @@ export default function ReportsPage() {
       });
     });
     return map;
-  }, [entries, fyDates.end, selectedFY]);
+  }, [entries, activeCOA, fyDates.end, selectedFY]);
 
   // Period specific balances (for income statement/receipt-payment)
   const periodBalances = useMemo(() => {
@@ -116,7 +132,7 @@ export default function ReportsPage() {
       const entryLines = entry.lines || [];
       entryLines.forEach((line: any) => {
         const code = line.accountCode;
-        const coa = CHART_OF_ACCOUNTS.find(a => a.code === code);
+        const coa = activeCOA.find(a => a.code === code);
         if (!coa) return;
 
         const debit = Number(line.debit) || 0;
@@ -134,7 +150,7 @@ export default function ReportsPage() {
       });
     });
     return map;
-  }, [entries, fyDates.start, fyDates.end, selectedFY]);
+  }, [entries, activeCOA, fyDates.start, fyDates.end, selectedFY]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-BD', {
@@ -210,7 +226,7 @@ export default function ReportsPage() {
     </div>
   );
 
-  if (isLoading) {
+  if (isCoaLoading || isEntriesLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="animate-spin size-8 text-primary" />
@@ -218,12 +234,12 @@ export default function ReportsPage() {
     );
   }
 
-  // Define account sets for structured reports
-  const assetAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Asset' || a.type === 'Contra-Asset' || (a.isHeader && a.code.startsWith('1')));
-  const liabilityEquityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Liability' || a.type === 'Equity' || (a.isHeader && a.code.startsWith('2')));
+  // Define account sets for structured reports using the dynamic activeCOA
+  const assetAccounts = activeCOA.filter(a => a.type === 'Asset' || a.type === 'Contra-Asset' || (a.isHeader && a.code.startsWith('1')));
+  const liabilityEquityAccounts = activeCOA.filter(a => a.type === 'Liability' || a.type === 'Equity' || (a.isHeader && a.code.startsWith('2')));
   
-  const incomeAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Income');
-  const expenseAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Expense');
+  const incomeAccounts = activeCOA.filter(a => a.type === 'Income');
+  const expenseAccounts = activeCOA.filter(a => a.type === 'Expense');
 
   const totalIncome = incomeAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
   const totalExpense = expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
@@ -359,9 +375,9 @@ export default function ReportsPage() {
                  <div className="bg-white p-8">
                     <h4 className="font-bold text-[12px] text-slate-900 mb-6 border-b-2 border-slate-900 pb-2 uppercase tracking-widest text-center">RECEIPTS</h4>
                     <div className="space-y-2">
-                      {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && CHART_OF_ACCOUNTS.find(a => a.code === c)?.balance === 'Credit').map(c => (
+                      {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
                         <div key={c} className="flex justify-between text-[11px] py-1 border-b border-dotted border-slate-200">
-                          <span>{CHART_OF_ACCOUNTS.find(a => a.code === c)?.name}</span>
+                          <span>{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
@@ -370,9 +386,9 @@ export default function ReportsPage() {
                  <div className="bg-white p-8">
                     <h4 className="font-bold text-[12px] text-slate-900 mb-6 border-b-2 border-slate-900 pb-2 uppercase tracking-widest text-center">PAYMENTS</h4>
                     <div className="space-y-2">
-                      {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && CHART_OF_ACCOUNTS.find(a => a.code === c)?.balance === 'Debit').map(c => (
+                      {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Debit').map(c => (
                         <div key={c} className="flex justify-between text-[11px] py-1 border-b border-dotted border-slate-200">
-                          <span>{CHART_OF_ACCOUNTS.find(a => a.code === c)?.name}</span>
+                          <span>{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
@@ -386,4 +402,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
