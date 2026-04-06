@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react";
@@ -8,18 +9,27 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CHART_OF_ACCOUNTS } from "@/lib/coa-data";
-import { Sparkles, Save, Info, AlertTriangle } from "lucide-react";
+import { Sparkles, Save, Info, AlertTriangle, Loader2 } from "lucide-react";
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { collection, serverTimestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
 
 export default function NewTransactionPage() {
   const [description, setDescription] = useState("");
   const [isClassifying, setIsClassifying] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
   const [selectedAccount, setSelectedAccount] = useState("");
   const [amount, setAmount] = useState("");
+  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
+  const [refNo, setRefNo] = useState("");
+  
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const router = useRouter();
 
   const handleAIClassify = async () => {
     if (!description) {
@@ -32,13 +42,56 @@ export default function NewTransactionPage() {
       const result = await classifyTransaction({ transactionDescription: description });
       setAiSuggestion(result);
       if (result.suggestedAccount) {
-        setSelectedAccount(result.suggestedAccount.accountCode);
+        // Find matching COA entry
+        const match = CHART_OF_ACCOUNTS.find(a => a.code === result.suggestedAccount.accountCode);
+        if (match) {
+          setSelectedAccount(match.code);
+        }
       }
     } catch (err) {
       toast({ title: "AI Error", description: "Could not classify transaction.", variant: "destructive" });
     } finally {
       setIsClassifying(false);
     }
+  };
+
+  const handleSave = () => {
+    if (!selectedAccount || !amount || !description) {
+      toast({ title: "Validation Error", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+
+    setIsSaving(true);
+    
+    // In a real double-entry system, we'd have multiple lines. 
+    // For this MVP, we create a Journal Entry and its first line item.
+    const journalEntriesRef = collection(firestore, "journalEntries");
+    
+    const entryData = {
+      entryDate,
+      description,
+      referenceNumber: refNo,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      // We store the primary line item directly in the document for easier reporting in this prototype
+      primaryLine: {
+        chartOfAccountId: selectedAccount,
+        amount: Number(amount),
+        accountName: CHART_OF_ACCOUNTS.find(a => a.code === selectedAccount)?.name || ""
+      }
+    };
+
+    addDocumentNonBlocking(journalEntriesRef, entryData)
+      .then(() => {
+        toast({ title: "Success", description: "Journal entry has been recorded." });
+        router.push("/reports");
+      })
+      .catch(() => {
+        toast({ title: "Error", description: "Failed to save transaction.", variant: "destructive" });
+      })
+      .finally(() => {
+        setIsSaving(false);
+      });
   };
 
   return (
@@ -58,11 +111,21 @@ export default function NewTransactionPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="date">Transaction Date</Label>
-                <Input type="date" id="date" defaultValue={new Date().toISOString().split('T')[0]} />
+                <Input 
+                  type="date" 
+                  id="date" 
+                  value={entryDate} 
+                  onChange={(e) => setEntryDate(e.target.value)} 
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="reference">Reference / Voucher No.</Label>
-                <Input id="reference" placeholder="e.g. PJ-08-001" />
+                <Input 
+                  id="reference" 
+                  placeholder="e.g. PJ-08-001" 
+                  value={refNo}
+                  onChange={(e) => setRefNo(e.target.value)}
+                />
               </div>
             </div>
 
@@ -84,7 +147,7 @@ export default function NewTransactionPage() {
                   onClick={handleAIClassify}
                   disabled={isClassifying}
                 >
-                  <Sparkles className="size-3.5 text-accent" />
+                  {isClassifying ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-accent" />}
                   {isClassifying ? "Classifying..." : "AI Assistant"}
                 </Button>
               </div>
@@ -97,7 +160,7 @@ export default function NewTransactionPage() {
                   <SelectTrigger>
                     <SelectValue placeholder="Select account..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-[300px]">
                     {CHART_OF_ACCOUNTS.filter(a => !a.isHeader).map(a => (
                       <SelectItem key={a.code} value={a.code}>
                         {a.code} - {a.name}
@@ -108,14 +171,26 @@ export default function NewTransactionPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount (৳)</Label>
-                <Input type="number" id="amount" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} />
+                <Input 
+                  type="number" 
+                  id="amount" 
+                  placeholder="0.00" 
+                  value={amount} 
+                  onChange={(e) => setAmount(e.target.value)} 
+                />
               </div>
             </div>
 
             <div className="pt-4 border-t flex justify-end gap-3">
-              <Button variant="outline">Reset Form</Button>
-              <Button className="gap-2">
-                <Save className="size-4" />
+              <Button variant="outline" onClick={() => {
+                setDescription("");
+                setAmount("");
+                setSelectedAccount("");
+                setRefNo("");
+                setAiSuggestion(null);
+              }}>Reset Form</Button>
+              <Button className="gap-2" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 Save Entry
               </Button>
             </div>
