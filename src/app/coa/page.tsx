@@ -1,27 +1,157 @@
-import { CHART_OF_ACCOUNTS } from "@/lib/coa-data";
+"use client"
+
+import { useState, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Filter } from "lucide-react";
+import { Search, Plus, Filter, Edit2, Trash2, Loader2 } from "lucide-react";
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 
 export default function COAPage() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [search, setSearch] = useState("");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<any>(null);
+
+  const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
+  const { data: coaData, isLoading } = useCollection(coaRef);
+
+  // Combine Firestore data with fallback to initial data if collection is empty
+  // In a real app, you'd likely seed the DB once.
+  const displayAccounts = useMemo(() => {
+    const data = coaData && coaData.length > 0 ? coaData : INITIAL_COA;
+    return data
+      .filter((acc: any) => 
+        acc.name.toLowerCase().includes(search.toLowerCase()) || 
+        acc.code.includes(search)
+      )
+      .sort((a: any, b: any) => a.code.localeCompare(b.code));
+  }, [coaData, search]);
+
+  const handleSaveAccount = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const accountData = {
+      code: formData.get("code") as string,
+      name: formData.get("name") as string,
+      type: formData.get("type") as string,
+      balance: formData.get("balance") as string,
+      isHeader: formData.get("isHeader") === "true",
+    };
+
+    if (editingAccount && editingAccount.id) {
+      const docRef = doc(firestore, "chartOfAccounts", editingAccount.id);
+      updateDocumentNonBlocking(docRef, accountData);
+      toast({ title: "Account Updated", description: `${accountData.name} has been modified.` });
+    } else {
+      addDocumentNonBlocking(coaRef, accountData);
+      toast({ title: "Account Added", description: `${accountData.name} has been added to the COA.` });
+    }
+    setIsAddOpen(false);
+    setEditingAccount(null);
+  };
+
+  const handleDeleteAccount = (id: string, name: string) => {
+    if (!id) {
+      toast({ title: "Error", description: "Cannot delete static demo data. Please add a dynamic account first.", variant: "destructive" });
+      return;
+    }
+    if (confirm(`Are you sure you want to delete ${name}?`)) {
+      const docRef = doc(firestore, "chartOfAccounts", id);
+      deleteDocumentNonBlocking(docRef);
+      toast({ title: "Account Deleted", description: "The account has been removed from the registry." });
+    }
+  };
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Chart of Accounts</h1>
-          <p className="text-muted-foreground">Standardized PBS CPF Accounting Structure</p>
+          <p className="text-muted-foreground">Manage Standardized PBS CPF Accounting Structure</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Filter className="size-4 mr-2" />
-            Filter
-          </Button>
-          <Button size="sm">
-            <Plus className="size-4 mr-2" />
-            Add Account
-          </Button>
+          <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingAccount(null); }}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="size-4 mr-2" />
+                Add New Account
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>{editingAccount ? "Edit Account" : "Add New Account"}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSaveAccount} className="space-y-4 pt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="code">Account Code</Label>
+                    <Input id="code" name="code" placeholder="e.g. 101.10.0000" defaultValue={editingAccount?.code} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="type">Account Type</Label>
+                    <Select name="type" defaultValue={editingAccount?.type || "Asset"}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Asset">Asset</SelectItem>
+                        <SelectItem value="Contra-Asset">Contra-Asset</SelectItem>
+                        <SelectItem value="Liability">Liability</SelectItem>
+                        <SelectItem value="Equity">Equity</SelectItem>
+                        <SelectItem value="Income">Income</SelectItem>
+                        <SelectItem value="Expense">Expense</SelectItem>
+                        <SelectItem value="">None (Header)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name">Account Name</Label>
+                  <Input id="name" name="name" placeholder="e.g. Cash in Hand" defaultValue={editingAccount?.name} required />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="balance">Normal Balance</Label>
+                    <Select name="balance" defaultValue={editingAccount?.balance || "Debit"}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select balance" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Debit">Debit</SelectItem>
+                        <SelectItem value="Credit">Credit</SelectItem>
+                        <SelectItem value="">None</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="isHeader">Is Group Header?</Label>
+                    <Select name="isHeader" defaultValue={editingAccount?.isHeader?.toString() || "false"}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Is Header?" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
+                  <Button type="submit">Save Changes</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
@@ -29,7 +159,12 @@ export default function COAPage() {
         <div className="p-4 border-b flex items-center gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input className="pl-9 h-10 max-w-sm" placeholder="Search accounts by name or code..." />
+            <Input 
+              className="pl-9 h-10 max-w-sm" 
+              placeholder="Search accounts by name or code..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
         </div>
         <Table>
@@ -43,8 +178,14 @@ export default function COAPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {CHART_OF_ACCOUNTS.map((account) => (
-              <TableRow key={account.code} className={account.isHeader ? "bg-muted/20 font-semibold" : ""}>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-8">
+                  <Loader2 className="size-6 animate-spin mx-auto text-primary" />
+                </TableCell>
+              </TableRow>
+            ) : displayAccounts.map((account: any, idx: number) => (
+              <TableRow key={account.id || account.code} className={account.isHeader ? "bg-muted/20 font-semibold" : ""}>
                 <TableCell className="font-mono text-xs">{account.code}</TableCell>
                 <TableCell className={account.isHeader ? "pl-4" : "pl-8"}>
                   {account.name}
@@ -63,9 +204,23 @@ export default function COAPage() {
                     </span>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
-                  {!account.isHeader && (
-                    <Button variant="ghost" size="sm">Edit</Button>
+                <TableCell className="text-right flex justify-end gap-2">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => { setEditingAccount(account); setIsAddOpen(true); }}
+                  >
+                    <Edit2 className="size-4" />
+                  </Button>
+                  {account.id && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive" 
+                      onClick={() => handleDeleteAccount(account.id, account.name)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   )}
                 </TableCell>
               </TableRow>

@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CHART_OF_ACCOUNTS } from "@/lib/coa-data";
+import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import { Sparkles, Save, Info, AlertTriangle, Loader2, Plus, Trash2, ArrowRightLeft } from "lucide-react";
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, addDocumentNonBlocking } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -42,6 +42,10 @@ export default function NewTransactionPage() {
   const firestore = useFirestore();
   const router = useRouter();
 
+  const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
+  const { data: coaData } = useCollection(coaRef);
+  const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData]);
+
   const totals = useMemo(() => {
     return lines.reduce((acc, curr) => ({
       debit: acc.debit + (curr.debit || 0),
@@ -49,7 +53,7 @@ export default function NewTransactionPage() {
     }), { debit: 0, credit: 0 });
   }, [lines]);
 
-  const isBalanced = totals.debit > 0 && totals.debit === totals.credit;
+  const isBalanced = totals.debit > 0 && Math.abs(totals.debit - totals.credit) < 0.01;
 
   const handleAddLine = () => {
     setLines([...lines, { id: Math.random().toString(), accountCode: '', debit: 0, credit: 0, memo: '' }]);
@@ -79,7 +83,7 @@ export default function NewTransactionPage() {
         const newLines = result.suggestedEntries.map((item: any, idx: number) => ({
           id: Math.random().toString(),
           accountCode: item.accountCode,
-          debit: item.type === 'Debit' ? 1000 : 0, // Placeholder amount
+          debit: item.type === 'Debit' ? 1000 : 0, 
           credit: item.type === 'Credit' ? 1000 : 0,
           memo: description
         }));
@@ -110,7 +114,7 @@ export default function NewTransactionPage() {
       updatedAt: new Date().toISOString(),
       lines: lines.map(l => ({
         accountCode: l.accountCode,
-        accountName: CHART_OF_ACCOUNTS.find(a => a.code === l.accountCode)?.name || "",
+        accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "",
         debit: l.debit,
         credit: l.credit,
         memo: l.memo
@@ -197,7 +201,7 @@ export default function NewTransactionPage() {
                             <SelectValue placeholder="Select account..." />
                           </SelectTrigger>
                           <SelectContent className="max-h-[300px]">
-                            {CHART_OF_ACCOUNTS.filter(a => !a.isHeader).map(a => (
+                            {activeCOA.filter((a: any) => !a.isHeader).map((a: any) => (
                               <SelectItem key={a.code} value={a.code}>
                                 {a.code} - {a.name}
                               </SelectItem>
