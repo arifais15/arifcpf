@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "ChartOfAccount": {
@@ -326,7 +327,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "MemberFundSummary",
       "type": "object",
-      "description": "A snapshot entity that stores the cumulative balances for a member's provident fund and loan activities at a specific point in time, facilitating the dynamic generation of subsidiary ledgers.",
+      "description": "A snapshot entity that stores the balances for a member's provident fund and loan activities at a specific point in time.",
       "properties": {
         "id": {
           "type": "string",
@@ -338,36 +339,44 @@
         },
         "summaryDate": {
           "type": "string",
-          "description": "The date for which this cumulative summary is valid, typically end of month or year.",
+          "description": "The date for which this record is valid.",
           "format": "date"
         },
-        "employeeContributionCumulative": {
-          "type": "number",
-          "description": "The cumulative total of contributions made by the employee up to the summary date."
+        "particulars": {
+          "type": "string",
+          "description": "Description of the entry."
         },
-        "pbsContributionCumulative": {
+        "employeeContribution": {
           "type": "number",
-          "description": "The cumulative total of contributions made by PBS on behalf of the employee up to the summary date."
+          "description": "Column 1: Employee's contribution for the period."
         },
-        "profitEmployeeContributionCumulative": {
+        "loanWithdrawal": {
           "type": "number",
-          "description": "The cumulative profit (interest) earned on the employee's own contributions up to the summary date."
+          "description": "Column 2: Amount withdrawn as loan."
         },
-        "profitPbsContributionCumulative": {
+        "loanRepayment": {
           "type": "number",
-          "description": "The cumulative profit (interest) earned on PBS contributions up to the summary date."
+          "description": "Column 3: Loan principal repayment."
         },
-        "loanPrincipalOutstandingCumulative": {
+        "profitEmployee": {
           "type": "number",
-          "description": "The cumulative principal amount outstanding for all loans taken by the member up to the summary date."
+          "description": "Column 5: Profit on employee contribution."
         },
-        "totalFundCumulative": {
+        "profitLoan": {
           "type": "number",
-          "description": "The total cumulative fund balance for the member (Employee Contributions + PBS Contributions + their respective profits) up to the summary date."
+          "description": "Column 6: Profit on CPF loan."
+        },
+        "pbsContribution": {
+          "type": "number",
+          "description": "Column 8: PBS contribution."
+        },
+        "profitPbs": {
+          "type": "number",
+          "description": "Column 9: Profit on PBS contribution."
         },
         "lastUpdateDate": {
           "type": "string",
-          "description": "The date and time when this fund summary record was last updated.",
+          "description": "The date and time when this record was last updated.",
           "format": "date-time"
         }
       },
@@ -375,12 +384,6 @@
         "id",
         "memberId",
         "summaryDate",
-        "employeeContributionCumulative",
-        "pbsContributionCumulative",
-        "profitEmployeeContributionCumulative",
-        "profitPbsContributionCumulative",
-        "loanPrincipalOutstandingCumulative",
-        "totalFundCumulative",
         "lastUpdateDate"
       ]
     }
@@ -494,7 +497,7 @@
           "schema": {
             "$ref": "#/backend/entities/MemberFundSummary"
           },
-          "description": "A subcollection storing cumulative provident fund and loan balances for a specific member at a given date. This entity is crucial for the 'dynamic Provident Fund Subsidiary Ledger'. The `memberId` is denormalized in the path, enabling direct authorization for members to access their own summaries (`request.auth.uid == memberId`).",
+          "description": "A subcollection storing periodic provident fund and loan movements for a specific member at a given date.",
           "params": [
             {
               "name": "memberId",
@@ -508,6 +511,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support the PBS CPF Management Accounting Software, focusing on secure, scalable, and debuggable financial operations, member tracking, and dynamic ledger generation. Key to this design is adhering to Authorization Independence and QAP principles.\n\n**Authorization Independence:**\n1.  **MemberFundSummary:** To enable secure and efficient generation of the \"Provident Fund Subsidiary Ledger,\" the `MemberFundSummary` entity is placed as a subcollection under `/members/{memberId}/fundSummaries/{summaryId}`. This hierarchical path directly embeds the `memberId` as a wildcard, which matches the `memberId` field within the `MemberFundSummary` document. This explicit path-based ownership means that security rules can directly check `request.auth.uid == memberId` (where `memberId` is the path wildcard) or `request.auth.uid == resource.data.memberId` without requiring any `get()` operations to parent documents. This ensures atomic creation and updates and simplifies rule logic considerably.\n2.  **JournalEntry:** The `JournalEntry` entity includes a `memberId` field. While `journalEntries` is a top-level collection primarily for administrative access, if individual members ever need to view their specific transactions, this denormalized `memberId` would allow rules to check `request.auth.uid == resource.data.memberId` directly, preserving authorization independence from any related `Member` document.\n\n**QAPs (Rules are not Filters):**\n1.  **Structural Segregation:** All top-level collections (`/chartOfAccounts`, `/members`, `/journalEntries`, `/investmentInstruments`, `/accruedInterestLogs`) maintain a homogeneous security posture. For example, `/chartOfAccounts` holds static, global data, accessible generally for read operations to all authenticated users and only writeable by administrators. This clear segregation means that a `list` operation on these collections will not need to filter out documents that are unauthorized for the requesting user, thus adhering to QAPs. For `list` operations, the rule can confidently grant or deny access to the *entire* collection based on the user's role.\n2.  **Path-Based Ownership for Member Data:** For member-specific data like `MemberFundSummary`, the structure `/members/{memberId}/fundSummaries/{summaryId}` enables QAP compliance. When a member requests a list of their fund summaries, they would query `/members/{request.auth.uid}/fundSummaries`. The Firestore security rules can then directly use the path wildcard `{memberId}` (which will be `request.auth.uid`) to validate read access for all documents in that specific subcollection. This ensures that the `list` operation will only ever return data the user is authorized to see, without any implied filtering by the rules themselves."
+    "reasoning": "The Firestore data structure is updated to store periodic movement fields for MemberFundSummary, which allows the UI to calculate running balances and cumulative totals as required by REB Form 224."
   }
 }

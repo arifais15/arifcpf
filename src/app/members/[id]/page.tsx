@@ -35,16 +35,51 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
   }, [summaries]);
 
+  // Running balance calculations
+  const calculatedRows = useMemo(() => {
+    let runningLoanBalance = 0;
+    let runningEmployeeFund = 0;
+
+    return sortedSummaries.map((row: any) => {
+      const col1 = Number(row.employeeContribution) || 0;
+      const col2 = Number(row.loanWithdrawal) || 0;
+      const col3 = Number(row.loanRepayment) || 0;
+      const col5 = Number(row.profitEmployee) || 0;
+      const col6 = Number(row.profitLoan) || 0;
+      const col8 = Number(row.pbsContribution) || 0;
+      const col9 = Number(row.profitPbs) || 0;
+
+      // Col 4: Balance of outstanding loan
+      runningLoanBalance = runningLoanBalance + col2 - col3;
+      
+      // Col 7: Total Employee's Fund = Prev + 1 - 2 + 3 + 5 + 6
+      runningEmployeeFund = runningEmployeeFund + col1 - col2 + col3 + col5 + col6;
+
+      // Col 10: Total Office Contribution = 8 + 9
+      const col10 = col8 + col9;
+
+      // Col 11: Cumulative Fund Balance = 7 + 10
+      const col11 = runningEmployeeFund + col10;
+
+      return {
+        ...row,
+        col1, col2, col3, col4: runningLoanBalance, col5, col6, col7: runningEmployeeFund, col8, col9, col10, col11
+      };
+    });
+  }, [sortedSummaries]);
+
   const totals = useMemo(() => {
-    if (!summaries || summaries.length === 0) return null;
-    return summaries.reduce((acc, curr) => ({
-      emp: acc.emp + (Number(curr.employeeContributionCumulative) || 0),
-      pbs: acc.pbs + (Number(curr.pbsContributionCumulative) || 0),
-      profitEmp: acc.profitEmp + (Number(curr.profitEmployeeContributionCumulative) || 0),
-      profitPbs: acc.profitPbs + (Number(curr.profitPbsContributionCumulative) || 0),
-      total: acc.total + (Number(curr.totalFundCumulative) || 0)
-    }), { emp: 0, pbs: 0, profitEmp: 0, profitPbs: 0, total: 0 });
-  }, [summaries]);
+    if (calculatedRows.length === 0) return null;
+    return calculatedRows.reduce((acc, curr) => ({
+      col1: acc.col1 + curr.col1,
+      col2: acc.col2 + curr.col2,
+      col3: acc.col3 + curr.col3,
+      col5: acc.col5 + curr.col5,
+      col6: acc.col6 + curr.col6,
+      col8: acc.col8 + curr.col8,
+      col9: acc.col9 + curr.col9,
+    }), { col1: 0, col2: 0, col3: 0, col5: 0, col6: 0, col8: 0, col9: 0 });
+  }, [calculatedRows]);
 
   const handleAddEntry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,12 +87,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const entryData = {
       summaryDate: formData.get("summaryDate"),
       particulars: formData.get("particulars"),
-      employeeContributionCumulative: Number(formData.get("empContrib")),
-      pbsContributionCumulative: Number(formData.get("pbsContrib")),
-      profitEmployeeContributionCumulative: Number(formData.get("profitEmp")),
-      profitPbsContributionCumulative: Number(formData.get("profitPbs")),
-      loanPrincipalOutstandingCumulative: Number(formData.get("loanBalance")),
-      totalFundCumulative: Number(formData.get("totalFund")),
+      employeeContribution: Number(formData.get("employeeContribution")),
+      loanWithdrawal: Number(formData.get("loanWithdrawal")),
+      loanRepayment: Number(formData.get("loanRepayment")),
+      profitEmployee: Number(formData.get("profitEmployee")),
+      profitLoan: Number(formData.get("profitLoan")),
+      pbsContribution: Number(formData.get("pbsContribution")),
+      profitPbs: Number(formData.get("profitPbs")),
       lastUpdateDate: new Date().toISOString(),
       memberId: resolvedParams.id
     };
@@ -70,15 +106,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const processEntries = (entries: any[]) => {
     let count = 0;
     entries.forEach(entry => {
+      // Mapping from common column names or specific requested names
       const entryData = {
-        summaryDate: entry.summaryDate || entry["Date"] || "",
-        particulars: entry.particulars || entry["Particulars"] || "",
-        employeeContributionCumulative: Number(entry.employeeContributionCumulative || entry["Emp Contrib"] || 0),
-        pbsContributionCumulative: Number(entry.pbsContributionCumulative || entry["PBS Contrib"] || 0),
-        profitEmployeeContributionCumulative: Number(entry.profitEmployeeContributionCumulative || entry["Profit Emp"] || 0),
-        profitPbsContributionCumulative: Number(entry.profitPbsContributionCumulative || entry["Profit PBS"] || 0),
-        loanPrincipalOutstandingCumulative: Number(entry.loanPrincipalOutstandingCumulative || entry["Loan Balance"] || 0),
-        totalFundCumulative: Number(entry.totalFundCumulative || entry["Total Fund"] || 0),
+        summaryDate: entry.Date || entry.summaryDate || "",
+        particulars: entry.Particulars || entry.particulars || "",
+        employeeContribution: Number(entry["Employee Contribution"] || entry.employeeContribution || 0),
+        loanWithdrawal: Number(entry["Amount Withdraws as Loan"] || entry.loanWithdrawal || 0),
+        loanRepayment: Number(entry["Loan Principal repayment"] || entry.loanRepayment || 0),
+        profitEmployee: Number(entry["Profit on Employee Contribution"] || entry.profitEmployee || 0),
+        profitLoan: Number(entry["Profit on CPF Loan"] || entry.profitLoan || 0),
+        pbsContribution: Number(entry["PBS Contribution"] || entry.pbsContribution || 0),
+        profitPbs: Number(entry["Profit on PBS Contribution"] || entry.profitPbs || 0),
         lastUpdateDate: new Date().toISOString(),
         memberId: resolvedParams.id
       };
@@ -139,14 +177,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const handleDownloadTemplate = () => {
     const templateData = [
       {
-        summaryDate: "2023-10-31",
-        particulars: "Monthly Contribution Oct-23",
-        employeeContributionCumulative: 1500.00,
-        pbsContributionCumulative: 1500.00,
-        profitEmployeeContributionCumulative: 12.50,
-        profitPbsContributionCumulative: 12.50,
-        loanPrincipalOutstandingCumulative: 0.00,
-        totalFundCumulative: 3025.00
+        "Date": "2023-10-31",
+        "Particulars": "Monthly Contribution Oct-23",
+        "Employee Contribution": 1500.00,
+        "Amount Withdraws as Loan": 0.00,
+        "Loan Principal repayment": 0.00,
+        "Profit on Employee Contribution": 12.50,
+        "Profit on CPF Loan": 0.00,
+        "PBS Contribution": 1500.00,
+        "Profit on PBS Contribution": 12.50
       }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
@@ -190,7 +229,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   </Button>
                 </div>
                 <DialogDescription>
-                  Upload ledger history for {member.name}. Fields: summaryDate, particulars, employeeContributionCumulative, pbsContributionCumulative, etc.
+                  Fields: Date, Particulars, Employee Contribution, Amount Withdraws as Loan, Loan Principal repayment, Profit on Employee Contribution, Profit on CPF Loan, PBS Contribution, Profit on PBS Contribution.
                 </DialogDescription>
               </DialogHeader>
               <Tabs defaultValue="excel" className="w-full">
@@ -215,7 +254,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <TabsContent value="csv" className="space-y-4 py-4">
                   <textarea
                     className="min-h-[200px] w-full p-4 font-mono text-sm border rounded-md"
-                    placeholder="summaryDate, particulars, employeeContributionCumulative, pbsContributionCumulative, profitEmployeeContributionCumulative, profitPbsContributionCumulative, loanPrincipalOutstandingCumulative, totalFundCumulative"
+                    placeholder="Date, Particulars, Employee Contribution, Amount Withdraws as Loan, Loan Principal repayment, Profit on Employee Contribution, Profit on CPF Loan, PBS Contribution, Profit on PBS Contribution"
                     value={bulkCsvData}
                     onChange={(e) => setBulkCsvData(e.target.value)}
                   />
@@ -246,28 +285,32 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <Input name="particulars" placeholder="e.g. PJ-02-001 or Interest" required />
                 </div>
                 <div className="space-y-2">
-                  <Label>Emp. Contrib</Label>
-                  <Input name="empContrib" type="number" step="0.01" defaultValue="0" />
+                  <Label>Emp. Contrib (Col 1)</Label>
+                  <Input name="employeeContribution" type="number" step="0.01" defaultValue="0" />
                 </div>
                 <div className="space-y-2">
-                  <Label>PBS Contrib</Label>
-                  <Input name="pbsContrib" type="number" step="0.01" defaultValue="0" />
+                  <Label>Loan Withdraw (Col 2)</Label>
+                  <Input name="loanWithdrawal" type="number" step="0.01" defaultValue="0" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Profit (Emp)</Label>
-                  <Input name="profitEmp" type="number" step="0.01" defaultValue="0" />
+                  <Label>Loan Repay (Col 3)</Label>
+                  <Input name="loanRepayment" type="number" step="0.01" defaultValue="0" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Profit (PBS)</Label>
+                  <Label>Profit Emp (Col 5)</Label>
+                  <Input name="profitEmployee" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Profit Loan (Col 6)</Label>
+                  <Input name="profitLoan" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>PBS Contrib (Col 8)</Label>
+                  <Input name="pbsContribution" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Profit PBS (Col 9)</Label>
                   <Input name="profitPbs" type="number" step="0.01" defaultValue="0" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Loan Balance</Label>
-                  <Input name="loanBalance" type="number" step="0.01" defaultValue="0" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Total Fund</Label>
-                  <Input name="totalFund" type="number" step="0.01" defaultValue="0" />
                 </div>
                 <DialogFooter className="col-span-2">
                   <Button type="button" variant="outline" onClick={() => setIsEntryOpen(false)}>Cancel</Button>
@@ -343,39 +386,39 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <tbody>
               {isSummariesLoading ? (
                 <tr><td colSpan={13} className="text-center p-4">Loading ledger...</td></tr>
-              ) : sortedSummaries.length === 0 ? (
+              ) : calculatedRows.length === 0 ? (
                 <tr><td colSpan={13} className="text-center p-4 text-muted-foreground">No ledger entries found.</td></tr>
-              ) : sortedSummaries.map((row: any, idx) => (
+              ) : calculatedRows.map((row: any, idx) => (
                 <tr key={idx} className="bg-white">
                   <td className="border border-black p-1 whitespace-nowrap">{row.summaryDate}</td>
                   <td className="border border-black p-1">{row.particulars || "-"}</td>
-                  <td className="border border-black p-1 text-right">{row.employeeContributionCumulative?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right">{row.loanPrincipalOutstandingCumulative?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.profitEmployeeContributionCumulative?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.totalFundCumulative?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.pbsContributionCumulative?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.profitPbsContributionCumulative?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right font-bold">{(Number(row.pbsContributionCumulative) + Number(row.profitPbsContributionCumulative))?.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right font-bold">{(Number(row.totalFundCumulative) + Number(row.pbsContributionCumulative) + Number(row.profitPbsContributionCumulative))?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col1.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col2.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col3.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col4.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col5.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col6.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.col7.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col8.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.col9.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.col10.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.col11.toFixed(2)}</td>
                 </tr>
               ))}
               {totals && (
                 <tr className="bg-white font-bold">
                   <td colSpan={2} className="border border-black p-1 text-center">Total</td>
-                  <td className="border border-black p-1 text-right">{totals.emp.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.col1.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.col2.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.col3.toFixed(2)}</td>
                   <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">{totals.col5.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.col6.toFixed(2)}</td>
                   <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">{totals.col8.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.col9.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{(totals.col8 + totals.col9).toFixed(2)}</td>
                   <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right">{totals.profitEmp.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right">{totals.total.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{totals.pbs.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{totals.profitPbs.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{(totals.pbs + totals.profitPbs).toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{(totals.total + totals.pbs + totals.profitPbs).toFixed(2)}</td>
                 </tr>
               )}
             </tbody>
