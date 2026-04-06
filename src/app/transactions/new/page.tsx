@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +13,9 @@ import { Sparkles, Save, Info, AlertTriangle, Loader2, Plus, Trash2, ArrowRightL
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
-import { useRouter } from "next/navigation";
+import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 interface LineItem {
@@ -26,6 +27,12 @@ interface LineItem {
 }
 
 export default function NewTransactionPage() {
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const firestore = useFirestore();
+  const router = useRouter();
+  const { toast } = useToast();
+
   const [description, setDescription] = useState("");
   const [isClassifying, setIsClassifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,25 +45,42 @@ export default function NewTransactionPage() {
     { id: '2', accountCode: '', debit: 0, credit: 0, memo: '' }
   ]);
 
-  const { toast } = useToast();
-  const firestore = useFirestore();
-  const router = useRouter();
-
   const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
   const { data: coaData } = useCollection(coaRef);
   const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData]);
 
+  // Load transaction for editing
+  const transactionRef = useMemoFirebase(() => editId ? doc(firestore, "journalEntries", editId) : null, [firestore, editId]);
+  const { data: existingTransaction, isLoading: isEditLoading } = useDoc(transactionRef);
+
+  useEffect(() => {
+    if (existingTransaction) {
+      setEntryDate(existingTransaction.entryDate);
+      setDescription(existingTransaction.description);
+      setRefNo(existingTransaction.referenceNumber || "");
+      if (existingTransaction.lines) {
+        setLines(existingTransaction.lines.map((l: any, idx: number) => ({
+          id: Math.random().toString(),
+          accountCode: l.accountCode,
+          debit: l.debit || 0,
+          credit: l.credit || 0,
+          memo: l.memo || ""
+        })));
+      }
+    }
+  }, [existingTransaction]);
+
   const totals = useMemo(() => {
     return lines.reduce((acc, curr) => ({
-      debit: acc.debit + (curr.debit || 0),
-      credit: acc.credit + (curr.credit || 0)
+      debit: acc.debit + (Number(curr.debit) || 0),
+      credit: acc.credit + (Number(curr.credit) || 0)
     }), { debit: 0, credit: 0 });
   }, [lines]);
 
   const isBalanced = totals.debit > 0 && Math.abs(totals.debit - totals.credit) < 0.01;
 
   const handleAddLine = () => {
-    setLines([...lines, { id: Math.random().toString(), accountCode: '', debit: 0, credit: 0, memo: '' }]);
+    setLines([...lines, { id: Math.random().toString(), accountCode: '', debit: 0, credit: 0, memo: description }]);
   };
 
   const handleRemoveLine = (id: string) => {
@@ -80,11 +104,11 @@ export default function NewTransactionPage() {
       setAiSuggestion(result);
       
       if (result.suggestedEntries && result.suggestedEntries.length > 0) {
-        const newLines = result.suggestedEntries.map((item: any, idx: number) => ({
+        const newLines = result.suggestedEntries.map((item: any) => ({
           id: Math.random().toString(),
           accountCode: item.accountCode,
-          debit: item.type === 'Debit' ? 1000 : 0, 
-          credit: item.type === 'Credit' ? 1000 : 0,
+          debit: item.type === 'Debit' ? 0 : 0, // AI suggests codes, user fills amounts or default to 0
+          credit: item.type === 'Credit' ? 0 : 0,
           memo: description
         }));
         setLines(newLines);
@@ -104,41 +128,46 @@ export default function NewTransactionPage() {
     }
 
     setIsSaving(true);
-    const journalEntriesRef = collection(firestore, "journalEntries");
-    
     const entryData = {
       entryDate,
       description,
       referenceNumber: refNo,
-      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       lines: lines.map(l => ({
         accountCode: l.accountCode,
         accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "",
-        debit: l.debit,
-        credit: l.credit,
+        debit: Number(l.debit) || 0,
+        credit: Number(l.credit) || 0,
         memo: l.memo
       })),
       totalAmount: totals.debit
     };
 
-    addDocumentNonBlocking(journalEntriesRef, entryData)
-      .then(() => {
-        toast({ title: "Success", description: "Double-entry transaction recorded." });
-        router.push("/reports");
-      })
-      .catch(() => {
-        toast({ title: "Error", description: "Failed to save transaction.", variant: "destructive" });
-      })
-      .finally(() => {
-        setIsSaving(false);
-      });
+    if (editId) {
+      const docRef = doc(firestore, "journalEntries", editId);
+      updateDocumentNonBlocking(docRef, entryData);
+      toast({ title: "Success", description: "Transaction updated." });
+      router.push("/transactions");
+    } else {
+      const journalEntriesRef = collection(firestore, "journalEntries");
+      addDocumentNonBlocking(journalEntriesRef, { ...entryData, createdAt: new Date().toISOString() })
+        .then(() => {
+          toast({ title: "Success", description: "Double-entry transaction recorded." });
+          router.push("/transactions");
+        });
+    }
   };
+
+  if (isEditLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
+  }
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold text-primary tracking-tight">Double-Entry Ledger</h1>
+        <h1 className="text-3xl font-bold text-primary tracking-tight">
+          {editId ? "Edit Transaction" : "New Journal Entry"}
+        </h1>
         <p className="text-muted-foreground">Dual accounting system for PBS CPF transactions</p>
       </div>
 
@@ -147,7 +176,7 @@ export default function NewTransactionPage() {
           <CardHeader className="border-b bg-slate-50/50">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Journal Entry</CardTitle>
+                <CardTitle>Accounting Journal</CardTitle>
                 <CardDescription>Enter multi-line accounting transactions.</CardDescription>
               </div>
               <div className="flex gap-2">
@@ -252,7 +281,7 @@ export default function NewTransactionPage() {
                     <td className="p-3 text-right text-primary">{totals.debit.toFixed(2)}</td>
                     <td className="p-3 text-right text-primary">{totals.credit.toFixed(2)}</td>
                     <td colSpan={2} className="p-3">
-                      {!isBalanced && totals.debit + totals.credit > 0 && (
+                      {!isBalanced && (totals.debit > 0 || totals.credit > 0) && (
                         <Badge variant="destructive" className="ml-2 animate-pulse">Out of Balance</Badge>
                       )}
                       {isBalanced && (
@@ -272,7 +301,7 @@ export default function NewTransactionPage() {
                 <Button variant="ghost" onClick={() => router.back()}>Cancel</Button>
                 <Button className="gap-2" onClick={handleSave} disabled={isSaving || !isBalanced}>
                   {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  Post Transaction
+                  {editId ? "Update Transaction" : "Post Transaction"}
                 </Button>
               </div>
             </div>

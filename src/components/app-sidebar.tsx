@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -10,6 +11,8 @@ import {
   FileText,
   Settings,
   ShieldCheck,
+  Search,
+  ListTodo
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -28,6 +31,7 @@ import {
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
   { title: "Chart of Accounts", icon: BookOpen, url: "/coa" },
+  { title: "Journal Entries", icon: ListTodo, url: "/transactions" },
   { title: "New Transaction", icon: PlusCircle, url: "/transactions/new" },
   { title: "Members", icon: Users, url: "/members" },
   { title: "Investments", icon: TrendingUp, url: "/investments" },
