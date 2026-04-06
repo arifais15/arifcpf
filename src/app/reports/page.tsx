@@ -1,33 +1,51 @@
+
 "use client"
 
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CHART_OF_ACCOUNTS, COAEntry } from "@/lib/coa-data";
+import { CHART_OF_ACCOUNTS } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
-import { Loader2, FileText, Printer, Download, TrendingUp, Wallet, ArrowDownUp, ShieldCheck } from "lucide-react";
+import { Loader2, Printer, Download, TrendingUp, Wallet, ArrowDownUp, ShieldCheck, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { summarizeFinancialReport } from "@/ai/flows/financial-report-summarizer";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ReportsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [selectedFY, setSelectedFY] = useState("2023-24");
 
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
   const { data: entries, isLoading } = useCollection(entriesRef);
 
-  // Group balances by account code
-  const balances = useMemo(() => {
+  // Helper to get FY dates: FY 2023-24 = July 1, 2023 to June 30, 2024
+  const fyDates = useMemo(() => {
+    const startYear = parseInt(selectedFY.split("-")[0]) + 2000;
+    const endYear = startYear + 1;
+    return {
+      start: `${startYear}-07-01`,
+      end: `${endYear}-06-30`,
+      display: `FY ${selectedFY} (July ${startYear} - June ${endYear})`
+    };
+  }, [selectedFY]);
+
+  // Balance Sheet (Financial Position) is CUMULATIVE up to the end of the period
+  const bsBalances = useMemo(() => {
     if (!entries) return {};
     const map: Record<string, number> = {};
+    const endDate = new Date(fyDates.end).getTime();
     
     entries.forEach(entry => {
+      const entryDate = new Date(entry.entryDate).getTime();
+      if (entryDate > endDate) return;
+
       const line = entry.primaryLine;
       if (!line) return;
       
@@ -37,9 +55,31 @@ export default function ReportsPage() {
       if (!map[code]) map[code] = 0;
       map[code] += amount;
     });
-    
     return map;
-  }, [entries]);
+  }, [entries, fyDates.end]);
+
+  // Income Statement and Receipt & Payment are for the SPECIFIC PERIOD
+  const periodBalances = useMemo(() => {
+    if (!entries) return {};
+    const map: Record<string, number> = {};
+    const startDate = new Date(fyDates.start).getTime();
+    const endDate = new Date(fyDates.end).getTime();
+    
+    entries.forEach(entry => {
+      const entryDate = new Date(entry.entryDate).getTime();
+      if (entryDate < startDate || entryDate > endDate) return;
+
+      const line = entry.primaryLine;
+      if (!line) return;
+      
+      const code = line.chartOfAccountId;
+      const amount = Number(line.amount) || 0;
+      
+      if (!map[code]) map[code] = 0;
+      map[code] += amount;
+    });
+    return map;
+  }, [entries, fyDates.start, fyDates.end]);
 
   const handleAISummarize = async (reportName: string, content: string) => {
     setIsSummarizing(true);
@@ -77,37 +117,54 @@ export default function ReportsPage() {
     );
   }
 
-  const assetAccounts = CHART_OF_ACCOUNTS.filter(a => (a.type === 'Asset' || a.type === 'Contra-Asset') && (balances[a.code] || a.isHeader));
-  const liabilityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Liability' && (balances[a.code] || a.isHeader));
-  const equityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Equity' && (balances[a.code] || a.isHeader));
+  // Financial Position Accounts (Assets, Liabilities, Equity)
+  const assetAccounts = CHART_OF_ACCOUNTS.filter(a => (a.type === 'Asset' || a.type === 'Contra-Asset') && (bsBalances[a.code] || a.isHeader));
+  const liabilityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Liability' && (bsBalances[a.code] || a.isHeader));
+  const equityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Equity' && (bsBalances[a.code] || a.isHeader));
 
-  const totalAssets = assetAccounts.reduce((sum, acc) => sum + (balances[acc.code] || 0), 0);
-  const totalLiabilities = liabilityAccounts.reduce((sum, acc) => sum + (balances[acc.code] || 0), 0);
-  const totalEquity = equityAccounts.reduce((sum, acc) => sum + (balances[acc.code] || 0), 0);
+  const totalAssets = assetAccounts.reduce((sum, acc) => sum + (bsBalances[acc.code] || 0), 0);
+  const totalLiabilities = liabilityAccounts.reduce((sum, acc) => sum + (bsBalances[acc.code] || 0), 0);
+  const totalEquity = equityAccounts.reduce((sum, acc) => sum + (bsBalances[acc.code] || 0), 0);
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-slate-50 min-h-screen font-ledger">
-      <div className="flex items-center justify-between no-print max-w-6xl mx-auto w-full">
+      <div className="flex items-center justify-between no-print max-w-6xl mx-auto w-full bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">IFRS Financial Reports</h1>
-          <p className="text-muted-foreground">Dynamic auditing and reporting based on Chart of Accounts nature</p>
+          <h1 className="text-2xl font-bold text-primary tracking-tight">IFRS Financial Reports (FY {selectedFY})</h1>
+          <p className="text-xs text-muted-foreground">July to June Accounting System</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="size-4 mr-2" />
-            Print Reports
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="size-4 mr-2" />
-            Export Data
-          </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Calendar className="size-4 text-muted-foreground" />
+            <span className="text-xs font-medium">Fiscal Year:</span>
+            <Select value={selectedFY} onValueChange={setSelectedFY}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Select FY" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2022-23">FY 2022-23</SelectItem>
+                <SelectItem value="2023-24">FY 2023-24</SelectItem>
+                <SelectItem value="2024-25">FY 2024-25</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="size-4 mr-2" />
+              Print
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="size-4 mr-2" />
+              Export
+            </Button>
+          </div>
         </div>
       </div>
 
       <Tabs defaultValue="position" className="w-full max-w-6xl mx-auto">
         <TabsList className="grid w-full grid-cols-3 mb-8 no-print h-12 bg-white border shadow-sm">
           <TabsTrigger value="position" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
-            <Wallet className="size-4" /> Statement of Financial Position
+            <Wallet className="size-4" /> Financial Position
           </TabsTrigger>
           <TabsTrigger value="income" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-white">
             <TrendingUp className="size-4" /> Income Statement
@@ -117,14 +174,12 @@ export default function ReportsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* --- FINANCIAL POSITION (BALANCE SHEET) --- */}
         <TabsContent value="position">
           <Card className="border shadow-xl rounded-none print:shadow-none print:border-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Statement of Financial Position" subtitle="As of October 31, 2023" />
+              <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, 20${selectedFY.split('-')[1]}`} />
               
               <div className="space-y-12">
-                {/* Assets Section */}
                 <div>
                   <h3 className="text-lg font-bold border-b-2 border-primary/20 pb-2 mb-4 text-primary">I. ASSETS</h3>
                   <Table className="border border-slate-200">
@@ -132,7 +187,6 @@ export default function ReportsPage() {
                       <TableRow>
                         <TableHead className="w-[120px] font-bold">Code</TableHead>
                         <TableHead className="font-bold">Account Particulars</TableHead>
-                        <TableHead className="font-bold">Type</TableHead>
                         <TableHead className="font-bold">Nature</TableHead>
                         <TableHead className="text-right font-bold">Amount (৳)</TableHead>
                       </TableRow>
@@ -142,7 +196,6 @@ export default function ReportsPage() {
                         <TableRow key={acc.code} className={acc.isHeader ? "bg-slate-50/50 font-bold" : ""}>
                           <TableCell className="font-mono text-[10px]">{acc.code}</TableCell>
                           <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
-                          <TableCell className="text-[10px]">{acc.type || '-'}</TableCell>
                           <TableCell className="text-[10px]">
                             {acc.balance && (
                               <Badge variant="outline" className={`text-[9px] ${acc.balance === 'Debit' ? 'border-blue-200 text-blue-700' : 'border-orange-200 text-orange-700'}`}>
@@ -151,19 +204,18 @@ export default function ReportsPage() {
                             )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            {!acc.isHeader && formatCurrency(balances[acc.code] || 0)}
+                            {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-primary/5 font-bold">
-                        <TableCell colSpan={4} className="text-right">TOTAL ASSETS</TableCell>
+                        <TableCell colSpan={3} className="text-right">TOTAL ASSETS</TableCell>
                         <TableCell className="text-right border-t-2 border-primary underline decoration-double">{formatCurrency(totalAssets)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
                 </div>
 
-                {/* Equity & Liabilities Section */}
                 <div>
                   <h3 className="text-lg font-bold border-b-2 border-primary/20 pb-2 mb-4 text-primary">II. EQUITY AND LIABILITIES</h3>
                   
@@ -176,7 +228,7 @@ export default function ReportsPage() {
                             <TableCell className="font-mono text-[10px] w-[120px]">{acc.code}</TableCell>
                             <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
                             <TableCell className="text-right font-medium w-[150px]">
-                              {!acc.isHeader && formatCurrency(balances[acc.code] || 0)}
+                              {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -193,7 +245,7 @@ export default function ReportsPage() {
                             <TableCell className="font-mono text-[10px] w-[120px]">{acc.code}</TableCell>
                             <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
                             <TableCell className="text-right font-medium w-[150px]">
-                              {!acc.isHeader && formatCurrency(balances[acc.code] || 0)}
+                              {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
                             </TableCell>
                           </TableRow>
                         ))}
@@ -216,11 +268,10 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* --- INCOME STATEMENT --- */}
         <TabsContent value="income">
           <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Statement of Comprehensive Income" subtitle="For the Period Ended October 31, 2023" />
+              <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
               
               <div className="space-y-10 max-w-4xl mx-auto">
                 <section>
@@ -231,7 +282,7 @@ export default function ReportsPage() {
                         <span className="font-mono text-[10px] text-muted-foreground">{acc.code}</span>
                         <span>{acc.name}</span>
                       </span>
-                      <span className="font-medium">{formatCurrency(balances[acc.code] || 0)}</span>
+                      <span className="font-medium">{formatCurrency(periodBalances[acc.code] || 0)}</span>
                     </div>
                   ))}
                 </section>
@@ -244,7 +295,7 @@ export default function ReportsPage() {
                         <span className="font-mono text-[10px] text-muted-foreground">{acc.code}</span>
                         <span>{acc.name}</span>
                       </span>
-                      <span className="font-medium">{formatCurrency(balances[acc.code] || 0)}</span>
+                      <span className="font-medium">{formatCurrency(periodBalances[acc.code] || 0)}</span>
                     </div>
                   ))}
                 </section>
@@ -253,12 +304,12 @@ export default function ReportsPage() {
                   <span>Net Profit/Loss for the Period</span>
                   <span>
                     {formatCurrency(
-                      Object.keys(balances)
+                      Object.keys(periodBalances)
                         .filter(code => CHART_OF_ACCOUNTS.find(a => a.code === code)?.type === 'Income')
-                        .reduce((sum, code) => sum + balances[code], 0) -
-                      Object.keys(balances)
+                        .reduce((sum, code) => sum + periodBalances[code], 0) -
+                      Object.keys(periodBalances)
                         .filter(code => CHART_OF_ACCOUNTS.find(a => a.code === code)?.type === 'Expense')
-                        .reduce((sum, code) => sum + balances[code], 0)
+                        .reduce((sum, code) => sum + periodBalances[code], 0)
                     )}
                   </span>
                 </div>
@@ -267,23 +318,22 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* --- RECEIPT AND PAYMENT --- */}
         <TabsContent value="receipts">
           <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Statement of Receipts and Payments" subtitle="For the Period Ended October 31, 2023" />
+              <ReportHeader title="Statement of Receipts and Payments" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
               
               <div className="grid grid-cols-2 gap-px bg-slate-400 border border-slate-400">
                 <div className="bg-white p-8">
                   <h3 className="font-bold text-center border-b-2 border-primary pb-3 mb-6 uppercase text-sm text-primary">Receipts</h3>
                   <div className="space-y-3">
-                    {Object.keys(balances).filter(code => {
+                    {Object.keys(periodBalances).filter(code => {
                       const type = CHART_OF_ACCOUNTS.find(a => a.code === code)?.type;
                       return type === 'Income' || code.startsWith('105.2');
                     }).map(code => (
                       <div key={code} className="flex justify-between text-xs py-2 border-b border-dotted">
                         <span>{CHART_OF_ACCOUNTS.find(a => a.code === code)?.name}</span>
-                        <span className="font-medium">{formatCurrency(balances[code])}</span>
+                        <span className="font-medium">{formatCurrency(periodBalances[code])}</span>
                       </div>
                     ))}
                   </div>
@@ -291,13 +341,13 @@ export default function ReportsPage() {
                 <div className="bg-white p-8">
                   <h3 className="font-bold text-center border-b-2 border-rose-800 pb-3 mb-6 uppercase text-sm text-rose-800">Payments</h3>
                   <div className="space-y-3">
-                     {Object.keys(balances).filter(code => {
+                     {Object.keys(periodBalances).filter(code => {
                       const type = CHART_OF_ACCOUNTS.find(a => a.code === code)?.type;
                       return type === 'Expense' || code.startsWith('105.1');
                     }).map(code => (
                       <div key={code} className="flex justify-between text-xs py-2 border-b border-dotted">
                         <span>{CHART_OF_ACCOUNTS.find(a => a.code === code)?.name}</span>
-                        <span className="font-medium">{formatCurrency(balances[code])}</span>
+                        <span className="font-medium">{formatCurrency(periodBalances[code])}</span>
                       </div>
                     ))}
                   </div>
@@ -308,7 +358,6 @@ export default function ReportsPage() {
         </TabsContent>
       </Tabs>
 
-      {/* AI Analysis Section */}
       <div className="no-print mt-12 max-w-6xl mx-auto w-full">
         <Card className="bg-slate-900 text-white border-none rounded-none shadow-2xl">
           <CardHeader className="flex flex-row items-center justify-between border-b border-slate-800 pb-6">
@@ -317,12 +366,12 @@ export default function ReportsPage() {
                 <ShieldCheck className="size-6 text-emerald-400" />
                 AI Auditor's Insights
               </CardTitle>
-              <CardDescription className="text-slate-400">Autonomous analysis of financial positions and IFRS compliance.</CardDescription>
+              <CardDescription className="text-slate-400">Analysis for {fyDates.display}.</CardDescription>
             </div>
             <Button 
               size="sm" 
               className="bg-emerald-500 hover:bg-emerald-600 text-white border-none"
-              onClick={() => handleAISummarize("Statement of Financial Position Analysis", JSON.stringify({ balances, assetTotal: totalAssets, equityLiabTotal: totalEquity + totalLiabilities }))}
+              onClick={() => handleAISummarize(`Financial Report Analysis for FY ${selectedFY}`, JSON.stringify({ bsBalances, periodBalances, totalAssets, totalEquityLiab: totalEquity + totalLiabilities }))}
               disabled={isSummarizing}
             >
               {isSummarizing ? <Loader2 className="size-4 animate-spin mr-2" /> : <TrendingUp className="size-4 mr-2" />}
