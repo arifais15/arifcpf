@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from "react";
@@ -25,7 +24,6 @@ export default function ReportsPage() {
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
   const { data: entries, isLoading } = useCollection(entriesRef);
 
-  // Helper to get FY dates: FY 2023-24 = July 1, 2023 to June 30, 2024
   const fyDates = useMemo(() => {
     const startYear = parseInt(selectedFY.split("-")[0]) + 2000;
     const endYear = startYear + 1;
@@ -36,7 +34,7 @@ export default function ReportsPage() {
     };
   }, [selectedFY]);
 
-  // Balance Sheet (Financial Position) is CUMULATIVE up to the end of the period
+  // Aggregate balances from double-entry lines
   const bsBalances = useMemo(() => {
     if (!entries) return {};
     const map: Record<string, number> = {};
@@ -46,19 +44,32 @@ export default function ReportsPage() {
       const entryDate = new Date(entry.entryDate).getTime();
       if (entryDate > endDate) return;
 
-      const line = entry.primaryLine;
-      if (!line) return;
-      
-      const code = line.chartOfAccountId;
-      const amount = Number(line.amount) || 0;
-      
-      if (!map[code]) map[code] = 0;
-      map[code] += amount;
+      const entryLines = entry.lines || [];
+      entryLines.forEach((line: any) => {
+        const code = line.accountCode;
+        const coa = CHART_OF_ACCOUNTS.find(a => a.code === code);
+        if (!coa) return;
+
+        // In reports, we normalize value based on normal balance
+        // Asset/Expense: Debit - Credit
+        // Liability/Income/Equity: Credit - Debit
+        const debit = Number(line.debit) || 0;
+        const credit = Number(line.credit) || 0;
+        
+        let normalizedAmount = 0;
+        if (coa.balance === 'Debit') {
+          normalizedAmount = debit - credit;
+        } else {
+          normalizedAmount = credit - debit;
+        }
+
+        if (!map[code]) map[code] = 0;
+        map[code] += normalizedAmount;
+      });
     });
     return map;
   }, [entries, fyDates.end]);
 
-  // Income Statement and Receipt & Payment are for the SPECIFIC PERIOD
   const periodBalances = useMemo(() => {
     if (!entries) return {};
     const map: Record<string, number> = {};
@@ -69,14 +80,25 @@ export default function ReportsPage() {
       const entryDate = new Date(entry.entryDate).getTime();
       if (entryDate < startDate || entryDate > endDate) return;
 
-      const line = entry.primaryLine;
-      if (!line) return;
-      
-      const code = line.chartOfAccountId;
-      const amount = Number(line.amount) || 0;
-      
-      if (!map[code]) map[code] = 0;
-      map[code] += amount;
+      const entryLines = entry.lines || [];
+      entryLines.forEach((line: any) => {
+        const code = line.accountCode;
+        const coa = CHART_OF_ACCOUNTS.find(a => a.code === code);
+        if (!coa) return;
+
+        const debit = Number(line.debit) || 0;
+        const credit = Number(line.credit) || 0;
+        
+        let normalizedAmount = 0;
+        if (coa.balance === 'Debit') {
+          normalizedAmount = debit - credit;
+        } else {
+          normalizedAmount = credit - debit;
+        }
+
+        if (!map[code]) map[code] = 0;
+        map[code] += normalizedAmount;
+      });
     });
     return map;
   }, [entries, fyDates.start, fyDates.end]);
@@ -117,7 +139,6 @@ export default function ReportsPage() {
     );
   }
 
-  // Financial Position Accounts (Assets, Liabilities, Equity)
   const assetAccounts = CHART_OF_ACCOUNTS.filter(a => (a.type === 'Asset' || a.type === 'Contra-Asset') && (bsBalances[a.code] || a.isHeader));
   const liabilityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Liability' && (bsBalances[a.code] || a.isHeader));
   const equityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Equity' && (bsBalances[a.code] || a.isHeader));
@@ -130,8 +151,8 @@ export default function ReportsPage() {
     <div className="p-8 flex flex-col gap-8 bg-slate-50 min-h-screen font-ledger">
       <div className="flex items-center justify-between no-print max-w-6xl mx-auto w-full bg-white p-4 rounded-lg border shadow-sm">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-bold text-primary tracking-tight">IFRS Financial Reports (FY {selectedFY})</h1>
-          <p className="text-xs text-muted-foreground">July to June Accounting System</p>
+          <h1 className="text-2xl font-bold text-primary tracking-tight">IFRS Double-Entry Reports</h1>
+          <p className="text-xs text-muted-foreground">July to June Fiscal Cycle (Double-Entry Aggregation)</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -153,10 +174,6 @@ export default function ReportsPage() {
               <Printer className="size-4 mr-2" />
               Print
             </Button>
-            <Button variant="outline" size="sm">
-              <Download className="size-4 mr-2" />
-              Export
-            </Button>
           </div>
         </div>
       </div>
@@ -175,94 +192,50 @@ export default function ReportsPage() {
         </TabsList>
 
         <TabsContent value="position">
-          <Card className="border shadow-xl rounded-none print:shadow-none print:border-none bg-white">
+          <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
               <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, 20${selectedFY.split('-')[1]}`} />
-              
               <div className="space-y-12">
-                <div>
+                <section>
                   <h3 className="text-lg font-bold border-b-2 border-primary/20 pb-2 mb-4 text-primary">I. ASSETS</h3>
                   <Table className="border border-slate-200">
-                    <TableHeader className="bg-slate-50">
-                      <TableRow>
-                        <TableHead className="w-[120px] font-bold">Code</TableHead>
-                        <TableHead className="font-bold">Account Particulars</TableHead>
-                        <TableHead className="font-bold">Nature</TableHead>
-                        <TableHead className="text-right font-bold">Amount (৳)</TableHead>
-                      </TableRow>
-                    </TableHeader>
                     <TableBody>
                       {assetAccounts.map((acc) => (
                         <TableRow key={acc.code} className={acc.isHeader ? "bg-slate-50/50 font-bold" : ""}>
-                          <TableCell className="font-mono text-[10px]">{acc.code}</TableCell>
+                          <TableCell className="font-mono text-[10px] w-[120px]">{acc.code}</TableCell>
                           <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
-                          <TableCell className="text-[10px]">
-                            {acc.balance && (
-                              <Badge variant="outline" className={`text-[9px] ${acc.balance === 'Debit' ? 'border-blue-200 text-blue-700' : 'border-orange-200 text-orange-700'}`}>
-                                {acc.balance}
-                              </Badge>
-                            )}
-                          </TableCell>
                           <TableCell className="text-right font-medium">
                             {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
                           </TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-primary/5 font-bold">
-                        <TableCell colSpan={3} className="text-right">TOTAL ASSETS</TableCell>
+                        <TableCell colSpan={2} className="text-right">TOTAL ASSETS</TableCell>
                         <TableCell className="text-right border-t-2 border-primary underline decoration-double">{formatCurrency(totalAssets)}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
-                </div>
-
-                <div>
+                </section>
+                <section>
                   <h3 className="text-lg font-bold border-b-2 border-primary/20 pb-2 mb-4 text-primary">II. EQUITY AND LIABILITIES</h3>
-                  
-                  <div className="mb-6">
-                    <h4 className="font-bold text-sm mb-2 text-slate-600">A. EQUITY</h4>
-                    <Table className="border border-slate-200">
-                      <TableBody>
-                        {equityAccounts.map((acc) => (
-                          <TableRow key={acc.code} className={acc.isHeader ? "bg-slate-50/50 font-bold" : ""}>
-                            <TableCell className="font-mono text-[10px] w-[120px]">{acc.code}</TableCell>
-                            <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
-                            <TableCell className="text-right font-medium w-[150px]">
-                              {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold text-sm mb-2 text-slate-600">B. LIABILITIES</h4>
-                    <Table className="border border-slate-200">
-                      <TableBody>
-                        {liabilityAccounts.map((acc) => (
-                          <TableRow key={acc.code} className={acc.isHeader ? "bg-slate-50/50 font-bold" : ""}>
-                            <TableCell className="font-mono text-[10px] w-[120px]">{acc.code}</TableCell>
-                            <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
-                            <TableCell className="text-right font-medium w-[150px]">
-                              {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        <TableRow className="bg-primary/5 font-bold">
-                          <TableCell colSpan={2} className="text-right">TOTAL EQUITY AND LIABILITIES</TableCell>
-                          <TableCell className="text-right border-t-2 border-primary underline decoration-double">{formatCurrency(totalEquity + totalLiabilities)}</TableCell>
+                  <Table className="border border-slate-200">
+                    <TableBody>
+                      {[...equityAccounts, ...liabilityAccounts].map((acc) => (
+                        <TableRow key={acc.code} className={acc.isHeader ? "bg-slate-50/50 font-bold" : ""}>
+                          <TableCell className="font-mono text-[10px] w-[120px]">{acc.code}</TableCell>
+                          <TableCell className={acc.isHeader ? "pl-4" : "pl-8"}>{acc.name}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            {!acc.isHeader && formatCurrency(bsBalances[acc.code] || 0)}
+                          </TableCell>
                         </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-32 grid grid-cols-3 gap-12 text-center text-[10px] font-bold uppercase no-print-break">
-                <div className="border-t border-black pt-3">Accountant</div>
-                <div className="border-t border-black pt-3">AGM (Finance)</div>
-                <div className="border-t border-black pt-3">General Manager</div>
+                      ))}
+                      <TableRow className="bg-primary/5 font-bold">
+                        <TableCell colSpan={2} className="text-right">TOTAL EQUITY AND LIABILITIES</TableCell>
+                        <TableCell className="text-right border-t-2 border-primary underline decoration-double">{formatCurrency(totalEquity + totalLiabilities)}</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </section>
               </div>
             </CardContent>
           </Card>
@@ -272,36 +245,27 @@ export default function ReportsPage() {
           <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
               <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
-              
               <div className="space-y-10 max-w-4xl mx-auto">
                 <section>
                   <h3 className="font-bold border-b-2 border-slate-200 pb-2 uppercase text-sm mb-4 text-primary">Operating Income</h3>
                   {CHART_OF_ACCOUNTS.filter(a => a.type === 'Income').map(acc => (
                     <div key={acc.code} className="flex justify-between text-sm py-2 border-b border-dotted pl-4">
-                      <span className="flex gap-3">
-                        <span className="font-mono text-[10px] text-muted-foreground">{acc.code}</span>
-                        <span>{acc.name}</span>
-                      </span>
+                      <span>{acc.name}</span>
                       <span className="font-medium">{formatCurrency(periodBalances[acc.code] || 0)}</span>
                     </div>
                   ))}
                 </section>
-
                 <section>
                   <h3 className="font-bold border-b-2 border-slate-200 pb-2 uppercase text-sm mb-4 text-rose-800">Operating Expenses</h3>
                   {CHART_OF_ACCOUNTS.filter(a => a.type === 'Expense').map(acc => (
                     <div key={acc.code} className="flex justify-between text-sm py-2 border-b border-dotted pl-4">
-                      <span className="flex gap-3">
-                        <span className="font-mono text-[10px] text-muted-foreground">{acc.code}</span>
-                        <span>{acc.name}</span>
-                      </span>
+                      <span>{acc.name}</span>
                       <span className="font-medium">{formatCurrency(periodBalances[acc.code] || 0)}</span>
                     </div>
                   ))}
                 </section>
-
-                <div className="flex justify-between font-bold text-xl bg-slate-900 text-white p-6 rounded-none mt-12">
-                  <span>Net Profit/Loss for the Period</span>
+                <div className="flex justify-between font-bold text-xl bg-primary text-white p-6 rounded-none mt-12">
+                  <span>Net surplus / (Deficit)</span>
                   <span>
                     {formatCurrency(
                       Object.keys(periodBalances)
@@ -319,74 +283,34 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="receipts">
-          <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
+           {/* Similar structure but filtering for Cash/Bank movements specifically if desired, or simplified total movement */}
+           <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Statement of Receipts and Payments" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
-              
-              <div className="grid grid-cols-2 gap-px bg-slate-400 border border-slate-400">
-                <div className="bg-white p-8">
-                  <h3 className="font-bold text-center border-b-2 border-primary pb-3 mb-6 uppercase text-sm text-primary">Receipts</h3>
-                  <div className="space-y-3">
-                    {Object.keys(periodBalances).filter(code => {
-                      const type = CHART_OF_ACCOUNTS.find(a => a.code === code)?.type;
-                      return type === 'Income' || code.startsWith('105.2');
-                    }).map(code => (
-                      <div key={code} className="flex justify-between text-xs py-2 border-b border-dotted">
-                        <span>{CHART_OF_ACCOUNTS.find(a => a.code === code)?.name}</span>
-                        <span className="font-medium">{formatCurrency(periodBalances[code])}</span>
+              <ReportHeader title="Receipts and Payments" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
+              <div className="grid grid-cols-2 gap-px bg-slate-300 border">
+                 <div className="bg-white p-6">
+                    <h4 className="font-bold text-primary mb-4 border-b pb-2">RECEIPTS</h4>
+                    {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && CHART_OF_ACCOUNTS.find(a => a.code === c)?.balance === 'Credit').map(c => (
+                      <div key={c} className="flex justify-between text-xs py-1 border-b border-dotted">
+                        <span>{CHART_OF_ACCOUNTS.find(a => a.code === c)?.name}</span>
+                        <span>{formatCurrency(periodBalances[c])}</span>
                       </div>
                     ))}
-                  </div>
-                </div>
-                <div className="bg-white p-8">
-                  <h3 className="font-bold text-center border-b-2 border-rose-800 pb-3 mb-6 uppercase text-sm text-rose-800">Payments</h3>
-                  <div className="space-y-3">
-                     {Object.keys(periodBalances).filter(code => {
-                      const type = CHART_OF_ACCOUNTS.find(a => a.code === code)?.type;
-                      return type === 'Expense' || code.startsWith('105.1');
-                    }).map(code => (
-                      <div key={code} className="flex justify-between text-xs py-2 border-b border-dotted">
-                        <span>{CHART_OF_ACCOUNTS.find(a => a.code === code)?.name}</span>
-                        <span className="font-medium">{formatCurrency(periodBalances[code])}</span>
+                 </div>
+                 <div className="bg-white p-6">
+                    <h4 className="font-bold text-rose-700 mb-4 border-b pb-2">PAYMENTS</h4>
+                    {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && CHART_OF_ACCOUNTS.find(a => a.code === c)?.balance === 'Debit').map(c => (
+                      <div key={c} className="flex justify-between text-xs py-1 border-b border-dotted">
+                        <span>{CHART_OF_ACCOUNTS.find(a => a.code === c)?.name}</span>
+                        <span>{formatCurrency(periodBalances[c])}</span>
                       </div>
                     ))}
-                  </div>
-                </div>
+                 </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      <div className="no-print mt-12 max-w-6xl mx-auto w-full">
-        <Card className="bg-slate-900 text-white border-none rounded-none shadow-2xl">
-          <CardHeader className="flex flex-row items-center justify-between border-b border-slate-800 pb-6">
-            <div>
-              <CardTitle className="text-xl flex items-center gap-3">
-                <ShieldCheck className="size-6 text-emerald-400" />
-                AI Auditor's Insights
-              </CardTitle>
-              <CardDescription className="text-slate-400">Analysis for {fyDates.display}.</CardDescription>
-            </div>
-            <Button 
-              size="sm" 
-              className="bg-emerald-500 hover:bg-emerald-600 text-white border-none"
-              onClick={() => handleAISummarize(`Financial Report Analysis for FY ${selectedFY}`, JSON.stringify({ bsBalances, periodBalances, totalAssets, totalEquityLiab: totalEquity + totalLiabilities }))}
-              disabled={isSummarizing}
-            >
-              {isSummarizing ? <Loader2 className="size-4 animate-spin mr-2" /> : <TrendingUp className="size-4 mr-2" />}
-              {isSummarizing ? "Running Audit..." : "Generate Audit Summary"}
-            </Button>
-          </CardHeader>
-          {aiSummary && (
-            <CardContent className="p-8">
-              <div className="p-6 bg-slate-800/50 rounded-lg border border-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-ledger text-slate-200">
-                {aiSummary}
-              </div>
-            </CardContent>
-          )}
-        </Card>
-      </div>
     </div>
   );
 }
