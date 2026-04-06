@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from "react";
@@ -56,7 +55,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       // Col 7: Total Employee's Fund = Prev + 1 - 2 + 3 + 5 + 6
       runningEmployeeFund = runningEmployeeFund + col1 - col2 + col3 + col5 + col6;
 
-      // Col 10: Total Office Contribution = Prev + 8 + 9
+      // Col 10: Total Office Contribution = Prev + (8 + 9)
       runningOfficeFund = runningOfficeFund + col8 + col9;
 
       // Col 11: Cumulative Fund Balance = 7 + 10
@@ -334,7 +333,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="bg-white p-10 shadow-lg rounded-none border border-slate-300 max-w-[1200px] mx-auto w-full font-serif text-[#1e1e1e] print:shadow-none print:border-none">
+      <div className="bg-white p-10 shadow-lg rounded-none border border-slate-300 max-w-[1200px] mx-auto w-full font-ledger font-light text-[#1e1e1e] print:shadow-none print:border-none">
         <div className="relative mb-6">
           <p className="text-[10px] absolute left-0 top-0">REB Form no: 224</p>
           <div className="text-center space-y-0.5">

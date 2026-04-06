@@ -12,6 +12,7 @@ export default {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
+        ledger: ['"Calibri Light"', 'Calibri', 'Candara', 'Segoe UI', 'Optima', 'Arial', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
