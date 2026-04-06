@@ -2,10 +2,10 @@
 
 import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText } from "lucide-react";
+import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
-import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -22,6 +22,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [bulkCsvData, setBulkCsvData] = useState("");
+  const [editingEntry, setEditingEntry] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const memberRef = useMemoFirebase(() => doc(firestore, "members", resolvedParams.id), [firestore, resolvedParams.id]);
@@ -91,7 +92,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     }), { col1: 0, col2: 0, col3: 0, col5: 0, col6: 0, col8: 0, col9: 0 });
   }, [calculatedRows]);
 
-  const handleAddEntry = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const entryData = {
@@ -108,9 +109,30 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       memberId: resolvedParams.id
     };
 
-    addDocumentNonBlocking(summariesRef, entryData);
-    toast({ title: "Entry Added", description: "Ledger entry has been recorded." });
+    if (editingEntry) {
+      const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id);
+      updateDocumentNonBlocking(entryRef, entryData);
+      toast({ title: "Entry Updated", description: "Ledger entry has been modified." });
+    } else {
+      addDocumentNonBlocking(summariesRef, entryData);
+      toast({ title: "Entry Added", description: "Ledger entry has been recorded." });
+    }
+    
     setIsEntryOpen(false);
+    setEditingEntry(null);
+  };
+
+  const handleEditClick = (entry: any) => {
+    setEditingEntry(entry);
+    setIsEntryOpen(true);
+  };
+
+  const handleDeleteEntry = (entryId: string) => {
+    if (confirm("Are you sure you want to delete this entry?")) {
+      const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", entryId);
+      deleteDocumentNonBlocking(entryRef);
+      toast({ title: "Entry Deleted", description: "Ledger entry has been removed." });
+    }
   };
 
   const processEntries = (entries: any[]) => {
@@ -276,54 +298,54 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
+          <Dialog open={isEntryOpen} onOpenChange={(open) => { setIsEntryOpen(open); if (!open) setEditingEntry(null); }}>
             <DialogTrigger asChild>
               <Button variant="secondary" size="sm"><Plus className="size-4 mr-2" /> New Entry</Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>New Ledger Entry</DialogTitle>
+                <DialogTitle>{editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleAddEntry} className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSaveEntry} className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-2">
                   <Label>Date</Label>
-                  <Input name="summaryDate" type="date" required />
+                  <Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required />
                 </div>
                 <div className="col-span-2 space-y-2">
                   <Label>Particulars</Label>
-                  <Input name="particulars" placeholder="e.g. PJ-02-001 or Interest" required />
+                  <Input name="particulars" placeholder="e.g. PJ-02-001 or Interest" defaultValue={editingEntry?.particulars} required />
                 </div>
                 <div className="space-y-2">
                   <Label>Emp. Contrib (Col 1)</Label>
-                  <Input name="employeeContribution" type="number" step="0.01" defaultValue="0" />
+                  <Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || "0"} />
                 </div>
                 <div className="space-y-2">
                   <Label>Loan Withdraw (Col 2)</Label>
-                  <Input name="loanWithdrawal" type="number" step="0.01" defaultValue="0" />
+                  <Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || "0"} />
                 </div>
                 <div className="space-y-2">
                   <Label>Loan Repay (Col 3)</Label>
-                  <Input name="loanRepayment" type="number" step="0.01" defaultValue="0" />
+                  <Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || "0"} />
                 </div>
                 <div className="space-y-2">
                   <Label>Profit Emp (Col 5)</Label>
-                  <Input name="profitEmployee" type="number" step="0.01" defaultValue="0" />
+                  <Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || "0"} />
                 </div>
                 <div className="space-y-2">
                   <Label>Profit Loan (Col 6)</Label>
-                  <Input name="profitLoan" type="number" step="0.01" defaultValue="0" />
+                  <Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || "0"} />
                 </div>
                 <div className="space-y-2">
                   <Label>PBS Contrib (Col 8)</Label>
-                  <Input name="pbsContribution" type="number" step="0.01" defaultValue="0" />
+                  <Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || "0"} />
                 </div>
                 <div className="space-y-2">
                   <Label>Profit PBS (Col 9)</Label>
-                  <Input name="profitPbs" type="number" step="0.01" defaultValue="0" />
+                  <Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || "0"} />
                 </div>
                 <DialogFooter className="col-span-2">
                   <Button type="button" variant="outline" onClick={() => setIsEntryOpen(false)}>Cancel</Button>
-                  <Button type="submit">Save Entry</Button>
+                  <Button type="submit">{editingEntry ? "Update Entry" : "Save Entry"}</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -375,6 +397,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-1 text-center font-bold leading-tight">Profit on PBS Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Total Office Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Cumulative Fund Balance</th>
+                <th className="border border-black p-1 text-center font-bold no-print">Actions</th>
               </tr>
               <tr className="bg-white">
                 <th className="border border-black p-0.5"></th>
@@ -390,15 +413,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-0.5 text-center font-bold">9</th>
                 <th className="border border-black p-0.5 font-bold text-center italic">10 = Prev + (8 + 9)</th>
                 <th className="border border-black p-0.5 font-bold text-center italic">11 = (7 + 10)</th>
+                <th className="border border-black p-0.5 no-print"></th>
               </tr>
             </thead>
             <tbody>
               {isSummariesLoading ? (
-                <tr><td colSpan={13} className="text-center p-4">Loading ledger...</td></tr>
+                <tr><td colSpan={14} className="text-center p-4">Loading ledger...</td></tr>
               ) : calculatedRows.length === 0 ? (
-                <tr><td colSpan={13} className="text-center p-4 text-muted-foreground">No ledger entries found.</td></tr>
+                <tr><td colSpan={14} className="text-center p-4 text-muted-foreground">No ledger entries found.</td></tr>
               ) : calculatedRows.map((row: any, idx) => (
-                <tr key={idx} className="bg-white">
+                <tr key={idx} className="bg-white group hover:bg-slate-50 transition-colors">
                   <td className="border border-black p-1 whitespace-nowrap">{row.summaryDate}</td>
                   <td className="border border-black p-1">{row.particulars || "-"}</td>
                   <td className="border border-black p-1 text-right">{row.col1.toFixed(2)}</td>
@@ -412,6 +436,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-right">{row.col9.toFixed(2)}</td>
                   <td className="border border-black p-1 text-right font-bold">{row.col10.toFixed(2)}</td>
                   <td className="border border-black p-1 text-right font-bold">{row.col11.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-center no-print whitespace-nowrap">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClick(row)}>
+                        <Edit2 className="size-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteEntry(row.id)}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {totals && (
@@ -428,6 +462,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-right">{totals.col9.toFixed(2)}</td>
                   <td className="border border-black p-1 text-right">{(totals.col8 + totals.col9).toFixed(2)}</td>
                   <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-0.5 no-print"></td>
                 </tr>
               )}
             </tbody>
