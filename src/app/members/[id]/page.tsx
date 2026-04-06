@@ -1,8 +1,13 @@
+"use client"
+
 import { Button } from "@/components/ui/button";
 import { Printer, Download, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import * as React from "react";
 
-export default function MemberLedgerPage({ params }: { params: { id: string } }) {
+export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = React.use(params);
+  
   // Data matched exactly to the image provided
   const member = {
     id: "1932",
@@ -133,7 +138,7 @@ export default function MemberLedgerPage({ params }: { params: { id: string } })
             <div className="flex gap-x-8">
                <div className="flex gap-2 flex-1">
                 <span className="font-bold min-w-[40px]">ID No:</span>
-                <span className="font-bold border-b border-dotted border-black flex-1">{member.id}</span>
+                <span className="font-bold border-b border-dotted border-black flex-1">{resolvedParams.id}</span>
               </div>
               <div className="flex gap-2 flex-1">
                 <span className="font-bold whitespace-nowrap">Date of Nomination:</span>
@@ -165,33 +170,17 @@ export default function MemberLedgerPage({ params }: { params: { id: string } })
               <tr className="bg-white">
                 <th className="border border-black p-0.5"></th>
                 <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5 font-bold text-center leading-tight">Employee Contribution</th>
-                <th className="border border-black p-0.5 font-bold text-center leading-tight">CPF Loan</th>
-                <th className="border border-black p-0.5 font-bold text-center italic">7 = Prev + 1 - 2 + 3 + 5 + 6</th>
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5 font-bold text-center italic">10 = (8 + 9)</th>
-                <th className="border border-black p-0.5 font-bold text-center italic">11 = (7 + 10)</th>
-              </tr>
-              {/* COLUMN NUMBERS */}
-              <tr className="bg-white">
-                <th className="border border-black p-0.5"></th>
-                <th className="border border-black p-0.5"></th>
                 <th className="border border-black p-0.5 text-center font-bold">1</th>
                 <th className="border border-black p-0.5 text-center font-bold">2</th>
                 <th className="border border-black p-0.5 text-center font-bold">3</th>
                 <th className="border border-black p-0.5 text-center font-bold">4</th>
-                <th className="border border-black p-0.5 text-center font-bold">5</th>
-                <th className="border border-black p-0.5 text-center font-bold">6</th>
-                <th className="border border-black p-0.5 text-center font-bold"></th>
+                <th className="border border-black p-0.5 font-bold text-center leading-tight">Employee Contribution (5)</th>
+                <th className="border border-black p-0.5 font-bold text-center leading-tight">CPF Loan (6)</th>
+                <th className="border border-black p-0.5 font-bold text-center italic">7 = Prev + 1 - 2 + 3 + 5 + 6</th>
                 <th className="border border-black p-0.5 text-center font-bold">8</th>
                 <th className="border border-black p-0.5 text-center font-bold">9</th>
-                <th className="border border-black p-0.5 text-center font-bold"></th>
-                <th className="border border-black p-0.5 text-center font-bold"></th>
+                <th className="border border-black p-0.5 font-bold text-center italic">10 = (8 + 9)</th>
+                <th className="border border-black p-0.5 font-bold text-center italic">11 = (7 + 10)</th>
               </tr>
             </thead>
             <tbody>
@@ -233,7 +222,7 @@ export default function MemberLedgerPage({ params }: { params: { id: string } })
 
         {/* FOOTER SECTION */}
         <div className="mt-12 flex justify-between items-end text-[9px]">
-           <p className="font-bold">{member.id}--{member.name}--{member.designation} =Page 1 of 1</p>
+           <p className="font-bold">{resolvedParams.id}--{member.name}--{member.designation} =Page 1 of 1</p>
            <p className="text-right italic">CPF Management Software Developed by Ariful Islam Agm finance, contact: 017317530731</p>
         </div>
       </div>
