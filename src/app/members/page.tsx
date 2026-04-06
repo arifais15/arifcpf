@@ -5,7 +5,7 @@ import { useState, useRef } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, FileText } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, FileText, Download } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
@@ -69,7 +69,6 @@ export default function MembersPage() {
 
   const processEntries = (entries: any[]) => {
     entries.forEach(entry => {
-      // Basic cleaning of keys and values
       const cleanedEntry: any = {};
       Object.keys(entry).forEach(key => {
         cleanedEntry[key.trim()] = entry[key]?.toString().trim();
@@ -119,9 +118,27 @@ export default function MembersPage() {
         toast({ title: "Upload Failed", description: "Could not parse Excel file.", variant: "destructive" });
       } finally {
         setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
     reader.readAsBinaryString(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        memberIdNumber: "1234",
+        name: "Md. Ariful Islam",
+        designation: "AGM(Finance)",
+        dateJoined: "2018-04-25",
+        zonalOffice: "Gazipur PBS-2",
+        permanentAddress: "Baitkamari, Gazipur"
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "member_upload_template.xlsx");
   };
 
   return (
@@ -141,7 +158,13 @@ export default function MembersPage() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Bulk Upload Members</DialogTitle>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Bulk Upload Members</DialogTitle>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="text-xs h-7 gap-1">
+                    <Download className="size-3" />
+                    Download Template
+                  </Button>
+                </div>
                 <DialogDescription>
                   Upload an Excel file or paste CSV data. Required columns: memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress
                 </DialogDescription>
