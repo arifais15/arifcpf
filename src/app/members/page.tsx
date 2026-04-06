@@ -1,17 +1,19 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2 } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, FileText } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as XLSX from "xlsx";
 
 export default function MembersPage() {
   const firestore = useFirestore();
@@ -21,6 +23,8 @@ export default function MembersPage() {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [bulkData, setBulkData] = useState("");
   const [editingMember, setEditingMember] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading } = useCollection(membersRef);
@@ -63,7 +67,21 @@ export default function MembersPage() {
     }
   };
 
-  const handleBulkUpload = () => {
+  const processEntries = (entries: any[]) => {
+    entries.forEach(entry => {
+      // Basic cleaning of keys and values
+      const cleanedEntry: any = {};
+      Object.keys(entry).forEach(key => {
+        cleanedEntry[key.trim()] = entry[key]?.toString().trim();
+      });
+      addDocumentNonBlocking(membersRef, cleanedEntry);
+    });
+    toast({ title: "Bulk Upload Started", description: `Processing ${entries.length} entries.` });
+    setIsBulkOpen(false);
+    setBulkData("");
+  };
+
+  const handleBulkCsvUpload = () => {
     const lines = bulkData.trim().split("\n");
     if (lines.length < 2) {
       toast({ title: "Error", description: "Please provide a header line and at least one data line.", variant: "destructive" });
@@ -80,13 +98,30 @@ export default function MembersPage() {
       return entry;
     });
 
-    entries.forEach(entry => {
-      addDocumentNonBlocking(membersRef, entry);
-    });
+    processEntries(entries);
+  };
 
-    toast({ title: "Bulk Upload Started", description: `Processing ${entries.length} entries.` });
-    setIsBulkOpen(false);
-    setBulkData("");
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const bstr = event.target?.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+        processEntries(data);
+      } catch (err) {
+        toast({ title: "Upload Failed", description: "Could not parse Excel file.", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   return (
@@ -108,18 +143,55 @@ export default function MembersPage() {
               <DialogHeader>
                 <DialogTitle>Bulk Upload Members</DialogTitle>
                 <DialogDescription>
-                  Paste CSV data below. Header must be: memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress
+                  Upload an Excel file or paste CSV data. Required columns: memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress
                 </DialogDescription>
               </DialogHeader>
-              <textarea
-                className="min-h-[300px] w-full p-4 font-mono text-sm border rounded-md"
-                placeholder="memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress&#10;1932, Md. Ariful Islam, AGM(Finance), 2018-04-25, Razendrapur, Gazipur, Baitkamari..."
-                value={bulkData}
-                onChange={(e) => setBulkData(e.target.value)}
-              />
+
+              <Tabs defaultValue="excel" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="excel" className="gap-2">
+                    <FileSpreadsheet className="size-4" /> Excel File
+                  </TabsTrigger>
+                  <TabsTrigger value="csv" className="gap-2">
+                    <FileText className="size-4" /> Paste CSV
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="excel" className="space-y-4 py-4">
+                  <div 
+                    className="border-2 border-dashed border-muted rounded-xl p-12 text-center flex flex-col items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="bg-primary/10 p-4 rounded-full">
+                      <FileSpreadsheet className="size-8 text-primary" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium">Click to upload or drag and drop</p>
+                      <p className="text-sm text-muted-foreground">XLSX, XLS or CSV files are supported</p>
+                    </div>
+                    <Input 
+                      type="file" 
+                      className="hidden" 
+                      ref={fileInputRef}
+                      accept=".xlsx, .xls, .csv"
+                      onChange={handleExcelUpload}
+                      disabled={isUploading}
+                    />
+                    {isUploading && <Loader2 className="size-4 animate-spin text-primary" />}
+                  </div>
+                </TabsContent>
+                <TabsContent value="csv" className="space-y-4 py-4">
+                  <textarea
+                    className="min-h-[200px] w-full p-4 font-mono text-sm border rounded-md"
+                    placeholder="memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress&#10;1932, Md. Ariful Islam, AGM(Finance), 2018-04-25, Razendrapur, Gazipur, Baitkamari..."
+                    value={bulkData}
+                    onChange={(e) => setBulkData(e.target.value)}
+                  />
+                  <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV Data</Button>
+                </TabsContent>
+              </Tabs>
+              
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsBulkOpen(false)}>Cancel</Button>
-                <Button onClick={handleBulkUpload}>Process Upload</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
