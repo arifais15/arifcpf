@@ -1,0 +1,513 @@
+{
+  "entities": {
+    "ChartOfAccount": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChartOfAccount",
+      "type": "object",
+      "description": "Represents a single account within the Chart of Accounts, providing the foundational structure for all financial entries.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ChartOfAccount entity."
+        },
+        "accountCode": {
+          "type": "string",
+          "description": "The unique hierarchical code assigned to the account (e.g., '101.10.0000')."
+        },
+        "accountName": {
+          "type": "string",
+          "description": "The descriptive name of the account (e.g., 'Fixed Deposit Receipt (FDR)')."
+        },
+        "accountType": {
+          "type": "string",
+          "description": "The classification of the account (e.g., Asset, Liability, Income, Expense, Contra-Asset).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "normalBalance": {
+          "type": "string",
+          "description": "The side (Debit or Credit) on which increases to the account are recorded.",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parentAccountCode": {
+          "type": "string",
+          "description": "The account code of the parent account in the hierarchy. (Relationship: ChartOfAccount 1:N ChartOfAccount)"
+        }
+      },
+      "required": [
+        "id",
+        "accountCode",
+        "accountName",
+        "accountType",
+        "normalBalance"
+      ]
+    },
+    "Member": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Member",
+      "type": "object",
+      "description": "Stores information about a member (employee) of the CPF, used for tracking individual contributions, loans, and generating subsidiary ledgers.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Member entity."
+        },
+        "memberIdNumber": {
+          "type": "string",
+          "description": "The unique identification number assigned to the member by PBS."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the member."
+        },
+        "designation": {
+          "type": "string",
+          "description": "The official job title or designation of the member."
+        },
+        "dateJoined": {
+          "type": "string",
+          "description": "The date when the member joined the organization.",
+          "format": "date"
+        },
+        "currentAddress": {
+          "type": "string",
+          "description": "The current residential address of the member."
+        },
+        "permanentAddress": {
+          "type": "string",
+          "description": "The permanent residential address of the member."
+        },
+        "zonalOffice": {
+          "type": "string",
+          "description": "The zonal office associated with the member."
+        },
+        "dateNomination": {
+          "type": "string",
+          "description": "The date of the member's provident fund nomination.",
+          "format": "date"
+        }
+      },
+      "required": [
+        "id",
+        "memberIdNumber",
+        "name",
+        "designation",
+        "dateJoined"
+      ]
+    },
+    "JournalEntry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JournalEntry",
+      "type": "object",
+      "description": "Represents a complete financial transaction in the general ledger, comprising one or more debit and credit line items.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the JournalEntry entity."
+        },
+        "entryDate": {
+          "type": "string",
+          "description": "The date when the journal entry was recorded.",
+          "format": "date"
+        },
+        "description": {
+          "type": "string",
+          "description": "A general description of the entire journal entry."
+        },
+        "referenceNumber": {
+          "type": "string",
+          "description": "An optional external reference number associated with the transaction (e.g., voucher number, invoice number)."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to the Member if the journal entry is specifically related to a member's activity (e.g., contribution, loan). (Relationship: Member 1:N JournalEntry)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "The date and time when this journal entry was created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "The date and time when this journal entry was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "entryDate",
+        "description",
+        "createdAt"
+      ]
+    },
+    "JournalEntryLineItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "JournalEntryLineItem",
+      "type": "object",
+      "description": "Represents a single debit or credit line within a Journal Entry, detailing the specific account and amount affected.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the JournalEntryLineItem entity."
+        },
+        "journalEntryId": {
+          "type": "string",
+          "description": "Reference to the parent JournalEntry this line item belongs to. (Relationship: JournalEntry 1:N JournalEntryLineItem)"
+        },
+        "chartOfAccountId": {
+          "type": "string",
+          "description": "Reference to the ChartOfAccount entry affected by this line item. (Relationship: ChartOfAccount 1:N JournalEntryLineItem)"
+        },
+        "debitAmount": {
+          "type": "number",
+          "description": "The amount debited to the account. Should be 0 if it's a credit."
+        },
+        "creditAmount": {
+          "type": "number",
+          "description": "The amount credited to the account. Should be 0 if it's a debit."
+        },
+        "lineDescription": {
+          "type": "string",
+          "description": "A specific description for this individual line item, if different from the overall journal entry description."
+        }
+      },
+      "required": [
+        "id",
+        "journalEntryId",
+        "chartOfAccountId",
+        "debitAmount",
+        "creditAmount"
+      ]
+    },
+    "InvestmentInstrument": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InvestmentInstrument",
+      "type": "object",
+      "description": "Details about a specific investment instrument held by the CPF, such as an FDR or a bond, used for tracking and accruals.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the InvestmentInstrument entity."
+        },
+        "chartOfAccountId": {
+          "type": "string",
+          "description": "Reference to the ChartOfAccount representing this type of investment (e.g., FDR, Savings Certificate). (Relationship: ChartOfAccount 1:N InvestmentInstrument)"
+        },
+        "instrumentType": {
+          "type": "string",
+          "description": "The specific type of investment instrument (e.g., FDR, Savings Certificate, Govt. Treasury Bond).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "referenceNumber": {
+          "type": "string",
+          "description": "A unique identifier or certificate number for this specific investment instrument."
+        },
+        "issueDate": {
+          "type": "string",
+          "description": "The date when the investment instrument was issued or acquired.",
+          "format": "date"
+        },
+        "maturityDate": {
+          "type": "string",
+          "description": "The date when the investment instrument matures (if applicable).",
+          "format": "date"
+        },
+        "principalAmount": {
+          "type": "number",
+          "description": "The initial principal amount invested."
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "The annual interest rate of the investment, as a decimal (e.g., 0.05 for 5%)."
+        },
+        "accrualFrequency": {
+          "type": "string",
+          "description": "How often interest is typically accrued for this instrument (e.g., Monthly, Quarterly, Annually).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastAccrualDate": {
+          "type": "string",
+          "description": "The last date on which interest was accrued and recorded for this instrument.",
+          "format": "date"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the investment instrument (e.g., Active, Matured, Closed).",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "chartOfAccountId",
+        "instrumentType",
+        "referenceNumber",
+        "issueDate",
+        "principalAmount",
+        "status"
+      ]
+    },
+    "AccruedInterestLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AccruedInterestLog",
+      "type": "object",
+      "description": "Records each instance of calculated accrued interest, whether from investments or member loans, prior to being posted to the general ledger.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the AccruedInterestLog entity."
+        },
+        "accrualDate": {
+          "type": "string",
+          "description": "The date when the interest was calculated and accrued.",
+          "format": "date"
+        },
+        "chartOfAccountId": {
+          "type": "string",
+          "description": "Reference to the ChartOfAccount representing the accrued interest asset (e.g., Accrued Interest on FDR). (Relationship: ChartOfAccount 1:N AccruedInterestLog)"
+        },
+        "sourceId": {
+          "type": "string",
+          "description": "Reference to the source entity from which the interest is accrued (e.g., InvestmentInstrument ID or Member ID for a loan)."
+        },
+        "sourceType": {
+          "type": "string",
+          "description": "Indicates the type of source for the accrued interest (e.g., 'InvestmentInstrument' or 'MemberLoan').",
+          "format": "enum",
+          "items": {
+            "type": "string"
+          }
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of interest accrued for the specified period."
+        },
+        "periodStartDate": {
+          "type": "string",
+          "description": "The start date of the period for which this interest was accrued.",
+          "format": "date"
+        },
+        "periodEndDate": {
+          "type": "string",
+          "description": "The end date of the period for which this interest was accrued.",
+          "format": "date"
+        },
+        "isPostedToGL": {
+          "type": "boolean",
+          "description": "A boolean indicating whether a corresponding journal entry has been created for this accrued interest."
+        }
+      },
+      "required": [
+        "id",
+        "accrualDate",
+        "chartOfAccountId",
+        "sourceId",
+        "sourceType",
+        "amount",
+        "periodStartDate",
+        "periodEndDate",
+        "isPostedToGL"
+      ]
+    },
+    "MemberFundSummary": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "MemberFundSummary",
+      "type": "object",
+      "description": "A snapshot entity that stores the cumulative balances for a member's provident fund and loan activities at a specific point in time, facilitating the dynamic generation of subsidiary ledgers.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the MemberFundSummary entity."
+        },
+        "memberId": {
+          "type": "string",
+          "description": "Reference to the Member whose fund summary this record represents. (Relationship: Member 1:N MemberFundSummary)"
+        },
+        "summaryDate": {
+          "type": "string",
+          "description": "The date for which this cumulative summary is valid, typically end of month or year.",
+          "format": "date"
+        },
+        "employeeContributionCumulative": {
+          "type": "number",
+          "description": "The cumulative total of contributions made by the employee up to the summary date."
+        },
+        "pbsContributionCumulative": {
+          "type": "number",
+          "description": "The cumulative total of contributions made by PBS on behalf of the employee up to the summary date."
+        },
+        "profitEmployeeContributionCumulative": {
+          "type": "number",
+          "description": "The cumulative profit (interest) earned on the employee's own contributions up to the summary date."
+        },
+        "profitPbsContributionCumulative": {
+          "type": "number",
+          "description": "The cumulative profit (interest) earned on PBS contributions up to the summary date."
+        },
+        "loanPrincipalOutstandingCumulative": {
+          "type": "number",
+          "description": "The cumulative principal amount outstanding for all loans taken by the member up to the summary date."
+        },
+        "totalFundCumulative": {
+          "type": "number",
+          "description": "The total cumulative fund balance for the member (Employee Contributions + PBS Contributions + their respective profits) up to the summary date."
+        },
+        "lastUpdateDate": {
+          "type": "string",
+          "description": "The date and time when this fund summary record was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "memberId",
+        "summaryDate",
+        "employeeContributionCumulative",
+        "pbsContributionCumulative",
+        "profitEmployeeContributionCumulative",
+        "profitPbsContributionCumulative",
+        "loanPrincipalOutstandingCumulative",
+        "totalFundCumulative",
+        "lastUpdateDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/chartOfAccounts/{chartOfAccountId}",
+        "definition": {
+          "entityName": "ChartOfAccount",
+          "schema": {
+            "$ref": "#/backend/entities/ChartOfAccount"
+          },
+          "description": "Stores the global chart of accounts, serving as the foundational structure for all financial entries. Read access typically granted to all authenticated users for lookup; write access restricted to administrators."
+        }
+      },
+      {
+        "path": "/members/{memberId}",
+        "definition": {
+          "entityName": "Member",
+          "schema": {
+            "$ref": "#/backend/entities/Member"
+          },
+          "description": "Stores individual member (employee) details, including basic information for provident fund tracking. CRUD operations are restricted to administrators. Each member can read their own `Member` document. This path directly reflects the `memberId` for path-based authorization.",
+          "params": [
+            {
+              "name": "memberId",
+              "description": "The unique identifier of the member."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/journalEntries/{journalEntryId}",
+        "definition": {
+          "entityName": "JournalEntry",
+          "schema": {
+            "$ref": "#/backend/entities/JournalEntry"
+          },
+          "description": "Stores individual financial transactions, comprising multiple line items. CRUD operations are restricted to administrators. Includes `memberId` for direct linking to member-related transactions, supporting authorization independence for potential member-specific queries.",
+          "params": [
+            {
+              "name": "journalEntryId",
+              "description": "The unique identifier of the journal entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/journalEntries/{journalEntryId}/lineItems/{lineItemId}",
+        "definition": {
+          "entityName": "JournalEntryLineItem",
+          "schema": {
+            "$ref": "#/backend/entities/JournalEntryLineItem"
+          },
+          "description": "A subcollection for individual debit/credit line items associated with a parent `JournalEntry`. Authorization is inherited from the parent `JournalEntry`, with `journalEntryId` implicitly available in the path.",
+          "params": [
+            {
+              "name": "journalEntryId",
+              "description": "The unique identifier of the parent journal entry."
+            },
+            {
+              "name": "lineItemId",
+              "description": "The unique identifier of the journal entry line item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/investmentInstruments/{instrumentId}",
+        "definition": {
+          "entityName": "InvestmentInstrument",
+          "schema": {
+            "$ref": "#/backend/entities/InvestmentInstrument"
+          },
+          "description": "Stores details of various investment instruments held by the CPF. CRUD operations are restricted to administrators.",
+          "params": [
+            {
+              "name": "instrumentId",
+              "description": "The unique identifier of the investment instrument."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/accruedInterestLogs/{accrualLogId}",
+        "definition": {
+          "entityName": "AccruedInterestLog",
+          "schema": {
+            "$ref": "#/backend/entities/AccruedInterestLog"
+          },
+          "description": "Records each instance of calculated accrued interest. CRUD operations are restricted to administrators. Includes `sourceId` and `sourceType` for linking to either an `InvestmentInstrument` or a `Member` (for loans).",
+          "params": [
+            {
+              "name": "accrualLogId",
+              "description": "The unique identifier of the accrued interest log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/members/{memberId}/fundSummaries/{summaryId}",
+        "definition": {
+          "entityName": "MemberFundSummary",
+          "schema": {
+            "$ref": "#/backend/entities/MemberFundSummary"
+          },
+          "description": "A subcollection storing cumulative provident fund and loan balances for a specific member at a given date. This entity is crucial for the 'dynamic Provident Fund Subsidiary Ledger'. The `memberId` is denormalized in the path, enabling direct authorization for members to access their own summaries (`request.auth.uid == memberId`).",
+          "params": [
+            {
+              "name": "memberId",
+              "description": "The unique identifier of the member to whom this fund summary belongs."
+            },
+            {
+              "name": "summaryId",
+              "description": "The unique identifier for this specific fund summary record (e.g., date-based ID)."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support the PBS CPF Management Accounting Software, focusing on secure, scalable, and debuggable financial operations, member tracking, and dynamic ledger generation. Key to this design is adhering to Authorization Independence and QAP principles.\n\n**Authorization Independence:**\n1.  **MemberFundSummary:** To enable secure and efficient generation of the \"Provident Fund Subsidiary Ledger,\" the `MemberFundSummary` entity is placed as a subcollection under `/members/{memberId}/fundSummaries/{summaryId}`. This hierarchical path directly embeds the `memberId` as a wildcard, which matches the `memberId` field within the `MemberFundSummary` document. This explicit path-based ownership means that security rules can directly check `request.auth.uid == memberId` (where `memberId` is the path wildcard) or `request.auth.uid == resource.data.memberId` without requiring any `get()` operations to parent documents. This ensures atomic creation and updates and simplifies rule logic considerably.\n2.  **JournalEntry:** The `JournalEntry` entity includes a `memberId` field. While `journalEntries` is a top-level collection primarily for administrative access, if individual members ever need to view their specific transactions, this denormalized `memberId` would allow rules to check `request.auth.uid == resource.data.memberId` directly, preserving authorization independence from any related `Member` document.\n\n**QAPs (Rules are not Filters):**\n1.  **Structural Segregation:** All top-level collections (`/chartOfAccounts`, `/members`, `/journalEntries`, `/investmentInstruments`, `/accruedInterestLogs`) maintain a homogeneous security posture. For example, `/chartOfAccounts` holds static, global data, accessible generally for read operations to all authenticated users and only writeable by administrators. This clear segregation means that a `list` operation on these collections will not need to filter out documents that are unauthorized for the requesting user, thus adhering to QAPs. For `list` operations, the rule can confidently grant or deny access to the *entire* collection based on the user's role.\n2.  **Path-Based Ownership for Member Data:** For member-specific data like `MemberFundSummary`, the structure `/members/{memberId}/fundSummaries/{summaryId}` enables QAP compliance. When a member requests a list of their fund summaries, they would query `/members/{request.auth.uid}/fundSummaries`. The Firestore security rules can then directly use the path wildcard `{memberId}` (which will be `request.auth.uid`) to validate read access for all documents in that specific subcollection. This ensures that the `list` operation will only ever return data the user is authorized to see, without any implied filtering by the rules themselves."
+  }
+}

@@ -1,0 +1,144 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * PBS CPF Management Accounting Software - Security Rules
+     * 
+     * CORE PHILOSOPHY:
+     * This ruleset implements a robust administrative control model combined with path-based 
+     * ownership for member-specific data. It is designed for the Prototyping Phase, prioritizing 
+     * strict authorization (who can access) over strict schema validation (data shape).
+     * 
+     * DATA STRUCTURE:
+     * 1. Global Administrative Collections: /chartOfAccounts, /journalEntries, /investmentInstruments, 
+     *    and /accruedInterestLogs. These are primarily managed by administrators.
+     * 2. Member Hierarchy: /members/{memberId} contains personal employee details.
+     * 3. Member Subcollections: /members/{memberId}/fundSummaries/{summaryId} stores time-series 
+     *    financial snapshots for the "Provident Fund Subsidiary Ledger."
+     * 
+     * KEY SECURITY DECISIONS:
+     * - Administrative Access: A placeholder `isAdmin()` function is used for all high-level 
+     *   CRUD operations. This should be backed by Firebase Auth Custom Claims (e.g., { "role": "admin" }).
+     * - Member Privacy: Members are granted 'read' access to their own Member profile and their 
+     *   own Fund Summaries via path-based wildcards ({memberId}), adhering to Authorization Independence.
+     * - Relational Integrity: On creation of member-linked documents, we ensure the internal 
+     *   ID fields match the path or the authenticated user's ID. (Note: Not enforced in this proto phase).
+     * - Write Protection: All update and delete operations explicitly verify that the 
+     *   document exists before proceeding.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the user is authenticated. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the authenticated user's UID matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** 
+     * @description Checks if the user has administrative privileges. 
+     * For prototyping, we check for an 'admin' role in the auth token.
+     */
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    /** @description Verifies document existence for administrative updates/deletes. */
+    function existsForAdmin() {
+      return resource != null && isAdmin();
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Global list of accounts. Publicly readable by authenticated staff; writeable by admins.
+     * @path /chartOfAccounts/{chartOfAccountId}
+     * @allow (get, list) if authenticated.
+     * @deny (create, update, delete) if user is not an admin.
+     * @principle Public read with administrative-only writes.
+     */
+    match /chartOfAccounts/{chartOfAccountId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if existsForAdmin();
+    }
+
+    /**
+     * @description Individual member (employee) profiles. Members can view their own; admins manage all.
+     * @path /members/{memberId}
+     * @allow (get, list) if user is the member (isOwner) or an admin.
+     * @deny (write) if user is not an admin.
+     * @principle Path-based ownership for reads; administrative control for writes.
+     */
+    match /members/{memberId} {
+      allow get, list: if isOwner(memberId) || isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if existsForAdmin();
+
+      /**
+       * @description Snapshot balances for a member's provident fund ledger.
+       * @path /members/{memberId}/fundSummaries/{summaryId}
+       * @allow (get, list) if the user is the owner of the parent member path.
+       * @deny (write) if user is not an admin.
+       * @principle Subcollection access inherited from parent path wildcard for QAP compliance.
+       */
+      match /fundSummaries/{summaryId} {
+        allow get, list: if isOwner(memberId) || isAdmin();
+        allow create: if isAdmin();
+        allow update, delete: if existsForAdmin();
+      }
+    }
+
+    /**
+     * @description Financial journal entries and transactions. 
+     * @path /journalEntries/{journalEntryId}
+     * @allow (all) if user is an admin.
+     * @deny (all) for non-administrative users.
+     * @principle Strict administrative isolation for general ledger data.
+     */
+    match /journalEntries/{journalEntryId} {
+      allow get, list, create: if isAdmin();
+      allow update, delete: if existsForAdmin();
+
+      /**
+       * @description Individual debit/credit lines belonging to a journal entry.
+       * @path /journalEntries/{journalEntryId}/lineItems/{lineItemId}
+       * @allow (all) if user is an admin.
+       * @principle Inherited administrative access from parent transaction.
+       */
+      match /lineItems/{lineItemId} {
+        allow get, list, create: if isAdmin();
+        allow update, delete: if existsForAdmin();
+      }
+    }
+
+    /**
+     * @description Details of CPF investment instruments (FDRs, Bonds, etc.).
+     * @path /investmentInstruments/{instrumentId}
+     * @allow (all) if user is an admin.
+     * @deny (all) for non-administrative users.
+     * @principle Restricted access to institutional investment data.
+     */
+    match /investmentInstruments/{instrumentId} {
+      allow get, list, create: if isAdmin();
+      allow update, delete: if existsForAdmin();
+    }
+
+    /**
+     * @description Audit logs for interest accruals from investments or loans.
+     * @path /accruedInterestLogs/{accrualLogId}
+     * @allow (all) if user is an admin.
+     * @deny (all) for non-administrative users.
+     * @principle Auditable administrative control over automated financial logs.
+     */
+    match /accruedInterestLogs/{accrualLogId} {
+      allow get, list, create: if isAdmin();
+      allow update, delete: if existsForAdmin();
+    }
+  }
+}
