@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo } from "react";
@@ -25,7 +26,6 @@ export default function COAPage() {
   const { data: coaData, isLoading } = useCollection(coaRef);
 
   // Combine Firestore data with fallback to initial data if collection is empty
-  // In a real app, you'd likely seed the DB once.
   const displayAccounts = useMemo(() => {
     const data = coaData && coaData.length > 0 ? coaData : INITIAL_COA;
     return data
@@ -39,11 +39,15 @@ export default function COAPage() {
   const handleSaveAccount = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    
+    const type = formData.get("type") as string;
+    const balance = formData.get("balance") as string;
+    
     const accountData = {
       code: formData.get("code") as string,
       name: formData.get("name") as string,
-      type: formData.get("type") as string,
-      balance: formData.get("balance") as string,
+      type: type === "none" ? "" : type,
+      balance: balance === "none" ? "" : balance,
       isHeader: formData.get("isHeader") === "true",
     };
 
@@ -98,7 +102,7 @@ export default function COAPage() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="type">Account Type</Label>
-                    <Select name="type" defaultValue={editingAccount?.type || "Asset"}>
+                    <Select name="type" defaultValue={editingAccount ? (editingAccount.type || "none") : "Asset"}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
@@ -109,7 +113,7 @@ export default function COAPage() {
                         <SelectItem value="Equity">Equity</SelectItem>
                         <SelectItem value="Income">Income</SelectItem>
                         <SelectItem value="Expense">Expense</SelectItem>
-                        <SelectItem value="">None (Header)</SelectItem>
+                        <SelectItem value="none">None (Header)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -121,14 +125,14 @@ export default function COAPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="balance">Normal Balance</Label>
-                    <Select name="balance" defaultValue={editingAccount?.balance || "Debit"}>
+                    <Select name="balance" defaultValue={editingAccount ? (editingAccount.balance || "none") : "Debit"}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select balance" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Debit">Debit</SelectItem>
                         <SelectItem value="Credit">Credit</SelectItem>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -184,7 +188,7 @@ export default function COAPage() {
                   <Loader2 className="size-6 animate-spin mx-auto text-primary" />
                 </TableCell>
               </TableRow>
-            ) : displayAccounts.map((account: any, idx: number) => (
+            ) : displayAccounts.map((account: any) => (
               <TableRow key={account.id || account.code} className={account.isHeader ? "bg-muted/20 font-semibold" : ""}>
                 <TableCell className="font-mono text-xs">{account.code}</TableCell>
                 <TableCell className={account.isHeader ? "pl-4" : "pl-8"}>
