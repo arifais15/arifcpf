@@ -1,17 +1,17 @@
+
 "use client"
 
-import { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useMemo, useState, useEffect } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection } from "firebase/firestore";
-import { Loader2, Printer, Download, TrendingUp, Wallet, ArrowDownUp, ShieldCheck, Calendar } from "lucide-react";
+import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { summarizeFinancialReport } from "@/ai/flows/financial-report-summarizer";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function ReportsPage() {
@@ -19,14 +19,55 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const [isSummarizing, setIsSummarizing] = useState(false);
   const [aiSummary, setAiSummary] = useState<string | null>(null);
-  const [selectedFY, setSelectedFY] = useState("2023-24");
+  const [selectedFY, setSelectedFY] = useState("");
 
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
   const { data: entries, isLoading } = useCollection(entriesRef);
 
+  // Dynamically calculate available Fiscal Years from transactions
+  const availableFYs = useMemo(() => {
+    if (!entries || entries.length === 0) {
+      // Default to current FY if no transactions exist
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const currentFY = month >= 7 
+        ? `${year}-${(year + 1).toString().slice(-2)}` 
+        : `${year - 1}-${year.toString().slice(-2)}`;
+      return [currentFY];
+    }
+
+    const fys = new Set<string>();
+    entries.forEach(entry => {
+      const date = new Date(entry.entryDate);
+      if (isNaN(date.getTime())) return;
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1; // 1-indexed
+      // July to June cycle
+      const fy = month >= 7 
+        ? `${year}-${(year + 1).toString().slice(-2)}` 
+        : `${year - 1}-${year.toString().slice(-2)}`;
+      fys.add(fy);
+    });
+
+    return Array.from(fys).sort((a, b) => b.localeCompare(a));
+  }, [entries]);
+
+  // Set default selected FY
+  useEffect(() => {
+    if (availableFYs.length > 0 && (!selectedFY || !availableFYs.includes(selectedFY))) {
+      setSelectedFY(availableFYs[0]);
+    }
+  }, [availableFYs, selectedFY]);
+
   const fyDates = useMemo(() => {
-    const startYear = parseInt(selectedFY.split("-")[0]) + 2000;
+    if (!selectedFY) return { start: '', end: '', display: '' };
+    
+    const parts = selectedFY.split("-");
+    const startYear = parseInt(parts[0]);
+    // Logic: if startYear is 2023, end year is 2024
     const endYear = startYear + 1;
+
     return {
       start: `${startYear}-07-01`,
       end: `${endYear}-06-30`,
@@ -36,7 +77,7 @@ export default function ReportsPage() {
 
   // Aggregate balances from double-entry lines
   const bsBalances = useMemo(() => {
-    if (!entries) return {};
+    if (!entries || !selectedFY) return {};
     const map: Record<string, number> = {};
     const endDate = new Date(fyDates.end).getTime();
     
@@ -50,9 +91,6 @@ export default function ReportsPage() {
         const coa = CHART_OF_ACCOUNTS.find(a => a.code === code);
         if (!coa) return;
 
-        // In reports, we normalize value based on normal balance
-        // Asset/Expense: Debit - Credit
-        // Liability/Income/Equity: Credit - Debit
         const debit = Number(line.debit) || 0;
         const credit = Number(line.credit) || 0;
         
@@ -68,10 +106,10 @@ export default function ReportsPage() {
       });
     });
     return map;
-  }, [entries, fyDates.end]);
+  }, [entries, fyDates.end, selectedFY]);
 
   const periodBalances = useMemo(() => {
-    if (!entries) return {};
+    if (!entries || !selectedFY) return {};
     const map: Record<string, number> = {};
     const startDate = new Date(fyDates.start).getTime();
     const endDate = new Date(fyDates.end).getTime();
@@ -101,19 +139,7 @@ export default function ReportsPage() {
       });
     });
     return map;
-  }, [entries, fyDates.start, fyDates.end]);
-
-  const handleAISummarize = async (reportName: string, content: string) => {
-    setIsSummarizing(true);
-    try {
-      const result = await summarizeFinancialReport({ reportContent: `${reportName}\n\n${content}` });
-      setAiSummary(result.summary);
-    } catch (err) {
-      toast({ title: "AI Error", description: "Failed to generate report summary.", variant: "destructive" });
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
+  }, [entries, fyDates.start, fyDates.end, selectedFY]);
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat('en-BD', {
@@ -139,9 +165,9 @@ export default function ReportsPage() {
     );
   }
 
-  const assetAccounts = CHART_OF_ACCOUNTS.filter(a => (a.type === 'Asset' || a.type === 'Contra-Asset') && (bsBalances[a.code] || a.isHeader));
-  const liabilityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Liability' && (bsBalances[a.code] || a.isHeader));
-  const equityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Equity' && (bsBalances[a.code] || a.isHeader));
+  const assetAccounts = CHART_OF_ACCOUNTS.filter(a => (a.type === 'Asset' || a.type === 'Contra-Asset') && (bsBalances[a.code] !== 0 || a.isHeader));
+  const liabilityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Liability' && (bsBalances[a.code] !== 0 || a.isHeader));
+  const equityAccounts = CHART_OF_ACCOUNTS.filter(a => a.type === 'Equity' && (bsBalances[a.code] !== 0 || a.isHeader));
 
   const totalAssets = assetAccounts.reduce((sum, acc) => sum + (bsBalances[acc.code] || 0), 0);
   const totalLiabilities = liabilityAccounts.reduce((sum, acc) => sum + (bsBalances[acc.code] || 0), 0);
@@ -163,9 +189,9 @@ export default function ReportsPage() {
                 <SelectValue placeholder="Select FY" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="2022-23">FY 2022-23</SelectItem>
-                <SelectItem value="2023-24">FY 2023-24</SelectItem>
-                <SelectItem value="2024-25">FY 2024-25</SelectItem>
+                {availableFYs.map(fy => (
+                  <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -194,7 +220,7 @@ export default function ReportsPage() {
         <TabsContent value="position">
           <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, 20${selectedFY.split('-')[1]}`} />
+              <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="space-y-12">
                 <section>
                   <h3 className="text-lg font-bold border-b-2 border-primary/20 pb-2 mb-4 text-primary">I. ASSETS</h3>
@@ -244,7 +270,7 @@ export default function ReportsPage() {
         <TabsContent value="income">
           <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
+              <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="space-y-10 max-w-4xl mx-auto">
                 <section>
                   <h3 className="font-bold border-b-2 border-slate-200 pb-2 uppercase text-sm mb-4 text-primary">Operating Income</h3>
@@ -283,10 +309,9 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="receipts">
-           {/* Similar structure but filtering for Cash/Bank movements specifically if desired, or simplified total movement */}
            <Card className="border shadow-xl rounded-none print:shadow-none bg-white">
             <CardContent className="p-16">
-              <ReportHeader title="Receipts and Payments" subtitle={`For the Year Ended June 30, 20${selectedFY.split('-')[1]}`} />
+              <ReportHeader title="Receipts and Payments" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="grid grid-cols-2 gap-px bg-slate-300 border">
                  <div className="bg-white p-6">
                     <h4 className="font-bold text-primary mb-4 border-b pb-2">RECEIPTS</h4>
