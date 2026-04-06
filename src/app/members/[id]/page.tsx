@@ -39,6 +39,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const calculatedRows = useMemo(() => {
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
+    let runningOfficeFund = 0;
 
     return sortedSummaries.map((row: any) => {
       const col1 = Number(row.employeeContribution) || 0;
@@ -55,15 +56,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       // Col 7: Total Employee's Fund = Prev + 1 - 2 + 3 + 5 + 6
       runningEmployeeFund = runningEmployeeFund + col1 - col2 + col3 + col5 + col6;
 
-      // Col 10: Total Office Contribution = 8 + 9
-      const col10 = col8 + col9;
+      // Col 10: Total Office Contribution = Prev + 8 + 9
+      runningOfficeFund = runningOfficeFund + col8 + col9;
 
       // Col 11: Cumulative Fund Balance = 7 + 10
-      const col11 = runningEmployeeFund + col10;
+      const col11 = runningEmployeeFund + runningOfficeFund;
 
       return {
         ...row,
-        col1, col2, col3, col4: runningLoanBalance, col5, col6, col7: runningEmployeeFund, col8, col9, col10, col11
+        col1, 
+        col2, 
+        col3, 
+        col4: runningLoanBalance, 
+        col5, 
+        col6, 
+        col7: runningEmployeeFund, 
+        col8, 
+        col9, 
+        col10: runningOfficeFund, 
+        col11
       };
     });
   }, [sortedSummaries]);
@@ -106,7 +117,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const processEntries = (entries: any[]) => {
     let count = 0;
     entries.forEach(entry => {
-      // Mapping from common column names or specific requested names
       const entryData = {
         summaryDate: entry.Date || entry.summaryDate || "",
         particulars: entry.Particulars || entry.particulars || "",
@@ -379,7 +389,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-0.5 font-bold text-center italic">7 = Prev + 1 - 2 + 3 + 5 + 6</th>
                 <th className="border border-black p-0.5 text-center font-bold">8</th>
                 <th className="border border-black p-0.5 text-center font-bold">9</th>
-                <th className="border border-black p-0.5 font-bold text-center italic">10 = (8 + 9)</th>
+                <th className="border border-black p-0.5 font-bold text-center italic">10 = Prev + (8 + 9)</th>
                 <th className="border border-black p-0.5 font-bold text-center italic">11 = (7 + 10)</th>
               </tr>
             </thead>
