@@ -1,23 +1,29 @@
 
 "use client"
 
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft, Loader2, Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import * as XLSX from "xlsx";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isEntryOpen, setIsEntryOpen] = useState(false);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [bulkCsvData, setBulkCsvData] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const memberRef = useMemoFirebase(() => doc(firestore, "members", resolvedParams.id), [firestore, resolvedParams.id]);
   const { data: member, isLoading: isMemberLoading } = useDoc(memberRef);
@@ -25,12 +31,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
-  // Sorting summaries by date
-  const sortedSummaries = React.useMemo(() => {
+  const sortedSummaries = useMemo(() => {
     return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
   }, [summaries]);
 
-  const totals = React.useMemo(() => {
+  const totals = useMemo(() => {
     if (!summaries || summaries.length === 0) return null;
     return summaries.reduce((acc, curr) => ({
       emp: acc.emp + (Number(curr.employeeContributionCumulative) || 0),
@@ -62,6 +67,94 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setIsEntryOpen(false);
   };
 
+  const processEntries = (entries: any[]) => {
+    let count = 0;
+    entries.forEach(entry => {
+      const entryData = {
+        summaryDate: entry.summaryDate || entry["Date"] || "",
+        particulars: entry.particulars || entry["Particulars"] || "",
+        employeeContributionCumulative: Number(entry.employeeContributionCumulative || entry["Emp Contrib"] || 0),
+        pbsContributionCumulative: Number(entry.pbsContributionCumulative || entry["PBS Contrib"] || 0),
+        profitEmployeeContributionCumulative: Number(entry.profitEmployeeContributionCumulative || entry["Profit Emp"] || 0),
+        profitPbsContributionCumulative: Number(entry.profitPbsContributionCumulative || entry["Profit PBS"] || 0),
+        loanPrincipalOutstandingCumulative: Number(entry.loanPrincipalOutstandingCumulative || entry["Loan Balance"] || 0),
+        totalFundCumulative: Number(entry.totalFundCumulative || entry["Total Fund"] || 0),
+        lastUpdateDate: new Date().toISOString(),
+        memberId: resolvedParams.id
+      };
+      
+      if (entryData.summaryDate) {
+        addDocumentNonBlocking(summariesRef, entryData);
+        count++;
+      }
+    });
+    toast({ title: "Processing Complete", description: `Added ${count} ledger entries.` });
+    setIsBulkOpen(false);
+  };
+
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const bstr = event.target?.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+        processEntries(data);
+      } catch (err) {
+        toast({ title: "Upload Failed", description: "Could not parse Excel file.", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleBulkCsvUpload = () => {
+    const lines = bulkCsvData.trim().split("\n");
+    if (lines.length < 2) {
+      toast({ title: "Error", description: "Please provide a header line and at least one data line.", variant: "destructive" });
+      return;
+    }
+
+    const headers = lines[0].split(",").map(h => h.trim());
+    const entries = lines.slice(1).map(line => {
+      const values = line.split(",").map(v => v.trim());
+      const entry: any = {};
+      headers.forEach((h, i) => {
+        entry[h] = values[i];
+      });
+      return entry;
+    });
+
+    processEntries(entries);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        summaryDate: "2023-10-31",
+        particulars: "Monthly Contribution Oct-23",
+        employeeContributionCumulative: 1500.00,
+        pbsContributionCumulative: 1500.00,
+        profitEmployeeContributionCumulative: 12.50,
+        profitPbsContributionCumulative: 12.50,
+        loanPrincipalOutstandingCumulative: 0.00,
+        totalFundCumulative: 3025.00
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "LedgerEntries");
+    XLSX.writeFile(wb, "ledger_entries_template.xlsx");
+  };
+
   if (isMemberLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
   }
@@ -83,6 +176,58 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
+          <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Bulk Upload Ledger Entries</DialogTitle>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="text-xs h-7 gap-1">
+                    <Download className="size-3" />
+                    Download Template
+                  </Button>
+                </div>
+                <DialogDescription>
+                  Upload ledger history for {member.name}. Fields: summaryDate, particulars, employeeContributionCumulative, pbsContributionCumulative, etc.
+                </DialogDescription>
+              </DialogHeader>
+              <Tabs defaultValue="excel" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="excel" className="gap-2"><FileSpreadsheet className="size-4" /> Excel File</TabsTrigger>
+                  <TabsTrigger value="csv" className="gap-2"><FileText className="size-4" /> Paste CSV</TabsTrigger>
+                </TabsList>
+                <TabsContent value="excel" className="space-y-4 py-4">
+                  <div 
+                    className="border-2 border-dashed border-muted rounded-xl p-12 text-center flex flex-col items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="bg-primary/10 p-4 rounded-full"><FileSpreadsheet className="size-8 text-primary" /></div>
+                    <div className="space-y-1">
+                      <p className="font-medium">Click to upload or drag and drop</p>
+                      <p className="text-sm text-muted-foreground">XLSX, XLS or CSV files are supported</p>
+                    </div>
+                    <Input type="file" className="hidden" ref={fileInputRef} accept=".xlsx, .xls, .csv" onChange={handleExcelUpload} disabled={isUploading} />
+                    {isUploading && <Loader2 className="size-4 animate-spin text-primary" />}
+                  </div>
+                </TabsContent>
+                <TabsContent value="csv" className="space-y-4 py-4">
+                  <textarea
+                    className="min-h-[200px] w-full p-4 font-mono text-sm border rounded-md"
+                    placeholder="summaryDate, particulars, employeeContributionCumulative, pbsContributionCumulative, profitEmployeeContributionCumulative, profitPbsContributionCumulative, loanPrincipalOutstandingCumulative, totalFundCumulative"
+                    value={bulkCsvData}
+                    onChange={(e) => setBulkCsvData(e.target.value)}
+                  />
+                  <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV Data</Button>
+                </TabsContent>
+              </Tabs>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsBulkOpen(false)}>Cancel</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
             <DialogTrigger asChild>
               <Button variant="secondary" size="sm"><Plus className="size-4 mr-2" /> New Entry</Button>
@@ -137,7 +282,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="bg-white p-10 shadow-lg rounded-none border border-slate-300 max-w-[1200px] mx-auto w-full font-serif text-[#1e1e1e] print:shadow-none print:border-none">
-        {/* HEADER SECTION */}
         <div className="relative mb-6">
           <p className="text-[10px] absolute left-0 top-0">REB Form no: 224</p>
           <div className="text-center space-y-0.5">
@@ -146,49 +290,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {/* MEMBER INFORMATION GRID */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-6 text-[11px]">
           <div className="space-y-2">
-            <div className="flex gap-2">
-              <span className="font-bold min-w-[100px]">Name:</span>
-              <span className="font-bold border-b border-dotted border-black flex-1">{member.name}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold min-w-[100px]">Curr. Address:</span>
-              <span className="border-b border-dotted border-black flex-1">{member.currentAddress || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold min-w-[100px]">Date of Joined:</span>
-              <span className="font-bold border-b border-dotted border-black flex-1">{member.dateJoined}</span>
-            </div>
+            <div className="flex gap-2"><span className="font-bold min-w-[100px]">Name:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.name}</span></div>
+            <div className="flex gap-2"><span className="font-bold min-w-[100px]">Curr. Address:</span><span className="border-b border-dotted border-black flex-1">{member.currentAddress || "-"}</span></div>
+            <div className="flex gap-2"><span className="font-bold min-w-[100px]">Date of Joined:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.dateJoined}</span></div>
           </div>
           <div className="space-y-2">
-            <div className="flex gap-2">
-              <span className="font-bold min-w-[120px]">Designation:</span>
-              <span className="font-bold border-b border-dotted border-black flex-1">{member.designation}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold min-w-[120px]">Zonal Office:</span>
-              <span className="border-b border-dotted border-black flex-1">{member.zonalOffice || "-"}</span>
-            </div>
-            <div className="flex gap-2">
-              <span className="font-bold min-w-[120px]">Permanent Address:</span>
-              <span className="border-b border-dotted border-black flex-1 text-[10px]">{member.permanentAddress || "-"}</span>
-            </div>
+            <div className="flex gap-2"><span className="font-bold min-w-[120px]">Designation:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.designation}</span></div>
+            <div className="flex gap-2"><span className="font-bold min-w-[120px]">Zonal Office:</span><span className="border-b border-dotted border-black flex-1">{member.zonalOffice || "-"}</span></div>
+            <div className="flex gap-2"><span className="font-bold min-w-[120px]">Permanent Address:</span><span className="border-b border-dotted border-black flex-1 text-[10px]">{member.permanentAddress || "-"}</span></div>
             <div className="flex gap-x-8">
-               <div className="flex gap-2 flex-1">
-                <span className="font-bold min-w-[40px]">ID No:</span>
-                <span className="font-bold border-b border-dotted border-black flex-1">{member.memberIdNumber}</span>
-              </div>
-              <div className="flex gap-2 flex-1">
-                <span className="font-bold whitespace-nowrap">Date of Nomination:</span>
-                <span className="font-bold border-b border-dotted border-black flex-1">{member.dateNomination || "-"}</span>
-              </div>
+               <div className="flex gap-2 flex-1"><span className="font-bold min-w-[40px]">ID No:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.memberIdNumber}</span></div>
+               <div className="flex gap-2 flex-1"><span className="font-bold whitespace-nowrap">Date of Nomination:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.dateNomination || "-"}</span></div>
             </div>
           </div>
         </div>
 
-        {/* LEDGER TABLE */}
         <div className="overflow-x-auto">
           <table className="w-full text-[9px] border-collapse border border-black">
             <thead>
@@ -244,7 +362,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-right font-bold">{(Number(row.totalFundCumulative) + Number(row.pbsContributionCumulative) + Number(row.profitPbsContributionCumulative))?.toFixed(2)}</td>
                 </tr>
               ))}
-              {/* TOTAL ROW */}
               {totals && (
                 <tr className="bg-white font-bold">
                   <td colSpan={2} className="border border-black p-1 text-center">Total</td>
@@ -265,7 +382,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
 
-        {/* FOOTER SECTION */}
         <div className="mt-12 flex justify-between items-end text-[9px]">
            <p className="font-bold">{member.memberIdNumber}--{member.name}--{member.designation} =Page 1 of 1</p>
            <p className="text-right italic">CPF Management Software Developed by Ariful Islam Agm finance, contact: 017317530731</p>
