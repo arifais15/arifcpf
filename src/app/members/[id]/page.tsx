@@ -1,87 +1,79 @@
+
 "use client"
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft } from "lucide-react";
+import { Printer, Download, ArrowLeft, Loader2, Plus, Calendar as CalendarIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
+import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { doc, collection } from "firebase/firestore";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
-  
-  // Data matched exactly to the image provided
-  const member = {
-    id: "1932",
-    name: "Md. Ariful Islam",
-    designation: "AGM(Finance)",
-    headOffice: "Razendrapur, Gazipur",
-    currAddress: "",
-    permanentAddress: "Baitkamari,chatra Kachari,pirganj,rangpur",
-    joined: "25-Apr-2018",
-    nominated: "28-Aug-2019",
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isEntryOpen, setIsEntryOpen] = useState(false);
+
+  const memberRef = useMemoFirebase(() => doc(firestore, "members", resolvedParams.id), [firestore, resolvedParams.id]);
+  const { data: member, isLoading: isMemberLoading } = useDoc(memberRef);
+
+  const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
+  const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
+
+  // Sorting summaries by date
+  const sortedSummaries = React.useMemo(() => {
+    return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
+  }, [summaries]);
+
+  const totals = React.useMemo(() => {
+    if (!summaries || summaries.length === 0) return null;
+    return summaries.reduce((acc, curr) => ({
+      emp: acc.emp + (Number(curr.employeeContributionCumulative) || 0),
+      pbs: acc.pbs + (Number(curr.pbsContributionCumulative) || 0),
+      profitEmp: acc.profitEmp + (Number(curr.profitEmployeeContributionCumulative) || 0),
+      profitPbs: acc.profitPbs + (Number(curr.profitPbsContributionCumulative) || 0),
+      total: acc.total + (Number(curr.totalFundCumulative) || 0)
+    }), { emp: 0, pbs: 0, profitEmp: 0, profitPbs: 0, total: 0 });
+  }, [summaries]);
+
+  const handleAddEntry = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const entryData = {
+      summaryDate: formData.get("summaryDate"),
+      particulars: formData.get("particulars"),
+      employeeContributionCumulative: Number(formData.get("empContrib")),
+      pbsContributionCumulative: Number(formData.get("pbsContrib")),
+      profitEmployeeContributionCumulative: Number(formData.get("profitEmp")),
+      profitPbsContributionCumulative: Number(formData.get("profitPbs")),
+      loanPrincipalOutstandingCumulative: Number(formData.get("loanBalance")),
+      totalFundCumulative: Number(formData.get("totalFund")),
+      lastUpdateDate: new Date().toISOString(),
+      memberId: resolvedParams.id
+    };
+
+    addDocumentNonBlocking(summariesRef, entryData);
+    toast({ title: "Entry Added", description: "Ledger entry has been recorded." });
+    setIsEntryOpen(false);
   };
 
-  const ledgerEntries = [
-    {
-      date: "28-Feb-25",
-      particulars: "PJ-02-001",
-      empContrib: "784.00",
-      withdraws: "0",
-      loanRepay: "0",
-      loanBalance: "0",
-      profitEmp: "0.00",
-      profitLoan: "0.00",
-      totalEmpFund: "784.00",
-      pbsContrib: "653.00",
-      profitPBS: "0.00",
-      totalOfficeContrib: "653.00",
-      cumulativeBalance: "1,437.00"
-    },
-    {
-      date: "31-Mar-25",
-      particulars: "PJ-03-001",
-      empContrib: "5,486.00",
-      withdraws: "0",
-      loanRepay: "0",
-      loanBalance: "0",
-      profitEmp: "0.00",
-      profitLoan: "0.00",
-      totalEmpFund: "6,270.00",
-      pbsContrib: "4,571.00",
-      profitPBS: "0.00",
-      totalOfficeContrib: "5,224.00",
-      cumulativeBalance: "11,494.00"
-    },
-    {
-      date: "30-Apr-25",
-      particulars: "PJ-04-001",
-      empContrib: "5,486.00",
-      withdraws: "0",
-      loanRepay: "0",
-      loanBalance: "0",
-      profitEmp: "0.00",
-      profitLoan: "0.00",
-      totalEmpFund: "11,756.00",
-      pbsContrib: "4,571.00",
-      profitPBS: "0.00",
-      totalOfficeContrib: "9,795.00",
-      cumulativeBalance: "21,551.00"
-    },
-    {
-      date: "30-Jun-25",
-      particulars: "Interest",
-      empContrib: "0.00",
-      withdraws: "0",
-      loanRepay: "0",
-      loanBalance: "0",
-      profitEmp: "331.00",
-      profitLoan: "0.00",
-      totalEmpFund: "11,756.00",
-      pbsContrib: "0.00",
-      profitPBS: "276.00",
-      totalOfficeContrib: "10,071.00",
-      cumulativeBalance: "21,551.00"
-    }
-  ];
+  if (isMemberLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
+  }
+
+  if (!member) {
+    return (
+      <div className="p-8 text-center">
+        <h1 className="text-2xl font-bold">Member not found</h1>
+        <Button asChild className="mt-4"><Link href="/members">Back to Registry</Link></Button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 flex flex-col gap-4 bg-slate-100 min-h-screen">
@@ -91,6 +83,54 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
+          <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary" size="sm"><Plus className="size-4 mr-2" /> New Entry</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>New Ledger Entry</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddEntry} className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-2">
+                  <Label>Date</Label>
+                  <Input name="summaryDate" type="date" required />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label>Particulars</Label>
+                  <Input name="particulars" placeholder="e.g. PJ-02-001 or Interest" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Emp. Contrib</Label>
+                  <Input name="empContrib" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>PBS Contrib</Label>
+                  <Input name="pbsContrib" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Profit (Emp)</Label>
+                  <Input name="profitEmp" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Profit (PBS)</Label>
+                  <Input name="profitPbs" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Loan Balance</Label>
+                  <Input name="loanBalance" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Fund</Label>
+                  <Input name="totalFund" type="number" step="0.01" defaultValue="0" />
+                </div>
+                <DialogFooter className="col-span-2">
+                  <Button type="button" variant="outline" onClick={() => setIsEntryOpen(false)}>Cancel</Button>
+                  <Button type="submit">Save Entry</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-2" /> Print Form 224</Button>
           <Button variant="outline" size="sm"><Download className="size-4 mr-2" /> Export PDF</Button>
         </div>
@@ -115,11 +155,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </div>
             <div className="flex gap-2">
               <span className="font-bold min-w-[100px]">Curr. Address:</span>
-              <span className="border-b border-dotted border-black flex-1">{member.currAddress}</span>
+              <span className="border-b border-dotted border-black flex-1">{member.currentAddress || "-"}</span>
             </div>
             <div className="flex gap-2">
               <span className="font-bold min-w-[100px]">Date of Joined:</span>
-              <span className="font-bold border-b border-dotted border-black flex-1">{member.joined}</span>
+              <span className="font-bold border-b border-dotted border-black flex-1">{member.dateJoined}</span>
             </div>
           </div>
           <div className="space-y-2">
@@ -128,21 +168,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <span className="font-bold border-b border-dotted border-black flex-1">{member.designation}</span>
             </div>
             <div className="flex gap-2">
-              <span className="font-bold min-w-[120px]">Head Office:</span>
-              <span className="border-b border-dotted border-black flex-1">{member.headOffice}</span>
+              <span className="font-bold min-w-[120px]">Zonal Office:</span>
+              <span className="border-b border-dotted border-black flex-1">{member.zonalOffice || "-"}</span>
             </div>
             <div className="flex gap-2">
               <span className="font-bold min-w-[120px]">Permanent Address:</span>
-              <span className="border-b border-dotted border-black flex-1 text-[10px]">{member.permanentAddress}</span>
+              <span className="border-b border-dotted border-black flex-1 text-[10px]">{member.permanentAddress || "-"}</span>
             </div>
             <div className="flex gap-x-8">
                <div className="flex gap-2 flex-1">
                 <span className="font-bold min-w-[40px]">ID No:</span>
-                <span className="font-bold border-b border-dotted border-black flex-1">{resolvedParams.id}</span>
+                <span className="font-bold border-b border-dotted border-black flex-1">{member.memberIdNumber}</span>
               </div>
               <div className="flex gap-2 flex-1">
                 <span className="font-bold whitespace-nowrap">Date of Nomination:</span>
-                <span className="font-bold border-b border-dotted border-black flex-1">{member.nominated}</span>
+                <span className="font-bold border-b border-dotted border-black flex-1">{member.dateNomination || "-"}</span>
               </div>
             </div>
           </div>
@@ -166,7 +206,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-1 text-center font-bold leading-tight">Total Office Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Cumulative Fund Balance</th>
               </tr>
-              {/* SUB HEADERS */}
               <tr className="bg-white">
                 <th className="border border-black p-0.5"></th>
                 <th className="border border-black p-0.5"></th>
@@ -184,45 +223,51 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody>
-              {ledgerEntries.map((row, idx) => (
+              {isSummariesLoading ? (
+                <tr><td colSpan={13} className="text-center p-4">Loading ledger...</td></tr>
+              ) : sortedSummaries.length === 0 ? (
+                <tr><td colSpan={13} className="text-center p-4 text-muted-foreground">No ledger entries found.</td></tr>
+              ) : sortedSummaries.map((row: any, idx) => (
                 <tr key={idx} className="bg-white">
-                  <td className="border border-black p-1 whitespace-nowrap">{row.date}</td>
-                  <td className="border border-black p-1">{row.particulars}</td>
-                  <td className="border border-black p-1 text-right">{row.empContrib}</td>
-                  <td className="border border-black p-1 text-right">{row.withdraws}</td>
-                  <td className="border border-black p-1 text-right">{row.loanRepay}</td>
-                  <td className="border border-black p-1 text-right">{row.loanBalance}</td>
-                  <td className="border border-black p-1 text-right">{row.profitEmp}</td>
-                  <td className="border border-black p-1 text-right">{row.profitLoan}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.totalEmpFund}</td>
-                  <td className="border border-black p-1 text-right">{row.pbsContrib}</td>
-                  <td className="border border-black p-1 text-right">{row.profitPBS}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.totalOfficeContrib}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.cumulativeBalance}</td>
+                  <td className="border border-black p-1 whitespace-nowrap">{row.summaryDate}</td>
+                  <td className="border border-black p-1">{row.particulars || "-"}</td>
+                  <td className="border border-black p-1 text-right">{row.employeeContributionCumulative?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">{row.loanPrincipalOutstandingCumulative?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.profitEmployeeContributionCumulative?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.totalFundCumulative?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.pbsContributionCumulative?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{row.profitPbsContributionCumulative?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right font-bold">{(Number(row.pbsContributionCumulative) + Number(row.profitPbsContributionCumulative))?.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right font-bold">{(Number(row.totalFundCumulative) + Number(row.pbsContributionCumulative) + Number(row.profitPbsContributionCumulative))?.toFixed(2)}</td>
                 </tr>
               ))}
               {/* TOTAL ROW */}
-              <tr className="bg-white font-bold">
-                <td colSpan={2} className="border border-black p-1 text-center">Total</td>
-                <td className="border border-black p-1 text-right">11,756.00</td>
-                <td className="border border-black p-1 text-right">0.00</td>
-                <td className="border border-black p-1 text-right">0</td>
-                <td className="border border-black p-1 text-right">0.00</td>
-                <td className="border border-black p-1 text-right">331.00</td>
-                <td className="border border-black p-1 text-right">0.00</td>
-                <td className="border border-black p-1 text-right">11,756.00</td>
-                <td className="border border-black p-1 text-right">9,795.00</td>
-                <td className="border border-black p-1 text-right">276.00</td>
-                <td className="border border-black p-1 text-right">10,071.00</td>
-                <td className="border border-black p-1 text-right">21,551.00</td>
-              </tr>
+              {totals && (
+                <tr className="bg-white font-bold">
+                  <td colSpan={2} className="border border-black p-1 text-center">Total</td>
+                  <td className="border border-black p-1 text-right">{totals.emp.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">{totals.profitEmp.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">{totals.total.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.pbs.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{totals.profitPbs.toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{(totals.pbs + totals.profitPbs).toFixed(2)}</td>
+                  <td className="border border-black p-1 text-right">{(totals.total + totals.pbs + totals.profitPbs).toFixed(2)}</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         {/* FOOTER SECTION */}
         <div className="mt-12 flex justify-between items-end text-[9px]">
-           <p className="font-bold">{resolvedParams.id}--{member.name}--{member.designation} =Page 1 of 1</p>
+           <p className="font-bold">{member.memberIdNumber}--{member.name}--{member.designation} =Page 1 of 1</p>
            <p className="text-right italic">CPF Management Software Developed by Ariful Islam Agm finance, contact: 017317530731</p>
         </div>
       </div>
