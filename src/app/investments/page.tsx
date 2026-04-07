@@ -63,6 +63,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
@@ -72,6 +73,7 @@ import { cn } from "@/lib/utils";
 export default function InvestmentsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { showAlert } = useSweetAlert();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [search, setSearch] = useState("");
@@ -155,10 +157,18 @@ export default function InvestmentsPage() {
     if (editingInvestment) {
       const docRef = doc(firestore, "investmentInstruments", editingInvestment.id);
       updateDocumentNonBlocking(docRef, investmentData);
-      toast({ title: "Updated", description: `Instrument ${investmentData.referenceNumber} modified.` });
+      showAlert({
+        title: "Updated",
+        description: `Instrument ${investmentData.referenceNumber} has been modified successfully.`,
+        type: "success"
+      });
     } else {
       addDocumentNonBlocking(investmentsRef, investmentData);
-      toast({ title: "Recorded", description: `New ${investmentData.instrumentType} added.` });
+      showAlert({
+        title: "Success",
+        description: `New ${investmentData.instrumentType} investment has been recorded.`,
+        type: "success"
+      });
     }
     setIsAddOpen(false);
     setEditingInvestment(null);
@@ -186,7 +196,11 @@ export default function InvestmentsPage() {
         count++;
       }
     });
-    toast({ title: "Bulk Upload Complete", description: `Successfully processed ${count} investment instruments.` });
+    showAlert({
+      title: "Bulk Upload Complete",
+      description: `Successfully processed ${count} investment instruments.`,
+      type: "success"
+    });
     setIsBulkOpen(false);
   };
 
@@ -262,20 +276,32 @@ export default function InvestmentsPage() {
     };
 
     addDocumentNonBlocking(accrualsRef, accrualLog);
-    toast({ 
-      title: "Provision Recorded", 
-      description: `Gross: ৳${grossAmount.toFixed(2)}, TDS (10%): ৳${tdsAmount.toFixed(2)}` 
+    showAlert({
+      title: "Provision Recorded",
+      description: `Gross: ৳${grossAmount.toFixed(2)}, TDS (10%): ৳${tdsAmount.toFixed(2)} recorded successfully.`,
+      type: "success"
     });
     setIsProvisionOpen(false);
     setSelectedForProvision(null);
   };
 
   const handleDelete = (id: string, ref: string) => {
-    if (confirm(`Are you sure you want to remove investment ${ref}?`)) {
-      const docRef = doc(firestore, "investmentInstruments", id);
-      deleteDocumentNonBlocking(docRef);
-      toast({ title: "Removed", description: "Investment deleted." });
-    }
+    showAlert({
+      title: "Are you sure?",
+      description: `You are about to remove investment reference: ${ref}. This action cannot be undone.`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, Delete",
+      onConfirm: () => {
+        const docRef = doc(firestore, "investmentInstruments", id);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({
+          title: "Removed",
+          description: "The investment has been deleted.",
+          type: "success"
+        });
+      }
+    });
   };
 
   const getStatusBadge = (status: string) => {

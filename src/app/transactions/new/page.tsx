@@ -12,6 +12,7 @@ import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import { Sparkles, Save, Info, AlertTriangle, Loader2, Plus, Trash2, ArrowRightLeft } from "lucide-react";
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
+import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Badge } from "@/components/ui/badge";
 import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
@@ -32,6 +33,7 @@ export default function NewTransactionPage() {
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
+  const { showAlert } = useSweetAlert();
 
   const [description, setDescription] = useState("");
   const [isClassifying, setIsClassifying] = useState(false);
@@ -146,13 +148,21 @@ export default function NewTransactionPage() {
     if (editId) {
       const docRef = doc(firestore, "journalEntries", editId);
       updateDocumentNonBlocking(docRef, entryData);
-      toast({ title: "Success", description: "Transaction updated." });
+      showAlert({
+        title: "Transaction Updated",
+        description: "The double-entry record has been updated successfully.",
+        type: "success"
+      });
       router.push("/transactions");
     } else {
       const journalEntriesRef = collection(firestore, "journalEntries");
       addDocumentNonBlocking(journalEntriesRef, { ...entryData, createdAt: new Date().toISOString() })
         .then(() => {
-          toast({ title: "Success", description: "Double-entry transaction recorded." });
+          showAlert({
+            title: "Transaction Posted",
+            description: "Double-entry transaction has been successfully recorded in the journal.",
+            type: "success"
+          });
           router.push("/transactions");
         });
     }
@@ -160,12 +170,23 @@ export default function NewTransactionPage() {
 
   const handleDeleteTransaction = () => {
     if (!editId) return;
-    if (confirm("Are you sure you want to delete this entire journal entry? This action cannot be undone.")) {
-      const docRef = doc(firestore, "journalEntries", editId);
-      deleteDocumentNonBlocking(docRef);
-      toast({ title: "Deleted", description: "Journal entry removed." });
-      router.push("/transactions");
-    }
+    showAlert({
+      title: "Delete Transaction?",
+      description: "Are you sure you want to delete this entire journal entry? This action cannot be undone.",
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, Delete",
+      onConfirm: () => {
+        const docRef = doc(firestore, "journalEntries", editId);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({
+          title: "Deleted",
+          description: "Journal entry has been removed.",
+          type: "success"
+        });
+        router.push("/transactions");
+      }
+    });
   };
 
   if (isEditLoading) {

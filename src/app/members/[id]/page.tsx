@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo } from "react";
@@ -11,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from "xlsx";
@@ -19,6 +21,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const resolvedParams = React.use(params);
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { showAlert } = useSweetAlert();
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isInterestOpen, setIsInterestOpen] = useState(false);
@@ -196,7 +199,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    toast({ title: "Profit Recorded", description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} posted proportionally.` });
+    showAlert({
+      title: "Success",
+      description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} has been posted proportionally to the ledger.`,
+      type: "success"
+    });
     setIsInterestOpen(false);
   };
 
@@ -221,10 +228,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (editingEntry && editingEntry.id) {
       const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id);
       updateDocumentNonBlocking(entryRef, entryData);
-      toast({ title: "Entry Updated", description: "Ledger record has been modified." });
+      showAlert({
+        title: "Entry Updated",
+        description: "The ledger record has been modified successfully.",
+        type: "success"
+      });
     } else {
       addDocumentNonBlocking(summariesRef, entryData);
-      toast({ title: "Entry Added", description: "New record added to the subsidiary ledger." });
+      showAlert({
+        title: "Entry Added",
+        description: "New record has been added to the subsidiary ledger.",
+        type: "success"
+      });
     }
     setIsEntryOpen(false);
     setEditingEntry(null);
@@ -236,11 +251,22 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   };
 
   const handleDeleteEntry = (entryId: string) => {
-    if (confirm("Are you sure you want to delete this entry?")) {
-      const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", entryId);
-      deleteDocumentNonBlocking(entryRef);
-      toast({ title: "Entry Deleted", description: "Ledger entry has been removed." });
-    }
+    showAlert({
+      title: "Delete Entry?",
+      description: "Are you sure you want to remove this ledger entry? This action cannot be undone.",
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, Delete",
+      onConfirm: () => {
+        const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", entryId);
+        deleteDocumentNonBlocking(entryRef);
+        showAlert({
+          title: "Deleted",
+          description: "Ledger entry has been removed.",
+          type: "success"
+        });
+      }
+    });
   };
 
   const processEntries = (entries: any[]) => {
@@ -274,9 +300,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
     
     if (skipped > 0) {
-      toast({ title: "Partial Success", description: `Added ${count} entries. Skipped ${skipped} unmatched IDs.`, variant: "destructive" });
+      showAlert({
+        title: "Partial Success",
+        description: `Added ${count} entries. Skipped ${skipped} unmatched IDs.`,
+        type: "warning"
+      });
     } else {
-      toast({ title: "Complete", description: `Added ${count} ledger entries for ${member?.name}.` });
+      showAlert({
+        title: "Success",
+        description: `Successfully added ${count} ledger entries for ${member?.name}.`,
+        type: "success"
+      });
     }
     setIsBulkOpen(false);
   };

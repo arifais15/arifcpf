@@ -17,10 +17,12 @@ import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking
 import { collection, doc } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useSweetAlert } from "@/hooks/use-sweet-alert";
 
 export default function TransactionsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { showAlert } = useSweetAlert();
   const [search, setSearch] = useState("");
 
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
@@ -37,11 +39,22 @@ export default function TransactionsPage() {
   }, [entries, search]);
 
   const handleDelete = (id: string, ref: string) => {
-    if (confirm(`Are you sure you want to delete transaction ${ref || id}?`)) {
-      const docRef = doc(firestore, "journalEntries", id);
-      deleteDocumentNonBlocking(docRef);
-      toast({ title: "Deleted", description: "Journal entry removed." });
-    }
+    showAlert({
+      title: "Delete Transaction?",
+      description: `Are you sure you want to delete transaction ${ref || id}? This action cannot be reversed.`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, Delete",
+      onConfirm: () => {
+        const docRef = doc(firestore, "journalEntries", id);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({
+          title: "Deleted",
+          description: "Journal entry has been removed from the system.",
+          type: "success"
+        });
+      }
+    });
   };
 
   return (
