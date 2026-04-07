@@ -6,6 +6,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 import { SweetAlertProvider } from '@/components/sweet-alert-provider';
+import AuthWrapper from '@/components/auth-wrapper';
 
 export const metadata: Metadata = {
   title: 'PBS CPF Management',
@@ -27,14 +28,16 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseClientProvider>
           <SweetAlertProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <main className="flex-1 min-h-screen">
-                  {children}
-                </main>
-              </SidebarInset>
-            </SidebarProvider>
+            <AuthWrapper>
+              <SidebarProvider>
+                <AppSidebar />
+                <SidebarInset>
+                  <main className="flex-1 min-h-screen">
+                    {children}
+                  </main>
+                </SidebarInset>
+              </SidebarProvider>
+            </AuthWrapper>
             <Toaster />
           </SweetAlertProvider>
         </FirebaseClientProvider>

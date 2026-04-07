@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -10,12 +11,14 @@ import {
   FileText,
   Settings,
   ShieldCheck,
-  Search,
-  ListTodo,
-  Percent
+  Percent,
+  LogOut,
+  ListTodo
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { signOut } from "firebase/auth"
+import { useAuth } from "@/firebase"
 
 import {
   Sidebar,
@@ -27,6 +30,7 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
 } from "@/components/ui/sidebar"
+import { useSweetAlert } from "@/hooks/use-sweet-alert"
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
@@ -41,6 +45,23 @@ const navItems = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const auth = useAuth()
+  const router = useRouter()
+  const { showAlert } = useSweetAlert()
+
+  const handleLogout = () => {
+    showAlert({
+      title: "Confirm Logout",
+      description: "Are you sure you want to end your session?",
+      type: "warning",
+      showCancel: true,
+      confirmText: "Logout",
+      onConfirm: async () => {
+        await signOut(auth)
+        router.push("/login")
+      }
+    })
+  }
 
   return (
     <Sidebar variant="inset" collapsible="icon">
@@ -79,6 +100,15 @@ export function AppSidebar() {
             <SidebarMenuButton className="hover:bg-sidebar-accent">
               <Settings className="size-4" />
               <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton 
+              className="hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+              onClick={handleLogout}
+            >
+              <LogOut className="size-4" />
+              <span>Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
