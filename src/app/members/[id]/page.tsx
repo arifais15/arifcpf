@@ -1,8 +1,9 @@
+
 "use client"
 
 import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2 } from "lucide-react";
+import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
@@ -137,10 +138,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const processEntries = (entries: any[]) => {
     let count = 0;
+    let skipped = 0;
     entries.forEach(entry => {
+      // Common Match Verification:
+      // If the file includes a memberIdNumber, we check if it matches the current member
+      const incomingId = entry.memberIdNumber || entry["Member ID"] || entry["ID No"];
+      if (incomingId && incomingId.toString().trim() !== member?.memberIdNumber) {
+        skipped++;
+        return;
+      }
+
       const entryData = {
-        summaryDate: entry.Date || entry.summaryDate || "",
-        particulars: entry.Particulars || entry.particulars || "",
+        summaryDate: entry.Date || entry.summaryDate || entry["Date"] || "",
+        particulars: entry.Particulars || entry.particulars || entry["Particulars"] || "",
         employeeContribution: Number(entry["Employee Contribution"] || entry.employeeContribution || 0),
         loanWithdrawal: Number(entry["Amount Withdraws as Loan"] || entry.loanWithdrawal || 0),
         loanRepayment: Number(entry["Loan Principal repayment"] || entry.loanRepayment || 0),
@@ -157,7 +167,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         count++;
       }
     });
-    toast({ title: "Processing Complete", description: `Added ${count} ledger entries.` });
+    
+    if (skipped > 0) {
+      toast({ 
+        title: "Partial Success", 
+        description: `Added ${count} entries. Skipped ${skipped} entries that didn't match Member ID ${member?.memberIdNumber}.`,
+        variant: "destructive"
+      });
+    } else {
+      toast({ title: "Processing Complete", description: `Added ${count} ledger entries for ${member?.name}.` });
+    }
     setIsBulkOpen(false);
   };
 
@@ -208,6 +227,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const handleDownloadTemplate = () => {
     const templateData = [
       {
+        "memberIdNumber": member?.memberIdNumber || "12345",
         "Date": "2023-10-31",
         "Particulars": "Monthly Contribution Oct-23",
         "Employee Contribution": 1500.00,
@@ -222,7 +242,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "LedgerEntries");
-    XLSX.writeFile(wb, "ledger_entries_template.xlsx");
+    XLSX.writeFile(wb, `ledger_template_${member?.memberIdNumber}.xlsx`);
   };
 
   if (isMemberLoading) {
@@ -259,8 +279,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     Download Template
                   </Button>
                 </div>
-                <DialogDescription>
-                  Fields: Date, Particulars, Employee Contribution, Amount Withdraws as Loan, Loan Principal repayment, Profit on Employee Contribution, Profit on CPF Loan, PBS Contribution, Profit on PBS Contribution.
+                <DialogDescription className="flex items-start gap-2 pt-2">
+                  <Info className="size-4 mt-0.5 text-primary" />
+                  <span>
+                    Matching logic: The system uses <strong>memberIdNumber</strong> to verify the data belongs to <strong>{member.name}</strong>. 
+                    Entries that don't match this ID will be skipped.
+                  </span>
                 </DialogDescription>
               </DialogHeader>
               <Tabs defaultValue="excel" className="w-full">
@@ -276,7 +300,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     <div className="bg-primary/10 p-4 rounded-full"><FileSpreadsheet className="size-8 text-primary" /></div>
                     <div className="space-y-1">
                       <p className="font-medium">Click to upload or drag and drop</p>
-                      <p className="text-sm text-muted-foreground">XLSX, XLS or CSV files are supported</p>
+                      <p className="text-sm text-muted-foreground text-center">
+                        Uploading for <strong>{member.memberIdNumber}</strong> ({member.name})
+                      </p>
                     </div>
                     <Input type="file" className="hidden" ref={fileInputRef} accept=".xlsx, .xls, .csv" onChange={handleExcelUpload} disabled={isUploading} />
                     {isUploading && <Loader2 className="size-4 animate-spin text-primary" />}
@@ -285,7 +311,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <TabsContent value="csv" className="space-y-4 py-4">
                   <textarea
                     className="min-h-[200px] w-full p-4 font-mono text-sm border rounded-md"
-                    placeholder="Date, Particulars, Employee Contribution, Amount Withdraws as Loan, Loan Principal repayment, Profit on Employee Contribution, Profit on CPF Loan, PBS Contribution, Profit on PBS Contribution"
+                    placeholder="memberIdNumber, Date, Particulars, Employee Contribution, Amount Withdraws as Loan, Loan Principal repayment..."
                     value={bulkCsvData}
                     onChange={(e) => setBulkCsvData(e.target.value)}
                   />

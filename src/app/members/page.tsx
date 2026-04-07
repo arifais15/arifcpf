@@ -71,12 +71,35 @@ export default function MembersPage() {
     entries.forEach(entry => {
       const cleanedEntry: any = {};
       Object.keys(entry).forEach(key => {
-        cleanedEntry[key.trim()] = entry[key]?.toString().trim();
+        const k = key.trim().toLowerCase();
+        if (k.includes("id") || k.includes("number")) cleanedEntry.memberIdNumber = entry[key]?.toString().trim();
+        else if (k.includes("name")) cleanedEntry.name = entry[key]?.toString().trim();
+        else if (k.includes("designation")) cleanedEntry.designation = entry[key]?.toString().trim();
+        else if (k.includes("date") && k.includes("join")) cleanedEntry.dateJoined = entry[key]?.toString().trim();
+        else if (k.includes("office")) cleanedEntry.zonalOffice = entry[key]?.toString().trim();
+        else cleanedEntry[key.trim()] = entry[key]?.toString().trim();
       });
       addDocumentNonBlocking(membersRef, cleanedEntry);
     });
     toast({ title: "Started", description: `Processing ${entries.length} entries.` });
     setIsBulkOpen(false);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        "memberIdNumber": "12345",
+        "name": "Ariful Islam",
+        "designation": "AGM (Finance)",
+        "dateJoined": "2020-01-01",
+        "zonalOffice": "Headquarters",
+        "permanentAddress": "Gazipur, Bangladesh"
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Members");
+    XLSX.writeFile(wb, "members_registry_template.xlsx");
   };
 
   const handleBulkCsvUpload = () => {
@@ -132,8 +155,13 @@ export default function MembersPage() {
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle>Bulk Upload Members</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={() => {}} className="text-xs h-7 gap-1"><Download className="size-3" /> Template</Button>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="text-xs h-7 gap-1">
+                    <Download className="size-3" /> Template
+                  </Button>
                 </div>
+                <DialogDescription>
+                  Ensure your file has a "memberIdNumber" column to match with future ledger uploads.
+                </DialogDescription>
               </DialogHeader>
               <Tabs defaultValue="excel" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -141,14 +169,15 @@ export default function MembersPage() {
                   <TabsTrigger value="csv"><FileText className="size-4 mr-2" /> CSV</TabsTrigger>
                 </TabsList>
                 <TabsContent value="excel" className="py-4">
-                  <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                  <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:border-primary/50" onClick={() => fileInputRef.current?.click()}>
                     <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
-                    <p className="text-sm">Click to upload XLSX/CSV</p>
+                    <p className="text-sm font-medium">Click to upload XLSX/CSV</p>
+                    <p className="text-xs text-muted-foreground mt-1">Columns: memberIdNumber, name, designation, dateJoined...</p>
                     <Input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} />
                   </div>
                 </TabsContent>
                 <TabsContent value="csv" className="py-4 space-y-4">
-                  <textarea className="w-full min-h-[150px] p-2 text-sm border rounded" value={bulkData} onChange={(e) => setBulkData(e.target.value)} placeholder="name, memberIdNumber, designation..." />
+                  <textarea className="w-full min-h-[150px] p-2 text-sm border rounded font-mono" value={bulkData} onChange={(e) => setBulkData(e.target.value)} placeholder="memberIdNumber, name, designation, dateJoined..." />
                   <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV</Button>
                 </TabsContent>
               </Tabs>
@@ -163,7 +192,7 @@ export default function MembersPage() {
               <DialogHeader><DialogTitle>{editingMember ? "Edit" : "Add"} Member</DialogTitle></DialogHeader>
               <form onSubmit={handleAddMember} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>ID No</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required /></div>
+                  <div className="space-y-2"><Label>ID No (Common Key)</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required /></div>
                   <div className="space-y-2"><Label>Full Name</Label><Input name="name" defaultValue={editingMember?.name} required /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -171,7 +200,7 @@ export default function MembersPage() {
                   <div className="space-y-2"><Label>Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} /></div>
                 </div>
                 <div className="space-y-2"><Label>Date Joined</Label><Input name="dateJoined" type="date" defaultValue={editingMember?.dateJoined} required /></div>
-                <DialogFooter><Button type="submit">Save</Button></DialogFooter>
+                <DialogFooter><Button type="submit">Save Member</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -180,13 +209,15 @@ export default function MembersPage() {
 
       <div className="bg-card rounded-xl shadow-sm border p-1">
         <div className="p-4 border-b flex items-center gap-4">
-          <Search className="size-4 text-muted-foreground" />
-          <Input className="max-w-sm h-9" placeholder="Search members..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input className="pl-9 max-w-sm h-9" placeholder="Search by ID No, Name or Designation..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
         </div>
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-[100px]">ID No</TableHead>
+              <TableHead className="w-[120px]">ID No (Key)</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Designation</TableHead>
               <TableHead>Office</TableHead>
@@ -196,17 +227,19 @@ export default function MembersPage() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
+            ) : filteredMembers.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No members found.</TableCell></TableRow>
             ) : filteredMembers.map((member) => (
-              <TableRow key={member.id}>
-                <TableCell className="font-medium">{member.memberIdNumber}</TableCell>
-                <TableCell>{member.name}</TableCell>
+              <TableRow key={member.id} className="group">
+                <TableCell className="font-bold font-mono">{member.memberIdNumber}</TableCell>
+                <TableCell className="font-medium">{member.name}</TableCell>
                 <TableCell className="text-xs">{member.designation}</TableCell>
                 <TableCell className="text-xs">{member.zonalOffice}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id)}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2" /> Ledger</Link></Button>
+                    <Button variant="outline" size="sm" asChild className="h-8"><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2" /> Ledger</Link></Button>
                   </div>
                 </TableCell>
               </TableRow>
