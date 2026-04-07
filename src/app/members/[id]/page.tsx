@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info } from "lucide-react";
+import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -21,6 +22,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const { toast } = useToast();
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isInterestOpen, setIsInterestOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [bulkCsvData, setBulkCsvData] = useState("");
   const [editingEntry, setEditingEntry] = useState<any>(null);
@@ -80,6 +82,37 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [sortedSummaries]);
 
+  const currentBalance = calculatedRows.length > 0 ? calculatedRows[calculatedRows.length - 1].col11 : 0;
+
+  // Interest Calculation Logic (Tiered)
+  const interestCalculation = useMemo(() => {
+    const balance = currentBalance;
+    let totalInterest = 0;
+    const tiers = [];
+
+    if (balance <= 1500000) {
+      const i = balance * 0.13;
+      totalInterest = i;
+      tiers.push({ label: "Up to 1.5M (13%)", amount: balance, interest: i });
+    } else if (balance <= 3000000) {
+      const i1 = 1500000 * 0.13;
+      const i2 = (balance - 1500000) * 0.12;
+      totalInterest = i1 + i2;
+      tiers.push({ label: "First 1.5M (13%)", amount: 1500000, interest: i1 });
+      tiers.push({ label: "Next Layer (12%)", amount: balance - 1500000, interest: i2 });
+    } else {
+      const i1 = 1500000 * 0.13;
+      const i2 = 1500000 * 0.12;
+      const i3 = (balance - 3000000) * 0.11;
+      totalInterest = i1 + i2 + i3;
+      tiers.push({ label: "First 1.5M (13%)", amount: 1500000, interest: i1 });
+      tiers.push({ label: "Second 1.5M (12%)", amount: 1500000, interest: i2 });
+      tiers.push({ label: "Above 3.0M (11%)", amount: balance - 3000000, interest: i3 });
+    }
+
+    return { totalInterest, tiers };
+  }, [currentBalance]);
+
   const totals = useMemo(() => {
     if (calculatedRows.length === 0) return null;
     return calculatedRows.reduce((acc, curr) => ({
@@ -123,6 +156,29 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setEditingEntry(null);
   };
 
+  const handlePostInterest = () => {
+    // Standard practice: split the calculated interest equally between Emp and PBS profit columns 
+    // unless specified otherwise. We'll label it as Annual Profit.
+    const halfInterest = interestCalculation.totalInterest / 2;
+    const entryData = {
+      summaryDate: new Date().toISOString().split('T')[0],
+      particulars: "Annual Profit Distribution (Tiered)",
+      employeeContribution: 0,
+      loanWithdrawal: 0,
+      loanRepayment: 0,
+      profitEmployee: halfInterest,
+      profitLoan: 0,
+      pbsContribution: 0,
+      profitPbs: halfInterest,
+      lastUpdateDate: new Date().toISOString(),
+      memberId: resolvedParams.id
+    };
+
+    addDocumentNonBlocking(summariesRef, entryData);
+    toast({ title: "Profit Recorded", description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} has been added to the ledger.` });
+    setIsInterestOpen(false);
+  };
+
   const handleEditClick = (entry: any) => {
     setEditingEntry(entry);
     setIsEntryOpen(true);
@@ -140,8 +196,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     let count = 0;
     let skipped = 0;
     entries.forEach(entry => {
-      // Common Match Verification:
-      // If the file includes a memberIdNumber, we check if it matches the current member
       const incomingId = entry.memberIdNumber || entry["Member ID"] || entry["ID No"];
       if (incomingId && incomingId.toString().trim() !== member?.memberIdNumber) {
         skipped++;
@@ -266,6 +320,61 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
+          {/* Interest Calculator Button */}
+          <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
+                <Calculator className="size-4" />
+                Calculate Profit
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Interest Calculator (Tiered)</DialogTitle>
+                <DialogDescription>
+                  Calculate annual profit based on Cumulative Fund Balance for <strong>{member.name}</strong>.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-6 py-4">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                  <p className="text-xs uppercase font-bold text-slate-400 mb-1">Current Balance (Col 11)</p>
+                  <p className="text-2xl font-bold text-slate-900">৳ {currentBalance.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Tier Breakdown</p>
+                  {interestCalculation.tiers.map((tier, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-sm py-2 border-b border-dotted">
+                      <span className="text-slate-600">{tier.label}</span>
+                      <div className="text-right">
+                        <p className="font-medium text-slate-900">৳ {tier.interest.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-[10px] text-slate-400">on ৳{tier.amount.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center pt-2 font-bold text-primary">
+                    <span>Total Calculated Profit</span>
+                    <span className="text-lg underline decoration-double underline-offset-4">৳ {interestCalculation.totalInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex gap-2">
+                  <Info className="size-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-amber-700 leading-tight">
+                    Recording this will add a new entry to the ledger. Interest is split equally between Employee and PBS profit columns.
+                  </p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
+                <Button onClick={handlePostInterest} className="gap-2">
+                  <Percent className="size-4" />
+                  Post to Ledger
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
