@@ -69,9 +69,8 @@ export default function InvestmentsPage() {
   const { data: coaData } = useCollection(coaRef);
   const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData]);
 
-  // Investment account types from COA
   const investmentAccounts = useMemo(() => {
-    return activeCOA.filter((a: any) => a.code.startsWith("101") && !a.isHeader);
+    return activeCOA.filter((a: any) => (a.code || a.accountCode || "").startsWith("101") && !a.isHeader);
   }, [activeCOA]);
 
   const filteredInvestments = useMemo(() => {
@@ -103,7 +102,7 @@ export default function InvestmentsPage() {
       issueDate: formData.get("issueDate") as string,
       maturityDate: formData.get("maturityDate") as string,
       principalAmount: Number(formData.get("principalAmount")),
-      interestRate: Number(formData.get("interestRate")) / 100, // Store as decimal
+      interestRate: Number(formData.get("interestRate")) / 100,
       accrualFrequency: formData.get("accrualFrequency") as string,
       status: formData.get("status") as string,
       updatedAt: new Date().toISOString(),
@@ -112,10 +111,10 @@ export default function InvestmentsPage() {
     if (editingInvestment) {
       const docRef = doc(firestore, "investmentInstruments", editingInvestment.id);
       updateDocumentNonBlocking(docRef, investmentData);
-      toast({ title: "Investment Updated", description: `Instrument ${investmentData.referenceNumber} modified.` });
+      toast({ title: "Updated", description: `Instrument ${investmentData.referenceNumber} modified.` });
     } else {
       addDocumentNonBlocking(investmentsRef, investmentData);
-      toast({ title: "Investment Recorded", description: `New ${investmentData.instrumentType} added.` });
+      toast({ title: "Recorded", description: `New ${investmentData.instrumentType} added.` });
     }
     setIsAddOpen(false);
     setEditingInvestment(null);
@@ -125,7 +124,7 @@ export default function InvestmentsPage() {
     if (confirm(`Are you sure you want to remove investment ${ref}?`)) {
       const docRef = doc(firestore, "investmentInstruments", id);
       deleteDocumentNonBlocking(docRef);
-      toast({ title: "Removed", description: "Investment instrument deleted from registry." });
+      toast({ title: "Removed", description: "Investment deleted." });
     }
   };
 
@@ -165,7 +164,7 @@ export default function InvestmentsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {investmentAccounts.map(acc => (
-                        <SelectItem key={acc.code} value={acc.code}>{acc.code} - {acc.name}</SelectItem>
+                        <SelectItem key={acc.code || acc.accountCode} value={acc.code || acc.accountCode}>{acc.code || acc.accountCode} - {acc.name || acc.accountName}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -310,13 +309,15 @@ export default function InvestmentsPage() {
                 <TableCell className="text-xs">{inv.issueDate}</TableCell>
                 <TableCell className="text-xs">{inv.maturityDate || "N/A"}</TableCell>
                 <TableCell>{getStatusBadge(inv.status)}</TableCell>
-                <TableCell className="text-right flex justify-end gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}>
-                    <Edit2 className="size-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(inv.id, inv.referenceNumber)}>
-                    <Trash2 className="size-3.5" />
-                  </Button>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}>
+                      <Edit2 className="size-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(inv.id, inv.referenceNumber)}>
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

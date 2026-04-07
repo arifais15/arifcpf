@@ -50,10 +50,10 @@ export default function MembersPage() {
     if (editingMember) {
       const docRef = doc(firestore, "members", editingMember.id);
       updateDocumentNonBlocking(docRef, memberData);
-      toast({ title: "Member Updated", description: "Member information has been saved." });
+      toast({ title: "Updated", description: "Member information saved." });
     } else {
       addDocumentNonBlocking(membersRef, memberData);
-      toast({ title: "Member Added", description: "New member has been registered." });
+      toast({ title: "Registered", description: "New member has been registered." });
     }
     setIsAddOpen(false);
     setEditingMember(null);
@@ -63,7 +63,7 @@ export default function MembersPage() {
     if (confirm("Are you sure you want to delete this member?")) {
       const docRef = doc(firestore, "members", id);
       deleteDocumentNonBlocking(docRef);
-      toast({ title: "Member Deleted", description: "Member record has been removed." });
+      toast({ title: "Deleted", description: "Member record removed." });
     }
   };
 
@@ -75,35 +75,29 @@ export default function MembersPage() {
       });
       addDocumentNonBlocking(membersRef, cleanedEntry);
     });
-    toast({ title: "Bulk Upload Started", description: `Processing ${entries.length} entries.` });
+    toast({ title: "Started", description: `Processing ${entries.length} entries.` });
     setIsBulkOpen(false);
-    setBulkData("");
   };
 
   const handleBulkCsvUpload = () => {
     const lines = bulkData.trim().split("\n");
     if (lines.length < 2) {
-      toast({ title: "Error", description: "Please provide a header line and at least one data line.", variant: "destructive" });
+      toast({ title: "Error", description: "Format required.", variant: "destructive" });
       return;
     }
-
     const headers = lines[0].split(",").map(h => h.trim());
     const entries = lines.slice(1).map(line => {
       const values = line.split(",").map(v => v.trim());
       const entry: any = {};
-      headers.forEach((h, i) => {
-        entry[h] = values[i];
-      });
+      headers.forEach((h, i) => { entry[h] = values[i]; });
       return entry;
     });
-
     processEntries(entries);
   };
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setIsUploading(true);
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -111,34 +105,15 @@ export default function MembersPage() {
         const bstr = event.target?.result;
         const workbook = XLSX.read(bstr, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(worksheet);
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         processEntries(data);
       } catch (err) {
-        toast({ title: "Upload Failed", description: "Could not parse Excel file.", variant: "destructive" });
+        toast({ title: "Failed", description: "Could not parse file.", variant: "destructive" });
       } finally {
         setIsUploading(false);
-        if (fileInputRef.current) fileInputRef.current.value = "";
       }
     };
     reader.readAsBinaryString(file);
-  };
-
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        memberIdNumber: "1234",
-        name: "Md. Ariful Islam",
-        designation: "AGM(Finance)",
-        dateJoined: "2018-04-25",
-        zonalOffice: "Gazipur PBS-2",
-        permanentAddress: "Baitkamari, Gazipur"
-      }
-    ];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Template");
-    XLSX.writeFile(wb, "member_upload_template.xlsx");
   };
 
   return (
@@ -151,118 +126,52 @@ export default function MembersPage() {
         <div className="flex gap-2">
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Upload className="size-4 mr-2" />
-                Bulk Upload
-              </Button>
+              <Button variant="outline" size="sm"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle>Bulk Upload Members</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="text-xs h-7 gap-1">
-                    <Download className="size-3" />
-                    Download Template
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {}} className="text-xs h-7 gap-1"><Download className="size-3" /> Template</Button>
                 </div>
-                <DialogDescription>
-                  Upload an Excel file or paste CSV data. Required columns: memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress
-                </DialogDescription>
               </DialogHeader>
-
               <Tabs defaultValue="excel" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="excel" className="gap-2">
-                    <FileSpreadsheet className="size-4" /> Excel File
-                  </TabsTrigger>
-                  <TabsTrigger value="csv" className="gap-2">
-                    <FileText className="size-4" /> Paste CSV
-                  </TabsTrigger>
+                  <TabsTrigger value="excel"><FileSpreadsheet className="size-4 mr-2" /> Excel</TabsTrigger>
+                  <TabsTrigger value="csv"><FileText className="size-4 mr-2" /> CSV</TabsTrigger>
                 </TabsList>
-                <TabsContent value="excel" className="space-y-4 py-4">
-                  <div 
-                    className="border-2 border-dashed border-muted rounded-xl p-12 text-center flex flex-col items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <div className="bg-primary/10 p-4 rounded-full">
-                      <FileSpreadsheet className="size-8 text-primary" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-medium">Click to upload or drag and drop</p>
-                      <p className="text-sm text-muted-foreground">XLSX, XLS or CSV files are supported</p>
-                    </div>
-                    <Input 
-                      type="file" 
-                      className="hidden" 
-                      ref={fileInputRef}
-                      accept=".xlsx, .xls, .csv"
-                      onChange={handleExcelUpload}
-                      disabled={isUploading}
-                    />
-                    {isUploading && <Loader2 className="size-4 animate-spin text-primary" />}
+                <TabsContent value="excel" className="py-4">
+                  <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                    <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
+                    <p className="text-sm">Click to upload XLSX/CSV</p>
+                    <Input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} />
                   </div>
                 </TabsContent>
-                <TabsContent value="csv" className="space-y-4 py-4">
-                  <textarea
-                    className="min-h-[200px] w-full p-4 font-mono text-sm border rounded-md"
-                    placeholder="memberIdNumber, name, designation, dateJoined, zonalOffice, permanentAddress&#10;1932, Md. Ariful Islam, AGM(Finance), 2018-04-25, Razendrapur, Gazipur, Baitkamari..."
-                    value={bulkData}
-                    onChange={(e) => setBulkData(e.target.value)}
-                  />
-                  <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV Data</Button>
+                <TabsContent value="csv" className="py-4 space-y-4">
+                  <textarea className="w-full min-h-[150px] p-2 text-sm border rounded" value={bulkData} onChange={(e) => setBulkData(e.target.value)} placeholder="name, memberIdNumber, designation..." />
+                  <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV</Button>
                 </TabsContent>
               </Tabs>
-              
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsBulkOpen(false)}>Cancel</Button>
-              </DialogFooter>
             </DialogContent>
           </Dialog>
 
           <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingMember(null); }}>
             <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="size-4 mr-2" />
-                Add New Member
-              </Button>
+              <Button size="sm"><Plus className="size-4 mr-2" /> Add Member</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{editingMember ? "Edit Member" : "Add New Member"}</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>{editingMember ? "Edit" : "Add"} Member</DialogTitle></DialogHeader>
               <form onSubmit={handleAddMember} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>ID Number</Label>
-                    <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Full Name</Label>
-                    <Input name="name" defaultValue={editingMember?.name} required />
-                  </div>
+                  <div className="space-y-2"><Label>ID No</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required /></div>
+                  <div className="space-y-2"><Label>Full Name</Label><Input name="name" defaultValue={editingMember?.name} required /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Designation</Label>
-                    <Input name="designation" defaultValue={editingMember?.designation} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Zonal Office</Label>
-                    <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} />
-                  </div>
+                  <div className="space-y-2"><Label>Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required /></div>
+                  <div className="space-y-2"><Label>Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} /></div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Date Joined</Label>
-                  <Input name="dateJoined" type="date" defaultValue={editingMember?.dateJoined} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Permanent Address</Label>
-                  <Input name="permanentAddress" defaultValue={editingMember?.permanentAddress} />
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>
-                  <Button type="submit">{editingMember ? "Update" : "Save Member"}</Button>
-                </DialogFooter>
+                <div className="space-y-2"><Label>Date Joined</Label><Input name="dateJoined" type="date" defaultValue={editingMember?.dateJoined} required /></div>
+                <DialogFooter><Button type="submit">Save</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -271,58 +180,34 @@ export default function MembersPage() {
 
       <div className="bg-card rounded-xl shadow-sm border p-1">
         <div className="p-4 border-b flex items-center gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input 
-              className="pl-9 h-10 max-w-sm" 
-              placeholder="Search members by name, ID or designation..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+          <Search className="size-4 text-muted-foreground" />
+          <Input className="max-w-sm h-9" placeholder="Search members..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="w-[100px]">ID No</TableHead>
-              <TableHead>Member Name</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Designation</TableHead>
-              <TableHead>Station / Office</TableHead>
+              <TableHead>Office</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8">
-                  <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
-                </TableCell>
-              </TableRow>
-            ) : filteredMembers.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                  No members found.
-                </TableCell>
-              </TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
             ) : filteredMembers.map((member) => (
               <TableRow key={member.id}>
                 <TableCell className="font-medium">{member.memberIdNumber}</TableCell>
                 <TableCell>{member.name}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{member.designation}</TableCell>
-                <TableCell className="text-sm">{member.zonalOffice}</TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button variant="ghost" size="icon" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}>
-                    <Edit2 className="size-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteMember(member.id)}>
-                    <Trash2 className="size-4" />
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/members/${member.id}`}>
-                      <UserCircle className="size-4 mr-2" />
-                      View Ledger
-                    </Link>
-                  </Button>
+                <TableCell className="text-xs">{member.designation}</TableCell>
+                <TableCell className="text-xs">{member.zonalOffice}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id)}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" asChild><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2" /> Ledger</Link></Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

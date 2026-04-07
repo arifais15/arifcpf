@@ -10,8 +10,7 @@ import {
   Plus, 
   Edit2, 
   Trash2, 
-  Loader2, 
-  ArrowRightLeft
+  Loader2 
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
@@ -113,20 +112,22 @@ export default function TransactionsPage() {
                 <TableCell className="text-right">
                   <Badge variant="outline" className="text-[10px]">{entry.lines?.length || 0} lines</Badge>
                 </TableCell>
-                <TableCell className="text-right flex justify-end gap-1">
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link href={`/transactions/new?edit=${entry.id}`}>
-                       <Edit2 className="size-3.5" />
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive" 
-                    onClick={() => handleDelete(entry.id, entry.referenceNumber)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link href={`/transactions/new?edit=${entry.id}`}>
+                        <Edit2 className="size-3.5" />
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10" 
+                      onClick={() => handleDelete(entry.id, entry.referenceNumber)}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
