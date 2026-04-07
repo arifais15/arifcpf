@@ -1,17 +1,181 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     /**
-     * PBS CPF Management Accounting Software - Security Rules
+     * FIREBASE SECURITY RULES DOCUMENTATION
      * 
-     * UPDATED FOR PROTOTYPING:
-     * To prevent "Missing or insufficient permissions" errors during the initial 
-     * anonymous authentication handshake, rules have been temporarily set to 
-     * allow all read/write access. This ensures that real-time listeners (onSnapshot)
-     * do not fail while the Firebase Auth session is being initialized.
+     * Core Philosophy:
+     * This ruleset implements a Database-Based Access Control (DBAC) model for a financial
+     * management system. It prioritizes administrative control over financial master data 
+     * while allowing for auditability and subsidiary ledger access.
+     * 
+     * Data Structure:
+     * - /roles_admin/{userId}: Global registry for administrative privileges.
+     * - /chart_of_accounts: Hierarchical master list of accounts.
+     * - /employees: Employee master records.
+     * - /investment_assets: Detailed tracking of CPF fund investments.
+     * - /employee_loans: Management of loans issued to employees.
+     * - /journal_entries: Header-level financial transaction records.
+     * - /journal_entries/{id}/line_items: Granular debit/credit entries.
+     * 
+     * Key Security Decisions:
+     * 1. Admin-First Model: Most collections are restricted to users with an 'Admin' record.
+     * 2. Authorization Independence: The 'isPosted' status is denormalized onto line items
+     *    to enforce immutability without cross-document lookups.
+     * 3. Immutability: Once a Journal Entry is marked 'isPosted', updates and deletions
+     *    to the entry and its line items are strictly forbidden.
+     * 4. Employee Ledger Access: Employees are permitted to list and read line items 
+     *    associated with their UID for subsidiary ledger transparency.
+     * 
+     * Denormalization for Authorization:
+     * - 'isPosted' is stored on every 'JournalEntryLineItem' to allow immediate authorization
+     *    decisions regarding the modification of financial records.
+     * - 'employeeId' is stored on line items to allow employees to query their own 
+     *    financial history directly via collectionGroup queries.
      */
-    match /{document=**} {
-      allow read, write: if true;
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /**
+     * @description Checks if the user is authenticated with Firebase Auth.
+     */
+    function isSignedIn() {
+      return request.auth != null;
     }
+
+    /**
+     * @description Checks if the authenticated user has an entry in the global admin roles collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * @description Checks if the user is the owner of the document based on path ID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Verifies document existence and ownership for destructive operations.
+     */
+    function isExistingAdmin() {
+      return isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Checks if a transaction is already finalized/posted.
+     */
+    function isNotPosted(data) {
+      return data.get('isPosted', false) == false;
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the admin roles registry.
+     * @path /roles_admin/{userId}
+     * @allow (get) If the user is checking their own admin status.
+     * @deny (write) If the user is not an existing administrator.
+     * @principle DBAC: User roles are stored in the database, not custom claims.
+     */
+    match /roles_admin/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for the Chart of Accounts master list.
+     * @path /chart_of_accounts/{accountId}
+     * @allow (read) All signed-in users (to populate dropdowns/lists).
+     * @deny (write) Non-admin users attempting to modify the accounting structure.
+     * @principle Restricted write access for core financial infrastructure.
+     */
+    match /chart_of_accounts/{accountId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Rules for Employee master records.
+     * @path /employees/{employeeId}
+     * @allow (read) Signed-in users.
+     * @deny (write) Non-admin users.
+     * @principle Administrative control over HR/Payroll entities.
+     */
+    match /employees/{employeeId} {
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Rules for Investment Assets.
+     * @path /investment_assets/{investmentAssetId}
+     * @allow (read/write) Administrator access only.
+     * @deny (all) Unauthenticated or non-admin users.
+     * @principle Admin-only management for sensitive financial assets.
+     */
+    match /investment_assets/{investmentAssetId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Rules for Employee Loans.
+     * @path /employee_loans/{employeeLoanId}
+     * @allow (get) Admins or the employee who owns the loan.
+     * @deny (write) Any non-admin user.
+     * @principle Privacy for loan details with admin oversight.
+     */
+    match /employee_loans/{employeeLoanId} {
+      allow get: if isAdmin() || (isSignedIn() && resource.data.employeeId == request.auth.uid);
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 100); // Standard list restricted to Admin or filtered by UI
+      allow create: if isAdmin();
+      allow update, delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Rules for Journal Entry headers.
+     * @path /journal_entries/{journalEntryId}
+     * @allow (create) Admin user if the entry is not yet posted.
+     * @deny (update/delete) If the entry is already 'isPosted'.
+     * @principle Immutability of finalized financial transactions.
+     */
+    match /journal_entries/{journalEntryId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isExistingAdmin() && isNotPosted(resource.data);
+    }
+
+    /**
+     * @description Rules for Journal Entry Line Items.
+     * @path /journal_entries/{journalEntryId}/line_items/{lineItemId}
+     * @allow (read) Admin access, or Employee access if the line item is linked to their ID.
+     * @deny (write) If the denormalized 'isPosted' flag is true.
+     * @principle Authorization independence via denormalized status flags.
+     */
+    match /journal_entries/{journalEntryId}/line_items/{lineItemId} {
+      // Employees can view their own ledger items for transparency
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.employeeId == request.auth.uid);
+      
+      allow create: if isAdmin();
+      
+      // Enforce immutability using the denormalized field on the document itself
+      allow update, delete: if isExistingAdmin() && isNotPosted(resource.data);
+    }
+    
+    /**
+     * @description Support for collectionGroup queries on Line Items for Employee Subsidiary Ledgers.
+     */
+    match /{path=**}/line_items/{lineItemId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.employeeId == request.auth.uid);
+    }
+
   }
 }

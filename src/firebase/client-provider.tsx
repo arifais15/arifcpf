@@ -1,7 +1,6 @@
-
 'use client';
 
-import React, { useMemo, useEffect, type ReactNode } from 'react';
+import React, { useMemo, type ReactNode } from 'react';
 import { FirebaseProvider } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
 
