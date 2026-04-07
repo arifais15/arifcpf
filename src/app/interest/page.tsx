@@ -180,6 +180,11 @@ export default function CPFInterestPage() {
     setIsPosting(true);
     let postedCount = 0;
 
+    // Calculate the posting date as June 30th of the end year of the FY
+    const [startYearStr] = selectedFY.split("-");
+    const endYear = parseInt(startYearStr) + 1;
+    const summaryDate = `${endYear}-06-30`;
+
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
@@ -196,7 +201,7 @@ export default function CPFInterestPage() {
       }
 
       const entryData = {
-        summaryDate: new Date().toISOString().split('T')[0],
+        summaryDate: summaryDate,
         particulars: `Annual Profit FY ${selectedFY} (Proportional)`,
         employeeContribution: 0,
         loanWithdrawal: 0,

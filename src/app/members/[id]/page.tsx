@@ -210,8 +210,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitPbs = interestCalculation.totalInterest / 2;
     }
 
+    // Determine the posting date: June 30th of the end year of the FY, or end of custom range
+    let summaryDate = "";
+    if (selectedInterestMode === "fy") {
+        const [startYearStr] = selectedInterestFY.split("-");
+        const endYear = parseInt(startYearStr) + 1;
+        summaryDate = `${endYear}-06-30`;
+    } else {
+        summaryDate = customRange.end;
+    }
+
     const entryData = {
-      summaryDate: new Date().toISOString().split('T')[0],
+      summaryDate: summaryDate,
       particulars: `Annual Profit ${interestCalculation.label} (Proportional)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
@@ -627,11 +637,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[9px] border-collapse border border-black table-fixed">
+          <table className="w-full text-[9px] border-collapse border border-black">
             <thead>
               <tr className="bg-white">
                 <th className="border border-black p-1 text-center font-bold w-[70px]">Date</th>
-                <th className="border border-black p-1 text-center font-bold">Particulars</th>
+                <th className="border border-black p-1 text-center font-bold w-[180px]">Particulars</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Employee Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Amount Withdraws as Loan</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Loan Principal repayment</th>
@@ -669,7 +679,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               ) : calculatedRows.map((row: any, idx) => (
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors">
                   <td className="border border-black p-1 whitespace-nowrap text-center">{row.summaryDate}</td>
-                  <td className="border border-black p-1 truncate">{row.particulars || "-"}</td>
+                  <td className="border border-black p-1 break-words whitespace-normal overflow-visible text-left">{row.particulars || "-"}</td>
                   <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
