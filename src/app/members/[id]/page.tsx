@@ -115,26 +115,38 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return annualInterest;
   };
 
-  // Advanced Interest Calculation Logic (Monthly Cumulative for FY)
+  // Monthly Cumulative Interest Calculation Logic (June to May)
   const fyInterestCalculation = useMemo(() => {
     if (!selectedInterestFY) return null;
     
-    const [startYearStr, endYearShort] = selectedInterestFY.split("-");
+    const [startYearStr] = selectedInterestFY.split("-");
     const startYear = parseInt(startYearStr);
     
-    // FY 2023-24 means July 2023 to June 2024
+    // FY June to May Calculation
+    // For FY 2023-24, we need end-of-month balances for:
+    // June 2023, July 2023, ..., May 2024 (12 months total)
+    
     const monthlyDetails = [];
     let totalFYInterest = 0;
 
-    for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
-      // monthIdx 0 = July, 11 = June
-      const currentMonth = (monthIdx + 6) % 12; // 0-indexed month (July=6)
-      const currentYear = monthIdx < 6 ? startYear : startYear + 1;
+    for (let i = 0; i < 12; i++) {
+      // i=0: June of startYear
+      // i=1: July of startYear
+      // ...
+      // i=11: May of startYear + 1
       
-      const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+      let currentMonthIdx, currentYear;
+      if (i === 0) {
+        currentMonthIdx = 5; // June (0-indexed)
+        currentYear = startYear;
+      } else {
+        currentMonthIdx = (i + 5) % 12;
+        currentYear = i < 7 ? startYear : startYear + 1;
+      }
       
-      // Find the cumulative balance as of the end of this month
-      // We take the latest entry whose date is <= lastDayOfMonth
+      const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0);
+      
+      // Find the cumulative balance as of the end of this specific month
       const lastEntryInMonth = [...calculatedRows]
         .filter(r => new Date(r.summaryDate) <= lastDayOfMonth)
         .pop();
@@ -202,7 +214,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const halfInterest = fyInterestCalculation.totalFYInterest / 2;
     const entryData = {
       summaryDate: new Date().toISOString().split('T')[0],
-      particulars: `Annual Profit FY ${selectedInterestFY} (Monthly Cumul.)`,
+      particulars: `Annual Profit FY ${selectedInterestFY} (June-May Cumul.)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
       loanRepayment: 0,
@@ -318,19 +330,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
-          {/* Enhanced Monthly Interest Calculator */}
+          {/* June to May Monthly Interest Calculator */}
           <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
                 <Calculator className="size-4" />
-                Monthly Interest Calc
+                June-May Profit Calc
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Monthly Cumulative Interest (Tiered)</DialogTitle>
+                <DialogTitle>Monthly Cumulative Interest (June-May)</DialogTitle>
                 <DialogDescription>
-                  Calculates interest based on month-end balances for a specific Fiscal Year.
+                  Calculates profit based on ending balances from June (Prev Year) to May (Current Year).
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
@@ -349,7 +361,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </Select>
                   </div>
                   <div className="flex-1 text-right">
-                    <p className="text-[10px] uppercase font-bold text-slate-500">Total Profit for FY {selectedInterestFY}</p>
+                    <p className="text-[10px] uppercase font-bold text-slate-500">Total Profit (June-May)</p>
                     <p className="text-3xl font-bold text-primary">
                       ৳ {fyInterestCalculation?.totalFYInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 }) || "0.00"}
                     </p>
@@ -360,9 +372,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <table className="w-full text-[11px]">
                     <thead className="bg-slate-100 border-b">
                       <tr>
-                        <th className="p-2 text-left">Month</th>
+                        <th className="p-2 text-left">Calculation Month</th>
                         <th className="p-2 text-right">End Balance (Col 11)</th>
-                        <th className="p-2 text-right">Monthly Interest</th>
+                        <th className="p-2 text-right">Monthly Portion</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y">
@@ -377,10 +389,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   </table>
                 </div>
 
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex gap-2">
-                  <Info className="size-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-amber-700 leading-tight">
-                    Calculation based on month-end cumulative balance. ৳1.5M @ 13%, next ৳1.5M @ 12%, above ৳3M @ 11%. Monthly portions are 1/12th of annual yield.
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex gap-2">
+                  <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-blue-700 leading-tight">
+                    Calculation uses month-end cumulative balances from June to May. 1.5M @ 13%, next 1.5M @ 12%, excess @ 11%. Each month contributes 1/12th of the annual yield.
                   </p>
                 </div>
               </div>
@@ -388,7 +400,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
                 <Button onClick={handlePostInterest} className="gap-2" disabled={!selectedInterestFY}>
                   <Percent className="size-4" />
-                  Post FY Profit
+                  Post Profit Entry
                 </Button>
               </DialogFooter>
             </DialogContent>
