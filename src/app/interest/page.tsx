@@ -39,7 +39,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-export default function GlobalInterestPage() {
+export default function CPFInterestPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
@@ -83,7 +83,7 @@ export default function GlobalInterestPage() {
     return annualInterest;
   };
 
-  const handleRunGlobalCalculation = async () => {
+  const handleRunCPFCalculation = async () => {
     if (!members) return;
     setIsCalculating(true);
     setPreviewData([]);
@@ -205,7 +205,7 @@ export default function GlobalInterestPage() {
     toast({ title: "Posting Complete", description: `Successfully updated ${postedCount} subsidiary ledgers.` });
   };
 
-  const totalGlobalProfit = useMemo(() => {
+  const totalCPFProfit = useMemo(() => {
     return previewData.reduce((sum, item) => sum + item.calculatedInterest, 0);
   }, [previewData]);
 
@@ -213,7 +213,7 @@ export default function GlobalInterestPage() {
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Global Interest Accrual</h1>
+          <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
           <p className="text-muted-foreground">Apply tiered profit calculation based on proportional fund balances</p>
         </div>
         <div className="flex items-center gap-4">
@@ -228,9 +228,9 @@ export default function GlobalInterestPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleRunGlobalCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2">
+          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run Global Calc
+            Run CPF Calc
           </Button>
         </div>
       </div>
@@ -249,7 +249,7 @@ export default function GlobalInterestPage() {
             <CardTitle className="text-xs font-bold uppercase text-accent tracking-widest">Total Accrued Profit</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">৳ {totalGlobalProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+            <div className="text-2xl font-bold">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-emerald-50">
