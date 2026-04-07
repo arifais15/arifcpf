@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent } from "lucide-react";
+import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent, Calendar } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from "xlsx";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -26,6 +27,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [isUploading, setIsUploading] = useState(false);
   const [bulkCsvData, setBulkCsvData] = useState("");
   const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const memberRef = useMemoFirebase(() => doc(firestore, "members", resolvedParams.id), [firestore, resolvedParams.id]);
@@ -82,36 +84,74 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [sortedSummaries]);
 
-  const currentBalance = calculatedRows.length > 0 ? calculatedRows[calculatedRows.length - 1].col11 : 0;
+  // Determine available Fiscal Years from ledger data
+  const availableFYs = useMemo(() => {
+    const fys = new Set<string>();
+    calculatedRows.forEach(row => {
+      const date = new Date(row.summaryDate);
+      if (isNaN(date.getTime())) return;
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const fy = month >= 7 ? `${year}-${(year + 1).toString().slice(-2)}` : `${year - 1}-${year.toString().slice(-2)}`;
+      fys.add(fy);
+    });
+    const sorted = Array.from(fys).sort((a, b) => b.localeCompare(a));
+    if (sorted.length > 0 && !selectedInterestFY) {
+      setSelectedInterestFY(sorted[0]);
+    }
+    return sorted;
+  }, [calculatedRows, selectedInterestFY]);
 
-  // Interest Calculation Logic (Tiered)
-  const interestCalculation = useMemo(() => {
-    const balance = currentBalance;
-    let totalInterest = 0;
-    const tiers = [];
-
+  // Tiered Interest Logic (Calculates annual interest for a specific balance)
+  const calculateTieredAnnual = (balance: number) => {
+    let annualInterest = 0;
     if (balance <= 1500000) {
-      const i = balance * 0.13;
-      totalInterest = i;
-      tiers.push({ label: "Up to 1.5M (13%)", amount: balance, interest: i });
+      annualInterest = balance * 0.13;
     } else if (balance <= 3000000) {
-      const i1 = 1500000 * 0.13;
-      const i2 = (balance - 1500000) * 0.12;
-      totalInterest = i1 + i2;
-      tiers.push({ label: "First 1.5M (13%)", amount: 1500000, interest: i1 });
-      tiers.push({ label: "Next Layer (12%)", amount: balance - 1500000, interest: i2 });
+      annualInterest = (1500000 * 0.13) + ((balance - 1500000) * 0.12);
     } else {
-      const i1 = 1500000 * 0.13;
-      const i2 = 1500000 * 0.12;
-      const i3 = (balance - 3000000) * 0.11;
-      totalInterest = i1 + i2 + i3;
-      tiers.push({ label: "First 1.5M (13%)", amount: 1500000, interest: i1 });
-      tiers.push({ label: "Second 1.5M (12%)", amount: 1500000, interest: i2 });
-      tiers.push({ label: "Above 3.0M (11%)", amount: balance - 3000000, interest: i3 });
+      annualInterest = (1500000 * 0.13) + (1500000 * 0.12) + ((balance - 3000000) * 0.11);
+    }
+    return annualInterest;
+  };
+
+  // Advanced Interest Calculation Logic (Monthly Cumulative for FY)
+  const fyInterestCalculation = useMemo(() => {
+    if (!selectedInterestFY) return null;
+    
+    const [startYearStr, endYearShort] = selectedInterestFY.split("-");
+    const startYear = parseInt(startYearStr);
+    
+    // FY 2023-24 means July 2023 to June 2024
+    const monthlyDetails = [];
+    let totalFYInterest = 0;
+
+    for (let monthIdx = 0; monthIdx < 12; monthIdx++) {
+      // monthIdx 0 = July, 11 = June
+      const currentMonth = (monthIdx + 6) % 12; // 0-indexed month (July=6)
+      const currentYear = monthIdx < 6 ? startYear : startYear + 1;
+      
+      const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+      
+      // Find the cumulative balance as of the end of this month
+      // We take the latest entry whose date is <= lastDayOfMonth
+      const lastEntryInMonth = [...calculatedRows]
+        .filter(r => new Date(r.summaryDate) <= lastDayOfMonth)
+        .pop();
+      
+      const balance = lastEntryInMonth ? lastEntryInMonth.col11 : 0;
+      const monthlyInterest = calculateTieredAnnual(balance) / 12;
+      
+      totalFYInterest += monthlyInterest;
+      monthlyDetails.push({
+        monthName: lastDayOfMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
+        balance,
+        interest: monthlyInterest
+      });
     }
 
-    return { totalInterest, tiers };
-  }, [currentBalance]);
+    return { totalFYInterest, monthlyDetails };
+  }, [selectedInterestFY, calculatedRows]);
 
   const totals = useMemo(() => {
     if (calculatedRows.length === 0) return null;
@@ -157,12 +197,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   };
 
   const handlePostInterest = () => {
-    // Standard practice: split the calculated interest equally between Emp and PBS profit columns 
-    // unless specified otherwise. We'll label it as Annual Profit.
-    const halfInterest = interestCalculation.totalInterest / 2;
+    if (!fyInterestCalculation) return;
+
+    const halfInterest = fyInterestCalculation.totalFYInterest / 2;
     const entryData = {
       summaryDate: new Date().toISOString().split('T')[0],
-      particulars: "Annual Profit Distribution (Tiered)",
+      particulars: `Annual Profit FY ${selectedInterestFY} (Monthly Cumul.)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
       loanRepayment: 0,
@@ -175,7 +215,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    toast({ title: "Profit Recorded", description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} has been added to the ledger.` });
+    toast({ title: "Profit Recorded", description: `Interest of ৳${fyInterestCalculation.totalFYInterest.toFixed(2)} posted.` });
     setIsInterestOpen(false);
   };
 
@@ -225,11 +265,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (skipped > 0) {
       toast({ 
         title: "Partial Success", 
-        description: `Added ${count} entries. Skipped ${skipped} entries that didn't match Member ID ${member?.memberIdNumber}.`,
+        description: `Added ${count} entries. Skipped ${skipped} unmatched IDs.`,
         variant: "destructive"
       });
     } else {
-      toast({ title: "Processing Complete", description: `Added ${count} ledger entries for ${member?.name}.` });
+      toast({ title: "Complete", description: `Added ${count} ledger entries for ${member?.name}.` });
     }
     setIsBulkOpen(false);
   };
@@ -245,8 +285,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         const bstr = event.target?.result;
         const workbook = XLSX.read(bstr, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        const data = XLSX.utils.sheet_to_json(worksheet);
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         processEntries(data);
       } catch (err) {
         toast({ title: "Upload Failed", description: "Could not parse Excel file.", variant: "destructive" });
@@ -256,47 +295,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       }
     };
     reader.readAsBinaryString(file);
-  };
-
-  const handleBulkCsvUpload = () => {
-    const lines = bulkCsvData.trim().split("\n");
-    if (lines.length < 2) {
-      toast({ title: "Error", description: "Please provide a header line and at least one data line.", variant: "destructive" });
-      return;
-    }
-
-    const headers = lines[0].split(",").map(h => h.trim());
-    const entries = lines.slice(1).map(line => {
-      const values = line.split(",").map(v => v.trim());
-      const entry: any = {};
-      headers.forEach((h, i) => {
-        entry[h] = values[i];
-      });
-      return entry;
-    });
-
-    processEntries(entries);
-  };
-
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        "memberIdNumber": member?.memberIdNumber || "12345",
-        "Date": "2023-10-31",
-        "Particulars": "Monthly Contribution Oct-23",
-        "Employee Contribution": 1500.00,
-        "Amount Withdraws as Loan": 0.00,
-        "Loan Principal repayment": 0.00,
-        "Profit on Employee Contribution": 12.50,
-        "Profit on CPF Loan": 0.00,
-        "PBS Contribution": 1500.00,
-        "Profit on PBS Contribution": 12.50
-      }
-    ];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "LedgerEntries");
-    XLSX.writeFile(wb, `ledger_template_${member?.memberIdNumber}.xlsx`);
   };
 
   if (isMemberLoading) {
@@ -320,56 +318,77 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
-          {/* Interest Calculator Button */}
+          {/* Enhanced Monthly Interest Calculator */}
           <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
                 <Calculator className="size-4" />
-                Calculate Profit
+                Monthly Interest Calc
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <DialogTitle>Interest Calculator (Tiered)</DialogTitle>
+                <DialogTitle>Monthly Cumulative Interest (Tiered)</DialogTitle>
                 <DialogDescription>
-                  Calculate annual profit based on Cumulative Fund Balance for <strong>{member.name}</strong>.
+                  Calculates interest based on month-end balances for a specific Fiscal Year.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
-                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
-                  <p className="text-xs uppercase font-bold text-slate-400 mb-1">Current Balance (Col 11)</p>
-                  <p className="text-2xl font-bold text-slate-900">৳ {currentBalance.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</p>
-                </div>
-                
-                <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Tier Breakdown</p>
-                  {interestCalculation.tiers.map((tier, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm py-2 border-b border-dotted">
-                      <span className="text-slate-600">{tier.label}</span>
-                      <div className="text-right">
-                        <p className="font-medium text-slate-900">৳ {tier.interest.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</p>
-                        <p className="text-[10px] text-slate-400">on ৳{tier.amount.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="flex justify-between items-center pt-2 font-bold text-primary">
-                    <span>Total Calculated Profit</span>
-                    <span className="text-lg underline decoration-double underline-offset-4">৳ {interestCalculation.totalInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 })}</span>
+                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] uppercase font-bold text-slate-500">Select Fiscal Year</Label>
+                    <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
+                      <SelectTrigger className="w-[180px] h-9 font-bold">
+                        <SelectValue placeholder="Select FY" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFYs.map(fy => (
+                          <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
+                  <div className="flex-1 text-right">
+                    <p className="text-[10px] uppercase font-bold text-slate-500">Total Profit for FY {selectedInterestFY}</p>
+                    <p className="text-3xl font-bold text-primary">
+                      ৳ {fyInterestCalculation?.totalFYInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 }) || "0.00"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="border rounded-md overflow-hidden max-h-[300px] overflow-y-auto">
+                  <table className="w-full text-[11px]">
+                    <thead className="bg-slate-100 border-b">
+                      <tr>
+                        <th className="p-2 text-left">Month</th>
+                        <th className="p-2 text-right">End Balance (Col 11)</th>
+                        <th className="p-2 text-right">Monthly Interest</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {fyInterestCalculation?.monthlyDetails.map((detail, idx) => (
+                        <tr key={idx} className="hover:bg-slate-50">
+                          <td className="p-2 font-medium">{detail.monthName}</td>
+                          <td className="p-2 text-right">৳ {detail.balance.toLocaleString()}</td>
+                          <td className="p-2 text-right font-bold text-accent">৳ {detail.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
 
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-md flex gap-2">
                   <Info className="size-4 text-amber-600 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-amber-700 leading-tight">
-                    Recording this will add a new entry to the ledger. Interest is split equally between Employee and PBS profit columns.
+                    Calculation based on month-end cumulative balance. ৳1.5M @ 13%, next ৳1.5M @ 12%, above ৳3M @ 11%. Monthly portions are 1/12th of annual yield.
                   </p>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
-                <Button onClick={handlePostInterest} className="gap-2">
+                <Button onClick={handlePostInterest} className="gap-2" disabled={!selectedInterestFY}>
                   <Percent className="size-4" />
-                  Post to Ledger
+                  Post FY Profit
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -383,18 +402,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle>Bulk Upload Ledger Entries</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="text-xs h-7 gap-1">
-                    <Download className="size-3" />
-                    Download Template
-                  </Button>
                 </div>
-                <DialogDescription className="flex items-start gap-2 pt-2">
-                  <Info className="size-4 mt-0.5 text-primary" />
-                  <span>
-                    Matching logic: The system uses <strong>memberIdNumber</strong> to verify the data belongs to <strong>{member.name}</strong>. 
-                    Entries that don't match this ID will be skipped.
-                  </span>
-                </DialogDescription>
               </DialogHeader>
               <Tabs defaultValue="excel" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -407,12 +415,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <div className="bg-primary/10 p-4 rounded-full"><FileSpreadsheet className="size-8 text-primary" /></div>
-                    <div className="space-y-1">
-                      <p className="font-medium">Click to upload or drag and drop</p>
-                      <p className="text-sm text-muted-foreground text-center">
-                        Uploading for <strong>{member.memberIdNumber}</strong> ({member.name})
-                      </p>
-                    </div>
+                    <p className="font-medium">Click to upload or drag and drop</p>
                     <Input type="file" className="hidden" ref={fileInputRef} accept=".xlsx, .xls, .csv" onChange={handleExcelUpload} disabled={isUploading} />
                     {isUploading && <Loader2 className="size-4 animate-spin text-primary" />}
                   </div>
@@ -420,16 +423,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <TabsContent value="csv" className="space-y-4 py-4">
                   <textarea
                     className="min-h-[200px] w-full p-4 font-mono text-sm border rounded-md"
-                    placeholder="memberIdNumber, Date, Particulars, Employee Contribution, Amount Withdraws as Loan, Loan Principal repayment..."
+                    placeholder="memberIdNumber, Date, Particulars, Employee Contribution..."
                     value={bulkCsvData}
                     onChange={(e) => setBulkCsvData(e.target.value)}
                   />
-                  <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV Data</Button>
+                  <Button className="w-full" onClick={() => processEntries(bulkCsvData.trim().split("\n").slice(1).map(l => {
+                    const v = l.split(",");
+                    return { memberIdNumber: v[0], Date: v[1], Particulars: v[2], "Employee Contribution": v[3] };
+                  }))}>Process CSV Data</Button>
                 </TabsContent>
               </Tabs>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsBulkOpen(false)}>Cancel</Button>
-              </DialogFooter>
             </DialogContent>
           </Dialog>
 
@@ -486,7 +489,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </DialogContent>
           </Dialog>
           <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-2" /> Print Form 224</Button>
-          <Button variant="outline" size="sm"><Download className="size-4 mr-2" /> Export PDF</Button>
         </div>
       </div>
 
@@ -606,7 +608,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="mt-12 flex justify-between items-end text-[9px]">
            <p className="font-bold">{member.memberIdNumber}--{member.name}--{member.designation} =Page 1 of 1</p>
-           <p className="text-right italic">CPF Management Software Developed by Ariful Islam Agm finance, contact: 017317530731</p>
+           <p className="text-right italic">CPF Management Software developed by Ariful Islam contact: 01731753731</p>
         </div>
       </div>
     </div>
