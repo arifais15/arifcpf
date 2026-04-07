@@ -287,7 +287,7 @@ export default function LoginPage() {
             
             <div className="text-center pt-2">
               <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-[0.2em] opacity-50">
-                Gazipur Palli Bidyut Samity-2
+                Dev: Ariful Islam,AGMF,Gazipur PBS-2
               </p>
             </div>
           </CardFooter>
