@@ -114,8 +114,6 @@ export default function CPFInterestPage() {
         new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime()
       );
 
-      let totalInterest = 0;
-      
       // We calculate monthly, but we also need the final fund balances to determine the ratio for posting
       sortedSummaries.forEach((row: any) => {
         const c1 = Number(row.employeeContribution) || 0;
@@ -130,6 +128,9 @@ export default function CPFInterestPage() {
         runningOfficeFund += (c8 + c9);
       });
 
+      let totalInterest = 0;
+      
+      // LOGIC: Calculate from June (Prior Year closing) to May (Current Year)
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {

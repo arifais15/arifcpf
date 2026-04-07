@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -123,21 +124,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   };
 
   const interestCalculation = useMemo(() => {
-    let startDate: Date;
+    let startYear = 0;
     let monthsToCalculate = 0;
     let label = "";
 
     if (selectedInterestMode === "fy") {
       if (!selectedInterestFY) return null;
       const [startYearStr] = selectedInterestFY.split("-");
-      startDate = new Date(parseInt(startYearStr), 6, 1); // July 1st
+      startYear = parseInt(startYearStr);
       monthsToCalculate = 12;
       label = `FY ${selectedInterestFY}`;
     } else {
       if (!customRange.start || !customRange.end) return null;
       const start = new Date(customRange.start);
       const end = new Date(customRange.end);
-      startDate = new Date(start.getFullYear(), start.getMonth(), 1);
       monthsToCalculate = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
       label = `Custom Range`;
     }
@@ -149,7 +149,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     let totalInterest = 0;
 
     for (let i = 0; i < monthsToCalculate; i++) {
-      const currentMonth = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
+      let currentMonth: Date;
+      if (selectedInterestMode === "fy") {
+        // LOGIC: Loop from June (Prior Year) to May (Current Year)
+        let mIdx, yr;
+        if (i === 0) {
+          mIdx = 5; // June
+          yr = startYear;
+        } else {
+          mIdx = (i + 5) % 12;
+          yr = i < 7 ? startYear : startYear + 1;
+        }
+        currentMonth = new Date(yr, mIdx + 1, 0);
+      } else {
+        const base = new Date(customRange.start);
+        currentMonth = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
+      }
+
       const lastEntryInMonth = [...calculatedRows]
         .filter(r => new Date(r.summaryDate) <= currentMonth)
         .pop();
