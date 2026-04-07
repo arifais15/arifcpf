@@ -49,7 +49,7 @@
 
 @media print {
   @page {
-    size: A4 portrait;
+    size: A4 landscape;
     margin: 10mm;
   }
 
@@ -130,6 +130,7 @@
     font-family: 'Calibri', 'Segoe UI', 'Arial', sans-serif !important;
   }
 
+  /* For reports that should look like portrait on a landscape page */
   .print-portrait-fix {
     width: 190mm !important;
     margin: 0 auto !important;
