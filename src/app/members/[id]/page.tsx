@@ -293,7 +293,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   if (!member) return <div className="p-8 text-center"><h1 className="text-2xl font-bold">Member not found</h1></div>;
 
   return (
-    <div className="p-6 flex flex-col gap-6 bg-slate-50 min-h-screen font-ledger">
+    <div className="p-4 md:p-6 flex flex-col gap-6 bg-slate-50 min-h-screen font-ledger">
       <div className="flex items-center justify-between no-print max-w-[1300px] mx-auto w-full">
         <Link href="/members" className="flex items-center gap-2 text-sm text-slate-500 hover:text-primary font-medium transition-colors">
           <ArrowLeft className="size-4" /> Back to Registry
@@ -361,98 +361,111 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
           <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="gap-2 border-slate-300"><Upload className="size-4" /> Bulk Upload</Button>
           <Button variant="secondary" size="sm" onClick={() => setIsEntryOpen(true)} className="gap-2"><Plus className="size-4" /> New Entry</Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 border-slate-300"><Printer className="size-4" /> Print Landscape</Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 border-slate-300"><Printer className="size-4" /> Print Ledger</Button>
         </div>
       </div>
 
-      <div className="bg-white p-12 shadow-sm rounded-none border border-slate-200 max-w-[1300px] mx-auto w-full font-ledger text-black print-container">
-        <div className="relative mb-8 text-center border-b-2 border-black pb-4">
-          <p className="text-[9px] absolute left-0 top-0 font-bold uppercase tracking-widest opacity-50">REB Form no: 224</p>
-          <h1 className="text-2xl font-black uppercase tracking-tight">Gazipur Palli Bidyut Samity-2</h1>
-          <h2 className="text-lg font-bold underline underline-offset-8 uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
+      <div className="bg-white p-6 md:p-10 shadow-sm rounded-none border border-slate-200 max-w-[1300px] mx-auto w-full font-ledger text-black print-container">
+        <div className="relative mb-6 text-center border-b-2 border-black pb-4">
+          <p className="text-[9px] absolute left-0 top-0 font-bold uppercase tracking-widest opacity-70">REB Form no: 224</p>
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight">Gazipur Palli Bidyut Samity-2</h1>
+          <h2 className="text-md md:text-lg font-bold underline underline-offset-8 uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-10 text-[12px]">
-          <div className="space-y-3">
-            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[10px] text-slate-500 mb-0.5">Member Name</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-sm">{member.name}</span></div>
-            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[10px] text-slate-500 mb-0.5">Address</span><span className="border-b border-black/30 flex-1 pb-0.5">{member.currentAddress || "-"}</span></div>
-            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[10px] text-slate-500 mb-0.5">Joined Date</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.dateJoined}</span></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 mb-8 text-[11px] md:text-[12px]">
+          <div className="space-y-2">
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5">Member Name</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-sm">{member.name}</span></div>
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5">Address</span><span className="border-b border-black/30 flex-1 pb-0.5">{member.currentAddress || "-"}</span></div>
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5">Joined Date</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.dateJoined}</span></div>
           </div>
-          <div className="space-y-3">
-            <div className="flex gap-2 items-end"><span className="font-bold min-w-[120px] uppercase text-[10px] text-slate-500 mb-0.5">Designation</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.designation}</span></div>
-            <div className="flex gap-x-8">
-               <div className="flex gap-2 flex-1 items-end"><span className="font-bold min-w-[40px] uppercase text-[10px] text-slate-500 mb-0.5">ID No</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5 font-mono text-sm">{member.memberIdNumber}</span></div>
-               <div className="flex gap-2 flex-1 items-end"><span className="font-bold whitespace-nowrap uppercase text-[10px] text-slate-500 mb-0.5">Nomination Date</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.dateNomination || "-"}</span></div>
+          <div className="space-y-2">
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[120px] uppercase text-[9px] text-slate-500 mb-0.5">Designation</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.designation}</span></div>
+            <div className="flex gap-x-4">
+               <div className="flex gap-2 flex-1 items-end"><span className="font-bold min-w-[40px] uppercase text-[9px] text-slate-500 mb-0.5">ID No</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5 font-mono text-sm">{member.memberIdNumber}</span></div>
+               <div className="flex gap-2 flex-1 items-end"><span className="font-bold whitespace-nowrap uppercase text-[9px] text-slate-500 mb-0.5">Nomination Date</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.dateNomination || "-"}</span></div>
             </div>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-[10px] border-collapse border border-black table-fixed">
-            <thead className="bg-slate-50/50">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-[9px] border-collapse border border-black table-fixed">
+            <thead className="bg-slate-50/80">
               <tr>
-                <th className="border border-black p-2 text-center font-bold w-[75px] uppercase text-[8px]">Date</th>
-                <th className="border border-black p-2 text-center font-bold w-[250px] uppercase text-[8px]">Particulars</th>
-                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">Emp. Contrib.</th>
-                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">Loan Withdr.</th>
-                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">Loan Repay.</th>
-                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">O/S Loan</th>
-                <th className="border border-black p-2 text-center font-bold w-[80px] uppercase text-[8px]">Profit (E)</th>
-                <th className="border border-black p-2 text-center font-bold w-[80px] uppercase text-[8px]">Profit (L)</th>
-                <th className="border border-black p-2 text-center font-bold w-[100px] uppercase text-[8px]">Emp. Fund</th>
-                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">PBS Contrib.</th>
-                <th className="border border-black p-2 text-center font-bold w-[80px] uppercase text-[8px]">Profit (P)</th>
-                <th className="border border-black p-2 text-center font-bold w-[100px] uppercase text-[8px]">Office Fund</th>
-                <th className="border border-black p-2 text-center font-bold w-[110px] uppercase text-[8px]">Cumul. Fund</th>
-                <th className="border border-black p-2 text-center font-bold no-print w-[80px] uppercase text-[8px]">Action</th>
+                <th className="border border-black p-1 text-center font-bold w-[70px] uppercase text-[7.5px]">Date</th>
+                <th className="border border-black p-1 text-center font-bold w-[220px] uppercase text-[7.5px]">Particulars</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">Emp. Contrib.</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">Loan Withdr.</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">Loan Repay.</th>
+                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px]">O/S Loan</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px]">Profit (E)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px]">Profit (L)</th>
+                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px]">Emp. Fund</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">PBS Contrib.</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px]">Profit (P)</th>
+                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px]">Office Fund</th>
+                <th className="border border-black p-1 text-center font-bold w-[100px] uppercase text-[7.5px]">Cumul. Fund</th>
+                <th className="border border-black p-1 text-center font-bold no-print w-[80px] uppercase text-[7.5px]">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/10">
+            <tbody className="divide-y divide-black/20">
               {isSummariesLoading ? <tr><td colSpan={14} className="text-center p-8 italic">Loading ledger data...</td></tr> : calculatedRows.map((row: any, idx) => (
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors">
-                  <td className="border border-black p-1.5 text-center whitespace-nowrap font-mono">{row.summaryDate}</td>
-                  <td className="border border-black p-1.5 text-left break-words whitespace-normal leading-normal font-medium align-top">
+                  <td className="border border-black p-1 text-center whitespace-nowrap font-mono">{row.summaryDate}</td>
+                  <td className="border border-black p-1 text-left break-words whitespace-normal leading-tight font-medium align-top">
                     {row.particulars || "-"}
                   </td>
-                  <td className="border border-black p-1.5 text-right font-medium">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-rose-700">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-emerald-700">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right font-bold bg-slate-50/50">{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-accent">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-accent">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right font-bold bg-primary/5">{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-accent">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right font-bold bg-primary/5">{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right font-black bg-slate-100/50 text-sm">{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-center no-print">
+                  <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right text-rose-800">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right text-emerald-800">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-bold bg-slate-50/50">{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right text-accent">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right text-accent">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-bold bg-primary/5">{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right text-accent">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-bold bg-primary/5">{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-black bg-slate-50 text-[10px]">{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-center no-print">
                     <div className="flex gap-1 justify-center">
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-primary" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-slate-500 hover:text-primary" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500 hover:text-rose-700" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-3" /></Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
             {calculatedRows.length > 0 && (
-              <tfoot className="bg-slate-50 font-black text-[9px] uppercase tracking-tighter">
+              <tfoot className="bg-slate-50/50 font-black text-[8px] uppercase tracking-tighter">
                 <tr>
-                  <td colSpan={2} className="border border-black p-2 text-right">Ledger Totals:</td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col1, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col2, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col3, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 bg-slate-200/50"></td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col5, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col6, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 bg-slate-200/50"></td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col8, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col9, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td colSpan={3} className="border border-black p-2 bg-slate-200/50"></td>
+                  <td colSpan={2} className="border border-black p-1 text-right">Ledger Totals:</td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col1, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col2, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col3, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 bg-slate-100"></td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col5, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col6, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 bg-slate-100"></td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col8, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{calculatedRows.reduce((s, r) => s + r.col9, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td colSpan={3} className="border border-black p-1 bg-slate-100"></td>
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
+
+        <div className="mt-16 flex justify-between items-end border-t border-black/10 pt-8 text-[10px]">
+           <div className="text-center w-[180px]">
+              <div className="border-t border-black/30 pt-1 font-bold">Accountant / Preparer</div>
+           </div>
+           <div className="text-center w-[180px]">
+              <div className="border-t border-black/30 pt-1 font-bold">Checked By</div>
+           </div>
+           <div className="text-center w-[180px]">
+              <div className="border-t border-black/30 pt-1 font-bold">Approved By</div>
+           </div>
+        </div>
+        <p className="text-[7px] text-slate-400 italic text-right mt-4 opacity-50 no-print">System generated subsidiary ledger for PBS CPF</p>
       </div>
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
