@@ -1,12 +1,11 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent, Calendar, ShieldCheck, AlertCircle } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
-import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { doc, collection } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -27,7 +26,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isInterestOpen, setIsInterestOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [bulkCsvData, setBulkCsvData] = useState("");
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
   const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
@@ -82,19 +80,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [sortedSummaries]);
 
   const availableFYs = useMemo(() => {
-    const fys = new Set<string>();
+    const fys = [];
     const now = new Date();
     const currentYear = now.getFullYear();
     for (let i = 0; i < 10; i++) {
       const start = currentYear - i;
-      fys.add(`${start}-${(start + 1).toString().slice(-2)}`);
+      fys.push(`${start}-${(start + 1).toString().slice(-2)}`);
     }
-    return Array.from(fys);
+    return fys;
   }, []);
 
   useEffect(() => {
     if (availableFYs.length > 0 && !selectedInterestFY) {
-      setSelectedInterestFY(availableFYs[1]); // Default to previous closed FY
+      setSelectedInterestFY(availableFYs[1]);
     }
   }, [availableFYs, selectedInterestFY]);
 
@@ -167,19 +165,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     return { totalInterest, monthlyDetails, label, isDuplicate };
   }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows, summaries]);
-
-  const totals = useMemo(() => {
-    if (calculatedRows.length === 0) return null;
-    return calculatedRows.reduce((acc, curr) => ({
-      col1: acc.col1 + curr.col1,
-      col2: acc.col2 + curr.col2,
-      col3: acc.col3 + curr.col3,
-      col5: acc.col5 + curr.col5,
-      col6: acc.col6 + curr.col6,
-      col8: acc.col8 + curr.col8,
-      col9: acc.col9 + curr.col9,
-    }), { col1: 0, col2: 0, col3: 0, col5: 0, col6: 0, col8: 0, col9: 0 });
-  }, [calculatedRows]);
 
   const handlePostInterest = () => {
     if (!interestCalculation) return;
@@ -259,6 +244,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setEditingEntry(null);
   };
 
+  const handleDeleteEntry = (id: string) => {
+    showAlert({
+      title: "Confirm Deletion",
+      description: "Are you sure you want to remove this ledger entry?",
+      type: "warning",
+      showCancel: true,
+      onConfirm: () => {
+        deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", id));
+      }
+    });
+  };
+
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -296,15 +293,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   if (!member) return <div className="p-8 text-center"><h1 className="text-2xl font-bold">Member not found</h1></div>;
 
   return (
-    <div className="p-4 flex flex-col gap-4 bg-slate-100 min-h-screen">
-      <div className="flex items-center justify-between no-print max-w-[1200px] mx-auto w-full">
-        <Link href="/members" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+    <div className="p-6 flex flex-col gap-6 bg-slate-50 min-h-screen font-ledger">
+      <div className="flex items-center justify-between no-print max-w-[1300px] mx-auto w-full">
+        <Link href="/members" className="flex items-center gap-2 text-sm text-slate-500 hover:text-primary font-medium transition-colors">
           <ArrowLeft className="size-4" /> Back to Registry
         </Link>
         <div className="flex gap-2">
           <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary">
+              <Button variant="outline" size="sm" className="gap-2 border-primary/20 text-primary hover:bg-primary/5">
                 <Calculator className="size-4" /> Profit Calculator
               </Button>
             </DialogTrigger>
@@ -329,13 +326,27 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 {interestCalculation && (
                   <div className="space-y-4">
                     <div className="flex justify-between p-4 bg-slate-50 border rounded-lg">
-                      <div><p className="text-xs text-muted-foreground">Period</p><p className="font-bold">{interestCalculation.label}</p></div>
-                      <div className="text-right"><p className="text-xs text-muted-foreground">Total Profit</p><p className="text-2xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                      <div><p className="text-xs text-muted-foreground uppercase font-bold">Period</p><p className="font-bold text-lg">{interestCalculation.label}</p></div>
+                      <div className="text-right"><p className="text-xs text-muted-foreground uppercase font-bold">Total Profit</p><p className="text-2xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
                     </div>
-                    <div className="max-h-[200px] overflow-y-auto border rounded-md">
+                    <div className="max-h-[300px] overflow-y-auto border rounded-md shadow-inner">
                       <table className="w-full text-xs">
-                        <thead className="bg-slate-100 sticky top-0"><tr><th className="p-2 text-left">Month</th><th className="p-2 text-right">Balance</th><th className="p-2 text-right">Interest</th></tr></thead>
-                        <tbody className="divide-y">{interestCalculation.monthlyDetails.map((d, i) => <tr key={i}><td className="p-2">{d.monthName}</td><td className="p-2 text-right">৳ {d.balance.toLocaleString()}</td><td className="p-2 text-right font-bold text-accent">৳ {d.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>)}</tbody>
+                        <thead className="bg-slate-100 sticky top-0 border-b">
+                          <tr>
+                            <th className="p-2 text-left font-bold uppercase">Month</th>
+                            <th className="p-2 text-right font-bold uppercase">Balance</th>
+                            <th className="p-2 text-right font-bold uppercase">Interest</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {interestCalculation.monthlyDetails.map((d, i) => (
+                            <tr key={i} className="hover:bg-slate-50">
+                              <td className="p-2">{d.monthName}</td>
+                              <td className="p-2 text-right">৳ {d.balance.toLocaleString()}</td>
+                              <td className="p-2 text-right font-bold text-emerald-700">৳ {d.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
                       </table>
                     </div>
                   </div>
@@ -348,98 +359,118 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)}><Upload className="size-4 mr-2" /> Bulk Upload</Button>
-          <Button variant="secondary" size="sm" onClick={() => setIsEntryOpen(true)}><Plus className="size-4 mr-2" /> New Entry</Button>
-          <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-2" /> Print Landscape</Button>
+          <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="gap-2 border-slate-300"><Upload className="size-4" /> Bulk Upload</Button>
+          <Button variant="secondary" size="sm" onClick={() => setIsEntryOpen(true)} className="gap-2"><Plus className="size-4" /> New Entry</Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 border-slate-300"><Printer className="size-4" /> Print Landscape</Button>
         </div>
       </div>
 
-      <div className="bg-white p-12 shadow-none rounded-none border-none max-w-[1200px] mx-auto w-full font-ledger font-light text-black print-container">
-        <div className="relative mb-6 text-center">
-          <p className="text-[10px] absolute left-0 top-0">REB Form no: 224</p>
-          <h1 className="text-xl font-bold">Gazipur PBS-2</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4">Provident Fund Subsidiary Ledger</h2>
+      <div className="bg-white p-12 shadow-sm rounded-none border border-slate-200 max-w-[1300px] mx-auto w-full font-ledger text-black print-container">
+        <div className="relative mb-8 text-center border-b-2 border-black pb-4">
+          <p className="text-[9px] absolute left-0 top-0 font-bold uppercase tracking-widest opacity-50">REB Form no: 224</p>
+          <h1 className="text-2xl font-black uppercase tracking-tight">Gazipur Palli Bidyut Samity-2</h1>
+          <h2 className="text-lg font-bold underline underline-offset-8 uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-8 gap-y-2 mb-6 text-[11px]">
-          <div className="space-y-2">
-            <div className="flex gap-2"><span className="font-bold min-w-[100px]">Name:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.name}</span></div>
-            <div className="flex gap-2"><span className="font-bold min-w-[100px]">Curr. Address:</span><span className="border-b border-dotted border-black flex-1">{member.currentAddress || "-"}</span></div>
-            <div className="flex gap-2"><span className="font-bold min-w-[100px]">Date of Joined:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.dateJoined}</span></div>
+        <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-10 text-[12px]">
+          <div className="space-y-3">
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[10px] text-slate-500 mb-0.5">Member Name</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-sm">{member.name}</span></div>
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[10px] text-slate-500 mb-0.5">Address</span><span className="border-b border-black/30 flex-1 pb-0.5">{member.currentAddress || "-"}</span></div>
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[100px] uppercase text-[10px] text-slate-500 mb-0.5">Joined Date</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.dateJoined}</span></div>
           </div>
-          <div className="space-y-2">
-            <div className="flex gap-2"><span className="font-bold min-w-[120px]">Designation:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.designation}</span></div>
+          <div className="space-y-3">
+            <div className="flex gap-2 items-end"><span className="font-bold min-w-[120px] uppercase text-[10px] text-slate-500 mb-0.5">Designation</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.designation}</span></div>
             <div className="flex gap-x-8">
-               <div className="flex gap-2 flex-1"><span className="font-bold min-w-[40px]">ID No:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.memberIdNumber}</span></div>
-               <div className="flex gap-2 flex-1"><span className="font-bold whitespace-nowrap">Date of Nomination:</span><span className="font-bold border-b border-dotted border-black flex-1">{member.dateNomination || "-"}</span></div>
+               <div className="flex gap-2 flex-1 items-end"><span className="font-bold min-w-[40px] uppercase text-[10px] text-slate-500 mb-0.5">ID No</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5 font-mono text-sm">{member.memberIdNumber}</span></div>
+               <div className="flex gap-2 flex-1 items-end"><span className="font-bold whitespace-nowrap uppercase text-[10px] text-slate-500 mb-0.5">Nomination Date</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.dateNomination || "-"}</span></div>
             </div>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[9px] border-collapse border border-black">
-            <thead>
-              <tr className="bg-white">
-                <th className="border border-black p-1 text-center font-bold w-[70px]">Date</th>
-                <th className="border border-black p-1 text-center font-bold w-[220px]">Particulars</th>
-                <th className="border border-black p-1 text-center font-bold">Emp. Contribution</th>
-                <th className="border border-black p-1 text-center font-bold">Loan Withdrawal</th>
-                <th className="border border-black p-1 text-center font-bold">Loan Repayment</th>
-                <th className="border border-black p-1 text-center font-bold">O/S Loan Bal</th>
-                <th colSpan={2} className="border border-black p-1 text-center font-bold">Profit (Emp/Loan)</th>
-                <th className="border border-black p-1 text-center font-bold">Total Emp Fund</th>
-                <th className="border border-black p-1 text-center font-bold">PBS Contrib</th>
-                <th className="border border-black p-1 text-center font-bold">Profit PBS</th>
-                <th className="border border-black p-1 text-center font-bold">Total Office</th>
-                <th className="border border-black p-1 text-center font-bold">Cumul. Fund</th>
-                <th className="border border-black p-1 text-center font-bold no-print w-[60px]">Action</th>
+          <table className="w-full text-[10px] border-collapse border border-black table-fixed">
+            <thead className="bg-slate-50/50">
+              <tr>
+                <th className="border border-black p-2 text-center font-bold w-[75px] uppercase text-[8px]">Date</th>
+                <th className="border border-black p-2 text-center font-bold w-[250px] uppercase text-[8px]">Particulars</th>
+                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">Emp. Contrib.</th>
+                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">Loan Withdr.</th>
+                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">Loan Repay.</th>
+                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">O/S Loan</th>
+                <th className="border border-black p-2 text-center font-bold w-[80px] uppercase text-[8px]">Profit (E)</th>
+                <th className="border border-black p-2 text-center font-bold w-[80px] uppercase text-[8px]">Profit (L)</th>
+                <th className="border border-black p-2 text-center font-bold w-[100px] uppercase text-[8px]">Emp. Fund</th>
+                <th className="border border-black p-2 text-center font-bold w-[90px] uppercase text-[8px]">PBS Contrib.</th>
+                <th className="border border-black p-2 text-center font-bold w-[80px] uppercase text-[8px]">Profit (P)</th>
+                <th className="border border-black p-2 text-center font-bold w-[100px] uppercase text-[8px]">Office Fund</th>
+                <th className="border border-black p-2 text-center font-bold w-[110px] uppercase text-[8px]">Cumul. Fund</th>
+                <th className="border border-black p-2 text-center font-bold no-print w-[80px] uppercase text-[8px]">Action</th>
               </tr>
             </thead>
-            <tbody>
-              {isSummariesLoading ? <tr><td colSpan={14} className="text-center p-4">Loading...</td></tr> : calculatedRows.map((row: any, idx) => (
-                <tr key={idx} className="bg-white hover:bg-slate-50">
-                  <td className="border border-black p-1 text-center whitespace-nowrap">{row.summaryDate}</td>
-                  <td className="border border-black p-1 text-left break-words whitespace-normal overflow-visible min-w-[200px] leading-tight font-medium">
+            <tbody className="divide-y divide-black/10">
+              {isSummariesLoading ? <tr><td colSpan={14} className="text-center p-8 italic">Loading ledger data...</td></tr> : calculatedRows.map((row: any, idx) => (
+                <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors">
+                  <td className="border border-black p-1.5 text-center whitespace-nowrap font-mono">{row.summaryDate}</td>
+                  <td className="border border-black p-1.5 text-left break-words whitespace-normal leading-normal font-medium align-top">
                     {row.particulars || "-"}
                   </td>
-                  <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-bold bg-slate-50/30">{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-center no-print">
+                  <td className="border border-black p-1.5 text-right font-medium">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right text-rose-700">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right text-emerald-700">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right font-bold bg-slate-50/50">{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right text-accent">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right text-accent">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right font-bold bg-primary/5">{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right text-accent">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right font-bold bg-primary/5">{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-right font-black bg-slate-100/50 text-sm">{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1.5 text-center no-print">
                     <div className="flex gap-1 justify-center">
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-slate-500 hover:text-primary" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500 hover:text-rose-700" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-3" /></Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
+            {calculatedRows.length > 0 && (
+              <tfoot className="bg-slate-50 font-black text-[9px] uppercase tracking-tighter">
+                <tr>
+                  <td colSpan={2} className="border border-black p-2 text-right">Ledger Totals:</td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col1, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col2, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col3, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-2 bg-slate-200/50"></td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col5, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col6, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-2 bg-slate-200/50"></td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col8, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-2 text-right">{calculatedRows.reduce((s, r) => s + r.col9, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td colSpan={3} className="border border-black p-2 bg-slate-200/50"></td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
-        <DialogContent><DialogHeader><DialogTitle>Bulk Import</DialogTitle></DialogHeader>
-          <div className="p-8 border-2 border-dashed text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <FileSpreadsheet className="mx-auto size-8 mb-2" />
-            <p>Select XLSX File</p>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Bulk Import Ledger Entries</DialogTitle></DialogHeader>
+          <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
+            <FileSpreadsheet className="mx-auto size-12 text-primary opacity-50 mb-4" />
+            <p className="font-bold">Select XLSX Ledger File</p>
+            <p className="text-xs text-muted-foreground mt-2">Column Headers: Date, Particulars, Employee Contribution, etc.</p>
             <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
           </div>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>{editingEntry ? "Edit" : "New"} Entry</DialogTitle></DialogHeader>
-          <form onSubmit={handleSaveEntry} className="grid grid-cols-2 gap-4">
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>{editingEntry ? "Edit" : "New"} Ledger Entry</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveEntry} className="grid grid-cols-2 gap-4 pt-4">
             <div className="col-span-2 space-y-2"><Label>Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required /></div>
             <div className="col-span-2 space-y-2"><Label>Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required /></div>
             <div className="space-y-2"><Label>Emp Contrib</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} /></div>
@@ -449,7 +480,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <div className="space-y-2"><Label>Profit Loan</Label><Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} /></div>
             <div className="space-y-2"><Label>PBS Contrib</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} /></div>
             <div className="space-y-2"><Label>Profit PBS</Label><Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} /></div>
-            <DialogFooter className="col-span-2"><Button type="submit">Save</Button></DialogFooter>
+            <DialogFooter className="col-span-2"><Button type="submit" className="w-full">Save Ledger Record</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

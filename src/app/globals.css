@@ -123,6 +123,7 @@
     border: 0.5pt solid black !important;
     color: black !important;
     background-color: transparent !important;
+    padding: 2pt !important;
   }
 
   /* Force font for print readability */
