@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -185,32 +184,32 @@ export default function ReportsPage() {
 
     return (
       <div className={cn("space-y-4", className)}>
-        <h3 className="text-sm font-bold border-b-2 border-slate-900 pb-1 uppercase tracking-wider">{title}</h3>
-        <div className="space-y-6">
+        <h3 className="text-[12px] font-bold border-b-2 border-slate-900 pb-1 uppercase tracking-wider">{title}</h3>
+        <div className="space-y-4">
           {groups.map((group, idx) => (
             <div key={idx} className="space-y-1">
-              <div className="flex justify-between font-bold text-[11px] text-slate-700 bg-slate-50 p-1">
+              <div className="flex justify-between font-bold text-[10px] text-slate-700 bg-slate-50 p-1">
                 <span>{group.header.name}</span>
               </div>
-              <div className="pl-4 space-y-1">
+              <div className="pl-2 space-y-0.5">
                 {group.items.map(item => (
-                  <div key={item.code} className="flex justify-between text-[11px] py-0.5 border-b border-dotted border-slate-200">
+                  <div key={item.code} className="flex justify-between text-[10px] py-0.5 border-b border-dotted border-slate-200">
                     <span className="flex gap-2">
-                       <span className="text-slate-400 font-mono w-[80px]">{item.code}</span>
+                       <span className="text-slate-400 font-mono w-[70px]">{item.code}</span>
                        <span>{item.name}</span>
                     </span>
                     <span>{formatCurrency(balancesMap[item.code])}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between font-bold text-[11px] pt-1 border-t border-slate-400 mt-1 pl-4">
+              <div className="flex justify-between font-bold text-[10px] pt-1 border-t border-slate-400 mt-1 pl-2">
                 <span>Sub-total: {group.header.name}</span>
                 <span>{formatCurrency(group.total)}</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="flex justify-between font-bold text-[12px] bg-slate-100 p-2 border-y-2 border-slate-900 mt-4 uppercase">
+        <div className="flex justify-between font-bold text-[11px] bg-slate-100 p-2 border-y-2 border-slate-900 mt-4 uppercase">
           <span>TOTAL {title}</span>
           <span>{formatCurrency(grandTotal)}</span>
         </div>
@@ -219,10 +218,10 @@ export default function ReportsPage() {
   };
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="text-center mb-10 border-b-4 border-double border-slate-900 pb-6">
-      <h1 className="text-2xl font-bold uppercase tracking-[0.1em] text-slate-900">Gazipur Palli Bidyut Samity-2</h1>
-      <h2 className="text-lg font-bold text-slate-700 mt-1 font-ledger uppercase">{title}</h2>
-      <p className="text-xs text-muted-foreground uppercase tracking-widest mt-2">{subtitle}</p>
+    <div className="text-center mb-8 border-b-4 border-double border-slate-900 pb-4">
+      <h1 className="text-lg font-bold uppercase tracking-[0.1em] text-slate-900">Gazipur Palli Bidyut Samity-2</h1>
+      <h2 className="text-md font-bold text-slate-700 mt-1 font-ledger uppercase">{title}</h2>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">{subtitle}</p>
     </div>
   );
 
@@ -246,7 +245,7 @@ export default function ReportsPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-slate-100 min-h-screen font-ledger text-slate-900">
-      <div className="flex items-center justify-between no-print max-w-6xl mx-auto w-full bg-white p-4 rounded-xl border shadow-sm">
+      <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-4 rounded-xl border shadow-sm">
         <div className="flex items-center gap-4">
           <div className="bg-primary/10 p-2 rounded-lg">
              <PieChart className="size-6 text-primary" />
@@ -278,57 +277,57 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="position" className="w-full max-w-6xl mx-auto">
+      <Tabs defaultValue="position" className="w-full max-w-5xl mx-auto">
         <TabsList className="grid w-full grid-cols-3 mb-8 no-print h-12 bg-white border-2 border-slate-200 p-1 rounded-xl shadow-sm">
-          <TabsTrigger value="position" className="gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg transition-all">
-            <Wallet className="size-4" /> Statement of Financial Position
+          <TabsTrigger value="position" className="gap-2 data-[state=active]:bg-sidebar-primary data-[state=active]:text-white rounded-lg transition-all">
+            <Wallet className="size-4" /> Financial Position
           </TabsTrigger>
-          <TabsTrigger value="income" className="gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg transition-all">
-            <TrendingUp className="size-4" /> Statement of Comprehensive Income
+          <TabsTrigger value="income" className="gap-2 data-[state=active]:bg-sidebar-primary data-[state=active]:text-white rounded-lg transition-all">
+            <TrendingUp className="size-4" /> Comprehensive Income
           </TabsTrigger>
-          <TabsTrigger value="receipts" className="gap-2 data-[state=active]:bg-slate-900 data-[state=active]:text-white rounded-lg transition-all">
-            <ArrowDownUp className="size-4" /> Receipts and Payments
+          <TabsTrigger value="receipts" className="gap-2 data-[state=active]:bg-sidebar-primary data-[state=active]:text-white rounded-lg transition-all">
+            <ArrowDownUp className="size-4" /> Receipts & Payments
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="position">
-          <Card className="border shadow-2xl rounded-none print:shadow-none bg-white">
-            <CardContent className="p-16">
+          <Card className="border shadow-2xl rounded-none print:shadow-none bg-white print-container print-portrait-fix mx-auto">
+            <CardContent className="p-8 md:p-12 print:p-0">
               <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+              <div className="space-y-12">
                 <ClassifiedSection title="Assets" accounts={assetAccounts} balancesMap={balances} />
                 <ClassifiedSection title="Equity and Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
               </div>
-              <div className="mt-20 flex justify-between items-end border-t pt-8 no-print">
+              <div className="mt-16 flex justify-between items-end border-t pt-8">
                  <div className="space-y-1">
                     <p className="text-[10px] font-bold uppercase text-slate-400">Auditor Signature</p>
-                    <div className="w-[200px] h-px bg-slate-300 mt-8" />
+                    <div className="w-[150px] h-px bg-slate-300 mt-6" />
                  </div>
-                 <p className="text-[9px] text-slate-400 italic">Generated by PBS CPF Management Software</p>
+                 <p className="text-[8px] text-slate-400 italic">Generated by PBS CPF Management Software</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="income">
-          <Card className="border shadow-2xl rounded-none print:shadow-none bg-white">
-            <CardContent className="p-16">
+          <Card className="border shadow-2xl rounded-none print:shadow-none bg-white print-container print-portrait-fix mx-auto">
+            <CardContent className="p-8 md:p-12 print:p-0">
               <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="max-w-3xl mx-auto space-y-12">
+              <div className="space-y-10">
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold border-b-2 border-emerald-700 text-emerald-800 pb-1 uppercase tracking-wider">A. Operating Income</h3>
+                  <h3 className="text-[12px] font-bold border-b-2 border-emerald-700 text-emerald-800 pb-1 uppercase tracking-wider">A. Operating Income</h3>
                   <div className="space-y-1 pl-4">
                     {incomeAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-slate-200">
+                        <div key={acc.code} className="flex justify-between text-[10px] py-1 border-b border-dotted border-slate-200">
                           <span>{acc.name}</span>
                           <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-bold text-[11px] pt-2 border-t border-emerald-700 mt-2">
+                    <div className="flex justify-between font-bold text-[10px] pt-2 border-t border-emerald-700 mt-2">
                        <span>TOTAL INCOME (A)</span>
                        <span className="underline decoration-double">{formatCurrency(totalIncome)}</span>
                     </div>
@@ -336,19 +335,19 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold border-b-2 border-rose-700 text-rose-800 pb-1 uppercase tracking-wider">B. Operating Expenses</h3>
+                  <h3 className="text-[12px] font-bold border-b-2 border-rose-700 text-rose-800 pb-1 uppercase tracking-wider">B. Operating Expenses</h3>
                   <div className="space-y-1 pl-4">
                     {expenseAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-slate-200">
+                        <div key={acc.code} className="flex justify-between text-[10px] py-1 border-b border-dotted border-slate-200">
                           <span>{acc.name}</span>
                           <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-bold text-[11px] pt-2 border-t border-rose-700 mt-2">
+                    <div className="flex justify-between font-bold text-[10px] pt-2 border-t border-rose-700 mt-2">
                        <span>TOTAL EXPENSES (B)</span>
                        <span className="underline decoration-double">{formatCurrency(totalExpense)}</span>
                     </div>
@@ -356,44 +355,58 @@ export default function ReportsPage() {
                 </div>
 
                 <div className={cn(
-                  "flex justify-between font-bold text-lg p-4 border-2 mt-12",
+                  "flex justify-between font-bold text-md p-4 border-2 mt-8",
                   (totalIncome - totalExpense) >= 0 ? "bg-emerald-50 border-emerald-200 text-emerald-900" : "bg-rose-50 border-rose-200 text-rose-900"
                 )}>
-                  <span className="uppercase">Net Surplus / (Deficit) for the Period</span>
+                  <span className="uppercase text-sm">Net Surplus / (Deficit) for the Period</span>
                   <span className="underline decoration-double">{formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
+              </div>
+              <div className="mt-16 flex justify-between items-end border-t pt-8">
+                 <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Auditor Signature</p>
+                    <div className="w-[150px] h-px bg-slate-300 mt-6" />
+                 </div>
+                 <p className="text-[8px] text-slate-400 italic">Generated by PBS CPF Management Software</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="receipts">
-           <Card className="border shadow-2xl rounded-none print:shadow-none bg-white">
-            <CardContent className="p-16">
+           <Card className="border shadow-2xl rounded-none print:shadow-none bg-white print-container print-portrait-fix mx-auto">
+            <CardContent className="p-8 md:p-12 print:p-0">
               <ReportHeader title="Receipts and Payments" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="grid grid-cols-2 gap-px bg-slate-900 border-2 border-slate-900">
-                 <div className="bg-white p-8">
-                    <h4 className="font-bold text-[12px] text-slate-900 mb-6 border-b-2 border-slate-900 pb-2 uppercase tracking-widest text-center">RECEIPTS</h4>
+              <div className="grid grid-cols-1 gap-12">
+                 <div>
+                    <h4 className="font-bold text-[11px] text-slate-900 mb-4 border-b-2 border-slate-900 pb-1 uppercase tracking-widest">RECEIPTS</h4>
                     <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
-                        <div key={c} className="flex justify-between text-[11px] py-1 border-b border-dotted border-slate-200">
+                        <div key={c} className="flex justify-between text-[10px] py-1 border-b border-dotted border-slate-200">
                           <span>{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
-                 <div className="bg-white p-8">
-                    <h4 className="font-bold text-[12px] text-slate-900 mb-6 border-b-2 border-slate-900 pb-2 uppercase tracking-widest text-center">PAYMENTS</h4>
+                 <div>
+                    <h4 className="font-bold text-[11px] text-slate-900 mb-4 border-b-2 border-slate-900 pb-1 uppercase tracking-widest">PAYMENTS</h4>
                     <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Debit').map(c => (
-                        <div key={c} className="flex justify-between text-[11px] py-1 border-b border-dotted border-slate-200">
+                        <div key={c} className="flex justify-between text-[10px] py-1 border-b border-dotted border-slate-200">
                           <span>{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
+              </div>
+              <div className="mt-16 flex justify-between items-end border-t pt-8">
+                 <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase text-slate-400">Auditor Signature</p>
+                    <div className="w-[150px] h-px bg-slate-300 mt-6" />
+                 </div>
+                 <p className="text-[8px] text-slate-400 italic">Generated by PBS CPF Management Software</p>
               </div>
             </CardContent>
           </Card>

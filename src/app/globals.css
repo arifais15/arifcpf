@@ -49,7 +49,7 @@
 
 @media print {
   @page {
-    size: A4 landscape;
+    size: A4 portrait;
     margin: 10mm;
   }
 
@@ -61,7 +61,8 @@
   header,
   footer,
   aside,
-  button {
+  button,
+  .TabsList {
     display: none !important;
   }
 
@@ -127,5 +128,11 @@
   /* Force font for print readability */
   .font-ledger {
     font-family: 'Calibri', 'Segoe UI', 'Arial', sans-serif !important;
+  }
+
+  .print-portrait-fix {
+    width: 190mm !important;
+    margin: 0 auto !important;
+    padding: 5mm !important;
   }
 }
