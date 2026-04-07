@@ -2,7 +2,7 @@
 
 import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent, Calendar } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent, Calendar } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
@@ -14,8 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from "xlsx";
-import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -116,7 +114,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (selectedInterestMode === "fy") {
       if (!selectedInterestFY) return null;
       const [startYearStr] = selectedInterestFY.split("-");
-      // Start from June ending balance (opening)
       startDate = new Date(parseInt(startYearStr), 5, 1);
       monthsToCalculate = 12;
       label = `FY ${selectedInterestFY}`;
@@ -168,7 +165,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const handlePostInterest = () => {
     if (!interestCalculation) return;
 
-    // Proportional Split Logic based on exact ratio of funds
     const lastRow = calculatedRows[calculatedRows.length - 1];
     const empFund = lastRow?.col7 || 0;
     const pbsFund = lastRow?.col10 || 0;
@@ -529,7 +525,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="bg-white p-10 shadow-lg rounded-none border border-slate-300 max-w-[1200px] mx-auto w-full font-ledger font-light text-[#1e1e1e] print:shadow-none print:border-none print-container">
+      <div className="bg-white p-12 shadow-none rounded-none border-none max-w-[1200px] mx-auto w-full font-ledger font-light text-black print-container">
         <div className="relative mb-6">
           <p className="text-[10px] absolute left-0 top-0">REB Form no: 224</p>
           <div className="text-center space-y-0.5">
@@ -556,12 +552,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-[9px] border-collapse border border-black">
+          <table className="w-full text-[9px] border-collapse border border-black table-fixed">
             <thead>
               <tr className="bg-white">
-                <th className="border border-black p-1 text-center font-bold">Date</th>
+                <th className="border border-black p-1 text-center font-bold w-[70px]">Date</th>
                 <th className="border border-black p-1 text-center font-bold">Particulars</th>
-                <th className="border border-black p-1 text-center font-bold">Employee Contribution</th>
+                <th className="border border-black p-1 text-center font-bold leading-tight">Employee Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Amount Withdraws as Loan</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Loan Principal repayment</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Balance of outstanding loan</th>
@@ -571,7 +567,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-1 text-center font-bold leading-tight">Profit on PBS Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Total Office Contribution</th>
                 <th className="border border-black p-1 text-center font-bold leading-tight">Cumulative Fund Balance</th>
-                <th className="border border-black p-1 text-center font-bold no-print">Actions</th>
+                <th className="border border-black p-1 text-center font-bold no-print w-[60px]">Actions</th>
               </tr>
               <tr className="bg-white">
                 <th className="border border-black p-0.5"></th>
@@ -580,13 +576,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-0.5 text-center font-bold">2</th>
                 <th className="border border-black p-0.5 text-center font-bold">3</th>
                 <th className="border border-black p-0.5 text-center font-bold">4</th>
-                <th className="border border-black p-0.5 font-bold text-center leading-tight">Employee Contribution (5)</th>
-                <th className="border border-black p-0.5 font-bold text-center leading-tight">CPF Loan (6)</th>
-                <th className="border border-black p-0.5 font-bold text-center italic">7 = Prev + 1 - 2 + 3 + 5 + 6</th>
+                <th className="border border-black p-0.5 font-bold text-center leading-tight">Employee (5)</th>
+                <th className="border border-black p-0.5 font-bold text-center leading-tight">Loan (6)</th>
+                <th className="border border-black p-0.5 font-bold text-center italic">7</th>
                 <th className="border border-black p-0.5 text-center font-bold">8</th>
                 <th className="border border-black p-0.5 text-center font-bold">9</th>
-                <th className="border border-black p-0.5 font-bold text-center italic">10 = Prev + (8 + 9)</th>
-                <th className="border border-black p-0.5 font-bold text-center italic">11 = (7 + 10)</th>
+                <th className="border border-black p-0.5 font-bold text-center italic">10</th>
+                <th className="border border-black p-0.5 font-bold text-center italic">11</th>
                 <th className="border border-black p-0.5 no-print"></th>
               </tr>
             </thead>
@@ -596,20 +592,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               ) : calculatedRows.length === 0 ? (
                 <tr><td colSpan={14} className="text-center p-4 text-muted-foreground">No ledger entries found.</td></tr>
               ) : calculatedRows.map((row: any, idx) => (
-                <tr key={idx} className="bg-white group hover:bg-slate-50 transition-colors">
-                  <td className="border border-black p-1 whitespace-nowrap">{row.summaryDate}</td>
-                  <td className="border border-black p-1">{row.particulars || "-"}</td>
-                  <td className="border border-black p-1 text-right">{row.col1.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col2.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col3.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col4.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col5.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col6.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.col7.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col8.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{row.col9.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.col10.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right font-bold">{row.col11.toFixed(2)}</td>
+                <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors">
+                  <td className="border border-black p-1 whitespace-nowrap text-center">{row.summaryDate}</td>
+                  <td className="border border-black p-1 truncate">{row.particulars || "-"}</td>
+                  <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right font-bold">{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-center no-print whitespace-nowrap">
                     <div className="flex items-center justify-center gap-1">
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditClick(row)}>
@@ -625,17 +621,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               {totals && (
                 <tr className="bg-white font-bold">
                   <td colSpan={2} className="border border-black p-1 text-center">Total</td>
-                  <td className="border border-black p-1 text-right">{totals.col1.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{totals.col2.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{totals.col3.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right">{totals.col5.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{totals.col6.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
-                  <td className="border border-black p-1 text-right">{totals.col8.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{totals.col9.toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">{(totals.col8 + totals.col9).toFixed(2)}</td>
-                  <td className="border border-black p-1 text-right">0.00</td>
+                  <td className="border border-black p-1 text-right">{totals.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{totals.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{totals.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right">{totals.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{totals.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right">{totals.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{totals.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">{(totals.col8 + totals.col9).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className="border border-black p-1 text-right">-</td>
                   <td className="border border-black p-0.5 no-print"></td>
                 </tr>
               )}
@@ -643,9 +639,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
 
-        <div className="mt-12 flex justify-between items-end text-[9px]">
-           <p className="font-bold">{member.memberIdNumber}--{member.name}--{member.designation} =Page 1 of 1</p>
-           <p className="text-right italic">CPF Management Software developed by Ariful Islam contact: 01731753731</p>
+        <div className="mt-12 flex justify-between items-end text-[9px] font-bold">
+           <p>{member.memberIdNumber} -- {member.name} -- {member.designation} | Page 1 of 1</p>
+           <p className="text-right italic font-normal">Generated via PBS CPF Management System</p>
         </div>
       </div>
     </div>
