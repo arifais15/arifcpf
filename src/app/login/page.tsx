@@ -23,8 +23,9 @@ export default function LoginPage() {
   const { toast } = useToast()
   const { showAlert } = useSweetAlert()
 
-  const [idOrEmail, setIdOrEmail] = useState("")
-  const [password, setPassword] = useState("")
+  // Set default credentials as requested
+  const [idOrEmail, setIdOrEmail] = useState("arif")
+  const [password, setPassword] = useState("123123")
   const [isLoading, setIsLoading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
@@ -46,7 +47,6 @@ export default function LoginPage() {
 
     try {
       // Firebase requires 6+ characters for passwords.
-      // If the user expects "123", they should ideally set "123456" in console
       await signInWithEmailAndPassword(auth, emailToUse, password)
       
       showAlert({
@@ -61,8 +61,8 @@ export default function LoginPage() {
       
       let message = "Invalid credentials. Please check your ID and password."
       
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-password') {
-        message = "Authentication failed. Note: Firebase passwords must be at least 6 characters. Please ensure your account was created with a 6+ character password in the console."
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-password' || error.code === 'auth/wrong-password') {
+        message = "Authentication failed. Note: Firebase passwords must be at least 6 characters. Please ensure your account was created with the password '123123' in the console."
       } else if (error.code === 'auth/user-not-found') {
         message = "No account found with this ID/Email."
       } else if (error.code === 'auth/too-many-requests') {
@@ -184,7 +184,7 @@ export default function LoginPage() {
                   System Requirement:
                 </p>
                 <p className="text-[9px] text-amber-800 leading-tight italic">
-                  Firebase Authentication requires a minimum of 6 characters for all passwords. Please ensure your account has been updated with a 6-character password in the management console.
+                  Default credentials are set to ID <b>'arif'</b> and Password <b>'123123'</b>. Please ensure this user is created in the Firebase console with email 'arif.ais15@gmail.com'.
                 </p>
               </div>
             </div>
