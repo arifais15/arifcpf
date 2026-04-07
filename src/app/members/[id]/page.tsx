@@ -204,6 +204,36 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setIsInterestOpen(false);
   };
 
+  const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const entryData = {
+      summaryDate: formData.get("summaryDate") as string,
+      particulars: formData.get("particulars") as string,
+      employeeContribution: Number(formData.get("employeeContribution") || 0),
+      loanWithdrawal: Number(formData.get("loanWithdrawal") || 0),
+      loanRepayment: Number(formData.get("loanRepayment") || 0),
+      profitEmployee: Number(formData.get("profitEmployee") || 0),
+      profitLoan: Number(formData.get("profitLoan") || 0),
+      pbsContribution: Number(formData.get("pbsContribution") || 0),
+      profitPbs: Number(formData.get("profitPbs") || 0),
+      lastUpdateDate: new Date().toISOString(),
+      memberId: resolvedParams.id
+    };
+
+    if (editingEntry && editingEntry.id) {
+      const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id);
+      updateDocumentNonBlocking(entryRef, entryData);
+      toast({ title: "Entry Updated", description: "Ledger record has been modified." });
+    } else {
+      addDocumentNonBlocking(summariesRef, entryData);
+      toast({ title: "Entry Added", description: "New record added to the subsidiary ledger." });
+    }
+    setIsEntryOpen(false);
+    setEditingEntry(null);
+  };
+
   const handleEditClick = (entry: any) => {
     setEditingEntry(entry);
     setIsEntryOpen(true);
