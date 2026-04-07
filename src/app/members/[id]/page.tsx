@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo } from "react";
@@ -525,7 +524,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </form>
             </DialogContent>
           </Dialog>
-          <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-2" /> Print Form 224</Button>
+          <Button variant="outline" size="sm" onClick={() => window.print()}><Printer className="size-4 mr-2" /> Print Ledger</Button>
         </div>
       </div>
 
