@@ -1,21 +1,30 @@
 
 "use client"
 
-import { useUser } from "@/firebase"
+import { useUser, useAuth } from "@/firebase"
 import { useRouter, usePathname } from "next/navigation"
 import { useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import { signOut } from "firebase/auth"
 
 export default function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser()
+  const auth = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    if (!isUserLoading && !user && pathname !== "/login") {
-      router.push("/login")
+    if (!isUserLoading) {
+      if (!user && pathname !== "/login") {
+        router.push("/login")
+      } else if (user && user.isAnonymous && pathname !== "/login") {
+        // If the user requested to avoid anonymous, force logout if they are currently anonymous
+        signOut(auth).then(() => {
+          router.push("/login")
+        })
+      }
     }
-  }, [user, isUserLoading, router, pathname])
+  }, [user, isUserLoading, router, pathname, auth])
 
   if (isUserLoading) {
     return (
@@ -33,8 +42,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
     return <>{children}</>
   }
 
-  // If not logged in, show nothing while redirecting
-  if (!user) {
+  // If not logged in or anonymous (which is being phased out), show nothing while redirecting
+  if (!user || user.isAnonymous) {
     return null
   }
 
