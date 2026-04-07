@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -5,19 +6,20 @@ service cloud.firestore {
     /**
      * FIREBASE SECURITY RULES
      * 
-     * This ruleset is configured for the PBS CPF Management prototype.
-     * It allows all signed-in users (including Anonymous) to view data.
-     * Administrative actions (create/update/delete) are restricted to users
-     * with an entry in the 'roles_admin' collection.
+     * This ruleset is configured for the PBS CPF Management system.
+     * It strictly allows access only to authenticated Email/Password users.
+     * Anonymous users are explicitly denied.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
     function isSignedIn() {
-      return request.auth != null;
+      // Must be signed in AND NOT anonymous
+      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
     }
 
     function isAdmin() {
+      // Check if user has an entry in roles_admin collection
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
@@ -37,13 +39,13 @@ service cloud.firestore {
     // Chart of Accounts
     match /chartOfAccounts/{accountId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn(); // Permissive for prototype
+      allow write: if isAdmin() || isSignedIn();
     }
 
     // Members Registry (Employees)
     match /members/{memberId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn(); // Permissive for prototype
+      allow write: if isAdmin() || isSignedIn();
       
       // Subcollection for Ledger Entries
       match /fundSummaries/{summaryId} {

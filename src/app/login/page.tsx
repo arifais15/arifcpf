@@ -5,16 +5,14 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { 
   signInWithEmailAndPassword, 
-  sendPasswordResetEmail,
-  signInAnonymously
+  sendPasswordResetEmail
 } from "firebase/auth"
 import { useAuth, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Loader2, KeyRound, Mail, User, AlertCircle, Fingerprint } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { ShieldCheck, Loader2, KeyRound, User, AlertCircle } from "lucide-react"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 
 export default function LoginPage() {
@@ -26,7 +24,6 @@ export default function LoginPage() {
   const [idOrEmail, setIdOrEmail] = useState("arif")
   const [password, setPassword] = useState("123123")
   const [isLoading, setIsLoading] = useState(false)
-  const [isAnonLoading, setIsAnonLoading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
   // Redirect if already logged in
@@ -58,40 +55,19 @@ export default function LoginPage() {
       
       let message = "Invalid credentials. Please check your ID and password."
       
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
-        message = "No account found or wrong password. Important: You must MANUALLY create this user in the Firebase Console (Authentication tab) before this login will work."
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        message = "Login failed. Ensure the user 'arif.ais15@gmail.com' exists with password '123123' in the Firebase Console."
       } else if (error.code === 'auth/too-many-requests') {
         message = "Too many failed attempts. Please try again later."
       }
 
       showAlert({
-        title: "Login Failed",
+        title: "Access Denied",
         description: message,
         type: "error"
       })
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleAnonymousLogin = async () => {
-    setIsAnonLoading(true)
-    try {
-      await signInAnonymously(auth)
-      showAlert({
-        title: "Bypass Entry",
-        description: "Entering system as an Anonymous user (Prototyping Mode).",
-        type: "success"
-      })
-      router.push("/")
-    } catch (error: any) {
-      showAlert({
-        title: "Bypass Failed",
-        description: "Anonymous auth must be enabled in the Firebase Console.",
-        type: "error"
-      })
-    } finally {
-      setIsAnonLoading(false)
     }
   }
 
@@ -101,7 +77,7 @@ export default function LoginPage() {
     if (!email || !email.includes("@")) {
       showAlert({
         title: "Email Required",
-        description: "Please enter your email address or 'arif' in the ID field to reset your password.",
+        description: "Please enter your email address to reset your password.",
         type: "info"
       })
       return
@@ -198,13 +174,13 @@ export default function LoginPage() {
               <div className="space-y-1">
                 <p className="text-[10px] text-amber-800 leading-tight font-bold uppercase">Setup Required:</p>
                 <p className="text-[9px] text-amber-800 leading-tight">
-                  You must create email <b>arif.ais15@gmail.com</b> with password <b>123123</b> in the Firebase Console (Auth tab) for this to work.
+                  User <b>arif.ais15@gmail.com</b> must be created in the Firebase Console with password <b>123123</b> to access this system.
                 </p>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 pb-8">
-            <Button type="submit" className="w-full h-12 text-sm font-bold uppercase tracking-widest" disabled={isLoading || isAnonLoading}>
+            <Button type="submit" className="w-full h-12 text-sm font-bold uppercase tracking-widest" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -213,30 +189,6 @@ export default function LoginPage() {
               ) : "Sign In to System"}
             </Button>
             
-            <div className="relative w-full py-2">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground font-bold">Or Bypass</span>
-              </div>
-            </div>
-
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full h-12 text-sm font-bold uppercase tracking-widest gap-2 border-slate-300" 
-              onClick={handleAnonymousLogin}
-              disabled={isLoading || isAnonLoading}
-            >
-              {isAnonLoading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Fingerprint className="size-4" />
-              )}
-              Anonymous Entry
-            </Button>
-
             <div className="text-center pt-2">
               <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-[0.2em] opacity-50">
                 Gazipur Palli Bidyut Samity-2
