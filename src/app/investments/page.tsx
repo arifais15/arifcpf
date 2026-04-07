@@ -27,7 +27,10 @@ import {
   History,
   Calculator,
   Building2,
-  ArrowRight
+  ArrowRight,
+  FileText,
+  Printer,
+  ChevronRight
 } from "lucide-react";
 import { 
   useCollection, 
@@ -37,7 +40,7 @@ import {
   updateDocumentNonBlocking, 
   deleteDocumentNonBlocking 
 } from "@/firebase";
-import { collection, doc, query, where, orderBy } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 import { 
   Dialog, 
   DialogContent, 
@@ -58,7 +61,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 
 export default function InvestmentsPage() {
   const firestore = useFirestore();
@@ -67,9 +70,11 @@ export default function InvestmentsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isProvisionOpen, setIsProvisionOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isMaturityReportOpen, setIsMaturityReportOpen] = useState(false);
   const [editingInvestment, setEditingInvestment] = useState<any>(null);
   const [selectedForProvision, setSelectedForProvision] = useState<any>(null);
   const [selectedForHistory, setSelectedForHistory] = useState<any>(null);
+  const [maturityRange, setMaturityRange] = useState({ start: "", end: "" });
 
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
@@ -92,6 +97,17 @@ export default function InvestmentsPage() {
       inv.bankName?.toLowerCase().includes(search.toLowerCase())
     );
   }, [investments, search]);
+
+  const maturedInstruments = useMemo(() => {
+    if (!investments || !maturityRange.start || !maturityRange.end) return [];
+    return investments.filter(inv => {
+      if (!inv.maturityDate) return false;
+      const mDate = new Date(inv.maturityDate);
+      const sDate = new Date(maturityRange.start);
+      const eDate = new Date(maturityRange.end);
+      return mDate >= sDate && mDate <= eDate;
+    }).sort((a, b) => new Date(a.maturityDate).getTime() - new Date(b.maturityDate).getTime());
+  }, [investments, maturityRange]);
 
   const stats = useMemo(() => {
     if (!investments || investments.length === 0) return { total: 0, count: 0, avgRate: 0 };
@@ -145,7 +161,6 @@ export default function InvestmentsPage() {
     const principal = Number(selectedForProvision.principalAmount);
     const rate = Number(selectedForProvision.interestRate);
     
-    // Simple Quarterly Provision Logic: (Principal * Rate) / 4
     const grossAmount = (principal * rate) / 4;
     const tdsAmount = grossAmount * 0.10;
     const netAmount = grossAmount - tdsAmount;
@@ -198,12 +213,134 @@ export default function InvestmentsPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Investment Portfolio</h1>
           <p className="text-muted-foreground">Manage FDRs, Bonds and Savings Certificates with Bank tracking</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <Dialog open={isMaturityReportOpen} onOpenChange={setIsMaturityReportOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 border-slate-300">
+                <FileText className="size-4 text-orange-600" /> Maturity Note
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[1000px] h-[90vh] overflow-y-auto print:max-w-none print:h-auto print:overflow-visible">
+              <DialogHeader className="no-print">
+                <DialogTitle>Maturity Official Note</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="no-print flex items-center gap-4 bg-slate-50 p-4 rounded-xl border">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-[10px] uppercase font-bold text-slate-500">Maturity From</Label>
+                    <Input type="date" value={maturityRange.start} onChange={(e) => setMaturityRange({...maturityRange, start: e.target.value})} />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-[10px] uppercase font-bold text-slate-500">Maturity To</Label>
+                    <Input type="date" value={maturityRange.end} onChange={(e) => setMaturityRange({...maturityRange, end: e.target.value})} />
+                  </div>
+                  <Button onClick={() => window.print()} className="mt-5 gap-2" disabled={maturedInstruments.length === 0}>
+                    <Printer className="size-4" /> Print Note
+                  </Button>
+                </div>
+
+                {maturityRange.start && maturityRange.end ? (
+                  <div className="bg-white p-12 border shadow-sm print:border-none print:shadow-none min-h-[800px] text-slate-900 font-ledger">
+                    {/* Official Note Header */}
+                    <div className="text-center space-y-1 mb-8">
+                      <h1 className="text-xl font-bold uppercase underline">Gazipur Palli Bidyut Samity-2</h1>
+                      <h2 className="text-lg font-bold">OFFICIAL NOTE</h2>
+                      <div className="flex justify-between text-[11px] pt-4 italic border-t border-slate-200 mt-2">
+                        <span>Memo No: GPBS-2/CPF/Investment/Maturity/2024/____</span>
+                        <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <p className="text-sm font-bold">Subject: Maturity status of Investment Instruments from {new Date(maturityRange.start).toLocaleDateString('en-GB')} to {new Date(maturityRange.end).toLocaleDateString('en-GB')}.</p>
+                      
+                      <p className="text-[12px] leading-relaxed">
+                        The following investment instruments held by Gazipur PBS-2 Contributory Provident Fund (CPF) are scheduled for maturity or have reached maturity during the specified period. A detailed schedule is provided below for administrative review and necessary action regarding renewal or encashment.
+                      </p>
+
+                      <table className="w-full text-[10px] border-collapse border border-slate-900 mt-4">
+                        <thead>
+                          <tr className="bg-slate-100">
+                            <th className="border border-slate-900 p-2 text-center w-[40px]">SL No</th>
+                            <th className="border border-slate-900 p-2 text-left">Bank / Institution Name</th>
+                            <th className="border border-slate-900 p-2 text-left">Instrument & Ref No.</th>
+                            <th className="border border-slate-900 p-2 text-right">Principal (৳)</th>
+                            <th className="border border-slate-900 p-2 text-center">Rate</th>
+                            <th className="border border-slate-900 p-2 text-center">Maturity Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {maturedInstruments.length === 0 ? (
+                            <tr>
+                              <td colSpan={6} className="border border-slate-900 p-8 text-center text-slate-400 italic">No instruments found maturing in this range.</td>
+                            </tr>
+                          ) : maturedInstruments.map((inv, idx) => (
+                            <tr key={inv.id}>
+                              <td className="border border-slate-900 p-2 text-center">{idx + 1}</td>
+                              <td className="border border-slate-900 p-2 font-bold">{inv.bankName}</td>
+                              <td className="border border-slate-900 p-2">
+                                {inv.instrumentType}<br/>
+                                <span className="font-mono text-[9px] text-slate-500">{inv.referenceNumber}</span>
+                              </td>
+                              <td className="border border-slate-900 p-2 text-right font-bold">
+                                {Number(inv.principalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+                              <td className="border border-slate-900 p-2 text-center">{(Number(inv.interestRate) * 100).toFixed(2)}%</td>
+                              <td className="border border-slate-900 p-2 text-center font-bold">{new Date(inv.maturityDate).toLocaleDateString('en-GB')}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        {maturedInstruments.length > 0 && (
+                          <tfoot>
+                            <tr className="bg-slate-50 font-bold">
+                              <td colSpan={3} className="border border-slate-900 p-2 text-right">Total Principal:</td>
+                              <td className="border border-slate-900 p-2 text-right">
+                                {maturedInstruments.reduce((sum, i) => sum + Number(i.principalAmount), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </td>
+                              <td colSpan={2} className="border border-slate-900 p-2 bg-slate-100"></td>
+                            </tr>
+                          </tfoot>
+                        )}
+                      </table>
+
+                      <div className="pt-8 text-[12px] space-y-4">
+                        <p>Total Count: <b>{maturedInstruments.length}</b> Instruments maturing in this range.</p>
+                        <p className="italic underline">Proposed Action:</p>
+                        <p className="leading-tight">The Board of Trustees/Audit Committee may review the current market interest rates to decide between encashment of the above funds or renewal with the respective financial institutions to maximize fund yield.</p>
+                      </div>
+
+                      {/* Signature Blocks */}
+                      <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
+                        <div className="space-y-1">
+                          <div className="border-t border-slate-900 pt-1">Prepared By (Finance)</div>
+                          <p className="text-[9px] font-normal italic">Assistant General Manager</p>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="border-t border-slate-900 pt-1">Checked By (Audit)</div>
+                          <p className="text-[9px] font-normal italic">Deputy General Manager</p>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="border-t border-slate-900 pt-1">Approved By (Trustee)</div>
+                          <p className="text-[9px] font-normal italic">Senior General Manager</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
+                    <Calendar className="size-12 mb-2 opacity-20" />
+                    <p>Select a date range to generate the official note.</p>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingInvestment(null); }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -294,7 +431,7 @@ export default function InvestmentsPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="border-none shadow-sm bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground uppercase">Total Principal Invested</CardTitle>
@@ -330,7 +467,7 @@ export default function InvestmentsPage() {
         </Card>
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border overflow-hidden no-print">
         <div className="p-4 border-b flex items-center gap-4 bg-slate-50/50">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -501,3 +638,4 @@ export default function InvestmentsPage() {
     </div>
   );
 }
+
