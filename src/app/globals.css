@@ -48,16 +48,36 @@
 }
 
 @media print {
-  .no-print {
+  /* Hide sidebar and UI chrome */
+  [data-sidebar="sidebar"],
+  [data-sidebar="trigger"],
+  .no-print,
+  nav,
+  header {
     display: none !important;
   }
-  
+
+  /* Reset main content for full-page print */
+  [data-sidebar="inset"],
+  main,
   body {
+    margin: 0 !important;
+    padding: 0 !important;
     background-color: white !important;
+    min-height: auto !important;
   }
 
-  main {
+  /* Fix for sidebar provider layout */
+  .group\/sidebar-wrapper {
+    display: block !important;
+  }
+
+  /* Ensure ledger container is positioned correctly */
+  .print-container {
+    width: 100% !important;
+    max-width: none !important;
+    border: none !important;
+    box-shadow: none !important;
     padding: 0 !important;
-    margin: 0 !important;
   }
 }

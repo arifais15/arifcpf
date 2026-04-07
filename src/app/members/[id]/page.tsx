@@ -116,6 +116,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (selectedInterestMode === "fy") {
       if (!selectedInterestFY) return null;
       const [startYearStr] = selectedInterestFY.split("-");
+      // Start from June ending balance (opening)
       startDate = new Date(parseInt(startYearStr), 5, 1);
       monthsToCalculate = 12;
       label = `FY ${selectedInterestFY}`;
@@ -167,7 +168,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const handlePostInterest = () => {
     if (!interestCalculation) return;
 
-    // Proportional Split Logic
+    // Proportional Split Logic based on exact ratio of funds
     const lastRow = calculatedRows[calculatedRows.length - 1];
     const empFund = lastRow?.col7 || 0;
     const pbsFund = lastRow?.col10 || 0;
@@ -528,7 +529,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="bg-white p-10 shadow-lg rounded-none border border-slate-300 max-w-[1200px] mx-auto w-full font-ledger font-light text-[#1e1e1e] print:shadow-none print:border-none">
+      <div className="bg-white p-10 shadow-lg rounded-none border border-slate-300 max-w-[1200px] mx-auto w-full font-ledger font-light text-[#1e1e1e] print:shadow-none print:border-none print-container">
         <div className="relative mb-6">
           <p className="text-[10px] absolute left-0 top-0">REB Form no: 224</p>
           <div className="text-center space-y-0.5">
