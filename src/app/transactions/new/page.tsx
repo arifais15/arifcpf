@@ -13,7 +13,7 @@ import { Sparkles, Save, Info, AlertTriangle, Loader2, Plus, Trash2, ArrowRightL
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking } from "@/firebase";
+import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -107,7 +107,7 @@ export default function NewTransactionPage() {
         const newLines = result.suggestedEntries.map((item: any) => ({
           id: Math.random().toString(),
           accountCode: item.accountCode,
-          debit: item.type === 'Debit' ? 0 : 0, // AI suggests codes, user fills amounts or default to 0
+          debit: item.type === 'Debit' ? 0 : 0,
           credit: item.type === 'Credit' ? 0 : 0,
           memo: description
         }));
@@ -158,6 +158,16 @@ export default function NewTransactionPage() {
     }
   };
 
+  const handleDeleteTransaction = () => {
+    if (!editId) return;
+    if (confirm("Are you sure you want to delete this entire journal entry? This action cannot be undone.")) {
+      const docRef = doc(firestore, "journalEntries", editId);
+      deleteDocumentNonBlocking(docRef);
+      toast({ title: "Deleted", description: "Journal entry removed." });
+      router.push("/transactions");
+    }
+  };
+
   if (isEditLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
   }
@@ -165,9 +175,16 @@ export default function NewTransactionPage() {
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold text-primary tracking-tight">
-          {editId ? "Edit Transaction" : "New Journal Entry"}
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold text-primary tracking-tight">
+            {editId ? "Edit Transaction" : "New Journal Entry"}
+          </h1>
+          {editId && (
+            <Button variant="destructive" size="sm" onClick={handleDeleteTransaction} className="gap-2">
+              <Trash2 className="size-4" /> Delete Transaction
+            </Button>
+          )}
+        </div>
         <p className="text-muted-foreground">Dual accounting system for PBS CPF transactions</p>
       </div>
 
