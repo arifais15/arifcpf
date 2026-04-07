@@ -5,6 +5,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  updateProfile,
   sendPasswordResetEmail
 } from "firebase/auth"
 import { useAuth, useUser } from "@/firebase"
@@ -12,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Loader2, KeyRound, User, AlertCircle } from "lucide-react"
+import { ShieldCheck, Loader2, KeyRound, User, AlertCircle, UserPlus, LogIn } from "lucide-react"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 
 export default function LoginPage() {
@@ -21,8 +23,11 @@ export default function LoginPage() {
   const router = useRouter()
   const { showAlert } = useSweetAlert()
 
+  const [mode, setMode] = useState<"login" | "signup">("login")
+  const [name, setName] = useState("")
   const [idOrEmail, setIdOrEmail] = useState("arif")
   const [password, setPassword] = useState("123123")
+  const [confirmPassword, setConfirmPassword] = useState("123123")
   const [isLoading, setIsLoading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
@@ -33,7 +38,7 @@ export default function LoginPage() {
     }
   }, [user, isUserLoading, router])
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
@@ -42,23 +47,56 @@ export default function LoginPage() {
       : idOrEmail
 
     try {
-      await signInWithEmailAndPassword(auth, emailToUse, password)
-      
-      showAlert({
-        title: "Welcome Back",
-        description: `Successfully signed in as ${idOrEmail}.`,
-        type: "success"
-      })
+      if (mode === "signup") {
+        if (password !== confirmPassword) {
+          showAlert({
+            title: "Password Mismatch",
+            description: "The confirmation password does not match.",
+            type: "warning"
+          })
+          setIsLoading(false)
+          return
+        }
+        if (password.length < 6) {
+          showAlert({
+            title: "Weak Password",
+            description: "Security policy requires at least 6 characters.",
+            type: "warning"
+          })
+          setIsLoading(false)
+          return
+        }
+
+        const userCredential = await createUserWithEmailAndPassword(auth, emailToUse, password)
+        if (name) {
+          await updateProfile(userCredential.user, { displayName: name })
+        }
+        
+        showAlert({
+          title: "Account Created",
+          description: `User ${emailToUse} has been registered successfully.`,
+          type: "success"
+        })
+      } else {
+        await signInWithEmailAndPassword(auth, emailToUse, password)
+        showAlert({
+          title: "Welcome Back",
+          description: `Successfully signed in as ${idOrEmail}.`,
+          type: "success"
+        })
+      }
       router.push("/")
     } catch (error: any) {
       console.warn("Authentication failed:", error.code)
       
-      let message = "Invalid credentials. Please check your ID and password."
+      let message = "Invalid credentials. Please check your entry."
       
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        message = "Login failed. Ensure the user 'arif.ais15@gmail.com' exists with password '123123' in the Firebase Console."
-      } else if (error.code === 'auth/too-many-requests') {
-        message = "Too many failed attempts. Please try again later."
+      if (error.code === 'auth/email-already-in-use') {
+        message = "This email is already registered. Please sign in instead."
+      } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        message = "Authentication failed. Ensure the user exists and the password is correct."
+      } else if (error.code === 'auth/weak-password') {
+        message = "Password must be at least 6 characters long."
       }
 
       showAlert({
@@ -124,10 +162,29 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-primary uppercase">PBS CPF Management</CardTitle>
-          <CardDescription>Authorized Personnel Only • Secure Terminal</CardDescription>
+          <CardDescription>
+            {mode === "login" ? "Authorized Personnel Only • Secure Terminal" : "Register New Administrator Profile"}
+          </CardDescription>
         </CardHeader>
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5">
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-xs font-bold uppercase tracking-wider text-slate-500">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input 
+                    id="name" 
+                    placeholder="Enter full name" 
+                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required={mode === "signup"}
+                  />
+                </div>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="idOrEmail" className="text-xs font-bold uppercase tracking-wider text-slate-500">User ID or Email</Label>
               <div className="relative">
@@ -142,18 +199,21 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-slate-500">Password</Label>
-                <Button 
-                  type="button" 
-                  variant="link" 
-                  className="px-0 font-bold h-auto text-[10px] uppercase text-primary"
-                  onClick={handleForgotPassword}
-                  disabled={isResetting}
-                >
-                  {isResetting ? "Processing..." : "Reset Password"}
-                </Button>
+                {mode === "login" && (
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="px-0 font-bold h-auto text-[10px] uppercase text-primary"
+                    onClick={handleForgotPassword}
+                    disabled={isResetting}
+                  >
+                    {isResetting ? "Processing..." : "Reset Password"}
+                  </Button>
+                )}
               </div>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -168,13 +228,31 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
+            {mode === "signup" && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-wider text-slate-500">Confirm Password</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    placeholder="••••••••" 
+                    className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required={mode === "signup"}
+                  />
+                </div>
+              </div>
+            )}
             
             <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg flex gap-2">
               <AlertCircle className="size-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-[10px] text-amber-800 leading-tight font-bold uppercase">Setup Required:</p>
+                <p className="text-[10px] text-amber-800 leading-tight font-bold uppercase">Security Policy:</p>
                 <p className="text-[9px] text-amber-800 leading-tight">
-                  User <b>arif.ais15@gmail.com</b> must be created in the Firebase Console with password <b>123123</b> to access this system.
+                  All accounts must be associated with a valid email. Passwords require a minimum of <b>6 characters</b>.
                 </p>
               </div>
             </div>
@@ -184,9 +262,23 @@ export default function LoginPage() {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
-                  Verifying...
+                  {mode === "login" ? "Verifying..." : "Creating Account..."}
                 </>
-              ) : "Sign In to System"}
+              ) : (
+                <>
+                  {mode === "login" ? <LogIn className="mr-2 size-4" /> : <UserPlus className="mr-2 size-4" />}
+                  {mode === "login" ? "Sign In to System" : "Create Account"}
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              type="button" 
+              variant="ghost" 
+              className="w-full text-xs text-muted-foreground font-bold uppercase"
+              onClick={() => setMode(mode === "login" ? "signup" : "login")}
+            >
+              {mode === "login" ? "Need an account? Sign Up" : "Already have an account? Sign In"}
             </Button>
             
             <div className="text-center pt-2">
