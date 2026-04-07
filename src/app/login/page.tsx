@@ -56,15 +56,15 @@ export default function LoginPage() {
       })
       router.push("/")
     } catch (error: any) {
-      console.error("Login error:", error)
+      // Log for developer context but catch so it doesn't crash the UI
+      console.warn("Authentication failed:", error.code)
+      
       let message = "Invalid credentials. Please check your ID and password."
       
-      if (error.code === 'auth/invalid-credential') {
-        message = "The ID or password you entered is incorrect. Note: Firebase passwords must be at least 6 characters."
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-password') {
+        message = "Authentication failed. Note: Firebase passwords must be at least 6 characters. Please ensure your account was created with a 6+ character password in the console."
       } else if (error.code === 'auth/user-not-found') {
         message = "No account found with this ID/Email."
-      } else if (error.code === 'auth/wrong-password') {
-        message = "The password you entered is incorrect."
       } else if (error.code === 'auth/too-many-requests') {
         message = "Too many failed attempts. Please try again later."
       }
@@ -179,9 +179,14 @@ export default function LoginPage() {
             
             <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg flex gap-2">
               <AlertCircle className="size-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-amber-800 leading-tight italic">
-                <b>Note:</b> IDs are case-sensitive. Firebase requires a minimum of 6 characters for all passwords.
-              </p>
+              <div className="space-y-1">
+                <p className="text-[10px] text-amber-800 leading-tight font-bold">
+                  System Requirement:
+                </p>
+                <p className="text-[9px] text-amber-800 leading-tight italic">
+                  Firebase Authentication requires a minimum of 6 characters for all passwords. Please ensure your account has been updated with a 6-character password in the management console.
+                </p>
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 pb-8">
