@@ -13,7 +13,7 @@ import { useAuth, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShieldCheck, Loader2, KeyRound, User, AlertCircle, UserPlus, LogIn } from "lucide-react"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 
