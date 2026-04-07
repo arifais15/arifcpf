@@ -5,14 +5,15 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { 
   signInWithEmailAndPassword, 
-  sendPasswordResetEmail 
+  sendPasswordResetEmail,
+  signInAnonymously
 } from "firebase/auth"
 import { useAuth, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Loader2, KeyRound, Mail, User, AlertCircle } from "lucide-react"
+import { ShieldCheck, Loader2, KeyRound, Mail, User, AlertCircle, Fingerprint } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 
@@ -20,13 +21,12 @@ export default function LoginPage() {
   const auth = useAuth()
   const { user, isUserLoading } = useUser()
   const router = useRouter()
-  const { toast } = useToast()
   const { showAlert } = useSweetAlert()
 
-  // Set default credentials as requested
   const [idOrEmail, setIdOrEmail] = useState("arif")
   const [password, setPassword] = useState("123123")
   const [isLoading, setIsLoading] = useState(false)
+  const [isAnonLoading, setIsAnonLoading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
   // Redirect if already logged in
@@ -40,13 +40,11 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
 
-    // Map "arif" to the specified email
     const emailToUse = idOrEmail.toLowerCase() === "arif" 
       ? "arif.ais15@gmail.com" 
       : idOrEmail
 
     try {
-      // Firebase requires 6+ characters for passwords.
       await signInWithEmailAndPassword(auth, emailToUse, password)
       
       showAlert({
@@ -56,15 +54,12 @@ export default function LoginPage() {
       })
       router.push("/")
     } catch (error: any) {
-      // Log for developer context but catch so it doesn't crash the UI
       console.warn("Authentication failed:", error.code)
       
       let message = "Invalid credentials. Please check your ID and password."
       
-      if (error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-password' || error.code === 'auth/wrong-password') {
-        message = "Authentication failed. Note: Firebase passwords must be at least 6 characters. Please ensure your account was created with the password '123123' in the console."
-      } else if (error.code === 'auth/user-not-found') {
-        message = "No account found with this ID/Email."
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+        message = "No account found or wrong password. Important: You must MANUALLY create this user in the Firebase Console (Authentication tab) before this login will work."
       } else if (error.code === 'auth/too-many-requests') {
         message = "Too many failed attempts. Please try again later."
       }
@@ -76,6 +71,27 @@ export default function LoginPage() {
       })
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleAnonymousLogin = async () => {
+    setIsAnonLoading(true)
+    try {
+      await signInAnonymously(auth)
+      showAlert({
+        title: "Bypass Entry",
+        description: "Entering system as an Anonymous user (Prototyping Mode).",
+        type: "success"
+      })
+      router.push("/")
+    } catch (error: any) {
+      showAlert({
+        title: "Bypass Failed",
+        description: "Anonymous auth must be enabled in the Firebase Console.",
+        type: "error"
+      })
+    } finally {
+      setIsAnonLoading(false)
     }
   }
 
@@ -96,13 +112,13 @@ export default function LoginPage() {
       await sendPasswordResetEmail(auth, email)
       showAlert({
         title: "Reset Link Sent",
-        description: `A password reset link has been sent to ${email}. Please check your inbox.`,
+        description: `A password reset link has been sent to ${email}.`,
         type: "success"
       })
     } catch (error: any) {
       showAlert({
         title: "Reset Failed",
-        description: error.message || "Failed to send reset email. Ensure the email is registered.",
+        description: "Failed to send reset email. Ensure the email is registered.",
         type: "error"
       })
     } finally {
@@ -180,17 +196,15 @@ export default function LoginPage() {
             <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg flex gap-2">
               <AlertCircle className="size-4 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-[10px] text-amber-800 leading-tight font-bold">
-                  System Requirement:
-                </p>
-                <p className="text-[9px] text-amber-800 leading-tight italic">
-                  Default credentials are set to ID <b>'arif'</b> and Password <b>'123123'</b>. Please ensure this user is created in the Firebase console with email 'arif.ais15@gmail.com'.
+                <p className="text-[10px] text-amber-800 leading-tight font-bold uppercase">Setup Required:</p>
+                <p className="text-[9px] text-amber-800 leading-tight">
+                  You must create email <b>arif.ais15@gmail.com</b> with password <b>123123</b> in the Firebase Console (Auth tab) for this to work.
                 </p>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4 pb-8">
-            <Button type="submit" className="w-full h-12 text-sm font-bold uppercase tracking-widest" disabled={isLoading}>
+            <Button type="submit" className="w-full h-12 text-sm font-bold uppercase tracking-widest" disabled={isLoading || isAnonLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" />
@@ -198,6 +212,31 @@ export default function LoginPage() {
                 </>
               ) : "Sign In to System"}
             </Button>
+            
+            <div className="relative w-full py-2">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-muted-foreground font-bold">Or Bypass</span>
+              </div>
+            </div>
+
+            <Button 
+              type="button" 
+              variant="outline" 
+              className="w-full h-12 text-sm font-bold uppercase tracking-widest gap-2 border-slate-300" 
+              onClick={handleAnonymousLogin}
+              disabled={isLoading || isAnonLoading}
+            >
+              {isAnonLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Fingerprint className="size-4" />
+              )}
+              Anonymous Entry
+            </Button>
+
             <div className="text-center pt-2">
               <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-[0.2em] opacity-50">
                 Gazipur Palli Bidyut Samity-2
