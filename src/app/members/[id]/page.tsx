@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from "xlsx";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -27,7 +28,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [isUploading, setIsUploading] = useState(false);
   const [bulkCsvData, setBulkCsvData] = useState("");
   const [editingEntry, setEditingEntry] = useState<any>(null);
+  const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
   const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const memberRef = useMemoFirebase(() => doc(firestore, "members", resolvedParams.id), [firestore, resolvedParams.id]);
@@ -102,7 +106,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return sorted;
   }, [calculatedRows, selectedInterestFY]);
 
-  // Tiered Interest Logic (Calculates annual interest for a specific balance)
+  // Tiered Interest Logic
   const calculateTieredAnnual = (balance: number) => {
     let annualInterest = 0;
     if (balance <= 1500000) {
@@ -115,55 +119,51 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return annualInterest;
   };
 
-  // Monthly Cumulative Interest Calculation Logic (June to May)
-  const fyInterestCalculation = useMemo(() => {
-    if (!selectedInterestFY) return null;
-    
-    const [startYearStr] = selectedInterestFY.split("-");
-    const startYear = parseInt(startYearStr);
-    
-    // FY June to May Calculation
-    // For FY 2023-24, we need end-of-month balances for:
-    // June 2023, July 2023, ..., May 2024 (12 months total)
+  // Interest Calculation Logic based on Mode
+  const interestCalculation = useMemo(() => {
+    let startDate: Date;
+    let monthsToCalculate = 0;
+    let label = "";
+
+    if (selectedInterestMode === "fy") {
+      if (!selectedInterestFY) return null;
+      const [startYearStr] = selectedInterestFY.split("-");
+      startDate = new Date(parseInt(startYearStr), 5, 1); // June 1st of start year
+      monthsToCalculate = 12;
+      label = `FY ${selectedInterestFY}`;
+    } else {
+      if (!customRange.start || !customRange.end) return null;
+      const start = new Date(customRange.start);
+      const end = new Date(customRange.end);
+      startDate = new Date(start.getFullYear(), start.getMonth(), 1);
+      monthsToCalculate = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+      label = `Custom Range`;
+    }
     
     const monthlyDetails = [];
-    let totalFYInterest = 0;
+    let totalInterest = 0;
 
-    for (let i = 0; i < 12; i++) {
-      // i=0: June of startYear
-      // i=1: July of startYear
-      // ...
-      // i=11: May of startYear + 1
+    for (let i = 0; i < monthsToCalculate; i++) {
+      const currentMonth = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
       
-      let currentMonthIdx, currentYear;
-      if (i === 0) {
-        currentMonthIdx = 5; // June (0-indexed)
-        currentYear = startYear;
-      } else {
-        currentMonthIdx = (i + 5) % 12;
-        currentYear = i < 7 ? startYear : startYear + 1;
-      }
-      
-      const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0);
-      
-      // Find the cumulative balance as of the end of this specific month
+      // Find cumulative balance as of end of this month
       const lastEntryInMonth = [...calculatedRows]
-        .filter(r => new Date(r.summaryDate) <= lastDayOfMonth)
+        .filter(r => new Date(r.summaryDate) <= currentMonth)
         .pop();
       
       const balance = lastEntryInMonth ? lastEntryInMonth.col11 : 0;
       const monthlyInterest = calculateTieredAnnual(balance) / 12;
       
-      totalFYInterest += monthlyInterest;
+      totalInterest += monthlyInterest;
       monthlyDetails.push({
-        monthName: lastDayOfMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
+        monthName: currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
         balance,
         interest: monthlyInterest
       });
     }
 
-    return { totalFYInterest, monthlyDetails };
-  }, [selectedInterestFY, calculatedRows]);
+    return { totalInterest, monthlyDetails, label };
+  }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows]);
 
   const totals = useMemo(() => {
     if (calculatedRows.length === 0) return null;
@@ -209,12 +209,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   };
 
   const handlePostInterest = () => {
-    if (!fyInterestCalculation) return;
+    if (!interestCalculation) return;
 
-    const halfInterest = fyInterestCalculation.totalFYInterest / 2;
+    const halfInterest = interestCalculation.totalInterest / 2;
     const entryData = {
       summaryDate: new Date().toISOString().split('T')[0],
-      particulars: `Annual Profit FY ${selectedInterestFY} (June-May Cumul.)`,
+      particulars: `Annual Profit ${interestCalculation.label} (Date Range Accrual)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
       loanRepayment: 0,
@@ -227,7 +227,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    toast({ title: "Profit Recorded", description: `Interest of ৳${fyInterestCalculation.totalFYInterest.toFixed(2)} posted.` });
+    toast({ title: "Profit Recorded", description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} posted.` });
     setIsInterestOpen(false);
   };
 
@@ -330,91 +330,119 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
-          {/* June to May Monthly Interest Calculator */}
+          {/* Enhanced Interest Calculator */}
           <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
                 <Calculator className="size-4" />
-                June-May Profit Calc
+                Profit Calculator
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl">
               <DialogHeader>
-                <DialogTitle>Monthly Cumulative Interest (June-May)</DialogTitle>
+                <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
                 <DialogDescription>
-                  Calculates profit based on ending balances from June (Prev Year) to May (Current Year).
+                  Calculate interest based on month-end cumulative balances using tiered rates.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
-                <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] uppercase font-bold text-slate-500">Select Fiscal Year</Label>
-                    <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
-                      <SelectTrigger className="w-[180px] h-9 font-bold">
-                        <SelectValue placeholder="Select FY" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableFYs.map(fy => (
-                          <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex-1 text-right">
-                    <p className="text-[10px] uppercase font-bold text-slate-500">Total Profit (June-May)</p>
-                    <p className="text-3xl font-bold text-primary">
-                      ৳ {fyInterestCalculation?.totalFYInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 }) || "0.00"}
-                    </p>
-                  </div>
-                </div>
+                <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)} className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="fy" className="gap-2"><Calendar className="size-4" /> Fiscal Year Mode</TabsTrigger>
+                    <TabsTrigger value="custom" className="gap-2"><Calculator className="size-4" /> Custom Date Range</TabsTrigger>
+                  </TabsList>
+                  
+                  <TabsContent value="fy" className="pt-4 flex items-center gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-bold text-slate-500">Target FY (June-May)</Label>
+                      <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
+                        <SelectTrigger className="w-[180px] h-9 font-bold">
+                          <SelectValue placeholder="Select FY" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableFYs.map(fy => (
+                            <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TabsContent>
 
-                <div className="border rounded-md overflow-hidden max-h-[300px] overflow-y-auto">
-                  <table className="w-full text-[11px]">
-                    <thead className="bg-slate-100 border-b">
-                      <tr>
-                        <th className="p-2 text-left">Calculation Month</th>
-                        <th className="p-2 text-right">End Balance (Col 11)</th>
-                        <th className="p-2 text-right">Monthly Portion</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y">
-                      {fyInterestCalculation?.monthlyDetails.map((detail, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50">
-                          <td className="p-2 font-medium">{detail.monthName}</td>
-                          <td className="p-2 text-right">৳ {detail.balance.toLocaleString()}</td>
-                          <td className="p-2 text-right font-bold text-accent">৳ {detail.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                  <TabsContent value="custom" className="pt-4 grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-bold text-slate-500">Start Date</Label>
+                      <Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] uppercase font-bold text-slate-500">End Date</Label>
+                      <Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                {interestCalculation && (
+                  <>
+                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+                      <div className="flex-1">
+                        <p className="text-[10px] uppercase font-bold text-slate-500">Period Label</p>
+                        <p className="text-lg font-bold text-slate-700">{interestCalculation.label}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-bold text-slate-500">Total Calculated Profit</p>
+                        <p className="text-3xl font-bold text-primary">
+                          ৳ {interestCalculation.totalInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="border rounded-md overflow-hidden max-h-[250px] overflow-y-auto">
+                      <table className="w-full text-[11px]">
+                        <thead className="bg-slate-100 border-b">
+                          <tr>
+                            <th className="p-2 text-left">Accrual Month</th>
+                            <th className="p-2 text-right">Cumulative Balance</th>
+                            <th className="p-2 text-right">Monthly Portion (1/12th)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y">
+                          {interestCalculation.monthlyDetails.map((detail, idx) => (
+                            <tr key={idx} className="hover:bg-slate-50">
+                              <td className="p-2 font-medium">{detail.monthName}</td>
+                              <td className="p-2 text-right">৳ {detail.balance.toLocaleString()}</td>
+                              <td className="p-2 text-right font-bold text-accent">৳ {detail.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex gap-2">
                   <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-blue-700 leading-tight">
-                    Calculation uses month-end cumulative balances from June to May. 1.5M @ 13%, next 1.5M @ 12%, excess @ 11%. Each month contributes 1/12th of the annual yield.
+                    Calculation is performed month-by-month on cumulative ending balances. Tiered rates: 13% for 1st 1.5M, 12% for next 1.5M, 11% above 3M. 
                   </p>
                 </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
-                <Button onClick={handlePostInterest} className="gap-2" disabled={!selectedInterestFY}>
+                <Button onClick={handlePostInterest} className="gap-2" disabled={!interestCalculation}>
                   <Percent className="size-4" />
-                  Post Profit Entry
+                  Post Now to Ledger
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
+          {/* ... existing Dialogs (Bulk, Entry, Printer) ... */}
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
               <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle>Bulk Upload Ledger Entries</DialogTitle>
-                </div>
+                <DialogTitle>Bulk Upload Ledger Entries</DialogTitle>
               </DialogHeader>
               <Tabs defaultValue="excel" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">

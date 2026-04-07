@@ -12,7 +12,8 @@ import {
   Settings,
   ShieldCheck,
   Search,
-  ListTodo
+  ListTodo,
+  Percent
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -34,6 +35,7 @@ const navItems = [
   { title: "Journal Entries", icon: ListTodo, url: "/transactions" },
   { title: "New Transaction", icon: PlusCircle, url: "/transactions/new" },
   { title: "Members", icon: Users, url: "/members" },
+  { title: "Interest Accrual", icon: Percent, url: "/interest" },
   { title: "Investments", icon: TrendingUp, url: "/investments" },
   { title: "Financial Reports", icon: FileText, url: "/reports" },
 ]
