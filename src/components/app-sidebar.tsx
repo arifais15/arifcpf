@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -51,7 +50,7 @@ export function AppSidebar() {
         </div>
         <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
           <span className="font-semibold text-primary">PBS CPF</span>
-          <span className="text-xs text-muted-foreground">Compass</span>
+          <span className="text-xs text-muted-foreground">Management</span>
         </div>
       </SidebarHeader>
       <SidebarSeparator />

@@ -6,7 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'PBS CPF Compass',
+  title: 'PBS CPF Management',
   description: 'Management Accounting Software for Contributory Provident Fund',
 };
 
