@@ -195,6 +195,10 @@
           "type": "string",
           "description": "Unique identifier for the InvestmentInstrument entity."
         },
+        "bankName": {
+          "type": "string",
+          "description": "The name of the bank or financial institution issuing the instrument."
+        },
         "chartOfAccountId": {
           "type": "string",
           "description": "Reference to the ChartOfAccount representing this type of investment (e.g., FDR, Savings Certificate). (Relationship: ChartOfAccount 1:N InvestmentInstrument)"
@@ -253,6 +257,7 @@
       },
       "required": [
         "id",
+        "bankName",
         "chartOfAccountId",
         "instrumentType",
         "referenceNumber",
@@ -292,9 +297,17 @@
             "type": "string"
           }
         },
-        "amount": {
+        "grossAmount": {
           "type": "number",
-          "description": "The amount of interest accrued for the specified period."
+          "description": "The gross amount of interest accrued before taxes."
+        },
+        "tdsAmount": {
+          "type": "number",
+          "description": "The Tax Deducted at Source (TDS) amount (e.g., 10%)."
+        },
+        "netAmount": {
+          "type": "number",
+          "description": "The net amount of interest after TDS."
         },
         "periodStartDate": {
           "type": "string",
@@ -317,7 +330,9 @@
         "chartOfAccountId",
         "sourceId",
         "sourceType",
-        "amount",
+        "grossAmount",
+        "tdsAmount",
+        "netAmount",
         "periodStartDate",
         "periodEndDate",
         "isPostedToGL"
