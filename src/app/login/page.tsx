@@ -13,7 +13,7 @@ import { useAuth, useUser } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/card"
 import { ShieldCheck, Loader2, KeyRound, User, AlertCircle, UserPlus, LogIn } from "lucide-react"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 
@@ -74,7 +74,7 @@ export default function LoginPage() {
         
         showAlert({
           title: "Account Created",
-          description: `User ${emailToUse} has been registered successfully.`,
+          description: `User ${emailToUse} has been registered successfully. You are now logged in.`,
           type: "success"
         })
       } else {
@@ -89,18 +89,22 @@ export default function LoginPage() {
     } catch (error: any) {
       console.warn("Authentication failed:", error.code)
       
+      let title = "Access Denied"
       let message = "Invalid credentials. Please check your entry."
       
       if (error.code === 'auth/email-already-in-use') {
+        title = "Email Exists"
         message = "This email is already registered. Please sign in instead."
       } else if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-        message = "Authentication failed. Ensure the user exists and the password is correct."
+        title = "Authentication Failed"
+        message = "Incorrect password or user does not exist. If you haven't created an account yet, please switch to 'Sign Up' mode first."
       } else if (error.code === 'auth/weak-password') {
+        title = "Weak Password"
         message = "Password must be at least 6 characters long."
       }
 
       showAlert({
-        title: "Access Denied",
+        title: title,
         description: message,
         type: "error"
       })
@@ -247,12 +251,12 @@ export default function LoginPage() {
               </div>
             )}
             
-            <div className="bg-amber-50 border border-amber-100 p-3 rounded-lg flex gap-2">
-              <AlertCircle className="size-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="bg-blue-50 border border-blue-100 p-3 rounded-lg flex gap-2">
+              <AlertCircle className="size-4 text-blue-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="text-[10px] text-amber-800 leading-tight font-bold uppercase">Security Policy:</p>
-                <p className="text-[9px] text-amber-800 leading-tight">
-                  All accounts must be associated with a valid email. Passwords require a minimum of <b>6 characters</b>.
+                <p className="text-[10px] text-blue-800 leading-tight font-bold uppercase">First Time User?</p>
+                <p className="text-[9px] text-blue-800 leading-tight">
+                  If you haven't created an account yet, please click <b>"Need an account? Sign Up"</b> below first.
                 </p>
               </div>
             </div>
@@ -274,8 +278,8 @@ export default function LoginPage() {
             
             <Button 
               type="button" 
-              variant="ghost" 
-              className="w-full text-xs text-muted-foreground font-bold uppercase"
+              variant="outline" 
+              className="w-full text-xs text-primary font-bold uppercase border-primary/20 hover:bg-primary/5"
               onClick={() => setMode(mode === "login" ? "signup" : "login")}
             >
               {mode === "login" ? "Need an account? Sign Up" : "Already have an account? Sign In"}
