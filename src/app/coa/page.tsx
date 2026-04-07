@@ -13,11 +13,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 
 export default function COAPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { showAlert } = useSweetAlert();
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
@@ -54,21 +56,40 @@ export default function COAPage() {
     if (editingAccount && editingAccount.id) {
       const docRef = doc(firestore, "chartOfAccounts", editingAccount.id);
       updateDocumentNonBlocking(docRef, accountData);
-      toast({ title: "Account Updated", description: `${accountData.accountName} has been modified.` });
+      showAlert({
+        title: "Success",
+        description: `${accountData.accountName} has been updated successfully.`,
+        type: "success"
+      });
     } else {
       addDocumentNonBlocking(coaRef, accountData);
-      toast({ title: "Account Added", description: `${accountData.accountName} has been added to the COA.` });
+      showAlert({
+        title: "Added",
+        description: `${accountData.accountName} is now in the Chart of Accounts.`,
+        type: "success"
+      });
     }
     setIsAddOpen(false);
     setEditingAccount(null);
   };
 
   const handleDeleteAccount = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete account: ${name}?`)) {
-      const docRef = doc(firestore, "chartOfAccounts", id);
-      deleteDocumentNonBlocking(docRef);
-      toast({ title: "Account Deleted", description: "The account has been removed." });
-    }
+    showAlert({
+      title: "Are you sure?",
+      description: `You are about to delete account: ${name}. This action cannot be reversed.`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Delete Account",
+      onConfirm: () => {
+        const docRef = doc(firestore, "chartOfAccounts", id);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({
+          title: "Deleted",
+          description: "The account has been removed.",
+          type: "success"
+        });
+      }
+    });
   };
 
   return (

@@ -12,12 +12,14 @@ import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import * as XLSX from "xlsx";
 
 export default function MembersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { showAlert } = useSweetAlert();
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
@@ -50,21 +52,40 @@ export default function MembersPage() {
     if (editingMember) {
       const docRef = doc(firestore, "members", editingMember.id);
       updateDocumentNonBlocking(docRef, memberData);
-      toast({ title: "Updated", description: "Member information saved." });
+      showAlert({
+        title: "Success",
+        description: `${memberData.name} profile has been updated.`,
+        type: "success"
+      });
     } else {
       addDocumentNonBlocking(membersRef, memberData);
-      toast({ title: "Registered", description: "New member has been registered." });
+      showAlert({
+        title: "Registered",
+        description: `Member ${memberData.name} added to the registry.`,
+        type: "success"
+      });
     }
     setIsAddOpen(false);
     setEditingMember(null);
   };
 
-  const handleDeleteMember = (id: string) => {
-    if (confirm("Are you sure you want to delete this member?")) {
-      const docRef = doc(firestore, "members", id);
-      deleteDocumentNonBlocking(docRef);
-      toast({ title: "Deleted", description: "Member record removed." });
-    }
+  const handleDeleteMember = (id: string, name: string) => {
+    showAlert({
+      title: "Remove Member?",
+      description: `This will permanently delete ${name} and their accounting records.`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Yes, Delete",
+      onConfirm: () => {
+        const docRef = doc(firestore, "members", id);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({
+          title: "Deleted",
+          description: "Member removed from database.",
+          type: "success"
+        });
+      }
+    });
   };
 
   const processEntries = (entries: any[]) => {
@@ -81,7 +102,11 @@ export default function MembersPage() {
       });
       addDocumentNonBlocking(membersRef, cleanedEntry);
     });
-    toast({ title: "Started", description: `Processing ${entries.length} entries.` });
+    showAlert({
+      title: "Bulk Import",
+      description: `Processing ${entries.length} members. They will appear in the list shortly.`,
+      type: "info"
+    });
     setIsBulkOpen(false);
   };
 
@@ -238,7 +263,7 @@ export default function MembersPage() {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id)}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id, member.name)}><Trash2 className="size-4" /></Button>
                     <Button variant="outline" size="sm" asChild className="h-8"><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2" /> Ledger</Link></Button>
                   </div>
                 </TableCell>
