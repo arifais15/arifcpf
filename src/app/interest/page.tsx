@@ -1,7 +1,6 @@
-
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -43,7 +42,27 @@ import { Progress } from "@/components/ui/progress";
 export default function GlobalInterestPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [selectedFY, setSelectedFY] = useState<string>("2023-24");
+  
+  // Dynamically generate Fiscal Year options
+  const fyOptions = useMemo(() => {
+    const options = [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-indexed
+    
+    // Determine the "current" fiscal year (assuming July-June)
+    const activeFYStart = currentMonth >= 7 ? currentYear : currentYear - 1;
+    
+    // Generate years from 2015 up to next year for planning
+    for (let year = activeFYStart + 1; year >= 2015; year--) {
+      const start = year;
+      const end = (year + 1).toString().slice(-2);
+      options.push(`${start}-${end}`);
+    }
+    return options;
+  }, []);
+
+  const [selectedFY, setSelectedFY] = useState<string>(fyOptions[1] || ""); // Default to previous closed FY
   const [isCalculating, setIsCalculating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
@@ -51,8 +70,6 @@ export default function GlobalInterestPage() {
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
-
-  const fyOptions = ["2024-25", "2023-24", "2022-23", "2021-20"];
 
   const calculateTieredAnnual = (balance: number) => {
     let annualInterest = 0;
@@ -108,7 +125,7 @@ export default function GlobalInterestPage() {
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {
-          currentMonthIdx = 5; // June
+          currentMonthIdx = 5; // June (Last day of June is starting balance for July)
           currentYear = startYear;
         } else {
           currentMonthIdx = (m + 5) % 12;
