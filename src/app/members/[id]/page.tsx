@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent, Calendar } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, FileText, Edit2, Trash2, Info, Calculator, Percent, Calendar, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
@@ -16,6 +16,7 @@ import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -90,12 +91,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       const fy = month >= 7 ? `${year}-${(year + 1).toString().slice(-2)}` : `${year - 1}-${year.toString().slice(-2)}`;
       fys.add(fy);
     });
-    const sorted = Array.from(fys).sort((a, b) => b.localeCompare(a));
-    if (sorted.length > 0 && !selectedInterestFY) {
-      setSelectedInterestFY(sorted[0]);
+    // Also include current FYs based on date if list is empty
+    if (fys.size === 0) {
+      const now = new Date();
+      const year = now.getFullYear();
+      for (let i = 0; i < 5; i++) {
+        const start = year - i;
+        fys.add(`${start}-${(start + 1).toString().slice(-2)}`);
+      }
     }
+    const sorted = Array.from(fys).sort((a, b) => b.localeCompare(a));
     return sorted;
-  }, [calculatedRows, selectedInterestFY]);
+  }, [calculatedRows]);
+
+  // Default FY initialization
+  useEffect(() => {
+    if (availableFYs.length > 0 && !selectedInterestFY) {
+      setSelectedInterestFY(availableFYs[0]);
+    }
+  }, [availableFYs, selectedInterestFY]);
 
   const calculateTieredAnnual = (balance: number) => {
     let annualInterest = 0;
@@ -117,7 +131,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (selectedInterestMode === "fy") {
       if (!selectedInterestFY) return null;
       const [startYearStr] = selectedInterestFY.split("-");
-      startDate = new Date(parseInt(startYearStr), 5, 1);
+      startDate = new Date(parseInt(startYearStr), 6, 1); // July 1st
       monthsToCalculate = 12;
       label = `FY ${selectedInterestFY}`;
     } else {
@@ -129,6 +143,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       label = `Custom Range`;
     }
     
+    // Check if duplicate posting exists for this label
+    const isDuplicate = summaries?.some(s => s.particulars?.includes(`Annual Profit ${label}`));
+
     const monthlyDetails = [];
     let totalInterest = 0;
 
@@ -149,8 +166,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       });
     }
 
-    return { totalInterest, monthlyDetails, label };
-  }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows]);
+    return { totalInterest, monthlyDetails, label, isDuplicate };
+  }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows, summaries]);
 
   const totals = useMemo(() => {
     if (calculatedRows.length === 0) return null;
@@ -167,6 +184,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const handlePostInterest = () => {
     if (!interestCalculation) return;
+
+    if (interestCalculation.isDuplicate) {
+      showAlert({
+        title: "Duplicate Prevented",
+        description: `Profit for ${interestCalculation.label} has already been posted to this ledger.`,
+        type: "error"
+      });
+      return;
+    }
 
     const lastRow = calculatedRows[calculatedRows.length - 1];
     const empFund = lastRow?.col7 || 0;
@@ -382,7 +408,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   
                   <TabsContent value="fy" className="pt-4 flex items-center gap-4">
                     <div className="space-y-1">
-                      <Label className="text-[10px] uppercase font-bold text-slate-500">Target FY (June-May)</Label>
+                      <Label className="text-[10px] uppercase font-bold text-slate-500">Target FY (July-June)</Label>
                       <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
                         <SelectTrigger className="w-[180px] h-9 font-bold">
                           <SelectValue placeholder="Select FY" />
@@ -410,18 +436,29 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
                 {interestCalculation && (
                   <>
-                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-lg border">
+                    <div className={cn(
+                      "flex items-center gap-4 p-4 rounded-lg border",
+                      interestCalculation.isDuplicate ? "bg-rose-50 border-rose-200" : "bg-slate-50 border-slate-200"
+                    )}>
                       <div className="flex-1">
                         <p className="text-[10px] uppercase font-bold text-slate-500">Period Label</p>
                         <p className="text-lg font-bold text-slate-700">{interestCalculation.label}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] uppercase font-bold text-slate-500">Total Calculated Profit</p>
-                        <p className="text-3xl font-bold text-primary">
+                        <p className={cn("text-3xl font-bold", interestCalculation.isDuplicate ? "text-rose-600" : "text-primary")}>
                           ৳ {interestCalculation.totalInterest.toLocaleString('en-BD', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>
+
+                    {interestCalculation.isDuplicate && (
+                      <div className="p-3 bg-rose-100 border border-rose-300 rounded-md flex gap-2 animate-in fade-in slide-in-from-top-2">
+                        <AlertCircle className="size-4 text-rose-700 shrink-0 mt-0.5" />
+                        <p className="text-[11px] text-rose-800 font-bold uppercase">Duplicate Entry Detected</p>
+                        <p className="text-[10px] text-rose-700">A profit entry for this period already exists. Posting is disabled to prevent accounting errors.</p>
+                      </div>
+                    )}
 
                     <div className="border rounded-md overflow-hidden max-h-[250px] overflow-y-auto">
                       <table className="w-full text-[11px]">
@@ -455,9 +492,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
-                <Button onClick={handlePostInterest} className="gap-2" disabled={!interestCalculation}>
-                  <Percent className="size-4" />
-                  Post Proportional
+                <Button 
+                  onClick={handlePostInterest} 
+                  className="gap-2" 
+                  disabled={!interestCalculation || interestCalculation.isDuplicate}
+                >
+                  {interestCalculation?.isDuplicate ? <ShieldCheck className="size-4" /> : <Percent className="size-4" />}
+                  {interestCalculation?.isDuplicate ? "Already Synced" : "Post Proportional"}
                 </Button>
               </DialogFooter>
             </DialogContent>

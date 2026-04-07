@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -18,7 +19,8 @@ import {
   Calendar, 
   ArrowRight,
   Info,
-  AlertCircle
+  AlertCircle,
+  ShieldCheck
 } from "lucide-react";
 import { 
   useCollection, 
@@ -38,6 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 export default function CPFInterestPage() {
   const firestore = useFirestore();
@@ -100,6 +103,11 @@ export default function CPFInterestPage() {
       const snapshot = await getDocs(q);
       const summaries = snapshot.docs.map(doc => doc.data());
 
+      // Check for duplicates
+      const isAlreadyPosted = summaries.some(s => 
+        s.particulars?.includes(`Annual Profit FY ${selectedFY}`)
+      );
+
       let runningEmployeeFund = 0;
       let runningOfficeFund = 0;
       const sortedSummaries = summaries.sort((a: any, b: any) => 
@@ -149,7 +157,7 @@ export default function CPFInterestPage() {
         calculatedInterest: totalInterest,
         employeeFund: runningEmployeeFund,
         officeFund: runningOfficeFund,
-        isPosted: false
+        isPosted: isAlreadyPosted
       });
 
       setProgress(Math.round(((i + 1) / members.length) * 100));
@@ -162,10 +170,17 @@ export default function CPFInterestPage() {
 
   const handlePostAllInterest = async () => {
     if (previewData.length === 0) return;
+    
+    const unpostedItems = previewData.filter(item => !item.isPosted);
+    if (unpostedItems.length === 0) {
+      toast({ title: "No Actions Required", description: "All selected records are already posted for this period." });
+      return;
+    }
+
     setIsPosting(true);
     let postedCount = 0;
 
-    for (const item of previewData) {
+    for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
       const totalFund = item.employeeFund + item.officeFund;
@@ -176,7 +191,6 @@ export default function CPFInterestPage() {
         employeeProfit = (item.calculatedInterest * item.employeeFund) / totalFund;
         pbsProfit = (item.calculatedInterest * item.officeFund) / totalFund;
       } else {
-        // Fallback to 50/50 if fund is empty but interest exists (unlikely but safe)
         employeeProfit = item.calculatedInterest / 2;
         pbsProfit = item.calculatedInterest / 2;
       }
@@ -207,6 +221,10 @@ export default function CPFInterestPage() {
 
   const totalCPFProfit = useMemo(() => {
     return previewData.reduce((sum, item) => sum + item.calculatedInterest, 0);
+  }, [previewData]);
+
+  const hasUnpostedEntries = useMemo(() => {
+    return previewData.some(item => !item.isPosted && item.calculatedInterest > 0);
   }, [previewData]);
 
   return (
@@ -259,9 +277,13 @@ export default function CPFInterestPage() {
           <CardContent>
             <div className="text-2xl font-bold flex items-center gap-2">
               {previewData.length > 0 ? (
-                <span className="text-orange-600 flex items-center gap-1"><AlertCircle className="size-5" /> Pending</span>
+                hasUnpostedEntries ? (
+                  <span className="text-orange-600 flex items-center gap-1"><AlertCircle className="size-5" /> Pending</span>
+                ) : (
+                  <span className="text-emerald-600 flex items-center gap-1"><ShieldCheck className="size-5" /> Already Posted</span>
+                )
               ) : (
-                <span className="text-emerald-600 flex items-center gap-1"><CheckCircle2 className="size-5" /> Synced</span>
+                <span className="text-slate-400 flex items-center gap-1"><CheckCircle2 className="size-5" /> Idle</span>
               )}
             </div>
           </CardContent>
@@ -270,7 +292,7 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="space-y-2 max-w-md mx-auto text-center">
-          <p className="text-sm font-medium animate-pulse">Scanning ledgers and applying tiered logic...</p>
+          <p className="text-sm font-medium animate-pulse">Scanning ledgers and checking for duplicate postings...</p>
           <Progress value={progress} className="h-2" />
           <p className="text-[10px] text-muted-foreground">{progress}% complete</p>
         </div>
@@ -283,9 +305,16 @@ export default function CPFInterestPage() {
               <Percent className="size-4 text-primary" />
               Accrual Preview - FY {selectedFY}
             </h2>
-            <Button onClick={handlePostAllInterest} disabled={isPosting} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
+            <Button 
+              onClick={handlePostAllInterest} 
+              disabled={isPosting || !hasUnpostedEntries} 
+              className={cn(
+                "gap-2",
+                hasUnpostedEntries ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-400 cursor-not-allowed"
+              )}
+            >
               {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-              Post All Proportional
+              {hasUnpostedEntries ? "Post Unposted Proportional" : "All Records Synced"}
             </Button>
           </div>
           <div className="max-h-[500px] overflow-y-auto">
@@ -295,17 +324,21 @@ export default function CPFInterestPage() {
                   <TableHead>Member ID</TableHead>
                   <TableHead>Full Name</TableHead>
                   <TableHead className="text-right">Tiered Profit (৳)</TableHead>
-                  <TableHead className="text-center">Action</TableHead>
+                  <TableHead className="text-center">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {previewData.map((item) => (
-                  <TableRow key={item.memberId}>
+                  <TableRow key={item.memberId} className={item.isPosted ? "bg-slate-50/50 opacity-80" : ""}>
                     <TableCell className="font-mono font-bold text-xs">{item.memberIdNumber}</TableCell>
                     <TableCell className="text-sm">{item.name}</TableCell>
                     <TableCell className="text-right font-bold text-accent">৳ {item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-center">
-                      <Badge variant="outline" className="text-[10px] uppercase">Calculated</Badge>
+                      {item.isPosted ? (
+                        <Badge variant="outline" className="text-[10px] uppercase border-emerald-500 text-emerald-600 bg-emerald-50">Duplicate Protected</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] uppercase">Calculated</Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -315,7 +348,7 @@ export default function CPFInterestPage() {
           <div className="p-4 bg-amber-50 border-t flex gap-3">
             <Info className="size-5 text-amber-600 shrink-0" />
             <p className="text-xs text-amber-800 leading-relaxed">
-              <b>Proportional Split:</b> Profit is automatically split between Employee and PBS columns based on the exact ratio of their respective balances in the subsidiary ledger.
+              <b>Validation:</b> The system automatically detects if a profit entry for <b>FY {selectedFY}</b> already exists in the subsidiary ledger. Duplicate postings are strictly prohibited to maintain accounting accuracy.
             </p>
           </div>
         </div>
