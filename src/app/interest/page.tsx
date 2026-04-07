@@ -52,7 +52,6 @@ export default function GlobalInterestPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
 
-  // FY options for the last few years
   const fyOptions = ["2024-25", "2023-24", "2022-23", "2021-20"];
 
   const calculateTieredAnnual = (balance: number) => {
@@ -84,16 +83,15 @@ export default function GlobalInterestPage() {
       const snapshot = await getDocs(q);
       const summaries = snapshot.docs.map(doc => doc.data());
 
-      // Running balance calculation (simplified for cumulative points)
-      let runningFund = 0;
+      let runningEmployeeFund = 0;
+      let runningOfficeFund = 0;
       const sortedSummaries = summaries.sort((a: any, b: any) => 
         new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime()
       );
 
-      // Pre-calculate cumulative at each month-end point
-      const monthEndBalances: Record<string, number> = {};
-      let cumulative = 0;
+      let totalInterest = 0;
       
+      // We calculate monthly, but we also need the final fund balances to determine the ratio for posting
       sortedSummaries.forEach((row: any) => {
         const c1 = Number(row.employeeContribution) || 0;
         const c2 = Number(row.loanWithdrawal) || 0;
@@ -103,11 +101,10 @@ export default function GlobalInterestPage() {
         const c8 = Number(row.pbsContribution) || 0;
         const c9 = Number(row.profitPbs) || 0;
 
-        cumulative += (c1 - c2 + c3 + c5 + c6 + c8 + c9);
-        monthEndBalances[row.summaryDate] = cumulative;
+        runningEmployeeFund += (c1 - c2 + c3 + c5 + c6);
+        runningOfficeFund += (c8 + c9);
       });
 
-      let totalInterest = 0;
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {
@@ -120,13 +117,10 @@ export default function GlobalInterestPage() {
         
         const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0);
         
-        // Find closest cumulative balance up to this month
         const entriesUpToMonth = sortedSummaries.filter(r => new Date(r.summaryDate) <= lastDayOfMonth);
-        const lastBalance = entriesUpToMonth.length > 0 
-          ? entriesUpToMonth.reduce((acc, curr: any) => acc + 
+        const lastBalance = entriesUpToMonth.reduce((acc, curr: any) => acc + 
               (Number(curr.employeeContribution) - Number(curr.loanWithdrawal) + Number(curr.loanRepayment) + 
-               Number(curr.profitEmployee) + Number(curr.profitLoan) + Number(curr.pbsContribution) + Number(curr.profitPbs)), 0)
-          : 0;
+               Number(curr.profitEmployee) + Number(curr.profitLoan) + Number(curr.pbsContribution) + Number(curr.profitPbs)), 0);
 
         totalInterest += calculateTieredAnnual(lastBalance) / 12;
       }
@@ -136,6 +130,8 @@ export default function GlobalInterestPage() {
         memberIdNumber: member.memberIdNumber,
         name: member.name,
         calculatedInterest: totalInterest,
+        employeeFund: runningEmployeeFund,
+        officeFund: runningOfficeFund,
         isPosted: false
       });
 
@@ -155,17 +151,29 @@ export default function GlobalInterestPage() {
     for (const item of previewData) {
       if (item.calculatedInterest <= 0) continue;
 
-      const halfInterest = item.calculatedInterest / 2;
+      const totalFund = item.employeeFund + item.officeFund;
+      let employeeProfit = 0;
+      let pbsProfit = 0;
+
+      if (totalFund > 0) {
+        employeeProfit = (item.calculatedInterest * item.employeeFund) / totalFund;
+        pbsProfit = (item.calculatedInterest * item.officeFund) / totalFund;
+      } else {
+        // Fallback to 50/50 if fund is empty but interest exists (unlikely but safe)
+        employeeProfit = item.calculatedInterest / 2;
+        pbsProfit = item.calculatedInterest / 2;
+      }
+
       const entryData = {
         summaryDate: new Date().toISOString().split('T')[0],
-        particulars: `Annual Profit FY ${selectedFY} (Global Accrual)`,
+        particulars: `Annual Profit FY ${selectedFY} (Proportional)`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
-        profitEmployee: halfInterest,
+        profitEmployee: employeeProfit,
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: halfInterest,
+        profitPbs: pbsProfit,
         lastUpdateDate: new Date().toISOString(),
         memberId: item.memberId
       };
@@ -189,7 +197,7 @@ export default function GlobalInterestPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Global Interest Accrual</h1>
-          <p className="text-muted-foreground">Apply tiered profit calculation across all active member accounts</p>
+          <p className="text-muted-foreground">Apply tiered profit calculation based on proportional fund balances</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-50 border p-1 rounded-md">
@@ -260,7 +268,7 @@ export default function GlobalInterestPage() {
             </h2>
             <Button onClick={handlePostAllInterest} disabled={isPosting} className="bg-emerald-600 hover:bg-emerald-700 gap-2">
               {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-              Post All to Subsidiary Ledgers
+              Post All Proportional
             </Button>
           </div>
           <div className="max-h-[500px] overflow-y-auto">
@@ -290,7 +298,7 @@ export default function GlobalInterestPage() {
           <div className="p-4 bg-amber-50 border-t flex gap-3">
             <Info className="size-5 text-amber-600 shrink-0" />
             <p className="text-xs text-amber-800 leading-relaxed">
-              <b>Important:</b> Clicking "Post All" will create a new journal entry in each individual member's subsidiary ledger. Interest is split 50/50 between Employee Profit and PBS Profit columns as per standard CPF policy.
+              <b>Proportional Split:</b> Profit is automatically split between Employee and PBS columns based on the exact ratio of their respective balances in the subsidiary ledger.
             </p>
           </div>
         </div>

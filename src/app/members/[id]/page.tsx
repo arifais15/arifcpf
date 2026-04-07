@@ -44,7 +44,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
   }, [summaries]);
 
-  // Running balance calculations
   const calculatedRows = useMemo(() => {
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
@@ -59,16 +58,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       const col8 = Number(row.pbsContribution) || 0;
       const col9 = Number(row.profitPbs) || 0;
 
-      // Col 4: Balance of outstanding loan
       runningLoanBalance = runningLoanBalance + col2 - col3;
-      
-      // Col 7: Total Employee's Fund = Prev + 1 - 2 + 3 + 5 + 6
       runningEmployeeFund = runningEmployeeFund + col1 - col2 + col3 + col5 + col6;
-
-      // Col 10: Total Office Contribution = Prev + (8 + 9)
       runningOfficeFund = runningOfficeFund + col8 + col9;
-
-      // Col 11: Cumulative Fund Balance = 7 + 10
       const col11 = runningEmployeeFund + runningOfficeFund;
 
       return {
@@ -88,7 +80,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [sortedSummaries]);
 
-  // Determine available Fiscal Years from ledger data
   const availableFYs = useMemo(() => {
     const fys = new Set<string>();
     calculatedRows.forEach(row => {
@@ -106,7 +97,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return sorted;
   }, [calculatedRows, selectedInterestFY]);
 
-  // Tiered Interest Logic
   const calculateTieredAnnual = (balance: number) => {
     let annualInterest = 0;
     if (balance <= 1500000) {
@@ -119,7 +109,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return annualInterest;
   };
 
-  // Interest Calculation Logic based on Mode
   const interestCalculation = useMemo(() => {
     let startDate: Date;
     let monthsToCalculate = 0;
@@ -128,7 +117,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (selectedInterestMode === "fy") {
       if (!selectedInterestFY) return null;
       const [startYearStr] = selectedInterestFY.split("-");
-      startDate = new Date(parseInt(startYearStr), 5, 1); // June 1st of start year
+      startDate = new Date(parseInt(startYearStr), 5, 1);
       monthsToCalculate = 12;
       label = `FY ${selectedInterestFY}`;
     } else {
@@ -145,8 +134,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     for (let i = 0; i < monthsToCalculate; i++) {
       const currentMonth = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
-      
-      // Find cumulative balance as of end of this month
       const lastEntryInMonth = [...calculatedRows]
         .filter(r => new Date(r.summaryDate) <= currentMonth)
         .pop();
@@ -178,56 +165,42 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     }), { col1: 0, col2: 0, col3: 0, col5: 0, col6: 0, col8: 0, col9: 0 });
   }, [calculatedRows]);
 
-  const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const entryData = {
-      summaryDate: formData.get("summaryDate"),
-      particulars: formData.get("particulars"),
-      employeeContribution: Number(formData.get("employeeContribution")),
-      loanWithdrawal: Number(formData.get("loanWithdrawal")),
-      loanRepayment: Number(formData.get("loanRepayment")),
-      profitEmployee: Number(formData.get("profitEmployee")),
-      profitLoan: Number(formData.get("profitLoan")),
-      pbsContribution: Number(formData.get("pbsContribution")),
-      profitPbs: Number(formData.get("profitPbs")),
-      lastUpdateDate: new Date().toISOString(),
-      memberId: resolvedParams.id
-    };
-
-    if (editingEntry) {
-      const entryRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id);
-      updateDocumentNonBlocking(entryRef, entryData);
-      toast({ title: "Entry Updated", description: "Ledger entry has been modified." });
-    } else {
-      addDocumentNonBlocking(summariesRef, entryData);
-      toast({ title: "Entry Added", description: "Ledger entry has been recorded." });
-    }
-    
-    setIsEntryOpen(false);
-    setEditingEntry(null);
-  };
-
   const handlePostInterest = () => {
     if (!interestCalculation) return;
 
-    const halfInterest = interestCalculation.totalInterest / 2;
+    // Proportional Split Logic
+    const lastRow = calculatedRows[calculatedRows.length - 1];
+    const empFund = lastRow?.col7 || 0;
+    const pbsFund = lastRow?.col10 || 0;
+    const totalFund = empFund + pbsFund;
+
+    let profitEmployee = 0;
+    let profitPbs = 0;
+
+    if (totalFund > 0) {
+      profitEmployee = (interestCalculation.totalInterest * empFund) / totalFund;
+      profitPbs = (interestCalculation.totalInterest * pbsFund) / totalFund;
+    } else {
+      profitEmployee = interestCalculation.totalInterest / 2;
+      profitPbs = interestCalculation.totalInterest / 2;
+    }
+
     const entryData = {
       summaryDate: new Date().toISOString().split('T')[0],
-      particulars: `Annual Profit ${interestCalculation.label} (Date Range Accrual)`,
+      particulars: `Annual Profit ${interestCalculation.label} (Proportional)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
       loanRepayment: 0,
-      profitEmployee: halfInterest,
+      profitEmployee: profitEmployee,
       profitLoan: 0,
       pbsContribution: 0,
-      profitPbs: halfInterest,
+      profitPbs: profitPbs,
       lastUpdateDate: new Date().toISOString(),
       memberId: resolvedParams.id
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    toast({ title: "Profit Recorded", description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} posted.` });
+    toast({ title: "Profit Recorded", description: `Interest of ৳${interestCalculation.totalInterest.toFixed(2)} posted proportionally.` });
     setIsInterestOpen(false);
   };
 
@@ -275,11 +248,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
     
     if (skipped > 0) {
-      toast({ 
-        title: "Partial Success", 
-        description: `Added ${count} entries. Skipped ${skipped} unmatched IDs.`,
-        variant: "destructive"
-      });
+      toast({ title: "Partial Success", description: `Added ${count} entries. Skipped ${skipped} unmatched IDs.`, variant: "destructive" });
     } else {
       toast({ title: "Complete", description: `Added ${count} ledger entries for ${member?.name}.` });
     }
@@ -330,7 +299,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           Back to Registry
         </Link>
         <div className="flex gap-2">
-          {/* Enhanced Interest Calculator */}
           <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2 border-primary/30 text-primary hover:bg-primary/10">
@@ -342,7 +310,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <DialogHeader>
                 <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
                 <DialogDescription>
-                  Calculate interest based on month-end cumulative balances using tiered rates.
+                  Calculate interest proportional to the exact ratio of Employee and PBS fund balances.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
@@ -421,7 +389,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-md flex gap-2">
                   <Info className="size-4 text-blue-600 shrink-0 mt-0.5" />
                   <p className="text-[10px] text-blue-700 leading-tight">
-                    Calculation is performed month-by-month on cumulative ending balances. Tiered rates: 13% for 1st 1.5M, 12% for next 1.5M, 11% above 3M. 
+                    Interest will be split proportionally between Profit Employee and Profit PBS columns based on the ratio of funds at the end of the period.
                   </p>
                 </div>
               </div>
@@ -429,13 +397,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
                 <Button onClick={handlePostInterest} className="gap-2" disabled={!interestCalculation}>
                   <Percent className="size-4" />
-                  Post Now to Ledger
+                  Post Proportional
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
-          {/* ... existing Dialogs (Bulk, Entry, Printer) ... */}
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
