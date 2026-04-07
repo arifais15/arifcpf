@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { 
   Table, 
   TableBody, 
@@ -30,7 +30,10 @@ import {
   ArrowRight,
   FileText,
   Printer,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  FileSpreadsheet,
+  Download
 } from "lucide-react";
 import { 
   useCollection, 
@@ -47,7 +50,8 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogTrigger, 
-  DialogFooter 
+  DialogFooter,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { 
@@ -57,20 +61,28 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
+import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 
 export default function InvestmentsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isProvisionOpen, setIsProvisionOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isMaturityReportOpen, setIsMaturityReportOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [bulkCsvData, setBulkCsvData] = useState("");
+  
   const [editingInvestment, setEditingInvestment] = useState<any>(null);
   const [selectedForProvision, setSelectedForProvision] = useState<any>(null);
   const [selectedForHistory, setSelectedForHistory] = useState<any>(null);
@@ -116,14 +128,16 @@ export default function InvestmentsPage() {
     return {
       total,
       count: investments.length,
-      avgRate: (sumRates / investments.length) * 100
+      avgRate: (sumRates / (investments.length || 1)) * 100
     };
   }, [investments]);
 
-  const handleSaveInvestment = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
+  const handleSaveInvestment = (e: React.FormEvent<HTMLButtonElement | HTMLFormElement>) => {
+    if (e.type === 'submit') e.preventDefault();
+    const form = e.currentTarget instanceof HTMLFormElement ? e.currentTarget : (e.currentTarget.closest('form') as HTMLFormElement);
+    if (!form) return;
+
+    const formData = new FormData(form);
     const investmentData = {
       bankName: formData.get("bankName") as string,
       chartOfAccountId: formData.get("chartOfAccountId") as string,
@@ -133,8 +147,8 @@ export default function InvestmentsPage() {
       maturityDate: formData.get("maturityDate") as string,
       principalAmount: Number(formData.get("principalAmount")),
       interestRate: Number(formData.get("interestRate")) / 100,
-      accrualFrequency: formData.get("accrualFrequency") as string,
-      status: formData.get("status") as string,
+      accrualFrequency: formData.get("accrualFrequency") as string || "Quarterly",
+      status: formData.get("status") as string || "Active",
       updatedAt: new Date().toISOString(),
     };
 
@@ -148,6 +162,75 @@ export default function InvestmentsPage() {
     }
     setIsAddOpen(false);
     setEditingInvestment(null);
+  };
+
+  const processBulkEntries = (entries: any[]) => {
+    let count = 0;
+    entries.forEach(entry => {
+      const mappedEntry = {
+        bankName: entry.bankName || entry["Bank Name"] || entry["Bank"] || "",
+        referenceNumber: entry.referenceNumber || entry["Ref No"] || entry["Certificate No"] || "",
+        principalAmount: Number(entry.principalAmount || entry["Principal"] || entry["Amount"] || 0),
+        interestRate: Number(entry.interestRate || entry["Rate"] || entry["%"] || 0) / 100,
+        issueDate: entry.issueDate || entry["Issue Date"] || "",
+        maturityDate: entry.maturityDate || entry["Maturity Date"] || "",
+        instrumentType: entry.instrumentType || entry["Type"] || entry["Instrument Type"] || "FDR",
+        chartOfAccountId: entry.chartOfAccountId || entry["COA Code"] || entry["Account Code"] || "101.10.0000",
+        status: entry.status || "Active",
+        accrualFrequency: "Quarterly",
+        updatedAt: new Date().toISOString()
+      };
+
+      if (mappedEntry.bankName && mappedEntry.referenceNumber) {
+        addDocumentNonBlocking(investmentsRef, mappedEntry);
+        count++;
+      }
+    });
+    toast({ title: "Bulk Upload Complete", description: `Successfully processed ${count} investment instruments.` });
+    setIsBulkOpen(false);
+  };
+
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const bstr = event.target?.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        processBulkEntries(data);
+      } catch (err) {
+        toast({ title: "Upload Failed", description: "Could not parse Excel file.", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        "Bank Name": "Agrani Bank Ltd.",
+        "Ref No": "FDR-2024-001",
+        "Principal": 1000000,
+        "Rate": 8.5,
+        "Issue Date": "2024-01-01",
+        "Maturity Date": "2025-01-01",
+        "Instrument Type": "FDR",
+        "Account Code": "101.10.0000",
+        "Status": "Active"
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Investments");
+    XLSX.writeFile(wb, "investments_upload_template.xlsx");
   };
 
   const handleProvisionSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -246,7 +329,6 @@ export default function InvestmentsPage() {
 
                 {maturityRange.start && maturityRange.end ? (
                   <div className="bg-white p-12 border shadow-sm print:border-none print:shadow-none min-h-[800px] text-slate-900 font-ledger">
-                    {/* Official Note Header */}
                     <div className="text-center space-y-1 mb-8">
                       <h1 className="text-xl font-bold uppercase underline">Gazipur Palli Bidyut Samity-2</h1>
                       <h2 className="text-lg font-bold">OFFICIAL NOTE</h2>
@@ -258,7 +340,6 @@ export default function InvestmentsPage() {
 
                     <div className="space-y-4">
                       <p className="text-sm font-bold">Subject: Maturity status of Investment Instruments from {new Date(maturityRange.start).toLocaleDateString('en-GB')} to {new Date(maturityRange.end).toLocaleDateString('en-GB')}.</p>
-                      
                       <p className="text-[12px] leading-relaxed">
                         The following investment instruments held by Gazipur PBS-2 Contributory Provident Fund (CPF) are scheduled for maturity or have reached maturity during the specified period. A detailed schedule is provided below for administrative review and necessary action regarding renewal or encashment.
                       </p>
@@ -314,7 +395,6 @@ export default function InvestmentsPage() {
                         <p className="leading-tight">The Board of Trustees/Audit Committee may review the current market interest rates to decide between encashment of the above funds or renewal with the respective financial institutions to maximize fund yield.</p>
                       </div>
 
-                      {/* Signature Blocks */}
                       <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
                         <div className="space-y-1">
                           <div className="border-t border-slate-900 pt-1">Prepared By (Finance)</div>
@@ -341,6 +421,64 @@ export default function InvestmentsPage() {
             </DialogContent>
           </Dialog>
 
+          <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 border-slate-300">
+                <Upload className="size-4" /> Bulk Upload
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Bulk Upload Investments</DialogTitle>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="text-xs h-7 gap-1">
+                    <Download className="size-3" /> Template
+                  </Button>
+                </div>
+                <DialogDescription>
+                  Upload multiple FDRs, Bonds, or Certificates using Excel or CSV.
+                </DialogDescription>
+              </DialogHeader>
+              <Tabs defaultValue="excel" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="excel" className="gap-2"><FileSpreadsheet className="size-4" /> Excel File</TabsTrigger>
+                  <TabsTrigger value="csv" className="gap-2"><FileText className="size-4" /> Paste CSV</TabsTrigger>
+                </TabsList>
+                <TabsContent value="excel" className="space-y-4 py-4">
+                  <div 
+                    className="border-2 border-dashed border-muted rounded-xl p-12 text-center flex flex-col items-center gap-4 hover:border-primary/50 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <div className="bg-primary/10 p-4 rounded-full"><FileSpreadsheet className="size-8 text-primary" /></div>
+                    <p className="font-medium">Click to upload or drag and drop</p>
+                    <Input type="file" className="hidden" ref={fileInputRef} accept=".xlsx, .xls, .csv" onChange={handleExcelUpload} disabled={isUploading} />
+                    {isUploading && <Loader2 className="size-4 animate-spin text-primary" />}
+                  </div>
+                </TabsContent>
+                <TabsContent value="csv" className="space-y-4 py-4">
+                  <textarea
+                    className="min-h-[200px] w-full p-4 font-mono text-xs border rounded-md"
+                    placeholder="bankName, referenceNumber, principalAmount, interestRate, issueDate, instrumentType, chartOfAccountId..."
+                    value={bulkCsvData}
+                    onChange={(e) => setBulkCsvData(e.target.value)}
+                  />
+                  <Button className="w-full" onClick={() => processBulkEntries(bulkCsvData.trim().split("\n").slice(1).map(l => {
+                    const v = l.split(",");
+                    return { 
+                      bankName: v[0], 
+                      referenceNumber: v[1], 
+                      principalAmount: v[2], 
+                      interestRate: v[3], 
+                      issueDate: v[4], 
+                      instrumentType: v[5], 
+                      chartOfAccountId: v[6] 
+                    };
+                  }))}>Process CSV Data</Button>
+                </TabsContent>
+              </Tabs>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingInvestment(null); }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
@@ -362,7 +500,7 @@ export default function InvestmentsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Instrument Category (COA)</Label>
-                    <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId}>
+                    <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select account" />
                       </SelectTrigger>
@@ -638,4 +776,3 @@ export default function InvestmentsPage() {
     </div>
   );
 }
-
