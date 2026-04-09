@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --background: 210 20% 95%; /* #F0F2F4 */
+    --background: 210 20% 95%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 211 60% 35%; /* #24598F */
+    --primary: 211 60% 35%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 240 70% 60%; /* #5252E0 */
+    --accent: 240 70% 60%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -42,9 +42,6 @@
   body {
     @apply bg-background text-foreground font-body;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-headline;
-  }
 }
 
 @media print {
@@ -53,7 +50,6 @@
     margin: 8mm;
   }
 
-  /* Hide ALL UI elements except the document container */
   [data-sidebar="sidebar"],
   [data-sidebar="trigger"],
   .no-print,
@@ -66,7 +62,6 @@
     display: none !important;
   }
 
-  /* Ensure text is sharp and real (not rendered as image) */
   html, body {
     width: 100% !important;
     height: auto !important;
@@ -90,12 +85,6 @@
     min-height: auto !important;
   }
 
-  /* Remove wrapper constraints */
-  .group\/sidebar-wrapper {
-    display: block !important;
-  }
-
-  /* Fix document to top of page */
   .print-container {
     width: 100% !important;
     max-width: none !important;
@@ -107,7 +96,6 @@
     display: block !important;
   }
 
-  /* Table specific high-fidelity rendering */
   table {
     border-collapse: collapse !important;
     width: 100% !important;
@@ -129,12 +117,10 @@
     overflow: visible !important;
   }
 
-  /* Force font for print readability */
   .font-ledger {
     font-family: 'Calibri', 'Segoe UI', 'Arial', sans-serif !important;
   }
 
-  /* For reports that should look like portrait on a landscape page */
   .print-portrait-fix {
     width: 190mm !important;
     margin: 0 auto !important;
