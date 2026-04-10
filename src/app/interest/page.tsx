@@ -82,6 +82,7 @@ export default function CPFInterestPage() {
   const [calculationMode, setCalculationMode] = useState<"fy" | "custom">("fy");
   const [selectedFY, setSelectedFY] = useState<string>(fyOptions[1] || ""); 
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  const [postingDate, setPostingDate] = useState("");
   
   const [isCalculating, setIsCalculating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
@@ -116,10 +117,18 @@ export default function CPFInterestPage() {
     setPreviewData([]);
     setProgress(0);
 
+    // Set suggested posting date
+    if (calculationMode === 'fy') {
+      const [startYearStr] = selectedFY.split("-");
+      setPostingDate(`${parseInt(startYearStr) + 1}-06-30`);
+    } else {
+      setPostingDate(customRange.end);
+    }
+
     const results = [];
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
 
-    for (let i = 0; i < members.length; i++) {
+    for (let i = 0; i < i + 1 && i < members.length; i++) {
       const member = members[i];
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
@@ -242,7 +251,10 @@ export default function CPFInterestPage() {
   };
 
   const handlePostAllInterest = async () => {
-    if (previewData.length === 0) return;
+    if (previewData.length === 0 || !postingDate) {
+      toast({ title: "Date Required", description: "Please select a ledger posting date.", variant: "destructive" });
+      return;
+    }
     
     const unpostedItems = previewData.filter(item => !item.isPosted);
     if (unpostedItems.length === 0) {
@@ -254,19 +266,11 @@ export default function CPFInterestPage() {
     let postedCount = 0;
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
 
-    let summaryDate = "";
-    if (calculationMode === 'fy') {
-      const [startYearStr] = selectedFY.split("-");
-      summaryDate = `${parseInt(startYearStr) + 1}-06-30`;
-    } else {
-      summaryDate = customRange.end;
-    }
-
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
       const entryData = {
-        summaryDate,
+        summaryDate: postingDate,
         particulars: `Annual Profit ${modeLabel} (Tiered)`,
         employeeContribution: 0,
         loanWithdrawal: 0,
@@ -469,7 +473,7 @@ export default function CPFInterestPage() {
 
       {previewData.length > 0 && (
         <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
-          <div className="p-4 bg-slate-50 border-b flex items-center justify-between">
+          <div className="p-4 bg-slate-50 border-b flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <h2 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
                 Accrual Audit Preview - {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`}
@@ -483,14 +487,27 @@ export default function CPFInterestPage() {
                 </Button>
               </div>
             </div>
-            <Button 
-              onClick={handlePostAllInterest} 
-              disabled={isPosting || !hasUnpostedEntries} 
-              className={cn("gap-2 font-bold uppercase text-xs h-9 px-6", hasUnpostedEntries ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" : "bg-slate-400")}
-            >
-              {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-              Synchronize Ledger (June 30)
-            </Button>
+            
+            <div className="flex items-center gap-3 bg-white p-2 rounded-lg border shadow-sm">
+              <div className="flex flex-col gap-0.5">
+                <Label className="text-[9px] uppercase font-bold text-slate-400">Ledger Posting Date</Label>
+                <Input 
+                  type="date" 
+                  value={postingDate} 
+                  onChange={(e) => setPostingDate(e.target.value)} 
+                  className="h-7 text-[10px] border-none shadow-none p-0 focus-visible:ring-0 font-bold" 
+                />
+              </div>
+              <div className="h-6 w-px bg-slate-100" />
+              <Button 
+                onClick={handlePostAllInterest} 
+                disabled={isPosting || !hasUnpostedEntries || !postingDate} 
+                className={cn("gap-2 font-bold uppercase text-xs h-8 px-4", hasUnpostedEntries && postingDate ? "bg-emerald-600 hover:bg-emerald-700 shadow-sm shadow-emerald-600/20" : "bg-slate-400")}
+              >
+                {isPosting ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowRight className="size-3.5" />}
+                Synchronize Ledger
+              </Button>
+            </div>
           </div>
           <div className="max-h-[500px] overflow-y-auto">
             <Table>

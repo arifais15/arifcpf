@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -32,6 +32,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
   const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  const [profitPostingDate, setProfitPostingDate] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,8 +176,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return { totalInterest, monthlyDetails, label, isDuplicate };
   }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows, summaries]);
 
+  // Handle default posting date suggestions
+  useEffect(() => {
+    if (selectedInterestMode === "fy" && selectedInterestFY) {
+      const [startYearStr] = selectedInterestFY.split("-");
+      setProfitPostingDate(`${parseInt(startYearStr) + 1}-06-30`);
+    } else if (selectedInterestMode === "custom" && customRange.end) {
+      setProfitPostingDate(customRange.end);
+    }
+  }, [selectedInterestMode, selectedInterestFY, customRange.end]);
+
   const handlePostInterest = () => {
-    if (!interestCalculation) return;
+    if (!interestCalculation || !profitPostingDate) {
+      toast({ title: "Date Required", description: "Please select a ledger posting date.", variant: "destructive" });
+      return;
+    }
 
     if (interestCalculation.isDuplicate) {
       showAlert({ title: "Duplicate Entry", description: "Profit for this period is already posted.", type: "error" });
@@ -199,16 +213,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitPbs = interestCalculation.totalInterest / 2;
     }
 
-    let summaryDate = "";
-    if (selectedInterestMode === "fy") {
-        const [startYearStr] = selectedInterestFY.split("-");
-        summaryDate = `${parseInt(startYearStr) + 1}-06-30`;
-    } else {
-        summaryDate = customRange.end;
-    }
-
     const entryData = {
-      summaryDate,
+      summaryDate: profitPostingDate,
       particulars: `Annual Profit ${interestCalculation.label} (Tiered)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
@@ -222,7 +228,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    showAlert({ title: "Posted", description: `Tiered profit recorded on ${summaryDate}.`, type: "success" });
+    showAlert({ title: "Posted", description: `Tiered profit recorded on ${profitPostingDate}.`, type: "success" });
     setIsInterestOpen(false);
   };
 
@@ -347,13 +353,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </div>
                   </TabsContent>
                 </Tabs>
+                
                 {interestCalculation && (
                   <div className="space-y-4">
-                    <div className="flex justify-between p-4 bg-slate-50 border rounded-lg">
-                      <div><p className="text-xs text-muted-foreground uppercase font-bold">Basis Period</p><p className="font-bold text-lg">{interestCalculation.label}</p></div>
-                      <div className="text-right"><p className="text-xs text-muted-foreground uppercase font-bold">Total Computed Profit</p><p className="text-2xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 bg-slate-50 border rounded-lg">
+                        <p className="text-xs text-muted-foreground uppercase font-bold">Basis Period</p>
+                        <p className="font-bold text-lg">{interestCalculation.label}</p>
+                      </div>
+                      <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg">
+                        <p className="text-xs text-primary/70 uppercase font-bold">Total Computed Profit</p>
+                        <p className="text-2xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      </div>
                     </div>
-                    <div className="max-h-[300px] overflow-y-auto border rounded-md shadow-inner">
+
+                    <div className="max-h-[250px] overflow-y-auto border rounded-md shadow-inner">
                       <table className="w-full text-xs">
                         <thead className="bg-slate-100 sticky top-0 border-b">
                           <tr>
@@ -375,12 +389,33 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                         </tbody>
                       </table>
                     </div>
+
+                    <div className="p-4 bg-white border rounded-xl shadow-sm space-y-3">
+                      <div className="flex items-center gap-2 text-slate-900">
+                        <Calendar className="size-4 text-primary" />
+                        <Label className="text-sm font-bold uppercase">Ledger Posting Date (Required)</Label>
+                      </div>
+                      <Input 
+                        type="date" 
+                        value={profitPostingDate} 
+                        onChange={(e) => setProfitPostingDate(e.target.value)} 
+                        className="font-bold"
+                        required
+                      />
+                      <p className="text-[10px] text-muted-foreground italic">Entry will be recorded in the ledger with this date.</p>
+                    </div>
                   </div>
                 )}
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
-                <Button onClick={handlePostInterest} disabled={!interestCalculation || interestCalculation.isDuplicate}>Post to Ledger (June 30)</Button>
+                <Button 
+                  onClick={handlePostInterest} 
+                  disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate}
+                  className="gap-2"
+                >
+                  <Plus className="size-4" /> Post to Ledger
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
@@ -516,8 +551,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <div className="space-y-2"><Label>Loan Repay</Label><Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} /></div>
             <div className="space-y-2"><Label>Profit Emp</Label><Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || 0} /></div>
             <div className="space-y-2"><Label>Profit Loan</Label><Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} /></div>
-            <div className="space-y-2"><Label>PBS Contrib</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} /></div>
             <div className="space-y-2"><Label>Profit PBS</Label><Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} /></div>
+            <div className="space-y-2"><Label>PBS Contrib</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} /></div>
             <DialogFooter className="col-span-2"><Button type="submit" className="w-full">Save Ledger Record</Button></DialogFooter>
           </form>
         </DialogContent>
