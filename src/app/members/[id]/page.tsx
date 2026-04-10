@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
 
@@ -84,8 +85,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const fys = [];
     const now = new Date();
     const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    
+    // Determine the active FY start year
+    const activeFYStart = currentMonth >= 7 ? currentYear : currentYear - 1;
+    
     for (let i = 0; i < 10; i++) {
-      const start = currentYear - i;
+      const start = activeFYStart - i;
       fys.push(`${start}-${(start + 1).toString().slice(-2)}`);
     }
     return fys;
@@ -111,7 +117,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   /**
    * Interest Accrual logic
-   * Rule: Opening Balance Focused + 11 Monthly Closing Balances.
+   * Rule: Opening Balance (June 30) + 11 Monthly Closing Balances (July-May).
    */
   const interestCalculation = useMemo(() => {
     let monthsToCalculate = 0;
@@ -128,11 +134,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       for (let i = 0; i < 12; i++) {
         let mIdx, yr;
         if (i === 0) {
-          mIdx = 5; yr = startYear; // June Opening
+          mIdx = 5; yr = startYear; // June Opening (Last Year Closing)
         } else {
           mIdx = (i + 5) % 12;
           yr = i < 7 ? startYear : startYear + 1;
         }
+        // Take basis as end of day 23:59:59 to include last-day entries
         basisDates.push(new Date(yr, mIdx + 1, 0, 23, 59, 59, 999));
       }
     } else {
@@ -192,7 +199,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     if (totalFund > 0) {
       profitEmployee = (interestCalculation.totalInterest * empFund) / totalFund;
-      profitPbs = (interestCalculation.totalInterest * pbsFund) / totalFund;
+      profitPbs = (interestCalculation.totalInterest * officeFund) / totalFund;
     } else {
       profitEmployee = interestCalculation.totalInterest / 2;
       profitPbs = interestCalculation.totalInterest / 2;
