@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -17,21 +18,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-
-// Forward declaring TooltipContent to resolve dependency issue
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipProvider>,
-  React.ComponentPropsWithoutRef<typeof TooltipProvider> & {
-    side?: "top" | "right" | "bottom" | "left"
-    align?: "start" | "center" | "end"
-  }
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <div
-    ref={ref}
-    {...props}
-  />
-))
-TooltipContent.displayName = "TooltipContent"
 
 const SIDEBAR_COOKIE_NAME = "sidebar_state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7

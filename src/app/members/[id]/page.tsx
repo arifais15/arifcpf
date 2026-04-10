@@ -7,7 +7,7 @@ import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Tras
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { doc, collection } from "firebase/firestore";
+import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -115,10 +115,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return annualInterest;
   };
 
-  /**
-   * Interest Accrual logic
-   * Rule: Opening Balance (June 30) + 11 Monthly Closing Balances (July-May).
-   */
   const interestCalculation = useMemo(() => {
     let monthsToCalculate = 0;
     let label = "";
@@ -139,7 +135,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           mIdx = (i + 5) % 12;
           yr = i < 7 ? startYear : startYear + 1;
         }
-        // Take basis as end of day 23:59:59 to include last-day entries
         basisDates.push(new Date(yr, mIdx + 1, 0, 23, 59, 59, 999));
       }
     } else {
@@ -149,7 +144,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       monthsToCalculate = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
       label = `Custom Range`;
 
-      // Month 1 opening: Day before start
       const opening = new Date(start);
       opening.setDate(opening.getDate() - 1);
       opening.setHours(23, 59, 59, 999);
@@ -424,7 +418,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <thead className="bg-slate-50/80">
               <tr>
                 <th className="border border-black p-1 text-center font-bold w-[65px] uppercase text-[7.5px]">Date</th>
-                <th className="border border-black p-1 text-center font-bold w-[160px] uppercase text-[7.5px]">Particulars</th>
+                <th className="border border-black p-1 text-center font-bold w-[160px] uppercase text-[7.5px] align-top">Particulars</th>
                 <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Employee Contribution (Col 1)</th>
                 <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Amount Withdraws as Loan (Col 2)</th>
                 <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Loan Principal Repayment (Col 3)</th>
