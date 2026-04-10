@@ -22,7 +22,10 @@ import {
   AlertCircle,
   ShieldCheck,
   ArrowRightLeft,
-  X
+  X,
+  FileSpreadsheet,
+  Printer,
+  Download
 } from "lucide-react";
 import { 
   useCollection, 
@@ -53,6 +56,7 @@ import {
   DialogDescription 
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 export default function CPFInterestPage() {
   const firestore = useFirestore();
@@ -202,11 +206,27 @@ export default function CPFInterestPage() {
         });
       }
 
+      // Calculate the split between employee and pbs
+      const totalFundAtEnd = finalEmployeeFund + finalOfficeFund;
+      let employeeProfit = 0;
+      let pbsProfit = 0;
+
+      if (totalFundAtEnd > 0) {
+        employeeProfit = (totalInterest * finalEmployeeFund) / totalFundAtEnd;
+        pbsProfit = (totalInterest * finalOfficeFund) / totalFundAtEnd;
+      } else {
+        employeeProfit = totalInterest / 2;
+        pbsProfit = totalInterest / 2;
+      }
+
       results.push({
         memberId: member.id,
         memberIdNumber: member.memberIdNumber,
         name: member.name,
+        designation: member.designation || "N/A",
         calculatedInterest: totalInterest,
+        employeeProfit,
+        pbsProfit,
         employeeFund: finalEmployeeFund,
         officeFund: finalOfficeFund,
         isPosted: isAlreadyPosted,
@@ -245,28 +265,16 @@ export default function CPFInterestPage() {
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
-      const totalFund = item.employeeFund + item.officeFund;
-      let employeeProfit = 0;
-      let pbsProfit = 0;
-
-      if (totalFund > 0) {
-        employeeProfit = (item.calculatedInterest * item.employeeFund) / totalFund;
-        pbsProfit = (item.calculatedInterest * item.officeFund) / totalFund;
-      } else {
-        employeeProfit = item.calculatedInterest / 2;
-        pbsProfit = item.calculatedInterest / 2;
-      }
-
       const entryData = {
         summaryDate,
         particulars: `Annual Profit ${modeLabel} (Tiered)`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
-        profitEmployee: employeeProfit,
+        profitEmployee: item.employeeProfit,
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: pbsProfit,
+        profitPbs: item.pbsProfit,
         lastUpdateDate: new Date().toISOString(),
         memberId: item.memberId
       };
@@ -281,6 +289,30 @@ export default function CPFInterestPage() {
     toast({ title: "Posting Complete", description: `Successfully recorded profit for ${postedCount} members.` });
   };
 
+  const exportToExcel = () => {
+    if (previewData.length === 0) return;
+
+    const exportRows = previewData.map(item => ({
+      "Member ID": item.memberIdNumber,
+      "Name": item.name,
+      "Designation": item.designation,
+      "Profit on Employee Contribution": item.employeeProfit.toFixed(2),
+      "Profit on PBS Contribution": item.pbsProfit.toFixed(2),
+      "Total Profit": item.calculatedInterest.toFixed(2)
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Interest Calculation");
+    
+    const fileName = calculationMode === 'fy' 
+      ? `CPF_Profit_Audit_FY_${selectedFY}.xlsx` 
+      : `CPF_Profit_Audit_${customRange.start}_to_${customRange.end}.xlsx`;
+      
+    XLSX.writeFile(wb, fileName);
+    toast({ title: "Exported", description: "Interest calculation data exported to Excel." });
+  };
+
   const totalCPFProfit = useMemo(() => {
     return previewData.reduce((sum, item) => sum + item.calculatedInterest, 0);
   }, [previewData]);
@@ -291,7 +323,58 @@ export default function CPFInterestPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* Print View Container (Hidden in UI) */}
+      <div className="hidden print:block print-container">
+        <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
+          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
+          <h2 className="text-lg font-bold underline underline-offset-4">CPF Interest Accrual Audit Report</h2>
+          <div className="flex justify-between text-xs font-bold pt-4">
+            <span>Basis: {calculationMode === 'fy' ? `Fiscal Year ${selectedFY}` : `Custom Range: ${customRange.start} to ${customRange.end}`}</span>
+            <span>Date: {new Date().toLocaleDateString('en-GB')}</span>
+          </div>
+        </div>
+
+        <table className="w-full text-[10px] border-collapse border border-black">
+          <thead>
+            <tr className="bg-slate-50">
+              <th className="border border-black p-2 text-center w-[80px]">Member ID</th>
+              <th className="border border-black p-2 text-left">Name</th>
+              <th className="border border-black p-2 text-left">Designation</th>
+              <th className="border border-black p-2 text-right">Profit (Emp) ৳</th>
+              <th className="border border-black p-2 text-right">Profit (PBS) ৳</th>
+              <th className="border border-black p-2 text-right">Total Profit ৳</th>
+            </tr>
+          </thead>
+          <tbody>
+            {previewData.map((item) => (
+              <tr key={item.memberId}>
+                <td className="border border-black p-2 text-center font-mono">{item.memberIdNumber}</td>
+                <td className="border border-black p-2 font-bold">{item.name}</td>
+                <td className="border border-black p-2">{item.designation}</td>
+                <td className="border border-black p-2 text-right">{item.employeeProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-2 text-right">{item.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-2 text-right font-black">{item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-slate-50 font-black">
+              <td colSpan={3} className="border border-black p-2 text-right uppercase">Grand Totals:</td>
+              <td className="border border-black p-2 text-right">{previewData.reduce((s, i) => s + i.employeeProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border border-black p-2 text-right">{previewData.reduce((s, i) => s + i.pbsProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border border-black p-2 text-right underline decoration-double">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
+          <div className="border-t border-black pt-2">Accountant / AGM(F)</div>
+          <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
+          <div className="border-t border-black pt-2">Approved By Trustee</div>
+        </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
           <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance Focused + 11 Monthly Closing Balances (Captures Last-Day Entries)</p>
@@ -339,7 +422,7 @@ export default function CPFInterestPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="border-none shadow-sm bg-primary/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest opacity-60">Subsidiary Accounts</CardTitle>
@@ -377,7 +460,7 @@ export default function CPFInterestPage() {
       </div>
 
       {isCalculating && (
-        <div className="space-y-3 max-w-md mx-auto text-center">
+        <div className="space-y-3 max-w-md mx-auto text-center no-print">
           <p className="text-xs font-bold uppercase tracking-widest text-primary opacity-70">Auditing Real-time Ledger Balances...</p>
           <Progress value={progress} className="h-1.5" />
           <p className="text-[10px] font-medium text-muted-foreground">{progress}% Complete</p>
@@ -385,11 +468,21 @@ export default function CPFInterestPage() {
       )}
 
       {previewData.length > 0 && (
-        <div className="bg-card rounded-xl shadow-lg border overflow-hidden">
+        <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
           <div className="p-4 bg-slate-50 border-b flex items-center justify-between">
-            <h2 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
-              Accrual Audit Preview - {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`}
-            </h2>
+            <div className="flex items-center gap-4">
+              <h2 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
+                Accrual Audit Preview - {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`}
+              </h2>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={exportToExcel} className="h-8 gap-2 font-bold text-[10px] border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                  <FileSpreadsheet className="size-3.5" /> Export Excel
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="h-8 gap-2 font-bold text-[10px] border-slate-300">
+                  <Printer className="size-3.5" /> Print Audit Report
+                </Button>
+              </div>
+            </div>
             <Button 
               onClick={handlePostAllInterest} 
               disabled={isPosting || !hasUnpostedEntries} 
@@ -404,8 +497,10 @@ export default function CPFInterestPage() {
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow className="border-b">
                   <TableHead className="text-[10px] uppercase font-bold py-4">Member ID</TableHead>
-                  <TableHead className="text-[10px] uppercase font-bold py-4">Name</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-bold py-4">Computed Profit (৳)</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold py-4">Name & Designation</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold py-4">Profit (Emp) ৳</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold py-4">Profit (PBS) ৳</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold py-4">Total Profit (৳)</TableHead>
                   <TableHead className="text-center text-[10px] uppercase font-bold py-4">Status</TableHead>
                 </TableRow>
               </TableHeader>
@@ -413,7 +508,18 @@ export default function CPFInterestPage() {
                 {previewData.map((item) => (
                   <TableRow key={item.memberId} className={cn(item.isPosted ? "opacity-60 bg-slate-50" : "hover:bg-slate-50/50")}>
                     <TableCell className="font-mono text-xs font-bold">{item.memberIdNumber}</TableCell>
-                    <TableCell className="text-xs font-semibold">{item.name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold">{item.name}</span>
+                        <span className="text-[9px] text-muted-foreground uppercase">{item.designation}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-medium">
+                      {item.employeeProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right text-xs font-medium">
+                      {item.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
                     <TableCell 
                       className="text-right font-black text-accent cursor-pointer hover:bg-accent/5 transition-colors group"
                       onClick={() => setViewingDetails(item)}
@@ -452,13 +558,20 @@ export default function CPFInterestPage() {
           </DialogHeader>
           
           <div className="py-4 space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div className="bg-slate-50 p-4 rounded-xl border">
                 <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Audit Profit</p>
-                <p className="text-2xl font-black text-primary">৳ {viewingDetails?.calculatedInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                <p className="text-xl font-black text-primary">৳ {viewingDetails?.calculatedInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border">
-                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Current Ledger Status</p>
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Profit Split (Emp / PBS)</p>
+                <div className="flex flex-col text-xs font-bold text-slate-700">
+                  <span>Emp: ৳{viewingDetails?.employeeProfit?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  <span>PBS: ৳{viewingDetails?.pbsProfit?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Status</p>
                 <div className="flex items-center gap-2 mt-1">
                   {viewingDetails?.isPosted ? (
                     <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase text-[9px]">Already Synchronized</Badge>
