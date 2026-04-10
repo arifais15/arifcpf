@@ -84,12 +84,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [sortedSummaries]);
 
   const latestRunningTotals = useMemo(() => {
-    if (calculatedRows.length === 0) return { empFund: 0, officeFund: 0, total: 0 };
+    if (calculatedRows.length === 0) return { empFund: 0, officeFund: 0, total: 0, loanBalance: 0 };
     const last = calculatedRows[calculatedRows.length - 1];
     return {
       empFund: last.col7,
       officeFund: last.col10,
-      total: last.col11
+      total: last.col11,
+      loanBalance: last.col4
     };
   }, [calculatedRows]);
 
@@ -218,17 +219,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const date = formData.get("date") as string;
     const type = formData.get("type") as string;
 
-    if (latestRunningTotals.total === 0) {
+    if (latestRunningTotals.total === 0 && latestRunningTotals.loanBalance === 0) {
       showAlert({ title: "Zero Balance", description: "Ledger already has no outstanding balance.", type: "info" });
       return;
     }
 
+    // Zeroing Entry Logic:
+    // To zero Col 4 (Loan): Record loanRepayment = current loanBalance
+    // To zero Col 7 (Emp Fund): Record empContribution = -(current empFund + loanBalance adjustment)
+    // To zero Col 10 (Office Fund): Record pbsContribution = -current officeFund
     const settlementEntry = {
       summaryDate: date,
-      particulars: `Final Settlement (${type}) - Ledger Zeroing`,
-      employeeContribution: -latestRunningTotals.empFund,
+      particulars: `Final Settlement (${type}) - Full Account Clearance`,
+      employeeContribution: -(latestRunningTotals.empFund + latestRunningTotals.loanBalance),
       loanWithdrawal: 0,
-      loanRepayment: 0,
+      loanRepayment: latestRunningTotals.loanBalance,
       profitEmployee: 0,
       profitLoan: 0,
       pbsContribution: -latestRunningTotals.officeFund,
@@ -244,7 +249,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       settledAmount: latestRunningTotals.total
     });
 
-    showAlert({ title: "Settled", description: `Ledger zeroed and status updated to ${type}.`, type: "success" });
+    showAlert({ title: "Account Finalized", description: `Ledger zeroed out and member status updated to ${type}.`, type: "success" });
     setIsSettlementOpen(false);
   };
 
@@ -310,20 +315,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="flex flex-wrap gap-2">
           <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50" disabled={latestRunningTotals.total === 0}>
+              <Button variant="outline" size="sm" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50" disabled={latestRunningTotals.total === 0 && latestRunningTotals.loanBalance === 0}>
                 <UserX className="size-4" /> Final Settlement
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Employee Final Settlement</DialogTitle>
-                <DialogDescription>This will record a zeroing entry in the ledger and mark the employee as Retired or Transferred.</DialogDescription>
+                <DialogDescription>This will record zeroing entries for all fund columns and mark the account as closed.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleFinalSettlement} className="space-y-6 py-4">
                 <div className="bg-slate-50 p-4 rounded-xl border space-y-2">
-                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Accumulated Emp. Fund:</span> <span className="text-slate-900">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
-                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Accumulated Office Fund:</span> <span className="text-slate-900">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
-                  <div className="pt-2 border-t flex justify-between font-black text-sm text-primary uppercase"><span>Total Payout:</span> <span>৳ {latestRunningTotals.total.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Emp. Fund (Col 7):</span> <span className="text-slate-900">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
+                  {latestRunningTotals.loanBalance > 0 && (
+                    <div className="flex justify-between text-xs font-bold text-rose-600"><span>Loan Balance (Col 4):</span> <span className="text-rose-700">-৳ {latestRunningTotals.loanBalance.toLocaleString()}</span></div>
+                  )}
+                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Office Fund (Col 10):</span> <span className="text-slate-900">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
+                  <div className="pt-2 border-t flex justify-between font-black text-sm text-primary uppercase"><span>Net Payable:</span> <span>৳ {latestRunningTotals.total.toLocaleString()}</span></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Settlement Date</Label><Input name="date" type="date" required /></div>
@@ -340,9 +348,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </div>
                 <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex gap-3">
                   <AlertTriangle className="size-5 text-orange-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-orange-700 leading-tight"><b>Accounting Logic:</b> A negative contribution entry will be posted to zero the fund. This action is recorded permanently in the subsidiary ledger.</p>
+                  <p className="text-[10px] text-orange-700 leading-tight"><b>Accounting Logic:</b> Zeroing entries will be posted to all balance columns (Col 4, 7, 10, 11). This action is permanent.</p>
                 </div>
-                <DialogFooter><Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700">Confirm & Post Settlement</Button></DialogFooter>
+                <DialogFooter><Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700">Confirm & Zero Ledger</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -372,7 +380,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 {interestCalculation && (
                   <div className="space-y-4">
                     <div className="p-4 bg-primary/5 border rounded-lg flex justify-between items-center"><span className="text-xs uppercase font-bold text-primary">Total Computed Profit</span><span className="text-xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
-                    <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="font-bold" />
+                    <div className="space-y-2">
+                      <Label>Posting Date</Label>
+                      <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="font-bold" />
+                    </div>
                   </div>
                 )}
               </div>
@@ -439,14 +450,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-rose-800">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-emerald-800">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-bold bg-slate-50/50">{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className={cn("border border-black p-1 text-right font-bold bg-slate-50/50", row.col4 === 0 && "text-slate-300")}>{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-accent">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-accent">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-bold bg-primary/5">{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className={cn("border border-black p-1 text-right font-bold bg-primary/5", row.col7 === 0 && "text-slate-300")}>{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-accent">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-bold bg-primary/5">{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1 text-right font-black bg-slate-50 text-[10px]">{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className={cn("border border-black p-1 text-right font-bold bg-primary/5", row.col10 === 0 && "text-slate-300")}>{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className={cn("border border-black p-1 text-right font-black bg-slate-50 text-[10px]", row.col11 === 0 && "text-slate-300")}>{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-center no-print">
                     <div className="flex gap-1 justify-center">
                       <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
