@@ -368,8 +368,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <div className="bg-white p-6 md:p-10 shadow-sm rounded-none border border-slate-200 max-w-[1300px] mx-auto w-full font-ledger text-black print-container">
         <div className="relative mb-6 text-center border-b-2 border-black pb-4">
           <p className="text-[9px] absolute left-0 top-0 font-bold uppercase tracking-widest opacity-70">REB Form no: 224</p>
-          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight">Gazipur Palli Bidyut Samity-2</h1>
-          <h2 className="text-md md:text-lg font-bold underline underline-offset-8 uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
+          <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900">Gazipur Palli Bidyut Samity-2</h1>
+          <h2 className="text-md md:text-lg font-bold underline underline-offset-8 uppercase tracking-[0.2em] mt-2 text-slate-800">Provident Fund Subsidiary Ledger</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3 mb-8 text-[11px] md:text-[12px]">
@@ -393,17 +393,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <tr>
                 <th className="border border-black p-1 text-center font-bold w-[70px] uppercase text-[7.5px]">Date</th>
                 <th className="border border-black p-1 text-center font-bold w-[220px] uppercase text-[7.5px]">Particulars</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">Emp. Contrib.</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">Loan Withdr.</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">Loan Repay.</th>
-                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px]">O/S Loan</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px]">Profit (E)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px]">Profit (L)</th>
-                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px]">Emp. Fund</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px]">PBS Contrib.</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px]">Profit (P)</th>
-                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px]">Office Fund</th>
-                <th className="border border-black p-1 text-center font-bold w-[100px] uppercase text-[7.5px]">Cumul. Fund</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">Employee Contribution (Col 1)</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">Amount Withdraws as Loan (Col 2)</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">Loan Principal Repayment (Col 3)</th>
+                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px] leading-none whitespace-normal">Balance of Loan (Col 4)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-none whitespace-normal">Profit on Emp. Cont. (Col 5)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-none whitespace-normal">Profit on CPF Loan (Col 6)</th>
+                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px] leading-none whitespace-normal">Total Amount (Emp. Fund) (Col 7)</th>
+                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">PBS Contribution (Col 8)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-none whitespace-normal">Profit on PBS Cont. (Col 9)</th>
+                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px] leading-none whitespace-normal">Total Amount (Office Fund) (Col 10)</th>
+                <th className="border border-black p-1 text-center font-bold w-[100px] uppercase text-[7.5px] leading-none whitespace-normal">Cumulative Fund (Col 11)</th>
                 <th className="border border-black p-1 text-center font-bold no-print w-[80px] uppercase text-[7.5px]">Action</th>
               </tr>
             </thead>
