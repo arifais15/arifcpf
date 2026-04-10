@@ -73,6 +73,12 @@ export default function CPFInterestPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
 
+  /**
+   * Tiered Annual Interest Calculation (PBS Standard)
+   * 13% up to 15 Lakh
+   * 12% for next 15 Lakh (up to 30 Lakh)
+   * 11% for above 30 Lakh
+   */
   const calculateTieredAnnual = (balance: number) => {
     let annualInterest = 0;
     if (balance <= 1500000) {
@@ -124,14 +130,17 @@ export default function CPFInterestPage() {
         finalOfficeFund += (c8 + c9);
       });
 
-      // 2. Loop through 12 months basis: June (Prior Year closing) to May (Current Year ending)
+      /**
+       * 2. Calculation Basis: June Closing Balance to May Ending Balance (12 Months)
+       * This follows the user requirement: Beginning Balance (June 30) + July-May Month Ends.
+       */
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {
-          currentMonthIdx = 5; // June (Prior Year Basis)
+          currentMonthIdx = 5; // June (Beginning Balance Basis)
           currentYear = startYear;
         } else {
-          currentMonthIdx = (m + 5) % 12;
+          currentMonthIdx = (m + 5) % 12; // July (6) ... May (4)
           currentYear = m < 7 ? startYear : startYear + 1;
         }
         
@@ -146,6 +155,7 @@ export default function CPFInterestPage() {
           }
         });
 
+        // Apply tiered rate to the monthly basis and add to total
         totalInterest += calculateTieredAnnual(runningBalanceBasis) / 12;
       }
 
@@ -236,7 +246,7 @@ export default function CPFInterestPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Basis: June Prior Closing to May Current Ending Fund Balance</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Basis: June Closing to May Ending Balance (12 Months)</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-50 border p-1 rounded-md">

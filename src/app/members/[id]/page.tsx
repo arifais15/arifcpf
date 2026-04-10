@@ -44,6 +44,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
   }, [summaries]);
 
+  /**
+   * Ledger Column Calculations
+   * Strictly based on REB Subsidiary Ledger Format
+   */
   const calculatedRows = useMemo(() => {
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
@@ -109,6 +113,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return annualInterest;
   };
 
+  /**
+   * Interest Accrual logic for Fiscal Year
+   * Loop Basis: June (Prior Closing) to May (Current Year Ending)
+   */
   const interestCalculation = useMemo(() => {
     let startYear = 0;
     let monthsToCalculate = 0;
@@ -137,10 +145,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       if (selectedInterestMode === "fy") {
         let mIdx, yr;
         if (i === 0) {
-          mIdx = 5; // June (Prior)
+          mIdx = 5; // June (Beginning Balance Basis)
           yr = startYear;
         } else {
-          mIdx = (i + 5) % 12;
+          mIdx = (i + 5) % 12; // July (6) ... May (4)
           yr = i < 7 ? startYear : startYear + 1;
         }
         currentMonth = new Date(yr, mIdx + 1, 0);
@@ -191,6 +199,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitPbs = interestCalculation.totalInterest / 2;
     }
 
+    // Posting date is always June 30th for FY
     let summaryDate = "";
     if (selectedInterestMode === "fy") {
         const [startYearStr] = selectedInterestFY.split("-");
@@ -309,7 +318,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
-                <DialogDescription>Based on June Closing to May Ending Balance Basis.</DialogDescription>
+                <DialogDescription>Basis: June Closing to May Ending Balance (12 Months).</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
