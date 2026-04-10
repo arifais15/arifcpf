@@ -51,9 +51,8 @@ export default function CPFInterestPage() {
     const options = [];
     const now = new Date();
     const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-indexed
+    const currentMonth = now.getMonth() + 1;
     
-    // Determine the "active" fiscal year basis
     const activeFYStart = currentMonth >= 7 ? currentYear : currentYear - 1;
     
     for (let year = activeFYStart + 1; year >= 2015; year--) {
@@ -73,12 +72,6 @@ export default function CPFInterestPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
 
-  /**
-   * Tiered Annual Interest Calculation (PBS Standard)
-   * 13% up to 15 Lakh
-   * 12% for next 15 Lakh (up to 30 Lakh)
-   * 11% for above 30 Lakh
-   */
   const calculateTieredAnnual = (balance: number) => {
     let annualInterest = 0;
     if (balance <= 1500000) {
@@ -116,7 +109,7 @@ export default function CPFInterestPage() {
       let finalEmployeeFund = 0;
       let finalOfficeFund = 0;
 
-      // 1. Calculate final fund balances for proportionality
+      // 1. Final state for proportionality
       summaries.forEach((row: any) => {
         const c1 = Number(row.employeeContribution) || 0;
         const c2 = Number(row.loanWithdrawal) || 0;
@@ -131,13 +124,14 @@ export default function CPFInterestPage() {
       });
 
       /**
-       * 2. Calculation Basis: June Closing Balance to May Ending Balance (12 Months)
-       * This follows the user requirement: Beginning Balance (June 30) + July-May Month Ends.
+       * 2. Calculation Basis: 
+       * Month 1: Opening Balance (June 30th Prior Year)
+       * Months 2-12: July Ending Balance to May Ending Balance (Current Year)
        */
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {
-          currentMonthIdx = 5; // June (Beginning Balance Basis)
+          currentMonthIdx = 5; // June (Opening Balance)
           currentYear = startYear;
         } else {
           currentMonthIdx = (m + 5) % 12; // July (6) ... May (4)
@@ -148,14 +142,15 @@ export default function CPFInterestPage() {
         
         let runningBalanceBasis = 0;
         summaries.forEach((row: any) => {
-          if (new Date(row.summaryDate) <= lastDayOfMonth) {
+          // Robust date comparison for June 30 + 11 months
+          const rowDate = new Date(row.summaryDate);
+          if (rowDate <= lastDayOfMonth) {
             const val = (Number(row.employeeContribution) || 0) - (Number(row.loanWithdrawal) || 0) + (Number(row.loanRepayment) || 0) + 
                         (Number(row.profitEmployee) || 0) + (Number(row.profitLoan) || 0) + (Number(row.pbsContribution) || 0) + (Number(row.profitPbs) || 0);
             runningBalanceBasis += val;
           }
         });
 
-        // Apply tiered rate to the monthly basis and add to total
         totalInterest += calculateTieredAnnual(runningBalanceBasis) / 12;
       }
 
@@ -174,7 +169,7 @@ export default function CPFInterestPage() {
 
     setPreviewData(results);
     setIsCalculating(false);
-    toast({ title: "Audit Complete", description: `Computed profit basis for ${results.length} subsidiary ledgers.` });
+    toast({ title: "Audit Complete", description: `Computed tiered profit for ${results.length} members.` });
   };
 
   const handlePostAllInterest = async () => {
@@ -189,7 +184,6 @@ export default function CPFInterestPage() {
     setIsPosting(true);
     let postedCount = 0;
 
-    // Posting date: June 30th of the closing year of the FY
     const [startYearStr] = selectedFY.split("-");
     const endYear = parseInt(startYearStr) + 1;
     const summaryDate = `${endYear}-06-30`;
@@ -246,7 +240,7 @@ export default function CPFInterestPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Basis: June Closing to May Ending Balance (12 Months)</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance (June 30) + July-May Monthly Basis</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-50 border p-1 rounded-md">
@@ -306,7 +300,7 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="space-y-2 max-w-md mx-auto text-center">
-          <p className="text-xs font-bold uppercase tracking-widest opacity-50">Scanning monthly basis balances...</p>
+          <p className="text-xs font-bold uppercase tracking-widest opacity-50">Processing 12-month basis (Opening Balance + 11 Months)...</p>
           <Progress value={progress} className="h-1.5" />
         </div>
       )}

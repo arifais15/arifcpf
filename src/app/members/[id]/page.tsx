@@ -44,10 +44,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
   }, [summaries]);
 
-  /**
-   * Ledger Column Calculations
-   * Strictly based on REB Subsidiary Ledger Format
-   */
   const calculatedRows = useMemo(() => {
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
@@ -115,7 +111,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   /**
    * Interest Accrual logic for Fiscal Year
-   * Loop Basis: June (Prior Closing) to May (Current Year Ending)
+   * Rule: Month 1: Opening Balance (June 30) + Months 2-12: July-May Monthly Ending Balances
    */
   const interestCalculation = useMemo(() => {
     let startYear = 0;
@@ -142,23 +138,31 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     for (let i = 0; i < monthsToCalculate; i++) {
       let currentMonth: Date;
+      let monthLabel = "";
+      
       if (selectedInterestMode === "fy") {
         let mIdx, yr;
         if (i === 0) {
-          mIdx = 5; // June (Beginning Balance Basis)
+          mIdx = 5; // June (Prior Year Opening Balance)
           yr = startYear;
+          monthLabel = "Opening Balance (June 30)";
         } else {
-          mIdx = (i + 5) % 12; // July (6) ... May (4)
+          mIdx = (i + 5) % 12; // July ... May
           yr = i < 7 ? startYear : startYear + 1;
+          monthLabel = new Date(yr, mIdx).toLocaleString('default', { month: 'long', year: 'numeric' });
         }
         currentMonth = new Date(yr, mIdx + 1, 0);
       } else {
         const base = new Date(customRange.start);
         currentMonth = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
+        monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
       }
 
       const lastEntryInMonth = [...calculatedRows]
-        .filter(r => new Date(r.summaryDate) <= currentMonth)
+        .filter(r => {
+          const rDate = new Date(r.summaryDate);
+          return rDate <= currentMonth;
+        })
         .pop();
       
       const balance = lastEntryInMonth ? lastEntryInMonth.col11 : 0;
@@ -166,7 +170,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       
       totalInterest += monthlyInterest;
       monthlyDetails.push({
-        monthName: currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),
+        monthName: monthLabel,
         balance,
         interest: monthlyInterest
       });
@@ -199,7 +203,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitPbs = interestCalculation.totalInterest / 2;
     }
 
-    // Posting date is always June 30th for FY
     let summaryDate = "";
     if (selectedInterestMode === "fy") {
         const [startYearStr] = selectedInterestFY.split("-");
@@ -224,7 +227,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    showAlert({ title: "Posted", description: `Tiered profit has been added on ${summaryDate}.`, type: "success" });
+    showAlert({ title: "Posted", description: `Tiered profit has been recorded on ${summaryDate}.`, type: "success" });
     setIsInterestOpen(false);
   };
 
@@ -318,7 +321,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
-                <DialogDescription>Basis: June Closing to May Ending Balance (12 Months).</DialogDescription>
+                <DialogDescription>Basis: Opening Balance (June 30) + 11 Monthly Balances.</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
@@ -343,7 +346,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                       <table className="w-full text-xs">
                         <thead className="bg-slate-100 sticky top-0 border-b">
                           <tr>
-                            <th className="p-2 text-left font-bold uppercase">Month basis</th>
+                            <th className="p-2 text-left font-bold uppercase">Monthly Basis Basis</th>
                             <th className="p-2 text-right font-bold uppercase">Closing Fund Balance</th>
                             <th className="p-2 text-right font-bold uppercase">Computed Interest</th>
                           </tr>
@@ -351,7 +354,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                         <tbody className="divide-y">
                           {interestCalculation.monthlyDetails.map((d, i) => (
                             <tr key={i} className="hover:bg-slate-50">
-                              <td className="p-2">{d.monthName}</td>
+                              <td className="p-2 font-medium">{d.monthName}</td>
                               <td className="p-2 text-right">৳ {d.balance.toLocaleString()}</td>
                               <td className="p-2 text-right font-bold text-emerald-700">৳ {d.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>
@@ -475,7 +478,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <div className="border-t border-black/30 pt-1 font-bold">Approved By</div>
            </div>
         </div>
-        <p className="text-[7px] text-slate-400 italic text-right mt-4 opacity-50 no-print">System generated subsidiary ledger for PBS CPF</p>
       </div>
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
