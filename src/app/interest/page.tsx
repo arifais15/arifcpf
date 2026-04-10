@@ -53,10 +53,9 @@ export default function CPFInterestPage() {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1; // 1-indexed
     
-    // Determine the "current" fiscal year (assuming July-June)
+    // Determine the "active" fiscal year basis
     const activeFYStart = currentMonth >= 7 ? currentYear : currentYear - 1;
     
-    // Generate years from 2015 up to next year for planning
     for (let year = activeFYStart + 1; year >= 2015; year--) {
       const start = year;
       const end = (year + 1).toString().slice(-2);
@@ -103,7 +102,6 @@ export default function CPFInterestPage() {
       const snapshot = await getDocs(q);
       const summaries = snapshot.docs.map(doc => doc.data());
 
-      // Check if duplicate for this specific FY is already posted
       const isAlreadyPosted = summaries.some(s => 
         s.particulars?.includes(`Annual Profit FY ${selectedFY}`)
       );
@@ -126,11 +124,11 @@ export default function CPFInterestPage() {
         finalOfficeFund += (c8 + c9);
       });
 
-      // 2. Loop through 12 months: June (Prior) to May (Current)
+      // 2. Loop through 12 months basis: June (Prior Year closing) to May (Current Year ending)
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {
-          currentMonthIdx = 5; // June (Prior Year)
+          currentMonthIdx = 5; // June (Prior Year Basis)
           currentYear = startYear;
         } else {
           currentMonthIdx = (m + 5) % 12;
@@ -139,17 +137,16 @@ export default function CPFInterestPage() {
         
         const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0);
         
-        // Find cumulative balance (col 11) up to this month end
-        let runningBalance = 0;
+        let runningBalanceBasis = 0;
         summaries.forEach((row: any) => {
           if (new Date(row.summaryDate) <= lastDayOfMonth) {
             const val = (Number(row.employeeContribution) || 0) - (Number(row.loanWithdrawal) || 0) + (Number(row.loanRepayment) || 0) + 
                         (Number(row.profitEmployee) || 0) + (Number(row.profitLoan) || 0) + (Number(row.pbsContribution) || 0) + (Number(row.profitPbs) || 0);
-            runningBalance += val;
+            runningBalanceBasis += val;
           }
         });
 
-        totalInterest += calculateTieredAnnual(runningBalance) / 12;
+        totalInterest += calculateTieredAnnual(runningBalanceBasis) / 12;
       }
 
       results.push({
@@ -167,7 +164,7 @@ export default function CPFInterestPage() {
 
     setPreviewData(results);
     setIsCalculating(false);
-    toast({ title: "Calculation Complete", description: `Computed tiered interest for ${results.length} members.` });
+    toast({ title: "Audit Complete", description: `Computed profit basis for ${results.length} subsidiary ledgers.` });
   };
 
   const handlePostAllInterest = async () => {
@@ -175,14 +172,14 @@ export default function CPFInterestPage() {
     
     const unpostedItems = previewData.filter(item => !item.isPosted);
     if (unpostedItems.length === 0) {
-      toast({ title: "No Action Needed", description: "All records for this FY are already posted." });
+      toast({ title: "No Action Needed", description: "Records for this FY already synchronized." });
       return;
     }
 
     setIsPosting(true);
     let postedCount = 0;
 
-    // Posting date: June 30th of the end year of the FY
+    // Posting date: June 30th of the closing year of the FY
     const [startYearStr] = selectedFY.split("-");
     const endYear = parseInt(startYearStr) + 1;
     const summaryDate = `${endYear}-06-30`;
@@ -223,7 +220,7 @@ export default function CPFInterestPage() {
 
     setIsPosting(false);
     setPreviewData([]);
-    toast({ title: "Posting Complete", description: `Successfully posted profit for ${postedCount} members.` });
+    toast({ title: "Posting Complete", description: `Successfully recorded profit for ${postedCount} members.` });
   };
 
   const totalCPFProfit = useMemo(() => {
@@ -239,7 +236,7 @@ export default function CPFInterestPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
-          <p className="text-muted-foreground">Tiered profit calculation (June Prior to May Current)</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Basis: June Prior Closing to May Current Ending Fund Balance</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-50 border p-1 rounded-md">
@@ -253,9 +250,9 @@ export default function CPFInterestPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2">
+          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-bold uppercase text-xs tracking-widest">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Compute Interest
+            Run Profit Audit
           </Button>
         </div>
       </div>
@@ -263,15 +260,15 @@ export default function CPFInterestPage() {
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="border-none shadow-sm bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-primary tracking-widest">Target Accounts</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest opacity-60">Subsidiary Accounts</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{members?.length || 0} Members</div>
+            <div className="text-2xl font-bold">{members?.length || 0} Members Registry</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-accent/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-accent tracking-widest">Total Computed Profit</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-accent tracking-widest opacity-60">Audit Computed Profit</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
@@ -279,18 +276,18 @@ export default function CPFInterestPage() {
         </Card>
         <Card className="border-none shadow-sm bg-emerald-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-bold uppercase text-emerald-600 tracking-widest">Audit Status</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-emerald-600 tracking-widest opacity-60">Synchronization Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
               {previewData.length > 0 ? (
                 hasUnpostedEntries ? (
-                  <span className="text-orange-600 flex items-center gap-1">Pending Post</span>
+                  <span className="text-orange-600 flex items-center gap-1">Pending Sync</span>
                 ) : (
-                  <span className="text-emerald-600 flex items-center gap-1">Synchronized</span>
+                  <span className="text-emerald-600 flex items-center gap-1">Verified & Posted</span>
                 )
               ) : (
-                <span className="text-slate-400">Idle</span>
+                <span className="text-slate-300">Ready</span>
               )}
             </div>
           </CardContent>
@@ -299,45 +296,45 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="space-y-2 max-w-md mx-auto text-center">
-          <p className="text-sm font-medium">Scanning subsidiary ledgers month-by-month...</p>
-          <Progress value={progress} className="h-2" />
+          <p className="text-xs font-bold uppercase tracking-widest opacity-50">Scanning monthly basis balances...</p>
+          <Progress value={progress} className="h-1.5" />
         </div>
       )}
 
       {previewData.length > 0 && (
         <div className="bg-card rounded-xl shadow-lg border overflow-hidden">
           <div className="p-4 bg-slate-50 border-b flex items-center justify-between">
-            <h2 className="font-bold flex items-center gap-2">Accrual Preview - FY {selectedFY}</h2>
+            <h2 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">Accrual Audit Preview - Basis FY {selectedFY}</h2>
             <Button 
               onClick={handlePostAllInterest} 
               disabled={isPosting || !hasUnpostedEntries} 
-              className={cn("gap-2", hasUnpostedEntries ? "bg-emerald-600" : "bg-slate-400")}
+              className={cn("gap-2 font-bold uppercase text-xs", hasUnpostedEntries ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-400")}
             >
               {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-              Post to Ledgers (June 30)
+              Synchronize Ledger (June 30)
             </Button>
           </div>
           <div className="max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
                 <TableRow>
-                  <TableHead>Member ID</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Tiered Profit (৳)</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold">Member ID</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold">Name</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold">Computed Profit (৳)</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-bold">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {previewData.map((item) => (
-                  <TableRow key={item.memberId} className={item.isPosted ? "opacity-60 bg-slate-50" : ""}>
-                    <TableCell className="font-mono text-xs">{item.memberIdNumber}</TableCell>
-                    <TableCell className="text-sm">{item.name}</TableCell>
-                    <TableCell className="text-right font-bold text-accent">৳ {item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                  <TableRow key={item.memberId} className={cn(item.isPosted ? "opacity-60 bg-slate-50" : "hover:bg-slate-50/50")}>
+                    <TableCell className="font-mono text-xs font-bold">{item.memberIdNumber}</TableCell>
+                    <TableCell className="text-xs font-semibold">{item.name}</TableCell>
+                    <TableCell className="text-right font-black text-accent">৳ {item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                     <TableCell className="text-center">
                       {item.isPosted ? (
-                        <Badge variant="outline" className="border-emerald-500 text-emerald-600">Already Posted</Badge>
+                        <Badge variant="outline" className="border-emerald-500 text-emerald-600 text-[9px] uppercase">Posted to Ledger</Badge>
                       ) : (
-                        <Badge variant="outline">Computed</Badge>
+                        <Badge variant="outline" className="text-[9px] uppercase">Audit Verified</Badge>
                       )}
                     </TableCell>
                   </TableRow>

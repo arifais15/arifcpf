@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -201,7 +202,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     const entryData = {
       summaryDate,
-      particulars: `Annual Profit ${interestCalculation.label} (Proportional)`,
+      particulars: `Annual Profit ${interestCalculation.label} (Tiered)`,
       employeeContribution: 0,
       loanWithdrawal: 0,
       loanRepayment: 0,
@@ -308,7 +309,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
-                <DialogDescription>Based on June Closing to May Ending Balance ratio.</DialogDescription>
+                <DialogDescription>Based on June Closing to May Ending Balance Basis.</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
@@ -326,16 +327,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 {interestCalculation && (
                   <div className="space-y-4">
                     <div className="flex justify-between p-4 bg-slate-50 border rounded-lg">
-                      <div><p className="text-xs text-muted-foreground uppercase font-bold">Period</p><p className="font-bold text-lg">{interestCalculation.label}</p></div>
-                      <div className="text-right"><p className="text-xs text-muted-foreground uppercase font-bold">Total Profit</p><p className="text-2xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+                      <div><p className="text-xs text-muted-foreground uppercase font-bold">Basis Period</p><p className="font-bold text-lg">{interestCalculation.label}</p></div>
+                      <div className="text-right"><p className="text-xs text-muted-foreground uppercase font-bold">Total Computed Profit</p><p className="text-2xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
                     </div>
                     <div className="max-h-[300px] overflow-y-auto border rounded-md shadow-inner">
                       <table className="w-full text-xs">
                         <thead className="bg-slate-100 sticky top-0 border-b">
                           <tr>
-                            <th className="p-2 text-left font-bold uppercase">Month</th>
-                            <th className="p-2 text-right font-bold uppercase">Balance</th>
-                            <th className="p-2 text-right font-bold uppercase">Interest</th>
+                            <th className="p-2 text-left font-bold uppercase">Month basis</th>
+                            <th className="p-2 text-right font-bold uppercase">Closing Fund Balance</th>
+                            <th className="p-2 text-right font-bold uppercase">Computed Interest</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
@@ -391,19 +392,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <table className="w-full text-[9px] border-collapse border border-black table-fixed">
             <thead className="bg-slate-50/80">
               <tr>
-                <th className="border border-black p-1 text-center font-bold w-[70px] uppercase text-[7.5px]">Date</th>
-                <th className="border border-black p-1 text-center font-bold w-[220px] uppercase text-[7.5px]">Particulars</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">Employee Contribution (Col 1)</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">Amount Withdraws as Loan (Col 2)</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">Loan Principal Repayment (Col 3)</th>
-                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px] leading-none whitespace-normal">Balance of Loan (Col 4)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-none whitespace-normal">Profit on Emp. Cont. (Col 5)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-none whitespace-normal">Profit on CPF Loan (Col 6)</th>
-                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px] leading-none whitespace-normal">Total Amount (Emp. Fund) (Col 7)</th>
-                <th className="border border-black p-1 text-center font-bold w-[80px] uppercase text-[7.5px] leading-none whitespace-normal">PBS Contribution (Col 8)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-none whitespace-normal">Profit on PBS Cont. (Col 9)</th>
-                <th className="border border-black p-1 text-center font-bold w-[90px] uppercase text-[7.5px] leading-none whitespace-normal">Total Amount (Office Fund) (Col 10)</th>
-                <th className="border border-black p-1 text-center font-bold w-[100px] uppercase text-[7.5px] leading-none whitespace-normal">Cumulative Fund (Col 11)</th>
+                <th className="border border-black p-1 text-center font-bold w-[65px] uppercase text-[7.5px]">Date</th>
+                <th className="border border-black p-1 text-center font-bold w-[160px] uppercase text-[7.5px]">Particulars</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Employee Contribution (Col 1)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Amount Withdraws as Loan (Col 2)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Loan Principal Repayment (Col 3)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Balance of Loan (Col 4)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Profit on Employee Cont. (Col 5)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Profit on CPF Loan (Col 6)</th>
+                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px] leading-tight whitespace-normal">Total Amount (Emp. Fund) (Col 7)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">PBS Contribution (Col 8)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight whitespace-normal">Profit on PBS Cont. (Col 9)</th>
+                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px] leading-tight whitespace-normal">Total Amount (Office Fund) (Col 10)</th>
+                <th className="border border-black p-1 text-center font-bold w-[95px] uppercase text-[7.5px] leading-tight whitespace-normal">Cumulative Fund (Col 11)</th>
                 <th className="border border-black p-1 text-center font-bold no-print w-[80px] uppercase text-[7.5px]">Action</th>
               </tr>
             </thead>
