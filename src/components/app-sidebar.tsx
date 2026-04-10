@@ -12,7 +12,8 @@ import {
   ShieldCheck,
   Percent,
   LogOut,
-  ListTodo
+  ListTodo,
+  X
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -28,8 +29,10 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
+import { Button } from "@/components/ui/button"
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
@@ -47,6 +50,7 @@ export function AppSidebar() {
   const auth = useAuth()
   const router = useRouter()
   const { showAlert } = useSweetAlert()
+  const { isMobile, setOpenMobile } = useSidebar()
 
   const handleLogout = () => {
     showAlert({
@@ -64,14 +68,26 @@ export function AppSidebar() {
 
   return (
     <Sidebar variant="inset" collapsible="icon">
-      <SidebarHeader className="p-4 flex items-center gap-3">
-        <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <ShieldCheck className="size-5" />
+      <SidebarHeader className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <ShieldCheck className="size-5" />
+          </div>
+          <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
+            <span className="font-semibold text-primary">PBS CPF</span>
+            <span className="text-xs text-muted-foreground">Management</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-          <span className="font-semibold text-primary">PBS CPF</span>
-          <span className="text-xs text-muted-foreground">Management</span>
-        </div>
+        {isMobile && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="size-8 md:hidden" 
+            onClick={() => setOpenMobile(false)}
+          >
+            <X className="size-4 text-muted-foreground" />
+          </Button>
+        )}
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
