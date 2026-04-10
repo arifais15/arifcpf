@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import * as XLSX from "xlsx";
 
 export default function MembersPage() {
@@ -34,7 +36,7 @@ export default function MembersPage() {
   const filteredMembers = members?.filter(m => 
     m.name.toLowerCase().includes(search.toLowerCase()) || 
     m.memberIdNumber?.includes(search) ||
-    m.designation.toLowerCase().includes(search.toLowerCase())
+    m.designation?.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
   const handleAddMember = (e: React.FormEvent<HTMLFormElement>) => {
@@ -47,6 +49,8 @@ export default function MembersPage() {
       dateJoined: formData.get("dateJoined"),
       zonalOffice: formData.get("zonalOffice"),
       permanentAddress: formData.get("permanentAddress"),
+      status: formData.get("status") || "Active",
+      settlementDate: formData.get("settlementDate") || ""
     };
 
     if (editingMember) {
@@ -58,7 +62,7 @@ export default function MembersPage() {
         type: "success"
       });
     } else {
-      addDocumentNonBlocking(membersRef, memberData);
+      addDocumentNonBlocking(membersRef, { ...memberData, createdAt: new Date().toISOString() });
       showAlert({
         title: "Registered",
         description: `Member ${memberData.name} added to the registry.`,
@@ -100,6 +104,7 @@ export default function MembersPage() {
         else if (k.includes("office")) cleanedEntry.zonalOffice = entry[key]?.toString().trim();
         else cleanedEntry[key.trim()] = entry[key]?.toString().trim();
       });
+      cleanedEntry.status = "Active";
       addDocumentNonBlocking(membersRef, cleanedEntry);
     });
     showAlert({
@@ -224,8 +229,23 @@ export default function MembersPage() {
                   <div className="space-y-2"><Label>Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required /></div>
                   <div className="space-y-2"><Label>Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} /></div>
                 </div>
-                <div className="space-y-2"><Label>Date Joined</Label><Input name="dateJoined" type="date" defaultValue={editingMember?.dateJoined} required /></div>
-                <DialogFooter><Button type="submit">Save Member</Button></DialogFooter>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Account Status</Label>
+                    <Select name="status" defaultValue={editingMember?.status || "Active"}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Retired">Retired</SelectItem>
+                        <SelectItem value="Transferred">Transferred</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2"><Label>Date Joined</Label><Input name="dateJoined" type="date" defaultValue={editingMember?.dateJoined} required /></div>
+                </div>
+                <DialogFooter><Button type="submit">Save Member Profile</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -245,7 +265,7 @@ export default function MembersPage() {
               <TableHead className="w-[120px]">ID No (Key)</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Designation</TableHead>
-              <TableHead>Office</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -259,7 +279,14 @@ export default function MembersPage() {
                 <TableCell className="font-bold font-mono">{member.memberIdNumber}</TableCell>
                 <TableCell className="font-medium">{member.name}</TableCell>
                 <TableCell className="text-xs">{member.designation}</TableCell>
-                <TableCell className="text-xs">{member.zonalOffice}</TableCell>
+                <TableCell>
+                  <Badge variant={member.status === 'Active' ? 'outline' : 'secondary'} className={
+                    member.status === 'Active' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
+                    member.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                  }>
+                    {member.status || "Active"}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
