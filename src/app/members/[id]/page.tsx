@@ -199,7 +199,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     if (totalFund > 0) {
       profitEmployee = (interestCalculation.totalInterest * empFund) / totalFund;
-      profitPbs = (interestCalculation.totalInterest * officeFund) / totalFund;
+      profitPbs = (interestCalculation.totalInterest * pbsFund) / totalFund;
     } else {
       profitEmployee = interestCalculation.totalInterest / 2;
       profitPbs = interestCalculation.totalInterest / 2;
