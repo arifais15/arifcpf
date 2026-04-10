@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef } from "react";
@@ -33,7 +32,8 @@ import {
   ChevronRight,
   Upload,
   FileSpreadsheet,
-  Download
+  Download,
+  ClipboardList
 } from "lucide-react";
 import { 
   useCollection, 
@@ -81,6 +81,7 @@ export default function InvestmentsPage() {
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [isProvisionOpen, setIsProvisionOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isGlobalHistoryOpen, setIsGlobalHistoryOpen] = useState(false);
   const [isMaturityReportOpen, setIsMaturityReportOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [bulkCsvData, setBulkCsvData] = useState("");
@@ -89,6 +90,7 @@ export default function InvestmentsPage() {
   const [selectedForProvision, setSelectedForProvision] = useState<any>(null);
   const [selectedForHistory, setSelectedForHistory] = useState<any>(null);
   const [maturityRange, setMaturityRange] = useState({ start: "", end: "" });
+  const [historyRange, setHistoryRange] = useState({ start: "", end: "" });
 
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
@@ -122,6 +124,37 @@ export default function InvestmentsPage() {
       return mDate >= sDate && mDate <= eDate;
     }).sort((a, b) => new Date(a.maturityDate).getTime() - new Date(b.maturityDate).getTime());
   }, [investments, maturityRange]);
+
+  const accrualHistoryData = useMemo(() => {
+    if (!allAccruals || !investments) return [];
+    
+    let filtered = allAccruals;
+    if (historyRange.start && historyRange.end) {
+      const sDate = new Date(historyRange.start);
+      const eDate = new Date(historyRange.end);
+      filtered = allAccruals.filter(a => {
+        const d = new Date(a.accrualDate);
+        return d >= sDate && d <= eDate;
+      });
+    }
+
+    // Group by instrument type
+    const grouped: Record<string, any[]> = {};
+    filtered.forEach(accrual => {
+      const inv = investments.find(i => i.id === accrual.sourceId);
+      const type = inv?.instrumentType || "Other";
+      if (!grouped[type]) grouped[type] = [];
+      grouped[type].push({ ...accrual, instrument: inv });
+    });
+
+    return Object.entries(grouped).map(([type, items]) => ({
+      type,
+      items: items.sort((a, b) => new Date(b.accrualDate).getTime() - new Date(a.accrualDate).getTime()),
+      subtotalGross: items.reduce((sum, i) => sum + (i.grossAmount || 0), 0),
+      subtotalTDS: items.reduce((sum, i) => sum + (i.tdsAmount || 0), 0),
+      subtotalNet: items.reduce((sum, i) => sum + (i.netAmount || 0), 0),
+    }));
+  }, [allAccruals, investments, historyRange]);
 
   const stats = useMemo(() => {
     if (!investments || investments.length === 0) return { total: 0, count: 0, avgRate: 0 };
@@ -304,6 +337,40 @@ export default function InvestmentsPage() {
     });
   };
 
+  const exportAccrualHistoryToExcel = () => {
+    if (accrualHistoryData.length === 0) return;
+
+    const flatRows: any[] = [];
+    accrualHistoryData.forEach(group => {
+      group.items.forEach(item => {
+        flatRows.push({
+          "Type": group.type,
+          "Accrual Date": item.accrualDate,
+          "Bank": item.instrument?.bankName,
+          "Reference": item.instrument?.referenceNumber,
+          "Period Start": item.periodStartDate,
+          "Period End": item.periodEndDate,
+          "Gross Amount (৳)": item.grossAmount,
+          "TDS (10%) (৳)": item.tdsAmount,
+          "Net Amount (৳)": item.netAmount
+        });
+      });
+      // Add subtotal row
+      flatRows.push({
+        "Type": `TOTAL ${group.type}`,
+        "Gross Amount (৳)": group.subtotalGross,
+        "TDS (10%) (৳)": group.subtotalTDS,
+        "Net Amount (৳)": group.subtotalNet
+      });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(flatRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Accrual History");
+    XLSX.writeFile(wb, `Accrual_History_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({ title: "Exported", description: "Accrual history exported to Excel." });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active': return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1"><CheckCircle2 className="size-3" /> Active</Badge>;
@@ -328,6 +395,116 @@ export default function InvestmentsPage() {
           <p className="text-muted-foreground">Manage FDRs, Bonds and Savings Certificates with Bank tracking</p>
         </div>
         <div className="flex items-center gap-3">
+          <Dialog open={isGlobalHistoryOpen} onOpenChange={setIsGlobalHistoryOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2 border-slate-300">
+                <ClipboardList className="size-4 text-primary" /> Accrual History
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-[1100px] h-[90vh] overflow-y-auto print:max-w-none print:h-auto print:overflow-visible">
+              <DialogHeader className="no-print">
+                <DialogTitle>Comprehensive Accrual History Report</DialogTitle>
+                <DialogDescription>Grouped by investment type with subtotals for adjusting journal preparation.</DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div className="no-print flex items-center gap-4 bg-slate-50 p-4 rounded-xl border">
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-[10px] uppercase font-bold text-slate-500">Date From</Label>
+                    <Input type="date" value={historyRange.start} onChange={(e) => setHistoryRange({...historyRange, start: e.target.value})} />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-[10px] uppercase font-bold text-slate-500">Date To</Label>
+                    <Input type="date" value={historyRange.end} onChange={(e) => setHistoryRange({...historyRange, end: e.target.value})} />
+                  </div>
+                  <div className="flex gap-2 mt-5">
+                    <Button variant="outline" onClick={exportAccrualHistoryToExcel} className="gap-2">
+                      <FileSpreadsheet className="size-4 text-emerald-600" /> Export Excel
+                    </Button>
+                    <Button onClick={() => window.print()} className="gap-2">
+                      <Printer className="size-4" /> Print Report
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="bg-white p-8 border shadow-sm print:border-none print:shadow-none font-ledger text-slate-900">
+                  <div className="text-center space-y-1 mb-8">
+                    <h1 className="text-xl font-bold uppercase underline">Gazipur Palli Bidyut Samity-2</h1>
+                    <h2 className="text-lg font-bold uppercase">Interest Provision Accrual History Report</h2>
+                    <p className="text-[10px] text-slate-500">
+                      Basis: {historyRange.start && historyRange.end ? `Period ${historyRange.start} to ${historyRange.end}` : 'Full Historical Record'}
+                    </p>
+                    <div className="flex justify-between text-[10px] pt-4 italic border-t border-slate-200 mt-2">
+                      <span>Generated for Adjusting Journal Preparation</span>
+                      <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
+                    </div>
+                  </div>
+
+                  {accrualHistoryData.map((group) => (
+                    <div key={group.type} className="mb-10 break-inside-avoid">
+                      <h3 className="text-sm font-black uppercase bg-slate-100 p-2 border-l-4 border-primary mb-2 flex justify-between">
+                        <span>{group.type} Accruals</span>
+                        <span className="text-[10px] font-normal text-slate-500">Adjusting Code Basis: {(group.items[0]?.instrument?.chartOfAccountId || 'N/A')}</span>
+                      </h3>
+                      <table className="w-full text-[10px] border-collapse border border-slate-900">
+                        <thead>
+                          <tr className="bg-slate-50">
+                            <th className="border border-slate-900 p-2 text-center w-[70px]">Date</th>
+                            <th className="border border-slate-900 p-2 text-left">Bank & Instrument Ref</th>
+                            <th className="border border-slate-900 p-2 text-center w-[120px]">Period</th>
+                            <th className="border border-slate-900 p-2 text-right">Gross Amount (৳)</th>
+                            <th className="border border-slate-900 p-2 text-right">TDS (10%) (৳)</th>
+                            <th className="border border-slate-900 p-2 text-right">Net Interest (৳)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.items.map((item) => (
+                            <tr key={item.id}>
+                              <td className="border border-slate-900 p-2 text-center font-mono">{item.accrualDate}</td>
+                              <td className="border border-slate-900 p-2">
+                                <span className="font-bold">{item.instrument?.bankName}</span><br/>
+                                <span className="text-[9px] text-slate-500">Ref: {item.instrument?.referenceNumber}</span>
+                              </td>
+                              <td className="border border-slate-900 p-2 text-center text-[9px]">
+                                {item.periodStartDate} to {item.periodEndDate}
+                              </td>
+                              <td className="border border-slate-900 p-2 text-right">{item.grossAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-slate-900 p-2 text-right text-rose-700">{item.tdsAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="border border-slate-900 p-2 text-right font-bold text-emerald-700">{item.netAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="bg-slate-50 font-black">
+                            <td colSpan={3} className="border border-slate-900 p-2 text-right uppercase">Subtotal {group.type}:</td>
+                            <td className="border border-slate-900 p-2 text-right">{group.subtotalGross.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="border border-slate-900 p-2 text-right">{group.subtotalTDS.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="border border-slate-900 p-2 text-right underline decoration-double">৳ {group.subtotalNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  ))}
+
+                  <div className="mt-12 bg-slate-900 text-white p-4 rounded-lg flex justify-between items-center print:bg-white print:text-slate-900 print:border-2 print:border-slate-900">
+                    <span className="font-black uppercase tracking-widest text-sm">Grand Total Interest Provisions:</span>
+                    <div className="text-right space-y-1">
+                      <p className="text-xs">Gross: ৳ {accrualHistoryData.reduce((s, g) => s + g.subtotalGross, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xs">TDS: ৳ {accrualHistoryData.reduce((s, g) => s + g.subtotalTDS, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      <p className="text-xl font-black">Net: ৳ {accrualHistoryData.reduce((s, g) => s + g.subtotalNet, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
+                    <div className="border-t border-slate-900 pt-1">Accountant (Investment)</div>
+                    <div className="border-t border-slate-900 pt-1">Internal Auditor / DGM</div>
+                    <div className="border-t border-slate-900 pt-1">Approved By Trustee</div>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Dialog open={isMaturityReportOpen} onOpenChange={setIsMaturityReportOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2 border-slate-300">
@@ -758,7 +935,7 @@ export default function InvestmentsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* History Dialog */}
+      {/* Single Instrument History Dialog */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
