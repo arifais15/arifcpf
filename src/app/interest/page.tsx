@@ -20,7 +20,8 @@ import {
   ArrowRight,
   Info,
   AlertCircle,
-  ShieldCheck
+  ShieldCheck,
+  ArrowRightLeft
 } from "lucide-react";
 import { 
   useCollection, 
@@ -40,6 +41,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 export default function CPFInterestPage() {
@@ -63,7 +67,10 @@ export default function CPFInterestPage() {
     return options;
   }, []);
 
+  const [calculationMode, setCalculationMode] = useState<"fy" | "custom">("fy");
   const [selectedFY, setSelectedFY] = useState<string>(fyOptions[1] || ""); 
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  
   const [isCalculating, setIsCalculating] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
@@ -86,13 +93,18 @@ export default function CPFInterestPage() {
 
   const handleRunCPFCalculation = async () => {
     if (!members) return;
+    
+    if (calculationMode === 'custom' && (!customRange.start || !customRange.end)) {
+      toast({ title: "Dates Required", description: "Please select start and end dates.", variant: "destructive" });
+      return;
+    }
+
     setIsCalculating(true);
     setPreviewData([]);
     setProgress(0);
 
-    const [startYearStr] = selectedFY.split("-");
-    const startYear = parseInt(startYearStr);
     const results = [];
+    const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
 
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
@@ -102,14 +114,14 @@ export default function CPFInterestPage() {
       const summaries = snapshot.docs.map(doc => doc.data());
 
       const isAlreadyPosted = summaries.some(s => 
-        s.particulars?.includes(`Annual Profit FY ${selectedFY}`)
+        s.particulars?.includes(`Annual Profit ${modeLabel}`)
       );
 
       let totalInterest = 0;
       let finalEmployeeFund = 0;
       let finalOfficeFund = 0;
 
-      // 1. Final state for proportionality
+      // Current State for proportionality
       summaries.forEach((row: any) => {
         const c1 = Number(row.employeeContribution) || 0;
         const c2 = Number(row.loanWithdrawal) || 0;
@@ -123,35 +135,51 @@ export default function CPFInterestPage() {
         finalOfficeFund += (c8 + c9);
       });
 
-      /**
-       * 2. Calculation Basis: 
-       * Month 1: Opening Balance (June 30th Prior Year)
-       * Months 2-12: July Ending Balance to May Ending Balance (Current Year)
-       * Including transactions on the LAST DAY of each month.
-       */
-      for (let m = 0; m < 12; m++) {
-        let currentMonthIdx, currentYear;
-        if (m === 0) {
-          currentMonthIdx = 5; // June (Prior Year Opening Basis)
-          currentYear = startYear;
-        } else {
-          currentMonthIdx = (m + 5) % 12; // July (6) ... May (4)
-          currentYear = m < 7 ? startYear : startYear + 1;
+      let monthsToCalculate = 0;
+      const basisDates: Date[] = [];
+
+      if (calculationMode === 'fy') {
+        const [startYearStr] = selectedFY.split("-");
+        const startYear = parseInt(startYearStr);
+        monthsToCalculate = 12;
+        for (let m = 0; m < 12; m++) {
+          let mIdx, yr;
+          if (m === 0) {
+            mIdx = 5; yr = startYear; // June (Prior Year Opening)
+          } else {
+            mIdx = (m + 5) % 12;
+            yr = m < 7 ? startYear : startYear + 1;
+          }
+          basisDates.push(new Date(yr, mIdx + 1, 0, 23, 59, 59, 999));
         }
+      } else {
+        const start = new Date(customRange.start);
+        const end = new Date(customRange.end);
+        monthsToCalculate = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
         
-        // Ensure comparison includes the entire last day
-        const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0, 23, 59, 59, 999);
-        
+        // Month 1 basis: day before start
+        const opening = new Date(start);
+        opening.setDate(opening.getDate() - 1);
+        opening.setHours(23, 59, 59, 999);
+        basisDates.push(opening);
+
+        // Subsequent months
+        for (let m = 0; m < monthsToCalculate - 1; m++) {
+          const next = new Date(start.getFullYear(), start.getMonth() + m + 1, 0, 23, 59, 59, 999);
+          basisDates.push(next);
+        }
+      }
+
+      for (const targetDate of basisDates) {
         let runningBalanceBasis = 0;
         summaries.forEach((row: any) => {
           const rowDate = new Date(row.summaryDate);
-          if (rowDate <= lastDayOfMonth) {
+          if (rowDate <= targetDate) {
             const val = (Number(row.employeeContribution) || 0) - (Number(row.loanWithdrawal) || 0) + (Number(row.loanRepayment) || 0) + 
                         (Number(row.profitEmployee) || 0) + (Number(row.profitLoan) || 0) + (Number(row.pbsContribution) || 0) + (Number(row.profitPbs) || 0);
             runningBalanceBasis += val;
           }
         });
-
         totalInterest += calculateTieredAnnual(runningBalanceBasis) / 12;
       }
 
@@ -178,16 +206,21 @@ export default function CPFInterestPage() {
     
     const unpostedItems = previewData.filter(item => !item.isPosted);
     if (unpostedItems.length === 0) {
-      toast({ title: "No Action Needed", description: "Records for this FY already synchronized." });
+      toast({ title: "No Action Needed", description: "Records for this period already synchronized." });
       return;
     }
 
     setIsPosting(true);
     let postedCount = 0;
+    const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
 
-    const [startYearStr] = selectedFY.split("-");
-    const endYear = parseInt(startYearStr) + 1;
-    const summaryDate = `${endYear}-06-30`;
+    let summaryDate = "";
+    if (calculationMode === 'fy') {
+      const [startYearStr] = selectedFY.split("-");
+      summaryDate = `${parseInt(startYearStr) + 1}-06-30`;
+    } else {
+      summaryDate = customRange.end;
+    }
 
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
@@ -205,8 +238,8 @@ export default function CPFInterestPage() {
       }
 
       const entryData = {
-        summaryDate: summaryDate,
-        particulars: `Annual Profit FY ${selectedFY} (Tiered)`,
+        summaryDate,
+        particulars: `Annual Profit ${modeLabel} (Tiered)`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
@@ -238,24 +271,48 @@ export default function CPFInterestPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance (June 30) + July-May Monthly Basis (Includes last-day transactions)</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance Focused + 11 Monthly Closing Balances (Captures Last-Day Entries)</p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-50 border p-1 rounded-md">
-            <Calendar className="size-4 text-muted-foreground ml-2" />
-            <Select value={selectedFY} onValueChange={setSelectedFY}>
-              <SelectTrigger className="w-[140px] border-none shadow-none font-bold">
-                <SelectValue placeholder="Fiscal Year" />
-              </SelectTrigger>
-              <SelectContent>
-                {fyOptions.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-bold uppercase text-xs tracking-widest">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm">
+          <Tabs value={calculationMode} onValueChange={(v: any) => setCalculationMode(v)} className="w-full sm:w-auto">
+            <TabsList className="bg-slate-100 p-1 h-9">
+              <TabsTrigger value="fy" className="text-xs px-4">Fiscal Year</TabsTrigger>
+              <TabsTrigger value="custom" className="text-xs px-4">Custom Range</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="h-4 w-px bg-slate-200 hidden sm:block" />
+
+          {calculationMode === 'fy' ? (
+            <div className="flex items-center gap-2">
+              <Calendar className="size-4 text-muted-foreground" />
+              <Select value={selectedFY} onValueChange={setSelectedFY}>
+                <SelectTrigger className="w-[140px] border-none shadow-none font-bold focus:ring-0">
+                  <SelectValue placeholder="Fiscal Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fyOptions.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="grid gap-1">
+                <Label className="text-[9px] uppercase font-bold text-slate-400">Start</Label>
+                <Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
+              </div>
+              <ArrowRightLeft className="size-3 text-slate-300 mt-3" />
+              <div className="grid gap-1">
+                <Label className="text-[9px] uppercase font-bold text-slate-400">End</Label>
+                <Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
+              </div>
+            </div>
+          )}
+
+          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-bold uppercase text-xs tracking-widest h-9 px-6 shadow-md shadow-primary/20">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
             Run Profit Audit
           </Button>
@@ -300,20 +357,23 @@ export default function CPFInterestPage() {
       </div>
 
       {isCalculating && (
-        <div className="space-y-2 max-w-md mx-auto text-center">
-          <p className="text-xs font-bold uppercase tracking-widest opacity-50">Processing 12-month basis (Opening + 11 Months)...</p>
+        <div className="space-y-3 max-w-md mx-auto text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-primary opacity-70">Auditing Real-time Ledger Balances...</p>
           <Progress value={progress} className="h-1.5" />
+          <p className="text-[10px] font-medium text-muted-foreground">{progress}% Complete</p>
         </div>
       )}
 
       {previewData.length > 0 && (
         <div className="bg-card rounded-xl shadow-lg border overflow-hidden">
           <div className="p-4 bg-slate-50 border-b flex items-center justify-between">
-            <h2 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">Accrual Audit Preview - Basis FY {selectedFY}</h2>
+            <h2 className="font-bold flex items-center gap-2 text-sm uppercase tracking-wider">
+              Accrual Audit Preview - {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`}
+            </h2>
             <Button 
               onClick={handlePostAllInterest} 
               disabled={isPosting || !hasUnpostedEntries} 
-              className={cn("gap-2 font-bold uppercase text-xs", hasUnpostedEntries ? "bg-emerald-600 hover:bg-emerald-700" : "bg-slate-400")}
+              className={cn("gap-2 font-bold uppercase text-xs h-9 px-6", hasUnpostedEntries ? "bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-600/20" : "bg-slate-400")}
             >
               {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
               Synchronize Ledger (June 30)
@@ -322,11 +382,11 @@ export default function CPFInterestPage() {
           <div className="max-h-[500px] overflow-y-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-white z-10">
-                <TableRow>
-                  <TableHead className="text-[10px] uppercase font-bold">Member ID</TableHead>
-                  <TableHead className="text-[10px] uppercase font-bold">Name</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-bold">Computed Profit (৳)</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-bold">Status</TableHead>
+                <TableRow className="border-b">
+                  <TableHead className="text-[10px] uppercase font-bold py-4">Member ID</TableHead>
+                  <TableHead className="text-[10px] uppercase font-bold py-4">Name</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-bold py-4">Computed Profit (৳)</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-bold py-4">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

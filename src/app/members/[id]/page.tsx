@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -110,72 +110,64 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   };
 
   /**
-   * Interest Accrual logic for Fiscal Year
-   * Rule: Month 1: Opening Balance (June 30) + Months 2-12: July-May Monthly Ending Balances
-   * Includes transactions Added on the last day of each basis month.
+   * Interest Accrual logic
+   * Rule: Opening Balance Focused + 11 Monthly Closing Balances.
    */
   const interestCalculation = useMemo(() => {
-    let startYear = 0;
     let monthsToCalculate = 0;
     let label = "";
+    const basisDates: Date[] = [];
 
     if (selectedInterestMode === "fy") {
       if (!selectedInterestFY) return null;
       const [startYearStr] = selectedInterestFY.split("-");
-      startYear = parseInt(startYearStr);
+      const startYear = parseInt(startYearStr);
       monthsToCalculate = 12;
       label = `FY ${selectedInterestFY}`;
+      
+      for (let i = 0; i < 12; i++) {
+        let mIdx, yr;
+        if (i === 0) {
+          mIdx = 5; yr = startYear; // June Opening
+        } else {
+          mIdx = (i + 5) % 12;
+          yr = i < 7 ? startYear : startYear + 1;
+        }
+        basisDates.push(new Date(yr, mIdx + 1, 0, 23, 59, 59, 999));
+      }
     } else {
       if (!customRange.start || !customRange.end) return null;
       const start = new Date(customRange.start);
       const end = new Date(customRange.end);
       monthsToCalculate = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
       label = `Custom Range`;
+
+      // Month 1 opening: Day before start
+      const opening = new Date(start);
+      opening.setDate(opening.getDate() - 1);
+      opening.setHours(23, 59, 59, 999);
+      basisDates.push(opening);
+
+      for (let i = 0; i < monthsToCalculate - 1; i++) {
+        basisDates.push(new Date(start.getFullYear(), start.getMonth() + i + 1, 0, 23, 59, 59, 999));
+      }
     }
     
     const isDuplicate = summaries?.some(s => s.particulars?.includes(`Annual Profit ${label}`));
     const monthlyDetails = [];
     let totalInterest = 0;
 
-    for (let i = 0; i < monthsToCalculate; i++) {
-      let currentMonth: Date;
-      let monthLabel = "";
+    for (const targetDate of basisDates) {
+      const lastEntry = [...calculatedRows].filter(r => new Date(r.summaryDate) <= targetDate).pop();
+      const balance = lastEntry ? lastEntry.col11 : 0;
+      const interest = calculateTieredAnnual(balance) / 12;
       
-      if (selectedInterestMode === "fy") {
-        let mIdx, yr;
-        if (i === 0) {
-          mIdx = 5; // June (Prior Year Opening Basis)
-          yr = startYear;
-          monthLabel = "Opening Balance (June 30)";
-        } else {
-          mIdx = (i + 5) % 12; // July ... May
-          yr = i < 7 ? startYear : startYear + 1;
-          monthLabel = new Date(yr, mIdx).toLocaleString('default', { month: 'long', year: 'numeric' });
-        }
-        // Set comparison to very end of the day to capture last-day transactions
-        currentMonth = new Date(yr, mIdx + 1, 0, 23, 59, 59, 999);
-      } else {
-        const base = new Date(customRange.start);
-        currentMonth = new Date(base.getFullYear(), base.getMonth() + i + 1, 0, 23, 59, 59, 999);
-        monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-      }
-
-      // Find the last entry available on or before the end of the basis month
-      const lastEntryInMonth = [...calculatedRows]
-        .filter(r => {
-          const rDate = new Date(r.summaryDate);
-          return rDate <= currentMonth;
-        })
-        .pop();
-      
-      const balance = lastEntryInMonth ? lastEntryInMonth.col11 : 0;
-      const monthlyInterest = calculateTieredAnnual(balance) / 12;
-      
-      totalInterest += monthlyInterest;
+      totalInterest += interest;
       monthlyDetails.push({
-        monthName: monthLabel,
+        label: targetDate.toLocaleString('default', { month: 'short', year: 'numeric' }),
+        isOpening: targetDate.getDate() !== 31 && targetDate.getMonth() === 5 && selectedInterestMode === 'fy',
         balance,
-        interest: monthlyInterest
+        interest
       });
     }
 
@@ -209,8 +201,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     let summaryDate = "";
     if (selectedInterestMode === "fy") {
         const [startYearStr] = selectedInterestFY.split("-");
-        const endYear = parseInt(startYearStr) + 1;
-        summaryDate = `${endYear}-06-30`;
+        summaryDate = `${parseInt(startYearStr) + 1}-06-30`;
     } else {
         summaryDate = customRange.end;
     }
@@ -230,7 +221,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     };
 
     addDocumentNonBlocking(summariesRef, entryData);
-    showAlert({ title: "Posted", description: `Tiered profit has been recorded on ${summaryDate}.`, type: "success" });
+    showAlert({ title: "Posted", description: `Tiered profit recorded on ${summaryDate}.`, type: "success" });
     setIsInterestOpen(false);
   };
 
@@ -324,7 +315,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
-                <DialogDescription>Basis: Opening Balance (June 30) + 11 Monthly Balances. (Includes last-day transactions)</DialogDescription>
+                <DialogDescription>Logic: Opening Balance + Monthly Closing Balances. Captures all end-of-month entries.</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
@@ -333,10 +324,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     <TabsTrigger value="custom">Custom Range</TabsTrigger>
                   </TabsList>
                   <TabsContent value="fy" className="pt-4">
-                    <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
-                      <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <div className="flex flex-col gap-2">
+                      <Label className="text-xs font-bold uppercase text-slate-500">Select Fiscal Year</Label>
+                      <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
+                        <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="custom" className="pt-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1 space-y-2">
+                        <Label className="text-xs font-bold uppercase text-slate-500">Period Start</Label>
+                        <Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} />
+                      </div>
+                      <ArrowRightLeft className="size-4 text-slate-300 mt-6" />
+                      <div className="flex-1 space-y-2">
+                        <Label className="text-xs font-bold uppercase text-slate-500">Period End</Label>
+                        <Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} />
+                      </div>
+                    </div>
                   </TabsContent>
                 </Tabs>
                 {interestCalculation && (
@@ -349,15 +356,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                       <table className="w-full text-xs">
                         <thead className="bg-slate-100 sticky top-0 border-b">
                           <tr>
-                            <th className="p-2 text-left font-bold uppercase">Monthly Basis Basis</th>
-                            <th className="p-2 text-right font-bold uppercase">Closing Fund Balance</th>
-                            <th className="p-2 text-right font-bold uppercase">Computed Interest</th>
+                            <th className="p-2 text-left font-bold uppercase">Audit Basis Month</th>
+                            <th className="p-2 text-right font-bold uppercase">Cumulative Balance (৳)</th>
+                            <th className="p-2 text-right font-bold uppercase">Profit (1/12th)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {interestCalculation.monthlyDetails.map((d, i) => (
                             <tr key={i} className="hover:bg-slate-50">
-                              <td className="p-2 font-medium">{d.monthName}</td>
+                              <td className="p-2 font-medium">
+                                {d.label} {d.isOpening && <Badge variant="secondary" className="ml-2 text-[8px] h-4">Opening</Badge>}
+                              </td>
                               <td className="p-2 text-right">৳ {d.balance.toLocaleString()}</td>
                               <td className="p-2 text-right font-bold text-emerald-700">৳ {d.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>
