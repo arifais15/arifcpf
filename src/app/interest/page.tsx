@@ -21,7 +21,8 @@ import {
   Info,
   AlertCircle,
   ShieldCheck,
-  ArrowRightLeft
+  ArrowRightLeft,
+  X
 } from "lucide-react";
 import { 
   useCollection, 
@@ -44,6 +45,13 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 export default function CPFInterestPage() {
@@ -75,6 +83,7 @@ export default function CPFInterestPage() {
   const [isPosting, setIsPosting] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [progress, setProgress] = useState(0);
+  const [viewingDetails, setViewingDetails] = useState<any | null>(null);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
@@ -170,6 +179,7 @@ export default function CPFInterestPage() {
         }
       }
 
+      const monthlyBreakdown = [];
       for (const targetDate of basisDates) {
         let runningBalanceBasis = 0;
         summaries.forEach((row: any) => {
@@ -180,7 +190,16 @@ export default function CPFInterestPage() {
             runningBalanceBasis += val;
           }
         });
-        totalInterest += calculateTieredAnnual(runningBalanceBasis) / 12;
+        const monthlyPortion = calculateTieredAnnual(runningBalanceBasis) / 12;
+        totalInterest += monthlyPortion;
+        
+        monthlyBreakdown.push({
+          label: targetDate.toLocaleDateString('default', { month: 'short', year: 'numeric' }),
+          dateStr: targetDate.toISOString().split('T')[0],
+          isOpening: targetDate.getDate() !== 31 && targetDate.getMonth() === 5 && calculationMode === 'fy',
+          balance: runningBalanceBasis,
+          interest: monthlyPortion
+        });
       }
 
       results.push({
@@ -190,7 +209,8 @@ export default function CPFInterestPage() {
         calculatedInterest: totalInterest,
         employeeFund: finalEmployeeFund,
         officeFund: finalOfficeFund,
-        isPosted: isAlreadyPosted
+        isPosted: isAlreadyPosted,
+        monthlyDetails: monthlyBreakdown
       });
 
       setProgress(Math.round(((i + 1) / members.length) * 100));
@@ -394,7 +414,15 @@ export default function CPFInterestPage() {
                   <TableRow key={item.memberId} className={cn(item.isPosted ? "opacity-60 bg-slate-50" : "hover:bg-slate-50/50")}>
                     <TableCell className="font-mono text-xs font-bold">{item.memberIdNumber}</TableCell>
                     <TableCell className="text-xs font-semibold">{item.name}</TableCell>
-                    <TableCell className="text-right font-black text-accent">৳ {item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell 
+                      className="text-right font-black text-accent cursor-pointer hover:bg-accent/5 transition-colors group"
+                      onClick={() => setViewingDetails(item)}
+                    >
+                      <div className="flex items-center justify-end gap-2">
+                        <span>৳ {item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <Info className="size-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
+                      </div>
+                    </TableCell>
                     <TableCell className="text-center">
                       {item.isPosted ? (
                         <Badge variant="outline" className="border-emerald-500 text-emerald-600 text-[9px] uppercase">Posted to Ledger</Badge>
@@ -409,6 +437,86 @@ export default function CPFInterestPage() {
           </div>
         </div>
       )}
+
+      {/* Detail Breakdown Dialog */}
+      <Dialog open={!!viewingDetails} onOpenChange={(open) => !open && setViewingDetails(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto font-ledger">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3 text-xl font-bold uppercase tracking-tight">
+              <Calculator className="size-6 text-primary" />
+              Profit Audit Breakdown
+            </DialogTitle>
+            <DialogDescription className="font-bold text-slate-500 text-[11px] uppercase tracking-widest">
+              {viewingDetails?.name} ({viewingDetails?.memberIdNumber}) • {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 p-4 rounded-xl border">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Total Audit Profit</p>
+                <p className="text-2xl font-black text-primary">৳ {viewingDetails?.calculatedInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-xl border">
+                <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Current Ledger Status</p>
+                <div className="flex items-center gap-2 mt-1">
+                  {viewingDetails?.isPosted ? (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase text-[9px]">Already Synchronized</Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 uppercase text-[9px]">Pending Ledger Post</Badge>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="border rounded-xl overflow-hidden shadow-sm">
+              <Table>
+                <TableHeader className="bg-slate-100">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-bold uppercase py-3">Audit Basis Month</TableHead>
+                    <TableHead className="text-right text-[10px] font-bold uppercase py-3">Basis Balance (৳)</TableHead>
+                    <TableHead className="text-right text-[10px] font-bold uppercase py-3">1/12th Profit Portion (৳)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {viewingDetails?.monthlyDetails?.map((month: any, idx: number) => (
+                    <TableRow key={idx} className={cn(month.isOpening && "bg-blue-50/50")}>
+                      <TableCell className="text-xs font-semibold py-3 flex items-center gap-2">
+                        {month.label}
+                        {month.isOpening && <Badge variant="secondary" className="text-[8px] h-4 uppercase px-1">Opening Balance</Badge>}
+                      </TableCell>
+                      <td className="p-3 text-right font-mono text-xs">
+                        {month.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-3 text-right font-bold text-emerald-700 font-mono text-xs">
+                        {month.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <tfoot className="bg-slate-50 border-t-2 font-black">
+                  <tr>
+                    <td className="p-3 text-right text-[10px] uppercase">Computed Fiscal Profit:</td>
+                    <td colSpan={2} className="p-3 text-right text-primary text-sm">
+                      ৳ {viewingDetails?.calculatedInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
+              <ShieldCheck className="size-5 text-blue-600 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase text-blue-700 tracking-wider">Audit Logic Verification</p>
+                <p className="text-[11px] leading-relaxed text-blue-600">
+                  This tiered profit is computed by aggregating 12 audit snapshots. Each snapshot captures the total cumulative fund value at the end of the basis month (Opening Balance + 11 monthly closings). The final amount represents the weighted annual profit share of the member based on their real-time ledger contributions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
