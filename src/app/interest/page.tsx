@@ -127,22 +127,23 @@ export default function CPFInterestPage() {
        * 2. Calculation Basis: 
        * Month 1: Opening Balance (June 30th Prior Year)
        * Months 2-12: July Ending Balance to May Ending Balance (Current Year)
+       * Including transactions on the LAST DAY of each month.
        */
       for (let m = 0; m < 12; m++) {
         let currentMonthIdx, currentYear;
         if (m === 0) {
-          currentMonthIdx = 5; // June (Opening Balance)
+          currentMonthIdx = 5; // June (Prior Year Opening Basis)
           currentYear = startYear;
         } else {
           currentMonthIdx = (m + 5) % 12; // July (6) ... May (4)
           currentYear = m < 7 ? startYear : startYear + 1;
         }
         
-        const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0);
+        // Ensure comparison includes the entire last day
+        const lastDayOfMonth = new Date(currentYear, currentMonthIdx + 1, 0, 23, 59, 59, 999);
         
         let runningBalanceBasis = 0;
         summaries.forEach((row: any) => {
-          // Robust date comparison for June 30 + 11 months
           const rowDate = new Date(row.summaryDate);
           if (rowDate <= lastDayOfMonth) {
             const val = (Number(row.employeeContribution) || 0) - (Number(row.loanWithdrawal) || 0) + (Number(row.loanRepayment) || 0) + 
@@ -240,7 +241,7 @@ export default function CPFInterestPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance (June 30) + July-May Monthly Basis</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance (June 30) + July-May Monthly Basis (Includes last-day transactions)</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 bg-slate-50 border p-1 rounded-md">
@@ -300,7 +301,7 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="space-y-2 max-w-md mx-auto text-center">
-          <p className="text-xs font-bold uppercase tracking-widest opacity-50">Processing 12-month basis (Opening Balance + 11 Months)...</p>
+          <p className="text-xs font-bold uppercase tracking-widest opacity-50">Processing 12-month basis (Opening + 11 Months)...</p>
           <Progress value={progress} className="h-1.5" />
         </div>
       )}

@@ -112,6 +112,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   /**
    * Interest Accrual logic for Fiscal Year
    * Rule: Month 1: Opening Balance (June 30) + Months 2-12: July-May Monthly Ending Balances
+   * Includes transactions Added on the last day of each basis month.
    */
   const interestCalculation = useMemo(() => {
     let startYear = 0;
@@ -143,7 +144,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       if (selectedInterestMode === "fy") {
         let mIdx, yr;
         if (i === 0) {
-          mIdx = 5; // June (Prior Year Opening Balance)
+          mIdx = 5; // June (Prior Year Opening Basis)
           yr = startYear;
           monthLabel = "Opening Balance (June 30)";
         } else {
@@ -151,13 +152,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           yr = i < 7 ? startYear : startYear + 1;
           monthLabel = new Date(yr, mIdx).toLocaleString('default', { month: 'long', year: 'numeric' });
         }
-        currentMonth = new Date(yr, mIdx + 1, 0);
+        // Set comparison to very end of the day to capture last-day transactions
+        currentMonth = new Date(yr, mIdx + 1, 0, 23, 59, 59, 999);
       } else {
         const base = new Date(customRange.start);
-        currentMonth = new Date(base.getFullYear(), base.getMonth() + i + 1, 0);
+        currentMonth = new Date(base.getFullYear(), base.getMonth() + i + 1, 0, 23, 59, 59, 999);
         monthLabel = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
       }
 
+      // Find the last entry available on or before the end of the basis month
       const lastEntryInMonth = [...calculatedRows]
         .filter(r => {
           const rDate = new Date(r.summaryDate);
@@ -321,7 +324,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-3xl">
               <DialogHeader>
                 <DialogTitle>Subsidiary Ledger Profit Accrual</DialogTitle>
-                <DialogDescription>Basis: Opening Balance (June 30) + 11 Monthly Balances.</DialogDescription>
+                <DialogDescription>Basis: Opening Balance (June 30) + 11 Monthly Balances. (Includes last-day transactions)</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
@@ -424,7 +427,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               {isSummariesLoading ? <tr><td colSpan={14} className="text-center p-8 italic">Loading ledger data...</td></tr> : calculatedRows.map((row: any, idx) => (
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors">
                   <td className="border border-black p-1 text-center whitespace-nowrap font-mono">{row.summaryDate}</td>
-                  <td className="border border-black p-1 text-left break-words whitespace-normal leading-tight font-medium align-top">
+                  <td className="border border-black p-1 text-left break-words whitespace-normal leading-tight font-medium align-top overflow-visible">
                     {row.particulars || "-"}
                   </td>
                   <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
