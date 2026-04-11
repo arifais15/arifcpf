@@ -382,7 +382,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   if (!member) return <div className="p-8 text-center"><h1 className="text-2xl font-bold">Member not found</h1></div>;
 
   return (
-    <div className="p-6 md:p-10 flex flex-col gap-8 bg-slate-50 min-h-screen font-ledger">
+    <div className="p-6 md:p-10 flex flex-col gap-8 bg-slate-50 min-h-screen font-ledger text-[12px]">
       <div className="flex flex-col md:flex-row md:items-center justify-between no-print max-w-[1400px] mx-auto w-full gap-6">
         <Link href="/members" className="flex items-center gap-2 text-[15px] text-slate-500 hover:text-primary font-bold transition-colors">
           <ArrowLeft className="size-5" /> Back to Registry
@@ -582,25 +582,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h2 className="text-lg md:text-xl font-bold underline underline-offset-8 uppercase tracking-[0.25em] mt-3 text-slate-800">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-10 gap-y-6 mb-10 text-[13px]">
+        {/* --- Optimized 2-Row Header --- */}
+        <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-10 text-[13px] border-b-2 border-black/10 pb-6">
           {/* Row 1 */}
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Name</span>
-            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-base truncate">{member.name}</span>
+            <span className="font-black min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Member Name</span>
+            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-[15px] truncate uppercase">{member.name}</span>
           </div>
           <div className="flex gap-2 items-end">
             <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Designation</span>
             <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-sm truncate">{member.designation}</span>
           </div>
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[60px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">ID No</span>
+            <span className="font-black min-w-[60px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">ID Number</span>
             <span className="font-black border-b border-black/30 flex-1 pb-0.5 font-mono text-base">{member.memberIdNumber}</span>
           </div>
 
           {/* Row 2 */}
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Address</span>
-            <span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-sm truncate">{member.currentAddress || member.permanentAddress || "-"}</span>
+            <span className="font-black min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Permanent Address</span>
+            <span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-xs truncate">{member.permanentAddress || "-"}</span>
           </div>
           <div className="flex gap-2 items-end">
             <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Joined Date</span>
@@ -618,17 +619,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <tr>
                 <th className="border border-black p-1.5 text-center w-[75px] uppercase text-[10px]">Date</th>
                 <th className="border border-black p-1.5 text-center w-[180px] uppercase text-[10px] align-top">Particulars</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Emp. Cont (Col 1)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight text-rose-900">Loan Dr (Col 2)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight text-emerald-900">Loan Cr (Col 3)</th>
-                <th className="border border-black p-1.5 text-center w-[90px] uppercase text-[10px] leading-tight bg-slate-100">Loan Bal (Col 4)</th>
+                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Emp. Contribution (Col 1)</th>
+                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight text-rose-900">Loan Disburse (Col 2)</th>
+                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight text-emerald-900">Loan Repay (Col 3)</th>
+                <th className="border border-black p-1.5 text-center w-[90px] uppercase text-[10px] leading-tight bg-slate-100">Loan Balance (Col 4)</th>
                 <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Profit Emp (Col 5)</th>
                 <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Profit Loan (Col 6)</th>
-                <th className="border border-black p-1.5 text-center w-[95px] uppercase text-[10px] leading-tight bg-primary/10">Net Emp (Col 7)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">PBS Cont (Col 8)</th>
+                <th className="border border-black p-1.5 text-center w-[95px] uppercase text-[10px] leading-tight bg-primary/10">Net Emp Fund (Col 7)</th>
+                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">PBS Contrib (Col 8)</th>
                 <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Profit PBS (Col 9)</th>
-                <th className="border border-black p-1.5 text-center w-[95px] uppercase text-[10px] leading-tight bg-primary/10">Net PBS (Col 10)</th>
-                <th className="border border-black p-1.5 text-center w-[110px] uppercase text-[10px] leading-tight bg-slate-200">TOTAL (Col 11)</th>
+                <th className="border border-black p-1.5 text-center w-[95px] uppercase text-[10px] leading-tight bg-primary/10">Net PBS Fund (Col 10)</th>
+                <th className="border border-black p-1.5 text-center w-[110px] uppercase text-[10px] leading-tight bg-slate-200">GRAND TOTAL (Col 11)</th>
                 <th className="border border-black p-1.5 text-center no-print w-[90px] uppercase text-[10px]">Action</th>
               </tr>
             </thead>

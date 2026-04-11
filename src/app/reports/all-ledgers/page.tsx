@@ -142,21 +142,22 @@ export default function AllLedgersPrintPage() {
               <h2 className="text-lg font-bold underline underline-offset-8 uppercase tracking-[0.25em] mt-3">Provident Fund Subsidiary Ledger</h2>
             </div>
 
-            <div className="grid grid-cols-3 gap-x-8 gap-y-4 mb-8 text-[12px] font-bold">
+            {/* --- Optimized 2-Row Header --- */}
+            <div className="grid grid-cols-3 gap-x-8 gap-y-4 mb-8 text-[12px] font-bold border-b border-black/10 pb-4">
               <div className="flex gap-2 items-end border-b border-black/20 pb-1">
-                <span className="min-w-[60px] uppercase text-[9px] text-slate-500">Name</span>
-                <span className="flex-1 truncate">{ledger.member.name}</span>
+                <span className="min-w-[100px] uppercase text-[9px] text-slate-500">Member Name</span>
+                <span className="flex-1 truncate uppercase">{ledger.member.name}</span>
               </div>
               <div className="flex gap-2 items-end border-b border-black/20 pb-1">
                 <span className="min-w-[80px] uppercase text-[9px] text-slate-500">Designation</span>
                 <span className="flex-1 truncate">{ledger.member.designation}</span>
               </div>
               <div className="flex gap-2 items-end border-b border-black/20 pb-1">
-                <span className="min-w-[50px] uppercase text-[9px] text-slate-500">ID No</span>
+                <span className="min-w-[60px] uppercase text-[9px] text-slate-500">ID Number</span>
                 <span className="flex-1 font-mono">{ledger.member.memberIdNumber}</span>
               </div>
               <div className="flex gap-2 items-end border-b border-black/20 pb-1">
-                <span className="min-w-[60px] uppercase text-[9px] text-slate-500">Address</span>
+                <span className="min-w-[100px] uppercase text-[9px] text-slate-500">Perm. Address</span>
                 <span className="flex-1 truncate text-[11px]">{ledger.member.permanentAddress || "-"}</span>
               </div>
               <div className="flex gap-2 items-end border-b border-black/20 pb-1">
@@ -164,7 +165,7 @@ export default function AllLedgersPrintPage() {
                 <span className="flex-1">{ledger.member.dateJoined}</span>
               </div>
               <div className="flex gap-2 items-end border-b border-black/20 pb-1">
-                <span className="min-w-[50px] uppercase text-[9px] text-slate-500">Status</span>
+                <span className="min-w-[60px] uppercase text-[9px] text-slate-500">Status</span>
                 <span className="flex-1 uppercase text-[10px] text-primary">{ledger.member.status || "Active"}</span>
               </div>
             </div>
@@ -174,17 +175,17 @@ export default function AllLedgersPrintPage() {
                 <tr>
                   <th className="border border-black p-1 text-center w-[70px] uppercase text-[9px]">Date</th>
                   <th className="border border-black p-1 text-center w-[160px] uppercase text-[9px]">Particulars</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 1</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 2</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 3</th>
-                  <th className="border border-black p-1 text-right w-[85px] uppercase text-[9px] bg-slate-100">Col 4</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 5</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 6</th>
-                  <th className="border border-black p-1 text-right w-[90px] uppercase text-[9px] bg-primary/5">Col 7</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 8</th>
-                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px]">Col 9</th>
-                  <th className="border border-black p-1 text-right w-[90px] uppercase text-[9px] bg-primary/5">Col 10</th>
-                  <th className="border border-black p-1 text-right w-[100px] uppercase text-[9px] bg-slate-200">Col 11</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">Emp. Contrib (Col 1)</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">Loan Disburse (Col 2)</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">Loan Repay (Col 3)</th>
+                  <th className="border border-black p-1 text-right w-[85px] uppercase text-[9px] leading-tight bg-slate-100">Loan Balance (Col 4)</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">Profit Emp (Col 5)</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">Profit Loan (Col 6)</th>
+                  <th className="border border-black p-1 text-right w-[90px] uppercase text-[9px] leading-tight bg-primary/5">Net Emp Fund (Col 7)</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">PBS Contrib (Col 8)</th>
+                  <th className="border border-black p-1 text-right w-[80px] uppercase text-[9px] leading-tight">Profit PBS (Col 9)</th>
+                  <th className="border border-black p-1 text-right w-[90px] uppercase text-[9px] leading-tight bg-primary/5">Net PBS Fund (Col 10)</th>
+                  <th className="border border-black p-1 text-right w-[100px] uppercase text-[9px] leading-tight bg-slate-200">TOTAL FUND (Col 11)</th>
                 </tr>
               </thead>
               <tbody>

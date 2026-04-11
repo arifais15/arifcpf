@@ -208,7 +208,7 @@ export default function LedgerSummaryReportPage() {
   };
 
   const ColumnGroupHead = ({ title, colSpan = 3, className }: { title: string, colSpan?: number, className?: string }) => (
-    <TableHead colSpan={colSpan} className={cn("text-center border-x border-black/10 font-bold uppercase text-[10px] py-2", className)}>{title}</TableHead>
+    <TableHead colSpan={colSpan} className={cn("text-center border-x border-black/10 font-bold uppercase text-[10px] py-2 leading-tight", className)}>{title}</TableHead>
   );
 
   return (
@@ -283,14 +283,14 @@ export default function LedgerSummaryReportPage() {
                   <TableRow className="bg-muted/50">
                     <TableHead rowSpan={2} className="w-[60px] sticky left-0 bg-white border-r border-b z-40">ID No</TableHead>
                     <TableHead rowSpan={2} className="w-[180px] sticky left-[60px] bg-white border-r border-b z-40">Name</TableHead>
-                    <ColumnGroupHead title="Emp. Contrib (Col 1)" className="bg-blue-50/30" />
-                    <ColumnGroupHead title="Loan Withdraw (Col 2)" className="bg-rose-50/30" />
-                    <ColumnGroupHead title="Loan Repay (Col 3)" className="bg-emerald-50/30" />
-                    <ColumnGroupHead title="Profit Emp (Col 5)" className="bg-amber-50/30" />
-                    <ColumnGroupHead title="Profit Loan (Col 6)" className="bg-amber-50/30" />
-                    <ColumnGroupHead title="PBS Contrib (Col 8)" className="bg-slate-50" />
-                    <ColumnGroupHead title="Profit PBS (Col 9)" className="bg-amber-50/30" />
-                    <ColumnGroupHead title="Grand Cumulative (Col 11)" className="bg-primary/5" />
+                    <ColumnGroupHead title="Employee's Contribution (Col 1)" className="bg-blue-50/30" />
+                    <ColumnGroupHead title="Loan Disburse (Col 2)" className="bg-rose-50/30" />
+                    <ColumnGroupHead title="Loan Repayment (Col 3)" className="bg-emerald-50/30" />
+                    <ColumnGroupHead title="Profit on Emp Cont. (Col 5)" className="bg-amber-50/30" />
+                    <ColumnGroupHead title="Profit on Loan (Col 6)" className="bg-amber-50/30" />
+                    <ColumnGroupHead title="PBS Contribution (Col 8)" className="bg-slate-50" />
+                    <ColumnGroupHead title="Profit on PBS Cont. (Col 9)" className="bg-amber-50/30" />
+                    <ColumnGroupHead title="Total Cumulative Fund (Col 11)" className="bg-primary/5" />
                   </TableRow>
                   <TableRow className="bg-slate-50/50 text-[8px] uppercase font-bold">
                     {[1,2,3,5,6,8,9,11].map(i => (
@@ -382,7 +382,7 @@ export default function LedgerSummaryReportPage() {
                 <TableRow>
                   <TableHead className="py-4">ID No</TableHead>
                   <TableHead className="py-4">Member Name</TableHead>
-                  <TableHead className="text-right py-4">Loan Bal (Col 4)</TableHead>
+                  <TableHead className="text-right py-4">Loan Balance (Col 4)</TableHead>
                   <TableHead className="text-right py-4">Net Emp Fund (Col 7)</TableHead>
                   <TableHead className="text-right py-4">Net Office Fund (Col 10)</TableHead>
                   <TableHead className="text-right py-4">Total Netfund (Col 11)</TableHead>
@@ -509,7 +509,7 @@ export default function LedgerSummaryReportPage() {
               <tr className="bg-slate-50">
                 <th className="border border-black p-2 text-center">ID No</th>
                 <th className="border border-black p-2 text-left">Member Name</th>
-                <th className="border border-black p-2 text-right">Loan Bal</th>
+                <th className="border border-black p-2 text-right">Loan Balance</th>
                 <th className="border border-black p-2 text-right">Net Emp Fund</th>
                 <th className="border border-black p-2 text-right">Net Office Fund</th>
                 <th className="border border-black p-2 text-right font-black">Grand Total</th>
