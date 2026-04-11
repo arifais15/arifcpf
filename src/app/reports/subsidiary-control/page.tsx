@@ -53,7 +53,7 @@ export default function SubsidiaryControlLedgerPage() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [selectedColumn, setSelectedColumn] = useState<string>("employeeContribution");
   const [selectedMember, setSelectedMember] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"ledger" | "institutional" | "daily">("ledger");
+  const [viewMode, setViewMode] = useState<"ledger" | "institutional" | "daily">("institutional");
   const [searchFilter, setSearchFilter] = useState("");
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
@@ -62,41 +62,49 @@ export default function SubsidiaryControlLedgerPage() {
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);
 
-  // VIEW 1: CATEGORY LEDGER (Transaction level for one column)
+  // VIEW 1: CATEGORY LEDGER (Summarized by date for one column)
   const ledgerData = useMemo(() => {
     if (!allSummaries || !selectedColumn) return [];
 
     const colConfig = SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn);
     if (!colConfig) return [];
 
-    const filtered = allSummaries
-      .filter(s => {
-        const val = Number(s[selectedColumn]) || 0;
-        const matchesMember = selectedMember === "all" || s.memberId === selectedMember;
-        return val !== 0 && matchesMember;
-      })
-      .map(s => {
-        const amount = Number(s[selectedColumn]) || 0;
-        const member = members?.find(m => m.id === s.memberId);
-        
-        return {
-          date: s.summaryDate,
-          memberId: member?.memberIdNumber || "N/A",
-          memberName: member?.name || "Unknown",
-          particulars: s.particulars || "Manual Entry",
-          debit: colConfig.balance === 'Debit' ? (amount > 0 ? amount : 0) : (amount < 0 ? Math.abs(amount) : 0),
-          credit: colConfig.balance === 'Credit' ? (amount > 0 ? amount : 0) : (amount < 0 ? Math.abs(amount) : 0),
-          timestamp: new Date(s.summaryDate).getTime()
+    const grouped: Record<string, { date: string, debit: number, credit: number, timestamp: number, memberCount: number }> = {};
+
+    allSummaries.forEach(s => {
+      const amount = Number(s[selectedColumn]) || 0;
+      if (amount === 0) return;
+      if (selectedMember !== "all" && s.memberId !== selectedMember) return;
+
+      const date = s.summaryDate;
+      if (!grouped[date]) {
+        grouped[date] = {
+          date,
+          debit: 0,
+          credit: 0,
+          timestamp: new Date(date).getTime(),
+          memberCount: 0
         };
-      })
-      .sort((a, b) => a.timestamp - b.timestamp);
+      }
+
+      if (colConfig.balance === 'Debit') {
+        if (amount > 0) grouped[date].debit += amount;
+        else grouped[date].credit += Math.abs(amount);
+      } else {
+        if (amount > 0) grouped[date].credit += amount;
+        else grouped[date].debit += Math.abs(amount);
+      }
+      grouped[date].memberCount++;
+    });
+
+    const sorted = Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
 
     // Apply date filter
-    let processed = filtered;
+    let processed = sorted;
     if (dateRange.start && dateRange.end) {
       const s = new Date(dateRange.start).getTime();
       const e = new Date(dateRange.end).getTime();
-      processed = filtered.filter(item => item.timestamp >= s && item.timestamp <= e);
+      processed = sorted.filter(item => item.timestamp >= s && item.timestamp <= e);
     }
 
     let currentBalance = 0;
@@ -106,67 +114,70 @@ export default function SubsidiaryControlLedgerPage() {
       } else {
         currentBalance += (item.credit - item.debit);
       }
-      return { ...item, balance: currentBalance };
+      return { 
+        ...item, 
+        particulars: selectedMember === "all" ? `Consolidated Daily Postings (${item.memberCount} records)` : "Member Fund Activity",
+        balance: currentBalance 
+      };
     });
-  }, [allSummaries, selectedColumn, selectedMember, members, dateRange]);
+  }, [allSummaries, selectedColumn, selectedMember, dateRange]);
 
-  // VIEW 2: INSTITUTIONAL TOTAL FUND LEDGER (Consolidated sequential ledger)
+  // VIEW 2: INSTITUTIONAL TOTAL FUND LEDGER (Summarized by date)
   const institutionalLedger = useMemo(() => {
     if (!allSummaries) return [];
 
-    const filtered = allSummaries
-      .map(s => {
-        const member = members?.find(m => m.id === s.memberId);
-        const c1 = Number(s.employeeContribution) || 0;
-        const c2 = Number(s.loanWithdrawal) || 0;
-        const c3 = Number(s.loanRepayment) || 0;
-        const c5 = Number(s.profitEmployee) || 0;
-        const c6 = Number(s.profitLoan) || 0;
-        const c8 = Number(s.pbsContribution) || 0;
-        const c9 = Number(s.profitPbs) || 0;
+    const grouped: Record<string, { date: string, debit: number, credit: number, timestamp: number, count: number }> = {};
 
-        // Total Fund Logic: Net increase in Liability/Equity
-        // Credits (Increases fund): c1, c3, c5, c6, c8, c9
-        // Debits (Decreases fund): c2 (Loan withdrawal)
-        const netCreditEffect = (c1 + c3 + c5 + c6 + c8 + c9) - c2;
+    allSummaries.forEach(s => {
+      const c1 = Number(s.employeeContribution) || 0;
+      const c2 = Number(s.loanWithdrawal) || 0;
+      const c3 = Number(s.loanRepayment) || 0;
+      const c5 = Number(s.profitEmployee) || 0;
+      const c6 = Number(s.profitLoan) || 0;
+      const c8 = Number(s.pbsContribution) || 0;
+      const c9 = Number(s.profitPbs) || 0;
 
-        if (Math.abs(netCreditEffect) < 0.01) return null;
+      const netCreditEffect = (c1 + c3 + c5 + c6 + c8 + c9) - c2;
+      if (Math.abs(netCreditEffect) < 0.01) return;
 
-        return {
-          date: s.summaryDate,
-          memberId: member?.memberIdNumber || "N/A",
-          memberName: member?.name || "Unknown",
-          particulars: `${s.particulars || 'Record'} (${member?.memberIdNumber || 'Global'})`,
-          debit: netCreditEffect < 0 ? Math.abs(netCreditEffect) : 0,
-          credit: netCreditEffect > 0 ? netCreditEffect : 0,
-          timestamp: new Date(s.summaryDate).getTime()
+      const date = s.summaryDate;
+      if (!grouped[date]) {
+        grouped[date] = {
+          date,
+          debit: 0,
+          credit: 0,
+          timestamp: new Date(date).getTime(),
+          count: 0
         };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null)
-      .sort((a, b) => a.timestamp - b.timestamp);
+      }
 
-    let processed = filtered;
+      if (netCreditEffect > 0) grouped[date].credit += netCreditEffect;
+      else if (netCreditEffect < 0) grouped[date].debit += Math.abs(netCreditEffect);
+      
+      grouped[date].count++;
+    });
+
+    const sorted = Object.values(grouped).sort((a, b) => a.timestamp - b.timestamp);
+
+    let processed = sorted;
     if (dateRange.start && dateRange.end) {
       const s = new Date(dateRange.start).getTime();
       const e = new Date(dateRange.end).getTime();
-      processed = filtered.filter(item => item.timestamp >= s && item.timestamp <= e);
-    }
-
-    if (searchFilter) {
-      processed = processed.filter(item => 
-        item.particulars.toLowerCase().includes(searchFilter.toLowerCase()) || 
-        item.memberName.toLowerCase().includes(searchFilter.toLowerCase())
-      );
+      processed = sorted.filter(item => item.timestamp >= s && item.timestamp <= e);
     }
 
     let runningBalance = 0;
     return processed.map(item => {
       runningBalance += (item.credit - item.debit);
-      return { ...item, balance: runningBalance };
+      return { 
+        ...item, 
+        particulars: `Consolidated Daily Fund Activity (${item.count} members)`,
+        balance: runningBalance 
+      };
     });
-  }, [allSummaries, members, dateRange, searchFilter]);
+  }, [allSummaries, dateRange]);
 
-  // VIEW 3: DAILY CONSOLIDATED SUMMARY
+  // VIEW 3: DAILY CONSOLIDATED SUMMARY (Already date wise)
   const dailySummaryData = useMemo(() => {
     if (!allSummaries) return [];
 
@@ -306,28 +317,14 @@ export default function SubsidiaryControlLedgerPage() {
               </div>
             </div>
           )}
-
-          {viewMode === 'institutional' && (
-            <div className="border-t pt-6">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                <Input 
-                  className="pl-9" 
-                  placeholder="Search transactions or members..." 
-                  value={searchFilter}
-                  onChange={(e) => setSearchFilter(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
         </div>
 
         <TabsContent value="institutional">
           <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-sm font-bold">Institutional Total Fund Control Ledger</h2>
+              <h2 className="text-sm font-bold">Institutional Total Fund Control Ledger (Date-wise Summary)</h2>
               <Badge variant="outline" className="bg-white border-slate-200">
-                {institutionalLedger.length} Movements Traceable
+                {institutionalLedger.length} Active Days
               </Badge>
             </div>
             <div className="overflow-x-auto">
@@ -335,7 +332,7 @@ export default function SubsidiaryControlLedgerPage() {
                 <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead className="py-4">Date</TableHead>
-                    <TableHead className="py-4">Particulars & Audit Trail</TableHead>
+                    <TableHead className="py-4">Particulars & Summary Info</TableHead>
                     <TableHead className="text-right py-4">Debit (৳)</TableHead>
                     <TableHead className="text-right py-4">Credit (৳)</TableHead>
                     <TableHead className="text-right py-4">Running Balance (৳)</TableHead>
@@ -352,7 +349,7 @@ export default function SubsidiaryControlLedgerPage() {
                       <td className="p-4">
                         <div className="flex flex-col">
                           <span className="text-xs font-bold text-slate-800">{item.particulars}</span>
-                          <span className="text-[10px] text-muted-foreground truncate">{item.memberName}</span>
+                          <span className="text-[10px] text-muted-foreground italic">Daily total based on individual employee ledger postings</span>
                         </div>
                       </td>
                       <td className="text-right font-medium p-4 text-rose-600">
@@ -369,7 +366,7 @@ export default function SubsidiaryControlLedgerPage() {
                 </TableBody>
                 <TableFooter className="bg-slate-100/80 font-black">
                   <TableRow>
-                    <TableCell colSpan={2} className="text-right uppercase text-[9px]">Closing Control Balance:</TableCell>
+                    <TableCell colSpan={2} className="text-right uppercase text-[9px]">Final Closing Balance:</TableCell>
                     <TableCell className="text-right text-[10px] text-rose-700">
                       ৳ {institutionalLedger.reduce((s, r) => s + r.debit, 0).toLocaleString()}
                     </TableCell>
@@ -389,7 +386,7 @@ export default function SubsidiaryControlLedgerPage() {
         <TabsContent value="ledger">
           <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-sm font-bold">{SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label}</h2>
+              <h2 className="text-sm font-bold">{SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label} (Date-wise)</h2>
               <Badge variant="outline" className="bg-white border-slate-200">
                 {ledgerData.length} Postings
               </Badge>
@@ -399,7 +396,6 @@ export default function SubsidiaryControlLedgerPage() {
                 <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead className="py-4">Date</TableHead>
-                    <TableHead className="py-4">Member ID</TableHead>
                     <TableHead className="py-4">Particulars</TableHead>
                     <TableHead className="text-right py-4">Debit (৳)</TableHead>
                     <TableHead className="text-right py-4">Credit (৳)</TableHead>
@@ -408,13 +404,12 @@ export default function SubsidiaryControlLedgerPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
                   ) : ledgerData.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground italic">No entries match your filter.</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic">No entries match your filter.</TableCell></TableRow>
                   ) : ledgerData.map((item, idx) => (
                     <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
-                      <td className="p-4"><span className="text-xs font-bold text-slate-900">{item.memberId}</span></td>
                       <td className="p-4 text-xs font-medium text-slate-700">{item.particulars}</td>
                       <td className="text-right font-medium p-4 text-blue-600">{item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}</td>
                       <td className="text-right font-medium p-4 text-rose-600">{item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}</td>
@@ -424,7 +419,7 @@ export default function SubsidiaryControlLedgerPage() {
                 </TableBody>
                 <TableFooter className="bg-slate-100/80 font-black">
                   <TableRow>
-                    <TableCell colSpan={3} className="text-right uppercase text-[9px]">Closing:</TableCell>
+                    <TableCell colSpan={2} className="text-right uppercase text-[9px]">Closing Total:</TableCell>
                     <TableCell className="text-right text-[10px]">{ledgerData.reduce((s, r) => s + r.debit, 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right text-[10px]">{ledgerData.reduce((s, r) => s + r.credit, 0).toLocaleString()}</TableCell>
                     <TableCell className="text-right text-base text-primary underline decoration-double">৳ {ledgerData[ledgerData.length - 1]?.balance.toLocaleString() || "0.00"}</TableCell>
@@ -487,6 +482,7 @@ export default function SubsidiaryControlLedgerPage() {
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <div className="text-left">
               <p>Report Type: {viewMode === 'institutional' ? 'Total Fund Control' : viewMode === 'ledger' ? `Category: ${SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label}` : 'Daily Audit'}</p>
+              <p>Basis: Date-wise Summarized Ledger</p>
               <p>Period: {dateRange.start || "Beginning"} to {dateRange.end || "Present"}</p>
             </div>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
