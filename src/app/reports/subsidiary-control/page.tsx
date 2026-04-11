@@ -21,7 +21,9 @@ import {
   User,
   Tags,
   CalendarDays,
-  FileStack
+  FileStack,
+  Search,
+  BookOpenCheck
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, collectionGroup } from "firebase/firestore";
@@ -51,7 +53,8 @@ export default function SubsidiaryControlLedgerPage() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [selectedColumn, setSelectedColumn] = useState<string>("employeeContribution");
   const [selectedMember, setSelectedMember] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"ledger" | "daily">("ledger");
+  const [viewMode, setViewMode] = useState<"ledger" | "institutional" | "daily">("ledger");
+  const [searchFilter, setSearchFilter] = useState("");
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members } = useCollection(membersRef);
@@ -107,7 +110,63 @@ export default function SubsidiaryControlLedgerPage() {
     });
   }, [allSummaries, selectedColumn, selectedMember, members, dateRange]);
 
-  // VIEW 2: DAILY CONSOLIDATED SUMMARY (Institutional movement per day)
+  // VIEW 2: INSTITUTIONAL TOTAL FUND LEDGER (Consolidated sequential ledger)
+  const institutionalLedger = useMemo(() => {
+    if (!allSummaries) return [];
+
+    const filtered = allSummaries
+      .map(s => {
+        const member = members?.find(m => m.id === s.memberId);
+        const c1 = Number(s.employeeContribution) || 0;
+        const c2 = Number(s.loanWithdrawal) || 0;
+        const c3 = Number(s.loanRepayment) || 0;
+        const c5 = Number(s.profitEmployee) || 0;
+        const c6 = Number(s.profitLoan) || 0;
+        const c8 = Number(s.pbsContribution) || 0;
+        const c9 = Number(s.profitPbs) || 0;
+
+        // Total Fund Logic: Net increase in Liability/Equity
+        // Credits (Increases fund): c1, c3, c5, c6, c8, c9
+        // Debits (Decreases fund): c2 (Loan withdrawal)
+        const netCreditEffect = (c1 + c3 + c5 + c6 + c8 + c9) - c2;
+
+        if (Math.abs(netCreditEffect) < 0.01) return null;
+
+        return {
+          date: s.summaryDate,
+          memberId: member?.memberIdNumber || "N/A",
+          memberName: member?.name || "Unknown",
+          particulars: `${s.particulars || 'Record'} (${member?.memberIdNumber || 'Global'})`,
+          debit: netCreditEffect < 0 ? Math.abs(netCreditEffect) : 0,
+          credit: netCreditEffect > 0 ? netCreditEffect : 0,
+          timestamp: new Date(s.summaryDate).getTime()
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    let processed = filtered;
+    if (dateRange.start && dateRange.end) {
+      const s = new Date(dateRange.start).getTime();
+      const e = new Date(dateRange.end).getTime();
+      processed = filtered.filter(item => item.timestamp >= s && item.timestamp <= e);
+    }
+
+    if (searchFilter) {
+      processed = processed.filter(item => 
+        item.particulars.toLowerCase().includes(searchFilter.toLowerCase()) || 
+        item.memberName.toLowerCase().includes(searchFilter.toLowerCase())
+      );
+    }
+
+    let runningBalance = 0;
+    return processed.map(item => {
+      runningBalance += (item.credit - item.debit);
+      return { ...item, balance: runningBalance };
+    });
+  }, [allSummaries, members, dateRange, searchFilter]);
+
+  // VIEW 3: DAILY CONSOLIDATED SUMMARY
   const dailySummaryData = useMemo(() => {
     if (!allSummaries) return [];
 
@@ -140,16 +199,12 @@ export default function SubsidiaryControlLedgerPage() {
       grouped[date].c8 += v8;
       grouped[date].c9 += v9;
 
-      // Aggregated Debit/Credit flow
-      // Debits: Loan Disburses (v2+) and reversals in credit columns (v1-, v3-, etc)
       grouped[date].totalDr += (v2 > 0 ? v2 : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v < 0 ? Math.abs(v) : 0), 0);
-      // Credits: Contributions/Profits/Repayments (v1+, v3+, etc) and reversals in debit column (v2-)
       grouped[date].totalCr += (v2 < 0 ? Math.abs(v2) : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
     });
 
     const sorted = Object.values(grouped).sort((a: any, b: any) => a.timestamp - b.timestamp);
 
-    // Apply date filter
     if (dateRange.start && dateRange.end) {
       const s = new Date(dateRange.start).getTime();
       const e = new Date(dateRange.end).getTime();
@@ -160,37 +215,17 @@ export default function SubsidiaryControlLedgerPage() {
   }, [allSummaries, dateRange]);
 
   const exportToExcel = () => {
-    const data = viewMode === 'ledger' 
-      ? ledgerData.map(item => ({
-          "Date": item.date,
-          "Member ID": item.memberId,
-          "Member Name": item.memberName,
-          "Particulars": item.particulars,
-          "Debit (৳)": item.debit,
-          "Credit (৳)": item.credit,
-          "Balance (৳)": item.balance
-        }))
-      : dailySummaryData.map((item: any) => ({
-          "Date": item.date,
-          "Col 1 (Emp)": item.c1,
-          "Col 2 (Loan W)": item.c2,
-          "Col 3 (Loan R)": item.c3,
-          "Col 5 (Prof E)": item.c5,
-          "Col 6 (Prof L)": item.c6,
-          "Col 8 (PBS)": item.c8,
-          "Col 9 (Prof P)": item.c9,
-          "Total Daily Dr": item.totalDr,
-          "Total Daily Cr": item.totalCr
-        }));
+    let dataToExport: any[] = [];
+    if (viewMode === 'ledger') dataToExport = ledgerData;
+    else if (viewMode === 'institutional') dataToExport = institutionalLedger;
+    else dataToExport = dailySummaryData;
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, viewMode === 'ledger' ? "Category Ledger" : "Daily Summary");
+    XLSX.utils.book_append_sheet(wb, ws, viewMode);
     XLSX.writeFile(wb, `Subsidiary_Control_${viewMode}_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast({ title: "Exported", description: "Audit data saved to Excel." });
   };
-
-  const selectedColLabel = SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label || "";
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
@@ -218,8 +253,9 @@ export default function SubsidiaryControlLedgerPage() {
         <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col gap-6 no-print mb-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <TabsList className="bg-slate-100 p-1 h-11">
+              <TabsTrigger value="institutional" className="gap-2 px-6"><BookOpenCheck className="size-4" /> Institutional Ledger</TabsTrigger>
               <TabsTrigger value="ledger" className="gap-2 px-6"><Tags className="size-4" /> Category Ledger</TabsTrigger>
-              <TabsTrigger value="daily" className="gap-2 px-6"><CalendarDays className="size-4" /> Daily Audit Summary</TabsTrigger>
+              <TabsTrigger value="daily" className="gap-2 px-6"><CalendarDays className="size-4" /> Daily Summary</TabsTrigger>
             </TabsList>
 
             <div className="flex items-center gap-3">
@@ -247,14 +283,11 @@ export default function SubsidiaryControlLedgerPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {SUBSIDIARY_COLUMNS.map(col => (
-                      <SelectItem key={col.key} value={col.key} className="py-2">
-                        {col.label}
-                      </SelectItem>
+                      <SelectItem key={col.key} value={col.key} className="py-2">{col.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase font-black text-slate-400 ml-1 flex items-center gap-2">
                   <User className="size-3" /> Member Filtering
@@ -266,30 +299,97 @@ export default function SubsidiaryControlLedgerPage() {
                   <SelectContent className="max-h-[300px]">
                     <SelectItem value="all">All Institutional Personnel</SelectItem>
                     {members?.map(m => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.memberIdNumber} - {m.name}
-                      </SelectItem>
+                      <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
           )}
+
+          {viewMode === 'institutional' && (
+            <div className="border-t pt-6">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <Input 
+                  className="pl-9" 
+                  placeholder="Search transactions or members..." 
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </div>
+
+        <TabsContent value="institutional">
+          <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
+              <h2 className="text-sm font-bold">Institutional Total Fund Control Ledger</h2>
+              <Badge variant="outline" className="bg-white border-slate-200">
+                {institutionalLedger.length} Movements Traceable
+              </Badge>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="py-4">Date</TableHead>
+                    <TableHead className="py-4">Particulars & Audit Trail</TableHead>
+                    <TableHead className="text-right py-4">Debit (৳)</TableHead>
+                    <TableHead className="text-right py-4">Credit (৳)</TableHead>
+                    <TableHead className="text-right py-4">Running Balance (৳)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                  ) : institutionalLedger.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic">No fund movements identified.</TableCell></TableRow>
+                  ) : institutionalLedger.map((item, idx) => (
+                    <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800">{item.particulars}</span>
+                          <span className="text-[10px] text-muted-foreground truncate">{item.memberName}</span>
+                        </div>
+                      </td>
+                      <td className="text-right font-medium p-4 text-rose-600">
+                        {item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
+                      </td>
+                      <td className="text-right font-medium p-4 text-emerald-600">
+                        {item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
+                      </td>
+                      <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">
+                        ৳ {item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </td>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter className="bg-slate-100/80 font-black">
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-right uppercase text-[9px]">Closing Control Balance:</TableCell>
+                    <TableCell className="text-right text-[10px] text-rose-700">
+                      ৳ {institutionalLedger.reduce((s, r) => s + r.debit, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-[10px] text-emerald-700">
+                      ৳ {institutionalLedger.reduce((s, r) => s + r.credit, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-base text-primary underline decoration-double">
+                      ৳ {institutionalLedger[institutionalLedger.length - 1]?.balance.toLocaleString() || "0.00"}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
 
         <TabsContent value="ledger">
           <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="bg-white border-primary/20 text-primary font-bold text-xs py-1 px-3">
-                  {selectedColLabel}
-                </Badge>
-                {selectedMember !== 'all' && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    Filtered Member
-                  </Badge>
-                )}
-              </div>
+              <h2 className="text-sm font-bold">{SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label}</h2>
               <Badge variant="outline" className="bg-white border-slate-200">
                 {ledgerData.length} Postings
               </Badge>
@@ -314,39 +414,20 @@ export default function SubsidiaryControlLedgerPage() {
                   ) : ledgerData.map((item, idx) => (
                     <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
-                      <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-900">{item.memberId}</span>
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{item.memberName}</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-xs font-medium text-slate-700">{item.particulars}</span>
-                      </td>
-                      <td className="text-right font-medium p-4 text-blue-600">
-                        {item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
-                      </td>
-                      <td className="text-right font-medium p-4 text-rose-600">
-                        {item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
-                      </td>
-                      <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">
-                        ৳ {item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                      </td>
+                      <td className="p-4"><span className="text-xs font-bold text-slate-900">{item.memberId}</span></td>
+                      <td className="p-4 text-xs font-medium text-slate-700">{item.particulars}</td>
+                      <td className="text-right font-medium p-4 text-blue-600">{item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}</td>
+                      <td className="text-right font-medium p-4 text-rose-600">{item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}</td>
+                      <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">৳ {item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </TableRow>
                   ))}
                 </TableBody>
                 <TableFooter className="bg-slate-100/80 font-black">
                   <TableRow>
-                    <TableCell colSpan={3} className="text-right uppercase text-[9px]">Consolidated Category Closing:</TableCell>
-                    <TableCell className="text-right text-[10px] text-blue-700">
-                      ৳ {ledgerData.reduce((s, r) => s + r.debit, 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-[10px] text-rose-700">
-                      ৳ {ledgerData.reduce((s, r) => s + r.credit, 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-base text-primary underline decoration-double">
-                      ৳ {ledgerData[ledgerData.length - 1]?.balance.toLocaleString() || "0.00"}
-                    </TableCell>
+                    <TableCell colSpan={3} className="text-right uppercase text-[9px]">Closing:</TableCell>
+                    <TableCell className="text-right text-[10px]">{ledgerData.reduce((s, r) => s + r.debit, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{ledgerData.reduce((s, r) => s + r.credit, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-base text-primary underline decoration-double">৳ {ledgerData[ledgerData.length - 1]?.balance.toLocaleString() || "0.00"}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -357,36 +438,27 @@ export default function SubsidiaryControlLedgerPage() {
         <TabsContent value="daily">
           <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-sm font-bold flex items-center gap-2">
-                <FileStack className="size-4 text-primary" />
-                Institutional Consolidated Daily Audit Summary
-              </h2>
-              <Badge variant="outline" className="bg-white border-slate-200">
-                {dailySummaryData.length} Active Ledger Dates
-              </Badge>
+              <h2 className="text-sm font-bold">Consolidated Daily Audit Summary</h2>
+              <Badge variant="outline" className="bg-white border-slate-200">{dailySummaryData.length} Active Dates</Badge>
             </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/30">
                   <TableRow>
                     <TableHead className="py-4">Date</TableHead>
-                    <TableHead className="text-right py-4">Col 1 (Emp)</TableHead>
-                    <TableHead className="text-right py-4">Col 2 (Loan W)</TableHead>
-                    <TableHead className="text-right py-4">Col 3 (Loan R)</TableHead>
-                    <TableHead className="text-right py-4">Col 5 (Prof E)</TableHead>
-                    <TableHead className="text-right py-4">Col 6 (Prof L)</TableHead>
-                    <TableHead className="text-right py-4">Col 8 (PBS)</TableHead>
-                    <TableHead className="text-right py-4">Col 9 (Prof P)</TableHead>
+                    <TableHead className="text-right py-4">Col 1</TableHead>
+                    <TableHead className="text-right py-4">Col 2</TableHead>
+                    <TableHead className="text-right py-4">Col 3</TableHead>
+                    <TableHead className="text-right py-4">Col 5</TableHead>
+                    <TableHead className="text-right py-4">Col 6</TableHead>
+                    <TableHead className="text-right py-4">Col 8</TableHead>
+                    <TableHead className="text-right py-4">Col 9</TableHead>
                     <TableHead className="text-right py-4 font-bold bg-blue-50/30">Total Daily Dr</TableHead>
                     <TableHead className="text-right py-4 font-bold bg-emerald-50/30">Total Daily Cr</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={10} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-                  ) : dailySummaryData.length === 0 ? (
-                    <TableRow><TableCell colSpan={10} className="text-center py-16 text-muted-foreground italic">No daily movement records found.</TableCell></TableRow>
-                  ) : dailySummaryData.map((item: any, idx) => (
+                  {dailySummaryData.map((item: any, idx) => (
                     <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
                       <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
                       <td className="text-right p-4 text-[11px]">{item.c1.toLocaleString()}</td>
@@ -396,25 +468,11 @@ export default function SubsidiaryControlLedgerPage() {
                       <td className="text-right p-4 text-[11px]">{item.c6.toLocaleString()}</td>
                       <td className="text-right p-4 text-[11px]">{item.c8.toLocaleString()}</td>
                       <td className="text-right p-4 text-[11px]">{item.c9.toLocaleString()}</td>
-                      <td className="text-right p-4 font-bold bg-blue-50/10">৳ {item.totalDr.toLocaleString()}</td>
-                      <td className="text-right p-4 font-bold bg-emerald-50/10 text-primary">৳ {item.totalCr.toLocaleString()}</td>
+                      <td className="text-right p-4 font-bold">৳ {item.totalDr.toLocaleString()}</td>
+                      <td className="text-right p-4 font-bold text-primary">৳ {item.totalCr.toLocaleString()}</td>
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFooter className="bg-slate-100/80 font-black">
-                  <TableRow>
-                    <TableCell className="uppercase text-[9px]">Column Totals:</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c1, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c2, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c3, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c5, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c6, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c8, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c9, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px] bg-blue-100/50">৳ {dailySummaryData.reduce((s, r) => s + r.totalDr, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px] bg-emerald-100/50">৳ {dailySummaryData.reduce((s, r) => s + r.totalCr, 0).toLocaleString()}</TableCell>
-                  </TableRow>
-                </TableFooter>
               </Table>
             </div>
           </div>
@@ -425,84 +483,38 @@ export default function SubsidiaryControlLedgerPage() {
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">
-            {viewMode === 'ledger' ? 'Subsidiary Control Category Ledger' : 'Consolidated Institutional Subsidiary Audit Summary'}
-          </h2>
+          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Subsidiary Control Ledger Statement</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <div className="text-left">
-              {viewMode === 'ledger' ? (
-                <>
-                  <p>Column Category: {selectedColLabel}</p>
-                  <p>Scope: {selectedMember === 'all' ? 'Institutional (All Members)' : 'Filtered Personnel Focus'}</p>
-                </>
-              ) : (
-                <p>Scope: Institutional Daily Movement Audit</p>
-              )}
+              <p>Report Type: {viewMode === 'institutional' ? 'Total Fund Control' : viewMode === 'ledger' ? `Category: ${SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label}` : 'Daily Audit'}</p>
               <p>Period: {dateRange.start || "Beginning"} to {dateRange.end || "Present"}</p>
             </div>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
 
-        {viewMode === 'ledger' ? (
-          <table className="w-full text-[9px] border-collapse border border-black">
-            <thead>
-              <tr className="bg-slate-100">
-                <th className="border border-black p-2 text-center w-[70px]">Date</th>
-                <th className="border border-black p-2 text-center w-[80px]">Member ID</th>
-                <th className="border border-black p-2 text-left">Particulars</th>
-                <th className="border border-black p-2 text-right">Debit (৳)</th>
-                <th className="border border-black p-2 text-right">Credit (৳)</th>
-                <th className="border border-black p-2 text-right">Balance (৳)</th>
+        <table className="w-full text-[9px] border-collapse border border-black">
+          <thead>
+            <tr className="bg-slate-100">
+              <th className="border border-black p-2 text-center w-[80px]">Date</th>
+              <th className="border border-black p-2 text-left">Particulars & Audit Trail</th>
+              <th className="border border-black p-2 text-right">Debit (৳)</th>
+              <th className="border border-black p-2 text-right">Credit (৳)</th>
+              <th className="border border-black p-2 text-right">Balance (৳)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(viewMode === 'institutional' ? institutionalLedger : ledgerData).map((item, idx) => (
+              <tr key={idx}>
+                <td className="border border-black p-2 text-center font-mono">{item.date}</td>
+                <td className="border border-black p-2">{item.particulars}</td>
+                <td className="border border-black p-2 text-right">{item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-2 text-right">{item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-2 text-right font-bold">{item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
               </tr>
-            </thead>
-            <tbody>
-              {ledgerData.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="border border-black p-2 text-center font-mono">{item.date}</td>
-                  <td className="border border-black p-2 text-center font-bold">{item.memberId}</td>
-                  <td className="border border-black p-2">{item.particulars}</td>
-                  <td className="border border-black p-2 text-right">{item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 text-right">{item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-2 text-right font-bold">{item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        ) : (
-          <table className="w-full text-[7px] border-collapse border border-black table-fixed">
-            <thead>
-              <tr className="bg-slate-100 font-bold">
-                <th className="border border-black p-1 text-center w-[60px]">Date</th>
-                <th className="border border-black p-1 text-right">Col 1</th>
-                <th className="border border-black p-1 text-right">Col 2</th>
-                <th className="border border-black p-1 text-right">Col 3</th>
-                <th className="border border-black p-1 text-right">Col 5</th>
-                <th className="border border-black p-1 text-right">Col 6</th>
-                <th className="border border-black p-1 text-right">Col 8</th>
-                <th className="border border-black p-1 text-right">Col 9</th>
-                <th className="border border-black p-1 text-right font-bold bg-slate-200">Daily Dr</th>
-                <th className="border border-black p-1 text-right font-bold bg-slate-200">Daily Cr</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dailySummaryData.map((item: any, idx) => (
-                <tr key={idx}>
-                  <td className="border border-black p-1 text-center font-mono">{item.date}</td>
-                  <td className="border border-black p-1 text-right">{item.c1.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{item.c2.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{item.c3.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{item.c5.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{item.c6.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{item.c8.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{item.c9.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right font-bold">{item.totalDr.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right font-bold">{item.totalCr.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+            ))}
+          </tbody>
+        </table>
 
         <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
           <div className="border-t border-black pt-2">Accountant / AGM(F)</div>
