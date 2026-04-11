@@ -14,7 +14,9 @@ import {
   HelpCircle,
   ArrowRight,
   DatabaseZap,
-  Calculator
+  Calculator,
+  ServerCrash,
+  Coins
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -106,6 +108,56 @@ export default function UserManualPage() {
           </Card>
         ))}
       </div>
+
+      {/* SCALE & PERFORMANCE SECTION */}
+      <Card className="border-none shadow-2xl bg-slate-900 text-white overflow-hidden">
+        <div className="bg-primary/20 p-8 border-b border-white/10 flex items-center gap-6">
+          <div className="bg-white/10 p-4 rounded-3xl">
+            <ServerCrash className="size-10 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black">বড় ডাটা ও পারফরম্যান্স গাইড (Scaling)</h2>
+            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">৮০০+ সদস্য এবং ২০ বছরের ডাটা ম্যানেজমেন্ট</p>
+          </div>
+        </div>
+        <CardContent className="p-8 grid md:grid-cols-2 gap-10">
+          <div className="space-y-6">
+            <div className="flex gap-4">
+              <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                <Coins className="size-4 text-emerald-400" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-bold text-emerald-400 uppercase text-xs tracking-wider">কোটা এবং খরচ (Quotas)</h4>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  ৮০০ জন কর্মচারীর ২০ বছরের মুনাফা হিসাব করলে প্রায় ২ লক্ষ রেকর্ড রিড হবে। ফায়ারবেস ফ্রি প্ল্যানে প্রতিদিন ৫০,০০০ রিড সম্ভব। বড় ডাটা নিয়ে কাজ করতে <b>Blaze Plan (Pay-as-you-go)</b> ব্যবহার করা বাধ্যতামূলক। এতে প্রতি ১ লক্ষ রিডে খরচ মাত্র ৫-৬ টাকা, যা প্রাতিষ্ঠানিক ক্ষেত্রে নগণ্য।
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+                <Calculator className="size-4 text-blue-400" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-bold text-blue-400 uppercase text-xs tracking-wider">ওপেনিং ব্যালেন্স কৌশল</h4>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  পুরো ২০ বছরের ডাটা বারবার রিড না করে, প্রতি বছর মুনাফা পোস্টিং করার পর একটি "Opening Balance" এন্ট্রি দিয়ে রাখুন। এতে পরবর্তী বছর মুনাফা হিসাব করার সময় সিস্টেমকে শুধুমাত্র ১ বছরের ডাটা রিড করতে হবে, যা গতি বহুগুণ বাড়িয়ে দেবে।
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
+            <h4 className="font-bold text-primary flex items-center gap-2">
+              <ShieldCheck className="size-4" /> ডাটা এন্ট্রি টিপস
+            </h4>
+            <p className="text-xs text-slate-400 leading-relaxed italic">
+              "৮০০ জন কর্মচারীর ২০ বছরের তথ্য ইনপুট দেওয়ার ক্ষেত্রে সরাসরি বাল্ক আপলোড (Excel Upload) ব্যবহার করুন। ছোট ছোট ব্যাচে (যেমন ২০০ জন করে) ডাটা আপলোড করলে সিস্টেমের ওপর চাপ কম পড়বে এবং অডিট ট্রেইল চেক করা সহজ হবে।"
+            </p>
+            <div className="pt-4 border-t border-white/10">
+              <Badge variant="outline" className="text-white border-white/20">Blaze Plan Recommended</Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-2 border-dashed bg-slate-50/50">
         <CardContent className="p-8">

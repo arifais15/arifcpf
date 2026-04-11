@@ -508,9 +508,20 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="space-y-3 max-w-md mx-auto text-center no-print">
-          <p className="text-xs font-bold uppercase tracking-widest text-primary opacity-70">Auditing Real-time Ledger Balances...</p>
-          <Progress value={progress} className="h-1.5" />
-          <p className="text-[10px] font-medium text-muted-foreground">{progress}% Complete</p>
+          <div className="p-4 bg-slate-900 rounded-2xl border border-white/10 shadow-2xl mb-4">
+            <p className="text-xs font-black uppercase tracking-widest text-primary mb-2 flex items-center justify-center gap-2">
+              <Loader2 className="size-3 animate-spin" />
+              Auditing Institutional Volume...
+            </p>
+            <Progress value={progress} className="h-2 bg-white/10" />
+            <p className="text-[10px] font-bold text-slate-400 mt-2">{progress}% COMPLETE • PROCESSING PERSONNEL {Math.round((progress/100) * (members?.length || 0))}/{members?.length}</p>
+          </div>
+          <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex items-start gap-2 text-left">
+            <Info className="size-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[9px] text-amber-700 leading-tight">
+              <b>Performance Tip:</b> Large datasets (800+ members) require a few minutes. Please keep this tab active until the audit completes. To speed up future audits, ensure all prior years have an "Opening Balance" entry.
+            </p>
+          </div>
         </div>
       )}
 
