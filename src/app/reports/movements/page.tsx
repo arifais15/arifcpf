@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { 
   Table, 
   TableBody, 
@@ -294,8 +294,7 @@ export default function FundMovementReportPage() {
           <CardContent>
             <div className="text-xl font-bold">৳ {stats.totalClosing.toLocaleString()}</div>
           </CardContent>
-        </Card>
-      </div>
+        </div>
 
       <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
         <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
@@ -320,11 +319,11 @@ export default function FundMovementReportPage() {
                 <TableHead className="py-4">Name</TableHead>
                 <TableHead className="text-right py-4 bg-slate-100/30">Emp Opening (৳)</TableHead>
                 <TableHead className="text-right py-4">Emp Add (৳)</TableHead>
-                <TableHead className="text-right py-4">Emp Adj (৳)</TableHead>
+                <TableHead className="text-right py-4 text-orange-600">Emp Adj (৳)</TableHead>
                 <TableHead className="text-right py-4 font-bold">Emp Closing (৳)</TableHead>
                 <TableHead className="text-right py-4 bg-blue-50/30">PBS Opening (৳)</TableHead>
                 <TableHead className="text-right py-4">PBS Add (৳)</TableHead>
-                <TableHead className="text-right py-4">PBS Adj (৳)</TableHead>
+                <TableHead className="text-right py-4 text-emerald-600">PBS Adj (৳)</TableHead>
                 <TableHead className="text-right py-4 font-bold">PBS Closing (৳)</TableHead>
                 <TableHead className="text-right py-4 font-black">Grand Total (৳)</TableHead>
               </TableRow>
