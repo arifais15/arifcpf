@@ -186,7 +186,7 @@ export default function LoginPage() {
             </Button>
             
             <div className="text-center pt-2">
-              <p className="text-[10px] text-primary uppercase italic tracking-[0.2em] font-bold">
+              <p className="text-[16px] text-primary uppercase italic tracking-wider font-extrabold">
                 Developed by: Ariful Islam,AGMF,Gazipur PBS-2
               </p>
             </div>
