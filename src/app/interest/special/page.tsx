@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -63,19 +64,22 @@ export default function SpecialInterestDPPage() {
   const { data: generalSettings } = useDoc(generalSettingsRef);
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
-  // Date Logic for default FY (July 1st to Today)
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-  const today = now.toISOString().split('T')[0];
-
-  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [selectedMember, setSelectedMember] = useState<string>("all");
   const [isCalculating, setIsCalculating] = useState(false);
   const [results, setResults] = useState<any[]>([]);
   const [viewingDetails, setViewingDetails] = useState<any | null>(null);
   const [postingDate, setPostingDate] = useState("");
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+    const today = now.toISOString().split('T')[0];
+    setDateRange({ start: fyStart, end: today });
+  }, []);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
@@ -373,7 +377,6 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
-            </Card>
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold text-slate-400">Sync Ledger Date</Label>

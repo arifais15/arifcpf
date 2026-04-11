@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -34,15 +34,18 @@ export default function FundMovementReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Date Logic for default FY
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-  const today = now.toISOString().split('T')[0];
-
-  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [search, setSearch] = useState("");
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+    const today = now.toISOString().split('T')[0];
+    setDateRange({ start: fyStart, end: today });
+  }, []);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
@@ -51,7 +54,7 @@ export default function FundMovementReportPage() {
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
   const reportData = useMemo(() => {
-    if (!members || !allSummaries) return [];
+    if (!members || !allSummaries || !dateRange.start) return [];
     const start = new Date(dateRange.start).getTime();
     const end = new Date(dateRange.end).getTime();
 

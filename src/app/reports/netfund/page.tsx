@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -34,8 +34,13 @@ export default function NetfundStatementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0]);
+  const [asOfDate, setAsOfDate] = useState("");
   const [search, setSearch] = useState("");
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    setAsOfDate(new Date().toISOString().split('T')[0]);
+  }, []);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
@@ -44,7 +49,7 @@ export default function NetfundStatementPage() {
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
   const reportData = useMemo(() => {
-    if (!members || !allSummaries) return [];
+    if (!members || !allSummaries || !asOfDate) return [];
 
     const cutOff = new Date(asOfDate).getTime();
 

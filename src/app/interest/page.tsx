@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -97,16 +98,9 @@ export default function CPFInterestPage() {
     return options;
   }, []);
 
-  // Default dates: Current FY July 1st to Today
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-  const today = now.toISOString().split('T')[0];
-
   const [calculationMode, setCalculationMode] = useState<"fy" | "custom">("fy");
-  const [selectedFY, setSelectedFY] = useState<string>(fyOptions[1] || ""); 
-  const [customRange, setCustomRange] = useState({ start: fyStart, end: today });
+  const [selectedFY, setSelectedFY] = useState<string>(""); 
+  const [customRange, setCustomRange] = useState({ start: "", end: "" });
   const [postingDate, setPostingDate] = useState("");
   
   const [isCalculating, setIsCalculating] = useState(false);
@@ -114,6 +108,22 @@ export default function CPFInterestPage() {
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [progress, setProgress] = useState(0);
   const [viewingDetails, setViewingDetails] = useState<any | null>(null);
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+    const today = now.toISOString().split('T')[0];
+    
+    setCustomRange({ start: fyStart, end: today });
+    if (fyOptions.length > 1) {
+      setSelectedFY(fyOptions[1]);
+    } else if (fyOptions.length > 0) {
+      setSelectedFY(fyOptions[0]);
+    }
+  }, [fyOptions]);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);

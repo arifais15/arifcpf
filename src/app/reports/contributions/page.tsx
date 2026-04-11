@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -51,17 +52,20 @@ export default function ContributionAuditPage() {
   const { data: generalSettings } = useDoc(generalSettingsRef);
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
-  // Date Logic for default FY
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-  const today = now.toISOString().split('T')[0];
-
-  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
   const [cleanupParticulars, setCleanupParticulars] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+    const today = now.toISOString().split('T')[0];
+    setDateRange({ start: fyStart, end: today });
+  }, []);
 
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);

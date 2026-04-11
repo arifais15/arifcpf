@@ -41,13 +41,20 @@ export default function NewTransactionPage() {
   const [isClassifying, setIsClassifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState<any>(null);
-  const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
+  const [entryDate, setEntryDate] = useState("");
   const [refNo, setRefNo] = useState("");
   
   const [lines, setLines] = useState<LineItem[]>([
     { id: '1', accountCode: '', debit: 0, credit: 0, memo: '' },
     { id: '2', accountCode: '', debit: 0, credit: 0, memo: '' }
   ]);
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    if (!editId) {
+      setEntryDate(new Date().toISOString().split('T')[0]);
+    }
+  }, [editId]);
 
   const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
   const { data: coaData } = useCollection(coaRef);
