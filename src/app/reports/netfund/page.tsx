@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from "react";
@@ -8,7 +7,8 @@ import {
   TableCell, 
   TableHead, 
   TableHeader, 
-  TableRow 
+  TableRow,
+  TableFooter
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { 
