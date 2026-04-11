@@ -43,8 +43,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
+  // Sorting Logic: Sort by Date, then by Creation Time to ensure "Post Below" behavior
   const sortedSummaries = useMemo(() => {
-    return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
+    return [...(summaries || [])].sort((a, b) => {
+      const dateA = new Date(a.summaryDate).getTime();
+      const dateB = new Date(b.summaryDate).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      // Tie breaker: Use creation timestamp to ensure new entries stay below old ones on the same date
+      const createA = new Date(a.createdAt || 0).getTime();
+      const createB = new Date(b.createdAt || 0).getTime();
+      return createA - createB;
+    });
   }, [summaries]);
 
   // Compute individual column sums for zeroing logic
@@ -220,7 +229,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       particulars: `Annual Profit ${interestCalculation.label} (Tiered)`,
       employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0,
       profitEmployee, profitLoan: 0, pbsContribution: 0, profitPbs,
-      lastUpdateDate: new Date().toISOString(), memberId: resolvedParams.id
+      lastUpdateDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      memberId: resolvedParams.id
     });
     showAlert({ title: "Posted", description: `Profit recorded on ${profitPostingDate}.`, type: "success" });
     setIsInterestOpen(false);
@@ -251,6 +262,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       pbsContribution: -columnSums.c8,
       profitPbs: -columnSums.c9,
       lastUpdateDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
       memberId: resolvedParams.id
     };
 
@@ -279,6 +291,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       pbsContribution: Number(formData.get("pbsContribution") || 0),
       profitPbs: Number(formData.get("profitPbs") || 0),
       lastUpdateDate: new Date().toISOString(),
+      createdAt: editingEntry ? editingEntry.createdAt : new Date().toISOString(),
       memberId: resolvedParams.id
     };
     if (editingEntry?.id) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), entryData);
@@ -305,7 +318,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             employeeContribution: Number(entry["Employee Contribution"] || 0), loanWithdrawal: Number(entry["Amount Withdraws as Loan"] || 0),
             loanRepayment: Number(entry["Loan Principal repayment"] || 0), profitEmployee: Number(entry["Profit on Employee Contribution"] || 0),
             profitLoan: Number(entry["Profit on CPF Loan"] || 0), pbsContribution: Number(entry["PBS Contribution"] || 0),
-            profitPbs: Number(entry["Profit on PBS Contribution"] || 0), lastUpdateDate: new Date().toISOString(), memberId: resolvedParams.id
+            profitPbs: Number(entry["Profit on PBS Contribution"] || 0), lastUpdateDate: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            memberId: resolvedParams.id
           });
         });
         showAlert({ title: "Imported", description: "Ledger entries processed.", type: "success" });
