@@ -18,7 +18,7 @@ import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, u
 import { collection, doc, query, where, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { getSubsidiaryValues } from "@/lib/ledger-mapping";
+import { LEDGER_COLUMN_MAPPING, NORMAL_DEBIT_ACCOUNTS, type LedgerColumnKey } from "@/lib/ledger-mapping";
 
 interface LineItem {
   id: string;
@@ -58,6 +58,9 @@ export default function NewTransactionPage() {
 
   const transactionRef = useMemoFirebase(() => editId ? doc(firestore, "journalEntries", editId) : null, [firestore, editId]);
   const { data: existingTransaction, isLoading: isEditLoading } = useDoc(transactionRef);
+
+  const settingsRef = useMemoFirebase(() => doc(firestore, "settings", "ledger"), [firestore]);
+  const { data: ledgerSettings } = useDoc(settingsRef);
 
   useEffect(() => {
     if (existingTransaction) {
@@ -128,13 +131,38 @@ export default function NewTransactionPage() {
     }
   };
 
+  const getSubValues = (code: string, debit: number, credit: number) => {
+    // 1. Get current mappings from settings or fallback to default
+    const mapping = ledgerSettings?.mapping || {};
+    const debits = ledgerSettings?.debitAccounts || NORMAL_DEBIT_ACCOUNTS;
+    
+    // Find which column this code belongs to
+    // Setting store mapping as { columnKey: accountCode }
+    const columnKey = Object.keys(mapping).find(key => mapping[key] === code) as LedgerColumnKey | undefined;
+    
+    // If not in firestore settings, try the hardcoded default mapping
+    const finalColumnKey = columnKey || (Object.keys(LEDGER_COLUMN_MAPPING).find(key => key === code) ? LEDGER_COLUMN_MAPPING[code] : undefined);
+
+    if (!finalColumnKey) return null;
+
+    const isNormalDebit = debits.includes(code);
+    const amount = isNormalDebit ? (debit - credit) : (credit - debit);
+
+    return {
+      employeeContribution: finalColumnKey === 'employeeContribution' ? amount : 0,
+      loanWithdrawal: finalColumnKey === 'loanWithdrawal' ? amount : 0,
+      loanRepayment: finalColumnKey === 'loanRepayment' ? amount : 0,
+      profitEmployee: finalColumnKey === 'profitEmployee' ? amount : 0,
+      profitLoan: finalColumnKey === 'profitLoan' ? amount : 0,
+      pbsContribution: finalColumnKey === 'pbsContribution' ? amount : 0,
+      profitPbs: finalColumnKey === 'profitPbs' ? amount : 0,
+    };
+  }
+
   const syncSubsidiaryLedgers = async (journalId: string, entryData: any) => {
     for (const line of entryData.lines) {
       if (line.memberId) {
-        // Use the centralized mapping logic
-        const subsidiaryCols = getSubsidiaryValues(line.accountCode, line.debit, line.credit);
-        
-        // If the account isn't mapped to a subsidiary column, skip it
+        const subsidiaryCols = getSubValues(line.accountCode, line.debit, line.credit);
         if (!subsidiaryCols) continue;
 
         const summaryData = {
@@ -156,7 +184,7 @@ export default function NewTransactionPage() {
           if (!snapshot.empty) {
             updateDocumentNonBlocking(doc(firestore, "members", line.memberId, "fundSummaries", snapshot.docs[0].id), {
               ...summaryData,
-              accountCodeAtSource: line.accountCode // Store source code to identify specific line update
+              accountCodeAtSource: line.accountCode
             });
             continue;
           }

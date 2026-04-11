@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -118,9 +119,11 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton className="hover:bg-sidebar-accent">
-              <Settings className="size-4" />
-              <span>Settings</span>
+            <SidebarMenuButton asChild isActive={pathname === "/settings"} className="hover:bg-sidebar-accent">
+              <Link href="/settings">
+                <Settings className="size-4" />
+                <span>Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
