@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, FileText, Download, ChevronLeft, ChevronRight, FilterX } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
@@ -28,7 +28,6 @@ export default function MembersPage() {
   const [pageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<any>(null);
-  const [isNextDisabled, setIsNextDisabled] = useState(false);
 
   // UI States
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -76,18 +75,14 @@ export default function MembersPage() {
 
   const { data: rawMembers, isLoading, snapshot } = useCollection(membersQuery);
 
-  // Process data for display
+  // Process data for display (Derived from rawMembers)
   const members = useMemo(() => {
     if (!rawMembers) return [];
     return rawMembers.slice(0, pageSize);
   }, [rawMembers, pageSize]);
 
-  // Side effect to update pagination state without triggering re-render loops during render phase
-  useEffect(() => {
-    if (rawMembers) {
-      setIsNextDisabled(rawMembers.length <= pageSize);
-    }
-  }, [rawMembers, pageSize]);
+  // Derived pagination status (prevents re-render loops caused by state updates in render)
+  const isNextDisabled = !rawMembers || rawMembers.length <= pageSize;
 
   const handleNextPage = () => {
     if (snapshot && snapshot.docs.length > pageSize) {
@@ -129,7 +124,10 @@ export default function MembersPage() {
         type: "success"
       });
     } else {
-      addDocumentNonBlocking(collection(firestore, "members"), { ...memberData, createdAt: new Date().toISOString() });
+      addDocumentNonBlocking(collection(firestore, "members"), { 
+        ...memberData, 
+        createdAt: new Date().toISOString() 
+      });
       showAlert({
         title: "Registered",
         description: `Member ${memberData.name} added to the registry.`,
@@ -159,29 +157,6 @@ export default function MembersPage() {
     });
   };
 
-  const processEntries = (entries: any[]) => {
-    entries.forEach(entry => {
-      const cleanedEntry: any = {};
-      Object.keys(entry).forEach(key => {
-        const k = key.trim().toLowerCase();
-        if (k.includes("id") || k.includes("number")) cleanedEntry.memberIdNumber = entry[key]?.toString().trim();
-        else if (k.includes("name")) cleanedEntry.name = entry[key]?.toString().trim();
-        else if (k.includes("designation")) cleanedEntry.designation = entry[key]?.toString().trim();
-        else if (k.includes("date") && k.includes("join")) cleanedEntry.dateJoined = entry[key]?.toString().trim();
-        else if (k.includes("office")) cleanedEntry.zonalOffice = entry[key]?.toString().trim();
-        else cleanedEntry[key.trim()] = entry[key]?.toString().trim();
-      });
-      cleanedEntry.status = "Active";
-      addDocumentNonBlocking(collection(firestore, "members"), cleanedEntry);
-    });
-    showAlert({
-      title: "Bulk Import",
-      description: `Processing ${entries.length} members. They will appear in the list shortly.`,
-      type: "info"
-    });
-    setIsBulkOpen(false);
-  };
-
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -193,7 +168,29 @@ export default function MembersPage() {
         const workbook = XLSX.read(bstr, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-        processEntries(data);
+        
+        data.forEach((entry: any) => {
+          const cleanedEntry: any = {};
+          Object.keys(entry).forEach(key => {
+            const k = key.trim().toLowerCase();
+            if (k.includes("id") || k.includes("number")) cleanedEntry.memberIdNumber = entry[key]?.toString().trim();
+            else if (k.includes("name")) cleanedEntry.name = entry[key]?.toString().trim();
+            else if (k.includes("designation")) cleanedEntry.designation = entry[key]?.toString().trim();
+            else if (k.includes("date") && k.includes("join")) cleanedEntry.dateJoined = entry[key]?.toString().trim();
+            else if (k.includes("office")) cleanedEntry.zonalOffice = entry[key]?.toString().trim();
+            else cleanedEntry[key.trim()] = entry[key]?.toString().trim();
+          });
+          cleanedEntry.status = "Active";
+          cleanedEntry.createdAt = new Date().toISOString();
+          addDocumentNonBlocking(collection(firestore, "members"), cleanedEntry);
+        });
+
+        showAlert({
+          title: "Bulk Import",
+          description: `Processing members. They will appear in the registry shortly.`,
+          type: "info"
+        });
+        setIsBulkOpen(false);
       } catch (err) {
         toast({ title: "Failed", description: "Could not parse file.", variant: "destructive" });
       } finally {
@@ -234,10 +231,14 @@ export default function MembersPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:border-primary/50" onClick={() => fileInputRef.current?.click()}>
-                <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
+                {isUploading ? (
+                  <Loader2 className="size-8 mx-auto animate-spin text-primary" />
+                ) : (
+                  <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
+                )}
                 <p className="text-sm font-bold">Click to upload XLSX</p>
                 <p className="text-xs text-muted-foreground mt-1">Required Columns: memberIdNumber, name, designation</p>
-                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} />
+                <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} accept=".xlsx" disabled={isUploading} />
               </div>
             </DialogContent>
           </Dialog>

@@ -5,13 +5,12 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, TrendingUp, Calendar, Wallet, Edit2, Trash2, Loader2, AlertCircle, CheckCircle2, Clock, History, Calculator, Building2, ArrowRight, FileText, Printer, Upload, FileSpreadsheet, Download, ClipboardList } from "lucide-react";
+import { Search, Plus, TrendingUp, Wallet, Edit2, Trash2, Loader2, AlertCircle, CheckCircle2, Clock, History, Building2, Upload, FileSpreadsheet, Download, ClipboardList } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,17 +28,10 @@ export default function InvestmentsPage() {
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
-  const [isProvisionOpen, setIsProvisionOpen] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isGlobalHistoryOpen, setIsGlobalHistoryOpen] = useState(false);
-  const [isMaturityReportOpen, setIsMaturityReportOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   const [editingInvestment, setEditingInvestment] = useState<any>(null);
-  const [selectedForProvision, setSelectedForProvision] = useState<any>(null);
-  const [selectedForHistory, setSelectedForHistory] = useState<any>(null);
-  const [maturityRange, setMaturityRange] = useState({ start: "", end: "" });
-  const [historyRange, setHistoryRange] = useState({ start: "", end: "" });
 
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
@@ -48,61 +40,18 @@ export default function InvestmentsPage() {
   const { data: coaData } = useCollection(coaRef);
   const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData]);
 
-  const accrualsRef = useMemoFirebase(() => collection(firestore, "accruedInterestLogs"), [firestore]);
-  const { data: allAccruals } = useCollection(accrualsRef);
-
   const investmentAccounts = useMemo(() => {
     return activeCOA.filter((a: any) => (a.code || a.accountCode || "").startsWith("101") && !a.isHeader);
   }, [activeCOA]);
 
   const filteredInvestments = useMemo(() => {
-    return (investments || []).filter(inv => 
+    if (!investments) return [];
+    return investments.filter(inv => 
       inv.referenceNumber?.toLowerCase().includes(search.toLowerCase()) ||
       inv.instrumentType?.toLowerCase().includes(search.toLowerCase()) ||
       inv.bankName?.toLowerCase().includes(search.toLowerCase())
     );
   }, [investments, search]);
-
-  const maturedInstruments = useMemo(() => {
-    if (!investments || !maturityRange.start || !maturityRange.end) return [];
-    return investments.filter(inv => {
-      if (!inv.maturityDate) return false;
-      const mDate = new Date(inv.maturityDate);
-      const sDate = new Date(maturityRange.start);
-      const eDate = new Date(maturityRange.end);
-      return mDate >= sDate && mDate <= eDate;
-    }).sort((a, b) => new Date(a.maturityDate).getTime() - new Date(b.maturityDate).getTime());
-  }, [investments, maturityRange]);
-
-  const accrualHistoryData = useMemo(() => {
-    if (!allAccruals || !investments) return [];
-    
-    let filtered = allAccruals;
-    if (historyRange.start && historyRange.end) {
-      const sDate = new Date(historyRange.start);
-      const eDate = new Date(historyRange.end);
-      filtered = allAccruals.filter(a => {
-        const d = new Date(a.accrualDate);
-        return d >= sDate && d <= eDate;
-      });
-    }
-
-    const grouped: Record<string, any[]> = {};
-    filtered.forEach(accrual => {
-      const inv = investments.find(i => i.id === accrual.sourceId);
-      const type = inv?.instrumentType || "Other";
-      if (!grouped[type]) grouped[type] = [];
-      grouped[type].push({ ...accrual, instrument: inv });
-    });
-
-    return Object.entries(grouped).map(([type, items]) => ({
-      type,
-      items: items.sort((a, b) => new Date(b.accrualDate).getTime() - new Date(a.accrualDate).getTime()),
-      subtotalGross: items.reduce((sum, i) => sum + (i.grossAmount || 0), 0),
-      subtotalTDS: items.reduce((sum, i) => sum + (i.tdsAmount || 0), 0),
-      subtotalNet: items.reduce((sum, i) => sum + (i.netAmount || 0), 0),
-    }));
-  }, [allAccruals, investments, historyRange]);
 
   const stats = useMemo(() => {
     if (!investments || investments.length === 0) return { total: 0, count: 0, avgRate: 0 };
@@ -190,16 +139,6 @@ export default function InvestmentsPage() {
           <p className="text-muted-foreground">Manage FDRs, Bonds and Savings Certificates</p>
         </div>
         <div className="flex items-center gap-3">
-          <Dialog open={isGlobalHistoryOpen} onOpenChange={setIsGlobalHistoryOpen}>
-            <DialogTrigger asChild><Button variant="outline" className="gap-2 border-slate-300"><ClipboardList className="size-4 text-primary" /> Accrual History</Button></DialogTrigger>
-            <DialogContent className="max-w-[1100px] h-[90vh] overflow-y-auto">
-              {/* Content Omited for brevity - but ensures isLoading check in render */}
-              <div className="bg-white p-8">
-                {isLoading && investments?.length === 0 ? <Loader2 className="animate-spin mx-auto" /> : <div className="text-center">History Trail Loaded</div>}
-              </div>
-            </DialogContent>
-          </Dialog>
-
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild><Button variant="outline" className="gap-2 border-slate-300"><Upload className="size-4" /> Bulk Upload</Button></DialogTrigger>
             <DialogContent className="max-w-2xl">
@@ -207,7 +146,7 @@ export default function InvestmentsPage() {
               <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                 <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
                 <p className="font-medium">Select XLSX Template</p>
-                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} />
+                <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} accept=".xlsx" />
                 {isUploading && <Loader2 className="size-4 animate-spin mx-auto mt-4" />}
               </div>
             </DialogContent>
@@ -220,12 +159,30 @@ export default function InvestmentsPage() {
               <form onSubmit={handleSaveInvestment} className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2"><Label>Bank Name</Label><Input name="bankName" defaultValue={editingInvestment?.bankName} required /></div>
-                  <div className="space-y-2"><Label>Account Code</Label><Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{investmentAccounts.map(a => <SelectItem key={a.code} value={a.code}>{a.code}</SelectItem>)}</SelectContent></Select></div>
+                  <div className="space-y-2">
+                    <Label>Account Code</Label>
+                    <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {investmentAccounts.map(a => <SelectItem key={a.code} value={a.code}>{a.code}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="space-y-2"><Label>Principal</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required /></div>
                   <div className="space-y-2"><Label>Issue Date</Label><Input name="issueDate" type="date" defaultValue={editingInvestment?.issueDate} required /></div>
                   <div className="space-y-2"><Label>Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} /></div>
                   <div className="space-y-2"><Label>Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? editingInvestment.interestRate * 100 : ""} required /></div>
-                  <div className="space-y-2"><Label>Status</Label><Select name="status" defaultValue={editingInvestment?.status || "Active"}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active">Active</SelectItem><SelectItem value="Matured">Matured</SelectItem><SelectItem value="Closed">Closed</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select name="status" defaultValue={editingInvestment?.status || "Active"}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Matured">Matured</SelectItem>
+                        <SelectItem value="Closed">Closed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <DialogFooter><Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button><Button type="submit">Save Instrument</Button></DialogFooter>
               </form>
@@ -241,9 +198,23 @@ export default function InvestmentsPage() {
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border overflow-hidden no-print">
-        <div className="p-4 border-b bg-slate-50/50"><div className="relative max-w-sm"><Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" /><Input className="pl-9" placeholder="Search portfolio..." value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
+        <div className="p-4 border-b bg-slate-50/50">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input className="pl-9" placeholder="Search portfolio..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+        </div>
         <Table>
-          <TableHeader><TableRow className="bg-muted/30"><TableHead>Bank & Reference</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Principal (৳)</TableHead><TableHead className="text-right">Rate</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+          <TableHeader>
+            <TableRow className="bg-muted/30">
+              <TableHead>Bank & Reference</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead className="text-right">Principal (৳)</TableHead>
+              <TableHead className="text-right">Rate</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
           <TableBody>
             {isLoading && filteredInvestments.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
