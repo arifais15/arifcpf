@@ -16,10 +16,8 @@ import {
   FileSpreadsheet, 
   Printer, 
   Loader2, 
-  Search,
   ArrowRightLeft,
   LayoutList,
-  Filter,
   User,
   Tags,
   CalendarDays,
@@ -109,7 +107,7 @@ export default function SubsidiaryControlLedgerPage() {
     });
   }, [allSummaries, selectedColumn, selectedMember, members, dateRange]);
 
-  // VIEW 2: DAILY CONSOLIDATED SUMMARY (Date basis, all columns)
+  // VIEW 2: DAILY CONSOLIDATED SUMMARY (Institutional movement per day)
   const dailySummaryData = useMemo(() => {
     if (!allSummaries) return [];
 
@@ -142,11 +140,11 @@ export default function SubsidiaryControlLedgerPage() {
       grouped[date].c8 += v8;
       grouped[date].c9 += v9;
 
-      // Calculate aggregated Dr/Cr for the day
-      // Debit columns: Col 2 (and any negative adjustment in credit cols)
-      // Credit columns: Col 1, 3, 5, 6, 8, 9 (and any negative adjustment in debit cols)
-      grouped[date].totalDr += (v2 > 0 ? v2 : 0) + (v1 < 0 ? Math.abs(v1) : 0) + (v3 < 0 ? Math.abs(v3) : 0) + (v5 < 0 ? Math.abs(v5) : 0) + (v6 < 0 ? Math.abs(v6) : 0) + (v8 < 0 ? Math.abs(v8) : 0) + (v9 < 0 ? Math.abs(v9) : 0);
-      grouped[date].totalCr += (v1 > 0 ? v1 : 0) + (v3 > 0 ? v3 : 0) + (v5 > 0 ? v5 : 0) + (v6 > 0 ? v6 : 0) + (v8 > 0 ? v8 : 0) + (v9 > 0 ? v9 : 0) + (v2 < 0 ? Math.abs(v2) : 0);
+      // Aggregated Debit/Credit flow
+      // Debits: Loan Disburses (v2+) and reversals in credit columns (v1-, v3-, etc)
+      grouped[date].totalDr += (v2 > 0 ? v2 : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v < 0 ? Math.abs(v) : 0), 0);
+      // Credits: Contributions/Profits/Repayments (v1+, v3+, etc) and reversals in debit column (v2-)
+      grouped[date].totalCr += (v2 < 0 ? Math.abs(v2) : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
     });
 
     const sorted = Object.values(grouped).sort((a: any, b: any) => a.timestamp - b.timestamp);
@@ -196,22 +194,249 @@ export default function SubsidiaryControlLedgerPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      {/* Print View */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
+        <div className="flex items-center gap-4">
+          <div className="bg-primary/10 p-3 rounded-2xl">
+            <LayoutList className="size-8 text-primary" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold text-primary tracking-tight">Subsidiary Control</h1>
+            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Institutional audit of member fund categories</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-10 font-bold">
+            <FileSpreadsheet className="size-4" /> Excel Export
+          </Button>
+          <Button onClick={() => window.print()} className="gap-2 h-10 font-bold shadow-lg shadow-primary/20">
+            <Printer className="size-4" /> Print Matrix
+          </Button>
+        </div>
+      </div>
+
+      <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full">
+        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col gap-6 no-print mb-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <TabsList className="bg-slate-100 p-1 h-11">
+              <TabsTrigger value="ledger" className="gap-2 px-6"><Tags className="size-4" /> Category Ledger</TabsTrigger>
+              <TabsTrigger value="daily" className="gap-2 px-6"><CalendarDays className="size-4" /> Daily Audit Summary</TabsTrigger>
+            </TabsList>
+
+            <div className="flex items-center gap-3">
+              <div className="grid gap-1">
+                <Label className="text-[9px] uppercase font-bold text-slate-400">Date From</Label>
+                <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-9 text-xs border-slate-200 font-bold" />
+              </div>
+              <ArrowRightLeft className="size-3 text-slate-300 mt-4" />
+              <div className="grid gap-1">
+                <Label className="text-[9px] uppercase font-bold text-slate-400">Date To</Label>
+                <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 text-xs border-slate-200 font-bold" />
+              </div>
+            </div>
+          </div>
+
+          {viewMode === 'ledger' && (
+            <div className="grid gap-6 md:grid-cols-2 border-t pt-6">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black text-slate-400 ml-1 flex items-center gap-2">
+                  <Tags className="size-3" /> Ledger Column Category
+                </Label>
+                <Select value={selectedColumn} onValueChange={setSelectedColumn}>
+                  <SelectTrigger className="h-11 font-bold border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SUBSIDIARY_COLUMNS.map(col => (
+                      <SelectItem key={col.key} value={col.key} className="py-2">
+                        {col.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase font-black text-slate-400 ml-1 flex items-center gap-2">
+                  <User className="size-3" /> Member Filtering
+                </Label>
+                <Select value={selectedMember} onValueChange={setSelectedMember}>
+                  <SelectTrigger className="h-11 font-bold border-slate-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[300px]">
+                    <SelectItem value="all">All Institutional Personnel</SelectItem>
+                    {members?.map(m => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.memberIdNumber} - {m.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <TabsContent value="ledger">
+          <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="bg-white border-primary/20 text-primary font-bold text-xs py-1 px-3">
+                  {selectedColLabel}
+                </Badge>
+                {selectedMember !== 'all' && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    Filtered Member
+                  </Badge>
+                )}
+              </div>
+              <Badge variant="outline" className="bg-white border-slate-200">
+                {ledgerData.length} Postings
+              </Badge>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="py-4">Date</TableHead>
+                    <TableHead className="py-4">Member ID</TableHead>
+                    <TableHead className="py-4">Particulars</TableHead>
+                    <TableHead className="text-right py-4">Debit (৳)</TableHead>
+                    <TableHead className="text-right py-4">Credit (৳)</TableHead>
+                    <TableHead className="text-right py-4">Running Balance (৳)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                  ) : ledgerData.length === 0 ? (
+                    <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground italic">No entries match your filter.</TableCell></TableRow>
+                  ) : ledgerData.map((item, idx) => (
+                    <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
+                      <td className="p-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-900">{item.memberId}</span>
+                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{item.memberName}</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <span className="text-xs font-medium text-slate-700">{item.particulars}</span>
+                      </td>
+                      <td className="text-right font-medium p-4 text-blue-600">
+                        {item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
+                      </td>
+                      <td className="text-right font-medium p-4 text-rose-600">
+                        {item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
+                      </td>
+                      <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">
+                        ৳ {item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}
+                      </td>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter className="bg-slate-100/80 font-black">
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-right uppercase text-[9px]">Consolidated Category Closing:</TableCell>
+                    <TableCell className="text-right text-[10px] text-blue-700">
+                      ৳ {ledgerData.reduce((s, r) => s + r.debit, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-[10px] text-rose-700">
+                      ৳ {ledgerData.reduce((s, r) => s + r.credit, 0).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="text-right text-base text-primary underline decoration-double">
+                      ৳ {ledgerData[ledgerData.length - 1]?.balance.toLocaleString() || "0.00"}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="daily">
+          <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <FileStack className="size-4 text-primary" />
+                Institutional Consolidated Daily Audit Summary
+              </h2>
+              <Badge variant="outline" className="bg-white border-slate-200">
+                {dailySummaryData.length} Active Ledger Dates
+              </Badge>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="py-4">Date</TableHead>
+                    <TableHead className="text-right py-4">Col 1 (Emp)</TableHead>
+                    <TableHead className="text-right py-4">Col 2 (Loan W)</TableHead>
+                    <TableHead className="text-right py-4">Col 3 (Loan R)</TableHead>
+                    <TableHead className="text-right py-4">Col 5 (Prof E)</TableHead>
+                    <TableHead className="text-right py-4">Col 6 (Prof L)</TableHead>
+                    <TableHead className="text-right py-4">Col 8 (PBS)</TableHead>
+                    <TableHead className="text-right py-4">Col 9 (Prof P)</TableHead>
+                    <TableHead className="text-right py-4 font-bold bg-blue-50/30">Total Daily Dr</TableHead>
+                    <TableHead className="text-right py-4 font-bold bg-emerald-50/30">Total Daily Cr</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={10} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                  ) : dailySummaryData.length === 0 ? (
+                    <TableRow><TableCell colSpan={10} className="text-center py-16 text-muted-foreground italic">No daily movement records found.</TableCell></TableRow>
+                  ) : dailySummaryData.map((item: any, idx) => (
+                    <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
+                      <td className="text-right p-4 text-[11px]">{item.c1.toLocaleString()}</td>
+                      <td className="text-right p-4 text-[11px] text-rose-600">{item.c2.toLocaleString()}</td>
+                      <td className="text-right p-4 text-[11px] text-emerald-600">{item.c3.toLocaleString()}</td>
+                      <td className="text-right p-4 text-[11px]">{item.c5.toLocaleString()}</td>
+                      <td className="text-right p-4 text-[11px]">{item.c6.toLocaleString()}</td>
+                      <td className="text-right p-4 text-[11px]">{item.c8.toLocaleString()}</td>
+                      <td className="text-right p-4 text-[11px]">{item.c9.toLocaleString()}</td>
+                      <td className="text-right p-4 font-bold bg-blue-50/10">৳ {item.totalDr.toLocaleString()}</td>
+                      <td className="text-right p-4 font-bold bg-emerald-50/10 text-primary">৳ {item.totalCr.toLocaleString()}</td>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter className="bg-slate-100/80 font-black">
+                  <TableRow>
+                    <TableCell className="uppercase text-[9px]">Column Totals:</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c1, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c2, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c3, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c5, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c6, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c8, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c9, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px] bg-blue-100/50">৳ {dailySummaryData.reduce((s, r) => s + r.totalDr, 0).toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-[10px] bg-emerald-100/50">৳ {dailySummaryData.reduce((s, r) => s + r.totalCr, 0).toLocaleString()}</TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Institutional Landscape Print View */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
           <h2 className="text-lg font-bold underline underline-offset-4 uppercase">
-            {viewMode === 'ledger' ? 'Subsidiary Control Category Ledger' : 'Institutional Daily Subsidiary Summary'}
+            {viewMode === 'ledger' ? 'Subsidiary Control Category Ledger' : 'Consolidated Institutional Subsidiary Audit Summary'}
           </h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <div className="text-left">
               {viewMode === 'ledger' ? (
                 <>
                   <p>Column Category: {selectedColLabel}</p>
-                  <p>Scope: {selectedMember === 'all' ? 'Institutional (All Members)' : `Member: ${ledgerData[0]?.memberId || ''} - ${ledgerData[0]?.memberName || ''}`}</p>
+                  <p>Scope: {selectedMember === 'all' ? 'Institutional (All Members)' : 'Filtered Personnel Focus'}</p>
                 </>
               ) : (
-                <p>Scope: Institutional Consolidated Movement</p>
+                <p>Scope: Institutional Daily Movement Audit</p>
               )}
               <p>Period: {dateRange.start || "Beginning"} to {dateRange.end || "Present"}</p>
             </div>
@@ -247,7 +472,7 @@ export default function SubsidiaryControlLedgerPage() {
         ) : (
           <table className="w-full text-[7px] border-collapse border border-black table-fixed">
             <thead>
-              <tr className="bg-slate-100">
+              <tr className="bg-slate-100 font-bold">
                 <th className="border border-black p-1 text-center w-[60px]">Date</th>
                 <th className="border border-black p-1 text-right">Col 1</th>
                 <th className="border border-black p-1 text-right">Col 2</th>
@@ -285,233 +510,6 @@ export default function SubsidiaryControlLedgerPage() {
           <div className="border-t border-black pt-2">Approved By Trustee</div>
         </div>
       </div>
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary/10 p-3 rounded-2xl">
-            <LayoutList className="size-8 text-primary" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-primary tracking-tight">Subsidiary Control</h1>
-            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Aggregated movement of member fund categories</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-10 font-bold">
-            <FileSpreadsheet className="size-4" /> Excel Export
-          </Button>
-          <Button onClick={() => window.print()} className="gap-2 h-10 font-bold shadow-lg shadow-primary/20">
-            <Printer className="size-4" /> Print Ledger
-          </Button>
-        </div>
-      </div>
-
-      <Tabs value={viewMode} onValueChange={(v: any) => setViewMode(v)} className="w-full">
-        <div className="bg-white p-6 rounded-2xl border shadow-sm flex flex-col gap-6 no-print mb-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <TabsList className="bg-slate-100 p-1 h-11">
-              <TabsTrigger value="ledger" className="gap-2 px-6"><Tags className="size-4" /> Category Ledger</TabsTrigger>
-              <TabsTrigger value="daily" className="gap-2 px-6"><CalendarDays className="size-4" /> Institutional Daily Summary</TabsTrigger>
-            </TabsList>
-
-            <div className="flex items-center gap-3">
-              <div className="grid gap-1">
-                <Label className="text-[9px] uppercase font-bold text-slate-400">Date From</Label>
-                <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-9 text-xs border-slate-200 font-bold" />
-              </div>
-              <ArrowRightLeft className="size-3 text-slate-300 mt-4" />
-              <div className="grid gap-1">
-                <Label className="text-[9px] uppercase font-bold text-slate-400">Date To</Label>
-                <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 text-xs border-slate-200 font-bold" />
-              </div>
-            </div>
-          </div>
-
-          {viewMode === 'ledger' && (
-            <div className="grid gap-6 md:grid-cols-2 border-t pt-6">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black text-slate-400 ml-1 flex items-center gap-2">
-                  <Tags className="size-3" /> Select Ledger Category
-                </Label>
-                <Select value={selectedColumn} onValueChange={setSelectedColumn}>
-                  <SelectTrigger className="h-11 font-bold border-slate-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SUBSIDIARY_COLUMNS.map(col => (
-                      <SelectItem key={col.key} value={col.key} className="py-2">
-                        {col.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase font-black text-slate-400 ml-1 flex items-center gap-2">
-                  <User className="size-3" /> Member Scope
-                </Label>
-                <Select value={selectedMember} onValueChange={setSelectedMember}>
-                  <SelectTrigger className="h-11 font-bold border-slate-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    <SelectItem value="all">Institutional (All Members)</SelectItem>
-                    {members?.map(m => (
-                      <SelectItem key={m.id} value={m.id}>
-                        {m.memberIdNumber} - {m.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <TabsContent value="ledger">
-          <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="bg-white border-primary/20 text-primary font-bold text-xs py-1 px-3">
-                  {selectedColLabel}
-                </Badge>
-                {selectedMember !== 'all' && (
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    Single Member Focus
-                  </Badge>
-                )}
-              </div>
-              <Badge variant="outline" className="bg-white border-slate-200">
-                {ledgerData.length} Postings Found
-              </Badge>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="py-4">Date</TableHead>
-                    <TableHead className="py-4">Member ID</TableHead>
-                    <TableHead className="py-4">Particulars</TableHead>
-                    <TableHead className="text-right py-4">Debit (৳)</TableHead>
-                    <TableHead className="text-right py-4">Credit (৳)</TableHead>
-                    <TableHead className="text-right py-4">Running Balance (৳)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-                  ) : ledgerData.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground italic">No subsidiary entries found for this criteria.</TableCell></TableRow>
-                  ) : ledgerData.map((item, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
-                      <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-slate-900">{item.memberId}</span>
-                          <span className="text-[10px] text-muted-foreground truncate max-w-[150px]">{item.memberName}</span>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-xs font-medium text-slate-700">{item.particulars}</span>
-                      </td>
-                      <td className="text-right font-medium p-4 text-blue-600">
-                        {item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
-                      </td>
-                      <td className="text-right font-medium p-4 text-rose-600">
-                        {item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
-                      </td>
-                      <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">
-                        ৳ {item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}
-                      </td>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter className="bg-slate-100/80 font-black">
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-right uppercase text-[9px]">Closing Subsidiary Position:</TableCell>
-                    <TableCell className="text-right text-[10px] text-blue-700">
-                      ৳ {ledgerData.reduce((s, r) => s + r.debit, 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-[10px] text-rose-700">
-                      ৳ {ledgerData.reduce((s, r) => s + r.credit, 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right text-base text-primary underline decoration-double">
-                      ৳ {ledgerData[ledgerData.length - 1]?.balance.toLocaleString() || "0.00"}
-                    </TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="daily">
-          <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-sm font-bold flex items-center gap-2">
-                <FileStack className="size-4 text-primary" />
-                Institutional Consolidated Daily Audit
-              </h2>
-              <Badge variant="outline" className="bg-white border-slate-200">
-                {dailySummaryData.length} Working Days Tracked
-              </Badge>
-            </div>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow>
-                    <TableHead className="py-4">Date</TableHead>
-                    <TableHead className="text-right py-4">Col 1 (Emp)</TableHead>
-                    <TableHead className="text-right py-4">Col 2 (Loan W)</TableHead>
-                    <TableHead className="text-right py-4">Col 3 (Loan R)</TableHead>
-                    <TableHead className="text-right py-4">Col 5 (Prof E)</TableHead>
-                    <TableHead className="text-right py-4">Col 6 (Prof L)</TableHead>
-                    <TableHead className="text-right py-4">Col 8 (PBS)</TableHead>
-                    <TableHead className="text-right py-4">Col 9 (Prof P)</TableHead>
-                    <TableHead className="text-right py-4 font-bold bg-blue-50/30">Total Dr (৳)</TableHead>
-                    <TableHead className="text-right py-4 font-bold bg-emerald-50/30">Total Cr (৳)</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoading ? (
-                    <TableRow><TableCell colSpan={10} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-                  ) : dailySummaryData.length === 0 ? (
-                    <TableRow><TableCell colSpan={10} className="text-center py-16 text-muted-foreground italic">No daily movement recorded for the selected period.</TableCell></TableRow>
-                  ) : dailySummaryData.map((item: any, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
-                      <td className="text-right p-4 text-[11px]">{item.c1.toLocaleString()}</td>
-                      <td className="text-right p-4 text-[11px] text-rose-600">{item.c2.toLocaleString()}</td>
-                      <td className="text-right p-4 text-[11px] text-emerald-600">{item.c3.toLocaleString()}</td>
-                      <td className="text-right p-4 text-[11px]">{item.c5.toLocaleString()}</td>
-                      <td className="text-right p-4 text-[11px]">{item.c6.toLocaleString()}</td>
-                      <td className="text-right p-4 text-[11px]">{item.c8.toLocaleString()}</td>
-                      <td className="text-right p-4 text-[11px]">{item.c9.toLocaleString()}</td>
-                      <td className="text-right p-4 font-bold bg-blue-50/10">৳ {item.totalDr.toLocaleString()}</td>
-                      <td className="text-right p-4 font-bold bg-emerald-50/10 text-primary">৳ {item.totalCr.toLocaleString()}</td>
-                    </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter className="bg-slate-100/80 font-black">
-                  <TableRow>
-                    <TableCell className="uppercase text-[9px]">Grand Totals:</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c1, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c2, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c3, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c5, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c6, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c8, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px]">{dailySummaryData.reduce((s, r) => s + r.c9, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px] bg-blue-100/50">৳ {dailySummaryData.reduce((s, r) => s + r.totalDr, 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-[10px] bg-emerald-100/50">৳ {dailySummaryData.reduce((s, r) => s + r.totalCr, 0).toLocaleString()}</TableCell>
-                  </TableRow>
-                </TableFooter>
-              </Table>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

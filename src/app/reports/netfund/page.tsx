@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { 
   Table, 
   TableBody, 
@@ -16,9 +17,6 @@ import {
   Printer, 
   Loader2, 
   Search,
-  Calendar,
-  ShieldCheck,
-  TrendingUp,
   FileStack,
   ArrowRight
 } from "lucide-react";
@@ -30,7 +28,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export default function NetfundStatementPage() {
@@ -40,11 +37,9 @@ export default function NetfundStatementPage() {
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0]);
   const [search, setSearch] = useState("");
 
-  // Fetch all members
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
 
-  // Fetch all fund summaries globally
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
@@ -107,16 +102,8 @@ export default function NetfundStatementPage() {
       "ID No": item.memberIdNumber,
       "Name": item.name,
       "Designation": item.designation,
-      "Status": item.status,
-      "Emp. Contrib (Col 1)": item.col1,
-      "Loan Withdraw (Col 2)": item.col2,
-      "Loan Repay (Col 3)": item.col3,
-      "Loan Balance (Col 4)": item.col4,
-      "Profit Emp (Col 5)": item.col5,
-      "Profit Loan (Col 6)": item.col6,
+      "Loan Bal (Col 4)": item.col4,
       "Net Emp Fund (Col 7)": item.col7,
-      "PBS Contrib (Col 8)": item.col8,
-      "Profit PBS (Col 9)": item.col9,
       "Net Office Fund (Col 10)": item.col10,
       "Grand Total Netfund (Col 11)": item.col11
     }));
@@ -124,13 +111,148 @@ export default function NetfundStatementPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Netfund Statement");
-    XLSX.writeFile(wb, `CPF_Netfund_Statement_AsOf_${asOfDate}.xlsx`);
-    toast({ title: "Exported", description: "Consolidated statement saved to Excel." });
+    XLSX.writeFile(wb, `Institutional_Netfund_Statement_${asOfDate}.xlsx`);
+    toast({ title: "Exported", description: "Member balances saved to Excel." });
   };
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      {/* Print View */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
+        <div className="flex items-center gap-4">
+          <div className="bg-primary/10 p-3 rounded-2xl">
+            <FileStack className="size-8 text-primary" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold text-primary tracking-tight">Netfund Statement</h1>
+            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Consolidated Subsidiary Statement • Institutional View</p>
+          </div>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid gap-1">
+              <Label className="text-[9px] uppercase font-bold text-slate-400">Statement As Of</Label>
+              <Input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0 font-bold" />
+            </div>
+          </div>
+          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-bold text-xs">
+              <FileSpreadsheet className="size-4" /> Excel Export
+            </Button>
+            <Button onClick={() => window.print()} className="gap-2 h-9 font-bold text-xs shadow-lg shadow-primary/20">
+              <Printer className="size-4" /> Print Statement
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-4 no-print">
+        <Card className="border-none shadow-sm bg-slate-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Aggregate Emp Fund</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">৳ {stats.empFund.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-blue-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-bold uppercase text-blue-600 tracking-widest">Aggregate Office Fund</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">৳ {stats.officeFund.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-rose-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-bold uppercase text-rose-600 tracking-widest">Total Outstanding Loans</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">৳ {stats.loans.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-primary text-white">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-bold uppercase text-primary-foreground/70 tracking-widest">Institutional Netfund</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">৳ {stats.total.toLocaleString()}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
+        <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input 
+              className="pl-9 h-9 bg-white" 
+              placeholder="Search by ID or Name..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <Badge variant="outline" className="bg-white border-slate-200">
+            {reportData.length} Personnel Listed
+          </Badge>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
+              <TableRow className="bg-muted/30">
+                <TableHead className="py-4">ID No</TableHead>
+                <TableHead className="py-4">Member Name</TableHead>
+                <TableHead className="text-right py-4">Loan Bal (Col 4)</TableHead>
+                <TableHead className="text-right py-4">Net Emp Fund (Col 7)</TableHead>
+                <TableHead className="text-right py-4">Net Office Fund (Col 10)</TableHead>
+                <TableHead className="text-right py-4">Total Netfund (Col 11)</TableHead>
+                <TableHead className="text-center py-4">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(isMembersLoading || isSummariesLoading) ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+              ) : reportData.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-16 text-muted-foreground italic">No balances found matching criteria.</TableCell></TableRow>
+              ) : reportData.map((row, idx) => (
+                <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="font-mono text-xs font-bold text-slate-600 p-4">{row.memberIdNumber}</td>
+                  <td className="p-4">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-800">{row.name}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase">{row.designation}</span>
+                    </div>
+                  </td>
+                  <td className="text-right font-medium p-4">৳ {row.col4.toLocaleString()}</td>
+                  <td className="text-right font-medium p-4">৳ {row.col7.toLocaleString()}</td>
+                  <td className="text-right font-medium p-4">৳ {row.col10.toLocaleString()}</td>
+                  <td className="text-right font-black text-primary p-4">৳ {row.col11.toLocaleString()}</td>
+                  <td className="text-center p-4">
+                    <Button variant="ghost" size="icon" asChild title="View Full Ledger">
+                      <Link href={`/members/${row.id}`}>
+                        <ArrowRight className="size-4" />
+                      </Link>
+                    </Button>
+                  </td>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="bg-slate-100/50">
+              <TableRow className="font-black">
+                <TableCell colSpan={2} className="text-right uppercase text-[10px]">Grand Total Statements:</TableCell>
+                <TableCell className="text-right">৳ {stats.loans.toLocaleString()}</TableCell>
+                <TableCell className="text-right">৳ {stats.empFund.toLocaleString()}</TableCell>
+                <TableCell className="text-right">৳ {stats.officeFund.toLocaleString()}</TableCell>
+                <TableCell className="text-right text-primary text-base">৳ {stats.total.toLocaleString()}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
+      </div>
+
+      {/* Landscape Print Optimized View */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
@@ -143,7 +265,7 @@ export default function NetfundStatementPage() {
 
         <table className="w-full text-[8px] border-collapse border border-black table-fixed">
           <thead>
-            <tr className="bg-slate-100">
+            <tr className="bg-slate-100 font-bold">
               <th className="border border-black p-1 text-center w-[40px]">ID No</th>
               <th className="border border-black p-1 text-left w-[120px]">Member Name & Designation</th>
               <th className="border border-black p-1 text-right">Loan Bal (Col 4)</th>
@@ -182,141 +304,6 @@ export default function NetfundStatementPage() {
           <div className="border-t border-black pt-2">Accountant (CPF)</div>
           <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
           <div className="border-t border-black pt-2">Approved By Trustee</div>
-        </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary/10 p-3 rounded-2xl">
-            <FileStack className="size-8 text-primary" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-primary tracking-tight">Netfund Statement</h1>
-            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Consolidated Subsidiary Statement for All Members</p>
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-bold text-slate-400">Statement As Of</Label>
-              <Input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0 font-bold" />
-            </div>
-          </div>
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-bold text-xs">
-              <FileSpreadsheet className="size-4" /> Excel Export
-            </Button>
-            <Button onClick={() => window.print()} className="gap-2 h-9 font-bold text-xs shadow-lg shadow-primary/20">
-              <Printer className="size-4" /> Print Statement
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-4 no-print">
-        <Card className="border-none shadow-sm bg-slate-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Total Emp Fund</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.empFund.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-blue-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-blue-600 tracking-widest">Total Office Fund</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.officeFund.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-rose-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-rose-600 tracking-widest">Total Loan Bal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.loans.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-primary text-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-primary-foreground/70 tracking-widest">Grand Total Netfund</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.total.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
-        <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input 
-              className="pl-9 h-9 bg-white" 
-              placeholder="Search member..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Badge variant="outline" className="bg-white border-slate-200">
-            {reportData.length} Personnel Listed
-          </Badge>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-              <TableRow className="bg-muted/30">
-                <TableHead className="py-4">ID No</TableHead>
-                <TableHead className="py-4">Member Name</TableHead>
-                <TableHead className="text-right py-4">Loan Bal (Col 4)</TableHead>
-                <TableHead className="text-right py-4">Net Emp Fund (Col 7)</TableHead>
-                <TableHead className="text-right py-4">Net Office Fund (Col 10)</TableHead>
-                <TableHead className="text-right py-4">Total Netfund (Col 11)</TableHead>
-                <TableHead className="text-center py-4">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(isMembersLoading || isSummariesLoading) ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-              ) : reportData.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-16 text-muted-foreground italic">No member records found matching the criteria.</TableCell></TableRow>
-              ) : reportData.map((row, idx) => (
-                <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="font-mono text-xs font-bold text-slate-600 p-4">{row.memberIdNumber}</td>
-                  <td className="p-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800">{row.name}</span>
-                      <span className="text-[9px] text-muted-foreground uppercase">{row.designation}</span>
-                    </div>
-                  </td>
-                  <td className="text-right font-medium p-4">৳ {row.col4.toLocaleString()}</td>
-                  <td className="text-right font-medium p-4">৳ {row.col7.toLocaleString()}</td>
-                  <td className="text-right font-medium p-4">৳ {row.col10.toLocaleString()}</td>
-                  <td className="text-right font-black text-primary p-4">৳ {row.col11.toLocaleString()}</td>
-                  <td className="text-center p-4">
-                    <Button variant="ghost" size="icon" asChild title="View Full Ledger">
-                      <Link href={`/members/${row.id}`}>
-                        <ArrowRight className="size-4" />
-                      </Link>
-                    </Button>
-                  </td>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter className="bg-slate-100/50">
-              <TableRow className="font-black">
-                <TableCell colSpan={2} className="text-right uppercase text-[10px]">Grand Total Statements:</TableCell>
-                <TableCell className="text-right">৳ {stats.loans.toLocaleString()}</TableCell>
-                <TableCell className="text-right">৳ {stats.empFund.toLocaleString()}</TableCell>
-                <TableCell className="text-right">৳ {stats.officeFund.toLocaleString()}</TableCell>
-                <TableCell className="text-right text-primary text-base">৳ {stats.total.toLocaleString()}</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableFooter>
-          </Table>
         </div>
       </div>
     </div>

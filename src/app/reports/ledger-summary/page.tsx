@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState } from "react";
@@ -33,7 +34,7 @@ export default function LedgerSummaryReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Default dates
+  // Default dates for Fiscal Year (July to June)
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -79,9 +80,9 @@ export default function LedgerSummaryReportPage() {
         };
 
         if (entryDate < start) {
-          colKeys.forEach(k => stats[k as keyof typeof stats].opening += (vals as any)[k]);
+          colKeys.forEach(k => stats[k].opening += (vals as any)[k]);
         } else if (entryDate <= end) {
-          colKeys.forEach(k => stats[k as keyof typeof stats].period += (vals as any)[k]);
+          colKeys.forEach(k => stats[k].period += (vals as any)[k]);
         }
       });
 
@@ -146,7 +147,7 @@ export default function LedgerSummaryReportPage() {
     const ws = XLSX.utils.json_to_sheet(flatData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Full Summary");
-    XLSX.writeFile(wb, `Ledger_Consolidated_Summary_${dateRange.start}_to_${dateRange.end}.xlsx`);
+    XLSX.writeFile(wb, `Institutional_Ledger_Reconciliation_${dateRange.start}_to_${dateRange.end}.xlsx`);
     toast({ title: "Exported", description: "Consolidated columnar data saved to Excel." });
   };
 
@@ -154,22 +155,6 @@ export default function LedgerSummaryReportPage() {
     <TableHead colSpan={colSpan} className={cn("text-center border-x border-black/10 font-bold uppercase text-[10px] py-2", className)}>
       {title}
     </TableHead>
-  );
-
-  const SubHeadRow = () => (
-    <TableRow className="bg-slate-50/50 text-[8px] uppercase font-bold">
-      {/* 
-        NOTE: Since ID No and Name have rowSpan={2}, they naturally occupy 
-        the first two cells of this row. We should NOT add empty placeholders here.
-      */}
-      {[1,2,3,5,6,8,9,11].map(i => (
-        <React.Fragment key={i}>
-          <TableHead className="text-right px-1 border-l">Opening</TableHead>
-          <TableHead className="text-right px-1 text-primary">Period</TableHead>
-          <TableHead className="text-right px-1 font-black bg-slate-100/50">Closing</TableHead>
-        </React.Fragment>
-      ))}
-    </TableRow>
   );
 
   return (
@@ -180,8 +165,8 @@ export default function LedgerSummaryReportPage() {
             <ClipboardCheck className="size-8 text-primary" />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-primary tracking-tight">Consolidated Ledger Summary</h1>
-            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Full 11-Column Reconciliation (Opening + Period Activity = Closing)</p>
+            <h1 className="text-3xl font-bold text-primary tracking-tight">Ledger Summary Matrix</h1>
+            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">11-Column Reconciliation • Opening + Period = Closing</p>
           </div>
         </div>
         
@@ -200,7 +185,7 @@ export default function LedgerSummaryReportPage() {
           <div className="h-6 w-px bg-slate-200 hidden sm:block" />
           <div className="flex gap-2">
             <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-bold text-xs">
-              <FileSpreadsheet className="size-4" /> Excel Matrix
+              <FileSpreadsheet className="size-4" /> Excel Export
             </Button>
             <Button onClick={() => window.print()} className="gap-2 h-9 font-bold text-xs shadow-lg shadow-primary/20">
               <Printer className="size-4" /> Print Matrix
@@ -212,7 +197,7 @@ export default function LedgerSummaryReportPage() {
       <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="border-none shadow-sm bg-slate-50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Opening Total Volume</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Grand Opening (All Member Fund)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">৳ {grandTotals.total.opening.toLocaleString()}</div>
@@ -220,7 +205,7 @@ export default function LedgerSummaryReportPage() {
         </Card>
         <Card className="border-none shadow-sm bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest">Net Period Movement</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest">Net Period Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">৳ {grandTotals.total.period.toLocaleString()}</div>
@@ -228,7 +213,7 @@ export default function LedgerSummaryReportPage() {
         </Card>
         <Card className="border-none shadow-sm bg-slate-900 text-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Consolidated Closing Balance</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Grand Closing (Institutional)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xl font-bold">৳ {grandTotals.total.closing.toLocaleString()}</div>
@@ -248,11 +233,11 @@ export default function LedgerSummaryReportPage() {
             />
           </div>
           <Badge variant="outline" className="bg-white border-slate-200">
-            {reportData.length} Personnel Audited
+            {reportData.length} Personnel Matrix
           </Badge>
         </div>
         <div className="overflow-x-auto relative">
-          <Table className="min-w-[2000px] border-collapse">
+          <Table className="min-w-[2200px] border-collapse">
             <TableHeader className="sticky top-0 bg-white z-30 shadow-sm border-b-2">
               <TableRow className="bg-muted/50">
                 <TableHead rowSpan={2} className="w-[60px] sticky left-0 bg-white border-r border-b z-40">ID No</TableHead>
@@ -266,7 +251,16 @@ export default function LedgerSummaryReportPage() {
                 <ColumnGroupHead title="Profit PBS (Col 9)" className="bg-amber-50/30" />
                 <ColumnGroupHead title="Grand Cumulative (Col 11)" className="bg-primary/5" />
               </TableRow>
-              <SubHeadRow />
+              <TableRow className="bg-slate-50/50 text-[8px] uppercase font-bold">
+                {/* ID and Name cells are occupied by Header Row 1 rowSpan */}
+                {[1,2,3,5,6,8,9,11].map(i => (
+                  <React.Fragment key={i}>
+                    <TableHead className="text-right px-1 border-l">Opening</TableHead>
+                    <TableHead className="text-right px-1 text-primary">Period</TableHead>
+                    <TableHead className="text-right px-1 font-black bg-slate-100/50">Closing</TableHead>
+                  </React.Fragment>
+                ))}
+              </TableRow>
             </TableHeader>
             <TableBody>
               {(isMembersLoading || isSummariesLoading) ? (
@@ -311,13 +305,13 @@ export default function LedgerSummaryReportPage() {
         </div>
       </div>
 
-      {/* Print View */}
+      {/* Optimized Landscape Print View */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Institutional Consolidated Ledger Matrix</h2>
+          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Consolidated Member Ledger Matrix</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
-            <span>Audit Period: {dateRange.start} to {dateRange.end}</span>
+            <span>Audit Range: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
