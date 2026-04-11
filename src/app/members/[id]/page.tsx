@@ -597,23 +597,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-[9px] border-collapse border border-black table-fixed">
+          <table className="w-full text-[10.5px] border-collapse border border-black table-fixed">
             <thead className="bg-slate-50/80">
               <tr>
-                <th className="border border-black p-1 text-center font-bold w-[65px] uppercase text-[7.5px]">Date</th>
-                <th className="border border-black p-1 text-center font-bold w-[160px] uppercase text-[7.5px] align-top">Particulars</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Employee Cont. (Col 1)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Loan Withdraw (Col 2)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Loan Repay (Col 3)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Loan Balance (Col 4)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Profit Emp. (Col 5)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Profit Loan (Col 6)</th>
-                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px] leading-tight">Total (Emp. Fund) (Col 7)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">PBS Cont. (Col 8)</th>
-                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[7.5px] leading-tight">Profit PBS (Col 9)</th>
-                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[7.5px] leading-tight">Total (Office Fund) (Col 10)</th>
-                <th className="border border-black p-1 text-center font-bold w-[95px] uppercase text-[7.5px] leading-tight">Cumulative (Col 11)</th>
-                <th className="border border-black p-1 text-center font-bold no-print w-[80px] uppercase text-[7.5px]">Action</th>
+                <th className="border border-black p-1 text-center font-bold w-[65px] uppercase text-[9px]">Date</th>
+                <th className="border border-black p-1 text-center font-bold w-[160px] uppercase text-[9px] align-top">Particulars</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Employee Cont. (Col 1)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Loan Withdraw (Col 2)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Loan Repay (Col 3)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Loan Balance (Col 4)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Profit Emp. (Col 5)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Profit Loan (Col 6)</th>
+                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[9px] leading-tight">Total (Emp. Fund) (Col 7)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">PBS Cont. (Col 8)</th>
+                <th className="border border-black p-1 text-center font-bold w-[75px] uppercase text-[9px] leading-tight">Profit PBS (Col 9)</th>
+                <th className="border border-black p-1 text-center font-bold w-[85px] uppercase text-[9px] leading-tight">Total (Office Fund) (Col 10)</th>
+                <th className="border border-black p-1 text-center font-bold w-[95px] uppercase text-[9px] leading-tight">Cumulative (Col 11)</th>
+                <th className="border border-black p-1 text-center font-bold no-print w-[80px] uppercase text-[9px]">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black/20">
@@ -641,7 +641,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-right">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-accent">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className={cn("border border-black p-1 text-right font-bold bg-primary/5", row.col10 === 0 && "text-slate-300")}>{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className={cn("border border-black p-1 text-right font-black bg-slate-50 text-[10px]", row.col11 === 0 && "text-slate-300")}>{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                  <td className={cn("border border-black p-1 text-right font-black bg-slate-50 text-[11px]", row.col11 === 0 && "text-slate-300")}>{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-center no-print">
                     <div className="flex gap-1 justify-center">
                       {!row.isSyncedFromJV ? (
@@ -659,18 +659,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </tbody>
             <tfoot className="bg-slate-100/80 font-black border-t-2 border-black sticky bottom-0 z-10">
               <tr>
-                <td className="border border-black p-1 text-center uppercase text-[7.5px]" colSpan={2}>Grand Totals:</td>
-                <td className="border border-black p-1 text-right">{columnSums.c1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right text-rose-800">{columnSums.c2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right text-emerald-800">{columnSums.c3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right bg-slate-200/50">{latestRunningTotals.loanBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right text-accent">{columnSums.c5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right text-accent">{columnSums.c6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right bg-primary/10">{latestRunningTotals.empFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right text-accent">{columnSums.c9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right bg-primary/10">{latestRunningTotals.officeFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-1 text-right bg-slate-200 text-[10px] underline decoration-double">৳ {latestRunningTotals.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-center uppercase text-[10px]" colSpan={2}>Grand Totals:</td>
+                <td className="border border-black p-1 text-right text-[11px]">{columnSums.c1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-rose-800 text-[11px]">{columnSums.c2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-emerald-800 text-[11px]">{columnSums.c3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-slate-200/50 text-[11px]">{latestRunningTotals.loanBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-accent text-[11px]">{columnSums.c5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-accent text-[11px]">{columnSums.c6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-primary/10 text-[11px]">{latestRunningTotals.empFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-[11px]">{columnSums.c8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-accent text-[11px]">{columnSums.c9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-primary/10 text-[11px]">{latestRunningTotals.officeFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-slate-200 text-[12px] underline decoration-double">৳ {latestRunningTotals.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                 <td className="border border-black p-1 no-print"></td>
               </tr>
             </tfoot>
