@@ -19,14 +19,26 @@ import {
   ShieldCheck,
   TrendingUp,
   UserPlus,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Trash2,
+  AlertTriangle,
+  DatabaseZap
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { collectionGroup, query, where, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger, 
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
@@ -47,6 +59,9 @@ export default function ContributionAuditPage() {
   const today = now.toISOString().split('T')[0];
 
   const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
+  const [isCleanupOpen, setIsCleanupOpen] = useState(false);
+  const [cleanupParticulars, setCleanupParticulars] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);
@@ -97,6 +112,42 @@ export default function ContributionAuditPage() {
 
     return s;
   }, [filteredData]);
+
+  const matchingRecords = useMemo(() => {
+    if (!cleanupParticulars) return [];
+    return filteredData.filter(item => 
+      item.particulars?.toLowerCase().includes(cleanupParticulars.toLowerCase())
+    );
+  }, [filteredData, cleanupParticulars]);
+
+  const handleBatchDelete = async () => {
+    if (matchingRecords.length === 0) return;
+    
+    setIsDeleting(true);
+    let deletedCount = 0;
+    
+    try {
+      for (const item of matchingRecords) {
+        if (item.memberId && item.id) {
+          const docRef = doc(firestore, "members", item.memberId, "fundSummaries", item.id);
+          deleteDocumentNonBlocking(docRef);
+          deletedCount++;
+        }
+      }
+      
+      toast({ 
+        title: "Batch Deletion Success", 
+        description: `Successfully removed ${deletedCount} records matching "${cleanupParticulars}" within the period.`,
+        variant: "default" 
+      });
+      setIsCleanupOpen(false);
+      setCleanupParticulars("");
+    } catch (error) {
+      toast({ title: "Error", description: "Batch deletion failed.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const exportToExcel = () => {
     if (filteredData.length === 0) return;
@@ -194,6 +245,66 @@ export default function ContributionAuditPage() {
           </div>
           <div className="h-6 w-px bg-slate-200 hidden sm:block" />
           <div className="flex gap-2">
+            <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 h-9 font-bold text-xs">
+                  <DatabaseZap className="size-4" /> Batch Cleanup
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-orange-700 flex items-center gap-2">
+                    <DatabaseZap className="size-5" /> Batch Ledger Cleanup
+                  </DialogTitle>
+                  <DialogDescription>
+                    Use this tool to remove wrongly posted entries (e.g., incorrect annual interest) across all members for the selected date range.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-6 py-4">
+                  <div className="p-3 bg-slate-50 rounded-lg border text-[11px] space-y-1">
+                    <p className="font-bold uppercase text-slate-400">Current Scope:</p>
+                    <p className="flex justify-between"><span>Date Range:</span> <b>{dateRange.start} to {dateRange.end}</b></p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold">Particulars to Match (Keyword)</Label>
+                    <Input 
+                      placeholder="e.g. Annual Profit FY 2023-24" 
+                      value={cleanupParticulars} 
+                      onChange={(e) => setCleanupParticulars(e.target.value)}
+                      className="font-bold"
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">Records matching this text EXACTLY or PARTIALLY will be identified.</p>
+                  </div>
+
+                  {cleanupParticulars && (
+                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl text-center animate-in zoom-in duration-300">
+                      <p className="text-xs font-black text-orange-800 uppercase tracking-wider mb-1">Impact Analysis</p>
+                      <p className="text-2xl font-black text-orange-700">{matchingRecords.length} Records Found</p>
+                      <p className="text-[10px] text-orange-600 font-bold uppercase mt-1">Found in global subsidiary collection group</p>
+                    </div>
+                  )}
+
+                  <div className="bg-rose-50 p-3 rounded-lg border border-rose-100 flex gap-3">
+                    <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-rose-700 leading-tight"><b>Warning:</b> This action will permanently remove these records from every employee's ledger. It cannot be undone.</p>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setIsCleanupOpen(false)}>Cancel</Button>
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleBatchDelete} 
+                    disabled={matchingRecords.length === 0 || isDeleting}
+                    className="gap-2 font-bold"
+                  >
+                    {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                    Delete {matchingRecords.length} Records
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-bold text-xs">
               <FileSpreadsheet className="size-4" /> Export Excel
             </Button>
