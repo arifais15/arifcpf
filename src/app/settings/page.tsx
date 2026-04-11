@@ -9,41 +9,77 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data"
-import { useFirestore, useDoc, useCollection, useMemoFirebase, setDocumentNonBlocking } from "@/firebase"
+import { 
+  useFirestore, 
+  useDoc, 
+  useCollection, 
+  useMemoFirebase, 
+  setDocumentNonBlocking,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking
+} from "@/firebase"
 import { collection, doc } from "firebase/firestore"
-import { Loader2, Save, ShieldCheck, AlertCircle, Info, Percent, Plus, Trash2, ArrowRight } from "lucide-react"
+import { 
+  Loader2, 
+  Save, 
+  ShieldCheck, 
+  Info, 
+  Percent, 
+  Plus, 
+  Trash2, 
+  ArrowRight, 
+  BookOpen, 
+  Search, 
+  Edit2 
+} from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { LEDGER_COLUMN_MAPPING, NORMAL_DEBIT_ACCOUNTS, type LedgerColumnKey } from "@/lib/ledger-mapping"
+import { useSweetAlert } from "@/hooks/use-sweet-alert"
+import { LEDGER_COLUMN_MAPPING, NORMAL_DEBIT_ACCOUNTS } from "@/lib/ledger-mapping"
 import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const firestore = useFirestore()
   const { toast } = useToast()
+  const { showAlert } = useSweetAlert()
   const [isSaving, setIsSaving] = useState(false)
 
-  // Ledger Mapping Settings
+  // --- LEDGER MAPPING & INTEREST STATES ---
   const ledgerSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "ledger"), [firestore])
   const { data: savedLedgerSettings, isLoading: isLedgerLoading } = useDoc(ledgerSettingsRef)
 
-  // Interest Rate Settings
   const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore])
   const { data: savedInterestSettings, isLoading: isInterestLoading } = useDoc(interestSettingsRef)
 
-  const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore])
-  const { data: coaData } = useCollection(coaRef)
-  const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData])
-
-  // Local State for Mapping
   const [mapping, setMapping] = useState<Record<string, string>>({})
   const [debitAccounts, setDebitAccounts] = useState<string[]>([])
-
-  // Local State for Interest
   const [interestTiers, setInterestTiers] = useState<{ limit: number | null, rate: number }[]>([
     { limit: 1500000, rate: 13 },
     { limit: 3000000, rate: 12 },
     { limit: null, rate: 11 }
   ])
+
+  // --- CHART OF ACCOUNTS STATES ---
+  const [coaSearch, setCoaSearch] = useState("")
+  const [isCoaAddOpen, setIsCoaAddOpen] = useState(false)
+  const [editingCoaAccount, setEditingCoaAccount] = useState<any>(null)
+
+  const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore])
+  const { data: coaData, isLoading: isCoaLoading } = useCollection(coaRef)
+
+  const activeCOA = useMemo(() => {
+    const data = coaData && coaData.length > 0 ? coaData : INITIAL_COA;
+    return data
+      .filter((acc: any) => 
+        (acc.name || acc.accountName).toLowerCase().includes(coaSearch.toLowerCase()) || 
+        (acc.code || acc.accountCode).includes(coaSearch)
+      )
+      .sort((a: any, b: any) => (a.code || a.accountCode).localeCompare(b.code || b.accountCode));
+  }, [coaData, coaSearch]);
 
   useEffect(() => {
     if (savedLedgerSettings) {
@@ -113,7 +149,6 @@ export default function SettingsPage() {
     if (lastTier.limit !== null) {
       newTiers.push({ limit: null, rate: 10 })
     } else {
-      // If the last tier was 'Above All', make it a specific limit and add a new null limit
       const currentVal = lastTier.limit || 5000000
       lastTier.limit = currentVal + 1000000
       newTiers.push({ limit: null, rate: 10 })
@@ -132,7 +167,62 @@ export default function SettingsPage() {
     setInterestTiers(newTiers)
   }
 
-  if (isLedgerLoading || isInterestLoading) {
+  const handleSaveCoaAccount = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    const type = formData.get("type") as string;
+    const balance = formData.get("balance") as string;
+    
+    const accountData = {
+      accountCode: formData.get("code") as string,
+      accountName: formData.get("name") as string,
+      accountType: type === "none" ? "" : type,
+      normalBalance: balance === "none" ? "" : balance,
+      isHeader: formData.get("isHeader") === "true",
+      updatedAt: new Date().toISOString()
+    };
+
+    if (editingCoaAccount && editingCoaAccount.id) {
+      const docRef = doc(firestore, "chartOfAccounts", editingCoaAccount.id);
+      updateDocumentNonBlocking(docRef, accountData);
+      showAlert({
+        title: "Success",
+        description: `${accountData.accountName} has been updated.`,
+        type: "success"
+      });
+    } else {
+      addDocumentNonBlocking(coaRef, accountData);
+      showAlert({
+        title: "Added",
+        description: `${accountData.accountName} added to COA.`,
+        type: "success"
+      });
+    }
+    setIsCoaAddOpen(false);
+    setEditingCoaAccount(null);
+  };
+
+  const handleDeleteCoaAccount = (id: string, name: string) => {
+    showAlert({
+      title: "Are you sure?",
+      description: `Delete account: ${name}? This cannot be reversed.`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Delete Account",
+      onConfirm: () => {
+        const docRef = doc(firestore, "chartOfAccounts", id);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({
+          title: "Deleted",
+          description: "Account removed.",
+          type: "success"
+        });
+      }
+    });
+  };
+
+  if (isLedgerLoading || isInterestLoading || isCoaLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>
   }
 
@@ -153,8 +243,11 @@ export default function SettingsPage() {
         <p className="text-muted-foreground">Manage institutional accounting rules and parameters</p>
       </div>
 
-      <Tabs defaultValue="ledger" className="w-full">
+      <Tabs defaultValue="coa" className="w-full">
         <TabsList className="bg-white p-1 rounded-xl border shadow-sm mb-8">
+          <TabsTrigger value="coa" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+            <BookOpen className="size-4" /> Chart of Accounts
+          </TabsTrigger>
           <TabsTrigger value="ledger" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
             <ShieldCheck className="size-4" /> Ledger Mapping
           </TabsTrigger>
@@ -163,6 +256,155 @@ export default function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
+        {/* --- CHART OF ACCOUNTS TAB --- */}
+        <TabsContent value="coa" className="space-y-6 animate-in fade-in duration-500">
+          <div className="flex items-center justify-between mb-2">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input 
+                className="pl-9 h-10" 
+                placeholder="Search accounts..." 
+                value={coaSearch}
+                onChange={(e) => setCoaSearch(e.target.value)}
+              />
+            </div>
+            <Dialog open={isCoaAddOpen} onOpenChange={(open) => { setIsCoaAddOpen(open); if (!open) setEditingCoaAccount(null); }}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="size-4 mr-2" />
+                  Add Account
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{editingCoaAccount ? "Edit Account" : "Add New Account"}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSaveCoaAccount} className="space-y-4 pt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="code">Account Code</Label>
+                      <Input id="code" name="code" placeholder="e.g. 101.10.0000" defaultValue={editingCoaAccount?.code || editingCoaAccount?.accountCode} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Account Type</Label>
+                      <Select name="type" defaultValue={editingCoaAccount ? (editingCoaAccount.type || editingCoaAccount.accountType || "none") : "Asset"}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Asset">Asset</SelectItem>
+                          <SelectItem value="Contra-Asset">Contra-Asset</SelectItem>
+                          <SelectItem value="Liability">Liability</SelectItem>
+                          <SelectItem value="Equity">Equity</SelectItem>
+                          <SelectItem value="Income">Income</SelectItem>
+                          <SelectItem value="Expense">Expense</SelectItem>
+                          <SelectItem value="none">None (Header)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Account Name</Label>
+                    <Input id="name" name="name" placeholder="e.g. Cash in Hand" defaultValue={editingCoaAccount?.name || editingCoaAccount?.accountName} required />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="balance">Normal Balance</Label>
+                      <Select name="balance" defaultValue={editingCoaAccount ? (editingCoaAccount.balance || editingCoaAccount.normalBalance || "none") : "Debit"}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select balance" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Debit">Debit</SelectItem>
+                          <SelectItem value="Credit">Credit</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="isHeader">Is Group Header?</Label>
+                      <Select name="isHeader" defaultValue={editingCoaAccount?.isHeader?.toString() || "false"}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Is Header?" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="true">Yes</SelectItem>
+                          <SelectItem value="false">No</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsCoaAddOpen(false)}>Cancel</Button>
+                    <Button type="submit">Save Account</Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Card className="border shadow-sm overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="w-[150px]">Code</TableHead>
+                  <TableHead>Account Name</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Balance</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {activeCOA.map((account: any) => (
+                  <TableRow key={account.id || account.code} className={account.isHeader ? "bg-muted/20 font-semibold" : ""}>
+                    <TableCell className="font-mono text-xs">{account.code || account.accountCode}</TableCell>
+                    <TableCell className={account.isHeader ? "pl-4" : "pl-8"}>
+                      {account.name || account.accountName}
+                    </TableCell>
+                    <TableCell>
+                      {(account.type || account.accountType) && (
+                        <Badge variant={(account.type || account.accountType) === 'Asset' ? "default" : (account.type || account.accountType) === 'Liability' ? 'outline' : 'secondary'}>
+                          {account.type || account.accountType}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(account.balance || account.normalBalance) && (
+                        <span className={`text-xs ${(account.balance || account.normalBalance) === 'Debit' ? 'text-blue-600' : 'text-orange-600'} font-medium`}>
+                          {account.balance || account.normalBalance}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => { setEditingCoaAccount(account); setIsCoaAddOpen(true); }}
+                        >
+                          <Edit2 className="size-3.5" />
+                        </Button>
+                        {account.id && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10" 
+                            onClick={() => handleDeleteCoaAccount(account.id, account.name || account.accountName)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+
+        {/* --- LEDGER MAPPING TAB --- */}
         <TabsContent value="ledger" className="space-y-8 animate-in fade-in duration-500">
           <div className="grid gap-8 lg:grid-cols-12">
             <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden">
@@ -203,8 +445,10 @@ export default function SettingsPage() {
                           </SelectTrigger>
                           <SelectContent className="max-h-[300px]">
                             <SelectItem value="none">No Mapping</SelectItem>
-                            {activeCOA.filter(a => !a.isHeader).map(a => (
-                              <SelectItem key={a.code} value={a.code}>{a.code} - {a.name}</SelectItem>
+                            {coaData?.filter((a: any) => !a.isHeader).map((a: any) => (
+                              <SelectItem key={a.code || a.accountCode} value={a.code || a.accountCode}>
+                                {a.code || a.accountCode} - {a.name || a.accountName}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -235,6 +479,7 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+        {/* --- INTEREST RATES TAB --- */}
         <TabsContent value="interest" className="space-y-8 animate-in fade-in duration-500">
           <div className="grid gap-8 lg:grid-cols-12">
             <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden">

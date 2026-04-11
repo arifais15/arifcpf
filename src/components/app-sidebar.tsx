@@ -4,7 +4,6 @@
 import * as React from "react"
 import {
   LayoutDashboard,
-  BookOpen,
   PlusCircle,
   Users,
   TrendingUp,
@@ -46,7 +45,6 @@ import { Button } from "@/components/ui/button"
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/" },
-  { title: "Chart of Accounts", icon: BookOpen, url: "/coa" },
   { title: "Journal Entries", icon: ListTodo, url: "/transactions" },
   { title: "New Transaction", icon: PlusCircle, url: "/transactions/new" },
   { title: "Control Ledger", icon: BookText, url: "/reports/control-ledger" },
