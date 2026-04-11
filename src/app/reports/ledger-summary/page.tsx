@@ -445,9 +445,9 @@ export default function LedgerSummaryReportPage() {
         </TabsContent>
       </Tabs>
 
-      <div className="mt-auto pt-8 border-t no-print flex justify-between items-center text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-50">
-        <span>System Generated Subsidiary Audit</span>
-        <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+      <div className="mt-auto pt-8 border-t no-print flex justify-between items-center text-[8px] text-muted-foreground font-bold uppercase tracking-widest opacity-50">
+        <span>CPF Management Software</span>
+        <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
       </div>
 
       {/* --- PRINT CONTAINER --- */}

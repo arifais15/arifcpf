@@ -267,9 +267,9 @@ export default function ReportsPage() {
                  <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
                  <div className="border-t border-black pt-2">Approved By Trustee</div>
               </div>
-              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                <span>System Generated Audit Statement</span>
-                <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>
@@ -331,9 +331,9 @@ export default function ReportsPage() {
                  <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
                  <div className="border-t border-black pt-2">Approved By Trustee</div>
               </div>
-              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                <span>Income Statement Audit Trail</span>
-                <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>
@@ -372,9 +372,9 @@ export default function ReportsPage() {
                  <div className="border-t border-black pt-2">Checked By</div>
                  <div className="border-t border-black pt-2">Approved By</div>
               </div>
-              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
-                <span>Fund Flow Reconciliation</span>
-                <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>

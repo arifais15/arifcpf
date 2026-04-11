@@ -677,9 +677,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
         
-        <div className="mt-8 pt-4 border-t border-black flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
-          <span>GPBS-2 Contributory Provident Fund</span>
-          <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+        <div className="mt-8 pt-4 border-t border-black flex justify-between items-center text-[8px] font-bold uppercase tracking-widest">
+          <span>CPF Management Software</span>
+          <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
         </div>
       </div>
 
