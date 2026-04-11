@@ -34,7 +34,6 @@ export default function FundMovementReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Default to current fiscal year (July to June)
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -52,293 +51,58 @@ export default function FundMovementReportPage() {
 
   const reportData = useMemo(() => {
     if (!members || !allSummaries) return [];
-
     const start = new Date(dateRange.start).getTime();
     const end = new Date(dateRange.end).getTime();
 
     return members.map(member => {
       const memberSummaries = allSummaries.filter(s => s.memberId === member.id);
-      
-      let openingEmp = 0;
-      let openingPbs = 0;
-      let additionEmp = 0;
-      let adjustmentEmp = 0;
-      let additionPbs = 0;
-      let adjustmentPbs = 0;
+      let opEmp = 0, opPbs = 0, addEmp = 0, adjEmp = 0, addPbs = 0, adjPbs = 0;
 
       memberSummaries.forEach(s => {
         const entryDate = new Date(s.summaryDate).getTime();
-        const c1 = Number(s.employeeContribution) || 0;
-        const c2 = Number(s.loanWithdrawal) || 0;
-        const c3 = Number(s.loanRepayment) || 0;
-        const c5 = Number(s.profitEmployee) || 0;
-        const c6 = Number(s.profitLoan) || 0;
-        const c8 = Number(s.pbsContribution) || 0;
-        const c9 = Number(s.profitPbs) || 0;
-
-        // Current Fund Value logic matches Column 7 and Column 10
-        if (entryDate < start) {
-          openingEmp += (c1 - c2 + c3 + c5 + c6);
-          openingPbs += (c8 + c9);
-        } else if (entryDate <= end) {
-          additionEmp += c1;
-          // Adjustments include profits and net loan impact during the period
-          adjustmentEmp += (c5 + c6 + (c3 - c2));
-          additionPbs += c8;
-          adjustmentPbs += c9;
-        }
+        const v = { c1: Number(s.employeeContribution)||0, c2: Number(s.loanWithdrawal)||0, c3: Number(s.loanRepayment)||0, c5: Number(s.profitEmployee)||0, c6: Number(s.profitLoan)||0, c8: Number(s.pbsContribution)||0, c9: Number(s.profitPbs)||0 };
+        if (entryDate < start) { opEmp += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6); opPbs += (v.c8 + v.c9); }
+        else if (entryDate <= end) { addEmp += v.c1; adjEmp += (v.c5 + v.c6 + (v.c3 - v.c2)); addPbs += v.c8; adjPbs += v.c9; }
       });
 
-      const closingEmp = openingEmp + additionEmp + adjustmentEmp;
-      const closingPbs = openingPbs + additionPbs + adjustmentPbs;
-      const totalClosing = closingEmp + closingPbs;
-
-      return {
-        memberIdNumber: member.memberIdNumber,
-        name: member.name,
-        designation: member.designation,
-        openingEmp, additionEmp, adjustmentEmp, closingEmp,
-        openingPbs, additionPbs, adjustmentPbs, closingPbs,
-        totalClosing
-      };
+      return { memberIdNumber: member.memberIdNumber, name: member.name, opEmp, addEmp, adjEmp, clEmp: opEmp+addEmp+adjEmp, opPbs, addPbs, adjPbs, clPbs: opPbs+addPbs+adjPbs, total: (opEmp+addEmp+adjEmp)+(opPbs+addPbs+adjPbs) };
     })
-    .filter(row => 
-      row.name.toLowerCase().includes(search.toLowerCase()) || 
-      row.memberIdNumber?.includes(search)
-    )
+    .filter(row => row.name.toLowerCase().includes(search.toLowerCase()) || row.memberIdNumber?.includes(search))
     .sort((a, b) => (a.memberIdNumber || "").localeCompare(b.memberIdNumber || ""));
   }, [members, allSummaries, dateRange, search]);
 
-  const stats = useMemo(() => {
-    return reportData.reduce((acc, curr) => ({
-      totalOpening: acc.totalOpening + curr.openingEmp + curr.openingPbs,
-      totalAddition: acc.totalAddition + curr.additionEmp + curr.additionPbs,
-      totalAdjustment: acc.totalAdjustment + curr.adjustmentEmp + curr.adjustmentPbs,
-      totalClosing: acc.totalClosing + curr.totalClosing,
-    }), { totalOpening: 0, totalAddition: 0, totalAdjustment: 0, totalClosing: 0 });
-  }, [reportData]);
-
-  const exportToExcel = () => {
-    if (reportData.length === 0) return;
-    const data = reportData.map(item => ({
-      "ID No": item.memberIdNumber,
-      "Name": item.name,
-      "Emp Opening": item.openingEmp,
-      "Emp Addition": item.additionEmp,
-      "Emp Adjustment": item.adjustmentEmp,
-      "Emp Closing": item.closingEmp,
-      "PBS Opening": item.openingPbs,
-      "PBS Addition": item.additionPbs,
-      "PBS Adjustment": item.adjustmentPbs,
-      "PBS Closing": item.closingPbs,
-      "Grand Total": item.totalClosing
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Fund Movement");
-    XLSX.writeFile(wb, `Fund_Movement_Report_${dateRange.start}_to_${dateRange.end}.xlsx`);
-    toast({ title: "Exported", description: "Movement reconciliation saved to Excel." });
-  };
+  const stats = useMemo(() => reportData.reduce((acc, c) => ({ op: acc.op+c.opEmp+c.opPbs, cl: acc.cl+c.total }), { op: 0, cl: 0 }), [reportData]);
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex items-center gap-4">
-          <div className="bg-primary/10 p-3 rounded-2xl">
-            <Activity className="size-8 text-primary" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-primary tracking-tight">Fund Movement Audit</h1>
-            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Analysis of institutional and personal fund evolution</p>
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-bold text-slate-400">Date From</Label>
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0 font-bold" />
-            </div>
-            <ArrowRightLeft className="size-3 text-slate-300 mt-3" />
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-bold text-slate-400">Date To</Label>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0 font-bold" />
-            </div>
-          </div>
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-bold text-xs">
-              <FileSpreadsheet className="size-4" /> Excel Matrix
-            </Button>
-            <Button onClick={() => window.print()} className="gap-2 h-9 font-bold text-xs shadow-lg shadow-primary/20">
-              <Printer className="size-4" /> Print Matrix
-            </Button>
-          </div>
-        </div>
+        <div className="flex items-center gap-4"><div className="bg-primary/10 p-3 rounded-2xl"><Activity className="size-8 text-primary" /></div><div className="flex flex-col gap-1"><h1 className="text-3xl font-bold text-primary tracking-tight">Fund Movement Audit</h1><p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Analysis of institutional and personal fund evolution</p></div></div>
+        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm"><div className="grid gap-1"><Label className="text-[9px] uppercase font-bold text-slate-400">Range</Label><div className="flex items-center gap-2"><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none font-bold" /><ArrowRightLeft className="size-3 text-slate-300" /><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none font-bold" /></div></div></div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4 no-print">
-        <Card className="border-none shadow-sm bg-slate-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-slate-500 tracking-widest">Opening Bal (Total)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.totalOpening.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-blue-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-blue-600 tracking-widest">Period Additions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.totalAddition.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-orange-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-orange-600 tracking-widest">Net Adjustments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.totalAdjustment.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-slate-900 text-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Grand Closing Bal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold">৳ {stats.totalClosing.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 md:grid-cols-2 no-print">
+        <Card className="bg-slate-50"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-bold uppercase text-slate-500">Opening (All Fund)</CardTitle></CardHeader><CardContent><div className="text-xl font-bold">৳ {stats.op.toLocaleString()}</div></CardContent></Card>
+        <Card className="bg-slate-900 text-white"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-bold uppercase text-slate-400">Closing (Institutional)</CardTitle></CardHeader><CardContent><div className="text-xl font-bold">৳ {stats.cl.toLocaleString()}</div></CardContent></Card>
       </div>
 
       <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
-        <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input 
-              className="pl-9 h-9 bg-white" 
-              placeholder="Search member..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Badge variant="outline" className="bg-white border-slate-200">
-            {reportData.length} Personnel Summarized
-          </Badge>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-              <TableRow className="bg-muted/30">
-                <TableHead className="py-4">Member ID</TableHead>
-                <TableHead className="py-4">Name</TableHead>
-                <TableHead className="text-right py-4 bg-slate-100/30">Emp Opening (৳)</TableHead>
-                <TableHead className="text-right py-4">Emp Add (৳)</TableHead>
-                <TableHead className="text-right py-4 text-orange-600">Emp Adj (৳)</TableHead>
-                <TableHead className="text-right py-4 font-bold">Emp Closing (৳)</TableHead>
-                <TableHead className="text-right py-4 bg-blue-50/30">PBS Opening (৳)</TableHead>
-                <TableHead className="text-right py-4">PBS Add (৳)</TableHead>
-                <TableHead className="text-right py-4 text-emerald-600">PBS Adj (৳)</TableHead>
-                <TableHead className="text-right py-4 font-bold">PBS Closing (৳)</TableHead>
-                <TableHead className="text-right py-4 font-black">Grand Total (৳)</TableHead>
+        <Table>
+          <TableHeader className="bg-muted/30">
+            <TableRow>
+              <TableHead>Member ID</TableHead><TableHead>Name</TableHead><TableHead className="text-right">Emp Opening</TableHead><TableHead className="text-right">Emp Add</TableHead><TableHead className="text-right">Emp Adj</TableHead><TableHead className="text-right font-bold">Emp Closing</TableHead><TableHead className="text-right">PBS Opening</TableHead><TableHead className="text-right">PBS Add</TableHead><TableHead className="text-right">PBS Adj</TableHead><TableHead className="text-right font-bold">PBS Closing</TableHead><TableHead className="text-right font-black">Total</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {(isMembersLoading || isSummariesLoading) ? <TableRow><TableCell colSpan={11} className="text-center py-12"><Loader2 className="animate-spin size-6 mx-auto" /></TableCell></TableRow> : reportData.map((row, idx) => (
+              <TableRow key={idx} className="text-[11px]">
+                <td className="font-mono font-bold p-4">{row.memberIdNumber}</td><td className="p-4 truncate">{row.name}</td>
+                <td className="text-right p-4 text-slate-400">{row.opEmp.toLocaleString()}</td><td className="text-right p-4">{row.addEmp.toLocaleString()}</td><td className="text-right p-4 text-orange-600">{row.adjEmp.toLocaleString()}</td><td className="text-right p-4 font-bold">৳ {row.clEmp.toLocaleString()}</td>
+                <td className="text-right p-4 text-slate-400">{row.opPbs.toLocaleString()}</td><td className="text-right p-4">{row.addPbs.toLocaleString()}</td><td className="text-right p-4 text-emerald-600">{row.adjPbs.toLocaleString()}</td><td className="text-right p-4 font-bold">৳ {row.clPbs.toLocaleString()}</td>
+                <td className="text-right p-4 font-black text-primary">৳ {row.total.toLocaleString()}</td>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(isMembersLoading || isSummariesLoading) ? (
-                <TableRow><TableCell colSpan={11} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-              ) : reportData.length === 0 ? (
-                <TableRow><TableCell colSpan={11} className="text-center py-16 text-muted-foreground italic">No movement records found.</TableCell></TableRow>
-              ) : reportData.map((row, idx) => (
-                <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors text-[11px]">
-                  <td className="font-mono font-bold p-4">{row.memberIdNumber}</td>
-                  <td className="p-4 font-medium max-w-[120px] truncate" title={row.name}>{row.name}</td>
-                  <td className="text-right p-4 bg-slate-50/50">৳ {row.openingEmp.toLocaleString()}</td>
-                  <td className="text-right p-4">৳ {row.additionEmp.toLocaleString()}</td>
-                  <td className="text-right p-4 text-orange-600">৳ {row.adjustmentEmp.toLocaleString()}</td>
-                  <td className="text-right p-4 font-bold">৳ {row.closingEmp.toLocaleString()}</td>
-                  <td className="text-right p-4 bg-blue-50/20">৳ {row.openingPbs.toLocaleString()}</td>
-                  <td className="text-right p-4">৳ {row.additionPbs.toLocaleString()}</td>
-                  <td className="text-right p-4 text-emerald-600">৳ {row.adjustmentPbs.toLocaleString()}</td>
-                  <td className="text-right p-4 font-bold">৳ {row.closingPbs.toLocaleString()}</td>
-                  <td className="text-right p-4 font-black text-primary">৳ {row.totalClosing.toLocaleString()}</td>
-                </TableRow>
-              ))}
-            </TableBody>
-            <TableFooter>
-              <TableRow className="bg-slate-100/80 font-black">
-                <TableCell colSpan={2} className="text-right uppercase text-[9px]">Grand Total Movements:</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.openingEmp, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.additionEmp, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.adjustmentEmp, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.closingEmp, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.openingPbs, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.additionPbs, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.adjustmentPbs, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-[10px]">৳ {reportData.reduce((s, r) => s + r.closingPbs, 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right text-base underline decoration-double">৳ {stats.totalClosing.toLocaleString()}</TableCell>
-              </TableRow>
-            </TableFooter>
-          </Table>
-        </div>
-      </div>
-
-      {/* Landscape Print Optimized View */}
-      <div className="hidden print:block print-container">
-        <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Institutional Fund Movement Reconciliation</h2>
-          <div className="flex justify-between text-[10px] font-bold pt-4">
-            <span>Reconciliation Period: {dateRange.start} to {dateRange.end}</span>
-            <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
-          </div>
-        </div>
-
-        <table className="w-full text-[7.5px] border-collapse border border-black table-fixed">
-          <thead>
-            <tr className="bg-slate-100 font-bold">
-              <th className="border border-black p-1 text-center w-[35px]" rowSpan={2}>ID No</th>
-              <th className="border border-black p-1 text-left w-[90px]" rowSpan={2}>Member Name</th>
-              <th className="border border-black p-1 text-center bg-slate-200/50" colSpan={4}>Employee Fund (৳)</th>
-              <th className="border border-black p-1 text-center bg-blue-50" colSpan={4}>PBS Office Fund (৳)</th>
-              <th className="border border-black p-1 text-right w-[60px] bg-slate-100" rowSpan={2}>Grand Total (৳)</th>
-            </tr>
-            <tr className="bg-slate-50 text-[7px]">
-              <th className="border border-black p-1 text-right">Opening</th>
-              <th className="border border-black p-1 text-right">Add</th>
-              <th className="border border-black p-1 text-right">Adj.</th>
-              <th className="border border-black p-1 text-right font-bold">Closing</th>
-              <th className="border border-black p-1 text-right">Opening</th>
-              <th className="border border-black p-1 text-right">Add</th>
-              <th className="border border-black p-1 text-right">Adj.</th>
-              <th className="border border-black p-1 text-right font-bold">Closing</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportData.map((row, idx) => (
-              <tr key={idx}>
-                <td className="border border-black p-0.5 text-center font-mono">{row.memberIdNumber}</td>
-                <td className="border border-black p-0.5 truncate">{row.name}</td>
-                <td className="border border-black p-0.5 text-right">{row.openingEmp.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right">{row.additionEmp.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right">{row.adjustmentEmp.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right font-bold bg-slate-50">{row.closingEmp.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right">{row.openingPbs.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right">{row.additionPbs.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right">{row.adjustmentPbs.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right font-bold bg-blue-50/30">{row.closingPbs.toLocaleString()}</td>
-                <td className="border border-black p-0.5 text-right font-black bg-slate-100">{row.totalClosing.toLocaleString()}</td>
-              </tr>
             ))}
-          </tbody>
-        </table>
-
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
-          <div className="border-t border-black pt-2">Accountant / AGM(F)</div>
-          <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
-          <div className="border-t border-black pt-2">Approved By Trustee</div>
-        </div>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
