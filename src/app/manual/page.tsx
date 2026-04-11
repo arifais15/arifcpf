@@ -16,7 +16,9 @@ import {
   DatabaseZap,
   Calculator,
   ServerCrash,
-  Coins
+  Coins,
+  Globe,
+  Monitor
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -158,6 +160,45 @@ export default function UserManualPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* SERVER & FREE USAGE INFO */}
+      <div className="grid md:grid-cols-2 gap-8">
+        <Card className="border-none shadow-lg bg-blue-600 text-white">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Globe className="size-6" />
+              <CardTitle className="text-lg">ক্লাউড বনাম লোকাল ব্যবহার</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-relaxed opacity-90">
+              ফায়ারবেস সার্ভার ছাড়া এই সফটওয়্যারটি <b>Firebase Emulator Suite</b> ব্যবহার করে আপনার কম্পিউটারে সম্পূর্ণ ফ্রিতে চালানো সম্ভব। এতে কোনো ডাটা লিমিট বা বিল আসবে না। তবে এই ডাটা শুধুমাত্র আপনার কম্পিউটারেই থাকবে, অফিসের অন্য কেউ দেখতে পারবে না।
+            </p>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Local: Free & Private</Badge>
+              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Cloud: Multi-User & Secure</Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-lg bg-emerald-600 text-white">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Monitor className="size-6" />
+              <CardTitle className="text-lg">সাশ্রয়ী ব্যবহারের পরামর্শ</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm leading-relaxed opacity-90">
+              ফায়ারবেসের ফ্রি লিমিট শেষ হয়ে গেলেও <b>Blaze Plan</b>-এ প্রতি ১ লক্ষ ডাটা রিডে খরচ মাত্র কয়েক টাকা। প্রফেশনাল অ্যাকাউন্টিং সফটওয়্যারের ক্ষেত্রে এই খরচ অত্যন্ত নগণ্য। ডাটাবেজ ব্যাকআপ নেওয়ার জন্য মাঝেমধ্যে Excel Export ফিচারটি ব্যবহার করুন।
+            </p>
+            <div className="flex gap-2">
+              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Pay-as-you-go</Badge>
+              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Excel Backup</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="border-2 border-dashed bg-slate-50/50">
         <CardContent className="p-8">
