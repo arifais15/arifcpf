@@ -22,7 +22,8 @@ import {
   Activity,
   ClipboardCheck,
   BookText,
-  LayoutList
+  LayoutList,
+  Calculator
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -55,6 +56,7 @@ const navItems = [
   { title: "Netfund Statement", icon: FileStack, url: "/reports/netfund" },
   { title: "Fund Movement", icon: Activity, url: "/reports/movements" },
   { title: "Interest Accrual", icon: Percent, url: "/interest" },
+  { title: "Special Interest (DP)", icon: Calculator, url: "/interest/special" },
   { title: "Investments", icon: TrendingUp, url: "/investments" },
   { title: "Financial Reports", icon: FileText, url: "/reports" },
   { title: "Loan Report", icon: HandCoins, url: "/reports/loans" },
