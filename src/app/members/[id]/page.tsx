@@ -47,6 +47,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return [...(summaries || [])].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
   }, [summaries]);
 
+  // Compute individual column sums for zeroing logic
+  const columnSums = useMemo(() => {
+    return sortedSummaries.reduce((acc, row) => ({
+      c1: acc.c1 + (Number(row.employeeContribution) || 0),
+      c2: acc.c2 + (Number(row.loanWithdrawal) || 0),
+      c3: acc.c3 + (Number(row.loanRepayment) || 0),
+      c5: acc.c5 + (Number(row.profitEmployee) || 0),
+      c6: acc.c6 + (Number(row.profitLoan) || 0),
+      c8: acc.c8 + (Number(row.pbsContribution) || 0),
+      c9: acc.c9 + (Number(row.profitPbs) || 0),
+    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+  }, [sortedSummaries]);
+
   const calculatedRows = useMemo(() => {
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
@@ -224,20 +237,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       return;
     }
 
-    // Zeroing Entry Logic:
-    // To zero Col 4 (Loan): Record loanRepayment = current loanBalance
-    // To zero Col 7 (Emp Fund): Record empContribution = -(current empFund + loanBalance adjustment)
-    // To zero Col 10 (Office Fund): Record pbsContribution = -current officeFund
+    // Zeroing Entry Logic (REB Form 224 Standard):
+    // 1. Negate all cumulative column totals to make individual column sums zero
+    // 2. Post outstanding loan balance to Repayment column to make sum(Withdrawal) = sum(Repayment)
     const settlementEntry = {
       summaryDate: date,
-      particulars: `Final Settlement (${type}) - Full Account Clearance`,
-      employeeContribution: -(latestRunningTotals.empFund + latestRunningTotals.loanBalance),
-      loanWithdrawal: 0,
-      loanRepayment: latestRunningTotals.loanBalance,
-      profitEmployee: 0,
-      profitLoan: 0,
-      pbsContribution: -latestRunningTotals.officeFund,
-      profitPbs: 0,
+      particulars: `Final Settlement (${type}) - Full Column Clearance`,
+      employeeContribution: -columnSums.c1,
+      loanWithdrawal: 0, 
+      loanRepayment: latestRunningTotals.loanBalance, // Specific: Col 3 = Outstanding Balance
+      profitEmployee: -columnSums.c5,
+      profitLoan: -columnSums.c6,
+      pbsContribution: -columnSums.c8,
+      profitPbs: -columnSums.c9,
       lastUpdateDate: new Date().toISOString(),
       memberId: resolvedParams.id
     };
@@ -249,7 +261,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       settledAmount: latestRunningTotals.total
     });
 
-    showAlert({ title: "Account Finalized", description: `Ledger zeroed out and member status updated to ${type}.`, type: "success" });
+    showAlert({ title: "Account Zeroed", description: `Final reversal entries posted. All ledger columns now zero.`, type: "success" });
     setIsSettlementOpen(false);
   };
 
@@ -322,16 +334,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-md">
               <DialogHeader>
                 <DialogTitle>Employee Final Settlement</DialogTitle>
-                <DialogDescription>This will record zeroing entries for all fund columns and mark the account as closed.</DialogDescription>
+                <DialogDescription>This will post negative reversals for all column totals to bring every balance to exactly zero.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleFinalSettlement} className="space-y-6 py-4">
                 <div className="bg-slate-50 p-4 rounded-xl border space-y-2">
-                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Emp. Fund (Col 7):</span> <span className="text-slate-900">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Net Emp. Fund:</span> <span className="text-slate-900">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
                   {latestRunningTotals.loanBalance > 0 && (
-                    <div className="flex justify-between text-xs font-bold text-rose-600"><span>Loan Balance (Col 4):</span> <span className="text-rose-700">-৳ {latestRunningTotals.loanBalance.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-xs font-bold text-rose-600"><span>Loan to Clear (Col 3):</span> <span className="text-rose-700">৳ {latestRunningTotals.loanBalance.toLocaleString()}</span></div>
                   )}
-                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Office Fund (Col 10):</span> <span className="text-slate-900">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
-                  <div className="pt-2 border-t flex justify-between font-black text-sm text-primary uppercase"><span>Net Payable:</span> <span>৳ {latestRunningTotals.total.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Office Fund:</span> <span className="text-slate-900">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
+                  <div className="pt-2 border-t flex justify-between font-black text-sm text-primary uppercase"><span>Payable Amount:</span> <span>৳ {latestRunningTotals.total.toLocaleString()}</span></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Settlement Date</Label><Input name="date" type="date" required /></div>
@@ -348,9 +360,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </div>
                 <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex gap-3">
                   <AlertTriangle className="size-5 text-orange-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-orange-700 leading-tight"><b>Accounting Logic:</b> Zeroing entries will be posted to all balance columns (Col 4, 7, 10, 11). This action is permanent.</p>
+                  <p className="text-[10px] text-orange-700 leading-tight"><b>Settlement Rule:</b> All individual column totals will be negated. Outstanding Loan Balance will be cleared by posting to Repayment column.</p>
                 </div>
-                <DialogFooter><Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700">Confirm & Zero Ledger</Button></DialogFooter>
+                <DialogFooter><Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700">Post Reversals & Close Account</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
@@ -482,14 +494,31 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </Dialog>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>{editingEntry ? "Edit" : "New"} Entry</DialogTitle></DialogHeader>
-          <form onSubmit={handleSaveEntry} className="grid grid-cols-2 gap-4 pt-4">
-            <div className="col-span-2 space-y-2"><Label>Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required /></div>
-            <div className="col-span-2 space-y-2"><Label>Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required /></div>
-            <div className="space-y-2"><Label>Emp Contrib</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} /></div>
-            <div className="space-y-2"><Label>PBS Contrib</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} /></div>
-            <DialogFooter className="col-span-2"><Button type="submit" className="w-full">Save Record</Button></DialogFooter>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>{editingEntry ? "Edit" : "New"} Ledger Entry</DialogTitle></DialogHeader>
+          <form onSubmit={handleSaveEntry} className="space-y-6 pt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required /></div>
+              <div className="space-y-2"><Label>Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required /></div>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border">
+              <div className="space-y-2"><Label>Emp Contrib (Col 1)</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} /></div>
+              <div className="space-y-2"><Label>Loan Withdraw (Col 2)</Label><Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || 0} /></div>
+              <div className="space-y-2"><Label>Loan Repay (Col 3)</Label><Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} /></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 p-4 bg-accent/5 rounded-lg border border-accent/10">
+              <div className="space-y-2"><Label>Profit Emp. (Col 5)</Label><Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || 0} /></div>
+              <div className="space-y-2"><Label>Profit Loan (Col 6)</Label><Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} /></div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="space-y-2"><Label>PBS Contrib (Col 8)</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} /></div>
+              <div className="space-y-2"><Label>Profit PBS (Col 9)</Label><Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} /></div>
+            </div>
+
+            <DialogFooter><Button type="submit" className="w-full">Save Record</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
