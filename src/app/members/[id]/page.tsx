@@ -43,20 +43,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
-  // Sorting Logic: Sort by Date, then by Creation Time to ensure "Post Below" behavior
   const sortedSummaries = useMemo(() => {
     return [...(summaries || [])].sort((a, b) => {
       const dateA = new Date(a.summaryDate).getTime();
       const dateB = new Date(b.summaryDate).getTime();
       if (dateA !== dateB) return dateA - dateB;
-      // Tie breaker: Use creation timestamp to ensure new entries stay below old ones on the same date
       const createA = new Date(a.createdAt || 0).getTime();
       const createB = new Date(b.createdAt || 0).getTime();
       return createA - createB;
     });
   }, [summaries]);
 
-  // Compute individual column sums for zeroing logic and totals
   const columnSums = useMemo(() => {
     return sortedSummaries.reduce((acc, row) => ({
       c1: acc.c1 + (Number(row.employeeContribution) || 0),
@@ -231,7 +228,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitEmployee, profitLoan: 0, pbsContribution: 0, profitPbs,
       lastUpdateDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
-      memberId: resolvedParams.id
+      memberId: resolvedParams.id,
+      isSystemGenerated: true
     });
     showAlert({ title: "Posted", description: `Profit recorded on ${profitPostingDate}.`, type: "success" });
     setIsInterestOpen(false);
@@ -248,22 +246,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       return;
     }
 
-    // Zeroing Entry Logic (REB Form 224 Standard):
-    // 1. Negate all cumulative column totals to make individual column sums zero
-    // 2. Post outstanding loan balance to Repayment column to make sum(Withdrawal) = sum(Repayment)
     const settlementEntry = {
       summaryDate: date,
       particulars: `Final Settlement (${type}) - Full Column Clearance`,
       employeeContribution: -columnSums.c1,
       loanWithdrawal: 0, 
-      loanRepayment: latestRunningTotals.loanBalance, // Specific: Col 3 = Outstanding Balance
+      loanRepayment: latestRunningTotals.loanBalance, 
       profitEmployee: -columnSums.c5,
       profitLoan: -columnSums.c6,
       pbsContribution: -columnSums.c8,
       profitPbs: -columnSums.c9,
       lastUpdateDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
-      memberId: resolvedParams.id
+      memberId: resolvedParams.id,
+      isSettlement: true
     };
 
     addDocumentNonBlocking(summariesRef, settlementEntry);
@@ -290,9 +286,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitLoan: Number(formData.get("profitLoan") || 0),
       pbsContribution: Number(formData.get("pbsContribution") || 0),
       profitPbs: Number(formData.get("profitPbs") || 0),
+      contributionSource: formData.get("contributionSource") || "Local",
       lastUpdateDate: new Date().toISOString(),
       createdAt: editingEntry?.createdAt || new Date().toISOString(),
-      memberId: resolvedParams.id
+      memberId: resolvedParams.id,
+      isManual: true
     };
     if (editingEntry?.id) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), entryData);
     else addDocumentNonBlocking(summariesRef, entryData);
@@ -318,9 +316,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             employeeContribution: Number(entry["Employee Contribution"] || 0), loanWithdrawal: Number(entry["Amount Withdraws as Loan"] || 0),
             loanRepayment: Number(entry["Loan Principal repayment"] || 0), profitEmployee: Number(entry["Profit on Employee Contribution"] || 0),
             profitLoan: Number(entry["Profit on CPF Loan"] || 0), pbsContribution: Number(entry["PBS Contribution"] || 0),
-            profitPbs: Number(entry["Profit on PBS Contribution"] || 0), lastUpdateDate: new Date().toISOString(),
+            profitPbs: Number(entry["Profit on PBS Contribution"] || 0), 
+            contributionSource: entry["Source"] || "Local",
+            lastUpdateDate: new Date().toISOString(),
             createdAt: new Date().toISOString(),
-            memberId: resolvedParams.id
+            memberId: resolvedParams.id,
+            isManual: true
           });
         });
         showAlert({ title: "Imported", description: "Ledger entries processed.", type: "success" });
@@ -473,7 +474,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               {isSummariesLoading ? <tr><td colSpan={14} className="text-center p-8 italic">Loading ledger data...</td></tr> : calculatedRows.map((row: any, idx) => (
                 <tr key={idx} className={cn("bg-white hover:bg-slate-50 transition-colors", row.particulars?.includes("Settlement") && "bg-slate-50 italic")}>
                   <td className="border border-black p-1 text-center font-mono">{row.summaryDate}</td>
-                  <td className="border border-black p-1 text-left break-words font-medium align-top">{row.particulars || "-"}</td>
+                  <td className="border border-black p-1 text-left break-words font-medium align-top">
+                    {row.particulars || "-"}
+                    {row.contributionSource === 'Other' && (
+                      <Badge variant="outline" className="ml-1 text-[7px] h-3 px-1 border-slate-300">Other PBS</Badge>
+                    )}
+                  </td>
                   <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-rose-800">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-emerald-800">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -532,6 +538,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required /></div>
               <div className="space-y-2"><Label>Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required /></div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Contribution Source</Label>
+              <Select name="contributionSource" defaultValue={editingEntry?.contributionSource || "Local"}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Local">Local PBS (GPBS-2)</SelectItem>
+                  <SelectItem value="Other">Other PBS (Transfer In)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border">

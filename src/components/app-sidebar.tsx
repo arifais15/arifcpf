@@ -15,7 +15,8 @@ import {
   LogOut,
   ListTodo,
   X,
-  UserX
+  UserX,
+  PieChart
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -46,6 +47,7 @@ const navItems = [
   { title: "Investments", icon: TrendingUp, url: "/investments" },
   { title: "Financial Reports", icon: FileText, url: "/reports" },
   { title: "Settlement Report", icon: UserX, url: "/reports/settlements" },
+  { title: "Audit & Tracking", icon: PieChart, url: "/reports/contributions" },
 ]
 
 export function AppSidebar() {
