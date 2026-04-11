@@ -15,7 +15,6 @@ import {
   FileSpreadsheet, 
   Printer, 
   Loader2, 
-  PieChart, 
   Search,
   Calendar,
   ShieldCheck,
@@ -36,7 +35,15 @@ import { cn } from "@/lib/utils";
 export default function ContributionAuditPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  // Date Logic for default FY
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+  const today = now.toISOString().split('T')[0];
+
+  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
 
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);

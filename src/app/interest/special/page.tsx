@@ -59,7 +59,14 @@ export default function SpecialInterestDPPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  // Date Logic for default FY
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+  const today = now.toISOString().split('T')[0];
+
+  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
   const [selectedMember, setSelectedMember] = useState<string>("all");
   const [isCalculating, setIsCalculating] = useState(false);
   const [results, setResults] = useState<any[]>([]);
@@ -196,7 +203,7 @@ export default function SpecialInterestDPPage() {
             c5: Number(e.profitEmployee)||0, 
             c6: Number(e.profitLoan)||0, 
             c8: Number(e.pbsContribution)||0, 
-            c9: Number(e.profitPbs)||0 
+            c9: Number(s.profitPbs)||0 
           };
           currentEmpFund += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6);
           currentPbsFund += (v.c8 + v.c9);
@@ -502,12 +509,12 @@ export default function SpecialInterestDPPage() {
         <table className="w-full text-[9px] border-collapse border border-black">
           <thead>
             <tr className="bg-slate-100">
-              <th className="border border-black p-2 text-center w-[80px]">Member ID</th>
+              <th className="border border-black p-2 text-center w-[80px]">ID No</th>
               <th className="border border-black p-2 text-left">Name & Designation</th>
               <th className="border border-black p-2 text-right">Days</th>
               <th className="border border-black p-2 text-right">Opening Bal (৳)</th>
               <th className="border border-black p-2 text-right">Closing Bal (৳)</th>
-              <th className="border border-black p-2 text-right">Total Interest (৳)</th>
+              <th className="border border-black p-2 text-right font-black">Total Interest (৳)</th>
             </tr>
           </thead>
           <tbody>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState } from "react";
@@ -35,14 +36,14 @@ export default function LoanReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // Default to current fiscal year
+  // Date Logic for default FY
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
-  const initialStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-  const initialEnd = currentMonth >= 7 ? `${currentYear + 1}-06-30` : `${currentYear}-06-30`;
+  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+  const today = now.toISOString().split('T')[0];
 
-  const [dateRange, setDateRange] = useState({ start: initialStart, end: initialEnd });
+  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
   const [search, setSearch] = useState("");
 
   // Fetch all members for metadata (Name, Designation, ID)

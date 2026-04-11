@@ -34,7 +34,14 @@ export default function ControlLedgerPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  // Date Logic for default FY
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+  const today = now.toISOString().split('T')[0];
+
+  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
   const [selectedAccount, setSelectedAccount] = useState<string>("");
 
   const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
