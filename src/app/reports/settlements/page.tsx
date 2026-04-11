@@ -28,6 +28,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function SettlementReportPage() {
   const firestore = useFirestore();
@@ -203,7 +204,11 @@ export default function SettlementReportPage() {
                 <TableCell className="text-sm font-medium">{m.settlementDate || "N/A"}</TableCell>
                 <TableCell className="text-right font-black text-primary">৳ {(m.settledAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                 <TableCell className="text-center">
-                  <Button variant="ghost" size="sm" asChild className="h-8"><Link href={`/members/${m.id}`}><Calendar className="size-3.5 mr-2" /> View Ledger</Link></Button>
+                  <Button variant="ghost" size="sm" asChild className="h-8">
+                    <Link href={`/members/${m.id}`}>
+                      <Calendar className="size-3.5 mr-2" /> View Ledger
+                    </Link>
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
