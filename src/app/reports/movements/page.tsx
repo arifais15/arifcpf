@@ -18,9 +18,6 @@ import {
   Search,
   ArrowRightLeft,
   Activity,
-  ShieldCheck,
-  TrendingUp,
-  Download
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, collectionGroup } from "firebase/firestore";

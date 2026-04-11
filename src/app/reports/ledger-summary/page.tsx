@@ -18,9 +18,6 @@ import {
   Search,
   ArrowRightLeft,
   ClipboardCheck,
-  ShieldCheck,
-  Download,
-  Filter
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, collectionGroup } from "firebase/firestore";
@@ -161,8 +158,10 @@ export default function LedgerSummaryReportPage() {
 
   const SubHeadRow = () => (
     <TableRow className="bg-slate-50/50 text-[8px] uppercase font-bold">
-      <TableHead className="border-r sticky left-0 bg-slate-50 z-20"></TableHead>
-      <TableHead className="border-r sticky left-[60px] bg-slate-50 z-20"></TableHead>
+      {/* 
+        NOTE: Since ID No and Name have rowSpan={2}, they naturally occupy 
+        the first two cells of this row. We should NOT add empty placeholders here.
+      */}
       {[1,2,3,5,6,8,9,11].map(i => (
         <React.Fragment key={i}>
           <TableHead className="text-right px-1 border-l">Opening</TableHead>
