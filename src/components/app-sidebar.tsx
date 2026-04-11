@@ -16,8 +16,6 @@ import {
   UserX,
   PieChart,
   HandCoins,
-  FileStack,
-  Activity,
   ClipboardCheck,
   BookText,
   LayoutList,
@@ -41,22 +39,23 @@ import {
 } from "@/components/ui/sidebar"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 const navItems = [
-  { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/" },
-  { title: "জাবেদা এন্ট্রি", icon: ListTodo, url: "/transactions" },
-  { title: "নতুন লেনদেন", icon: PlusCircle, url: "/transactions/new" },
-  { title: "কন্ট্রোল লেজার", icon: BookText, url: "/reports/control-ledger" },
-  { title: "সাবসিডিয়ারি কন্ট্রোল", icon: LayoutList, url: "/reports/subsidiary-control" },
-  { title: "সদস্য তালিকা", icon: Users, url: "/members" },
-  { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary" },
-  { title: "মুনাফা হিসাব", icon: Percent, url: "/interest" },
-  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/interest/special" },
-  { title: "বিনিয়োগ", icon: TrendingUp, url: "/investments" },
-  { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports" },
-  { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans" },
-  { title: "নিষ্পত্তি প্রতিবেদন", icon: UserX, url: "/reports/settlements" },
-  { title: "অডিট ও ট্র্যাকিং", icon: PieChart, url: "/reports/contributions" },
+  { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/", color: "text-blue-600" },
+  { title: "জাবেদা এন্ট্রি", icon: ListTodo, url: "/transactions", color: "text-emerald-600" },
+  { title: "নতুন লেনদেন", icon: PlusCircle, url: "/transactions/new", color: "text-sky-600" },
+  { title: "কন্ট্রোল লেজার", icon: BookText, url: "/reports/control-ledger", color: "text-indigo-600" },
+  { title: "সাবসিডিয়ারি কন্ট্রোল", icon: LayoutList, url: "/reports/subsidiary-control", color: "text-violet-600" },
+  { title: "সদস্য তালিকা", icon: Users, url: "/members", color: "text-cyan-600" },
+  { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary", color: "text-teal-600" },
+  { title: "মুনাফা হিসাব", icon: Percent, url: "/interest", color: "text-orange-600" },
+  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/interest/special", color: "text-amber-600" },
+  { title: "বিনিয়োগ", icon: TrendingUp, url: "/investments", color: "text-blue-700" },
+  { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", color: "text-slate-700" },
+  { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans", color: "text-rose-600" },
+  { title: "নিষ্পত্তি প্রতিবেদন", icon: UserX, url: "/reports/settlements", color: "text-red-600" },
+  { title: "অডিট ও ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", color: "text-pink-600" },
 ]
 
 export function AppSidebar() {
@@ -113,11 +112,14 @@ export function AppSidebar() {
                 asChild
                 isActive={pathname === item.url}
                 tooltip={item.title}
-                className="hover:bg-sidebar-accent"
+                className={cn(
+                  "hover:bg-sidebar-accent transition-colors duration-200",
+                  pathname !== item.url && item.color
+                )}
               >
                 <Link href={item.url}>
-                  <item.icon className="size-4" />
-                  <span className="font-medium">{item.title}</span>
+                  <item.icon className={cn("size-4 shrink-0", pathname !== item.url && item.color)} />
+                  <span className="font-bold">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -127,20 +129,24 @@ export function AppSidebar() {
       <SidebarFooter className="p-2">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/settings"} className="hover:bg-sidebar-accent">
+            <SidebarMenuButton 
+              asChild 
+              isActive={pathname === "/settings"} 
+              className="hover:bg-sidebar-accent text-slate-600"
+            >
               <Link href="/settings">
-                <Settings className="size-4" />
-                <span className="font-medium">সেটিংস</span>
+                <Settings className="size-4 shrink-0" />
+                <span className="font-bold">সেটিংস</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton 
-              className="hover:bg-destructive/10 hover:text-destructive text-muted-foreground"
+              className="hover:bg-destructive/10 hover:text-destructive text-rose-600"
               onClick={handleLogout}
             >
-              <LogOut className="size-4" />
-              <span className="font-medium">লগআউট</span>
+              <LogOut className="size-4 shrink-0" />
+              <span className="font-bold">লগআউট</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
