@@ -23,7 +23,9 @@ import {
   CalendarDays,
   FileStack,
   Search,
-  BookOpenCheck
+  BookOpenCheck,
+  Info,
+  ChevronRight
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
 import { collection, collectionGroup } from "firebase/firestore";
@@ -32,6 +34,13 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription 
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
@@ -54,13 +63,19 @@ export default function SubsidiaryControlLedgerPage() {
   const [selectedColumn, setSelectedColumn] = useState<string>("employeeContribution");
   const [selectedMember, setSelectedMember] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"ledger" | "institutional" | "daily">("institutional");
-  const [searchFilter, setSearchFilter] = useState("");
+  const [drillDownData, setDrillDownData] = useState<{ date: string, type: 'Debit' | 'Credit', records: any[] } | null>(null);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members } = useCollection(membersRef);
 
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);
+
+  // Helper to get member details
+  const getMemberInfo = (memberId: string) => {
+    const member = members?.find(m => m.id === memberId);
+    return member ? { name: member.name, idNo: member.memberIdNumber } : { name: "Unknown", idNo: memberId };
+  };
 
   // VIEW 1: CATEGORY LEDGER (Summarized by date for one column)
   const ledgerData = useMemo(() => {
@@ -69,7 +84,15 @@ export default function SubsidiaryControlLedgerPage() {
     const colConfig = SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn);
     if (!colConfig) return [];
 
-    const grouped: Record<string, { date: string, debit: number, credit: number, timestamp: number, memberCount: number }> = {};
+    const grouped: Record<string, { 
+      date: string, 
+      debit: number, 
+      credit: number, 
+      timestamp: number, 
+      memberCount: number,
+      debitRecords: any[],
+      creditRecords: any[]
+    }> = {};
 
     allSummaries.forEach(s => {
       const amount = Number(s[selectedColumn]) || 0;
@@ -83,16 +106,31 @@ export default function SubsidiaryControlLedgerPage() {
           debit: 0,
           credit: 0,
           timestamp: new Date(date).getTime(),
-          memberCount: 0
+          memberCount: 0,
+          debitRecords: [],
+          creditRecords: []
         };
       }
 
+      const memberInfo = getMemberInfo(s.memberId);
+      const record = { ...s, memberName: memberInfo.name, memberIdNo: memberInfo.idNo, amount: Math.abs(amount) };
+
       if (colConfig.balance === 'Debit') {
-        if (amount > 0) grouped[date].debit += amount;
-        else grouped[date].credit += Math.abs(amount);
+        if (amount > 0) {
+          grouped[date].debit += amount;
+          grouped[date].debitRecords.push(record);
+        } else {
+          grouped[date].credit += Math.abs(amount);
+          grouped[date].creditRecords.push(record);
+        }
       } else {
-        if (amount > 0) grouped[date].credit += amount;
-        else grouped[date].debit += Math.abs(amount);
+        if (amount > 0) {
+          grouped[date].credit += amount;
+          grouped[date].creditRecords.push(record);
+        } else {
+          grouped[date].debit += Math.abs(amount);
+          grouped[date].debitRecords.push(record);
+        }
       }
       grouped[date].memberCount++;
     });
@@ -120,13 +158,21 @@ export default function SubsidiaryControlLedgerPage() {
         balance: currentBalance 
       };
     });
-  }, [allSummaries, selectedColumn, selectedMember, dateRange]);
+  }, [allSummaries, selectedColumn, selectedMember, dateRange, members]);
 
   // VIEW 2: INSTITUTIONAL TOTAL FUND LEDGER (Summarized by date)
   const institutionalLedger = useMemo(() => {
     if (!allSummaries) return [];
 
-    const grouped: Record<string, { date: string, debit: number, credit: number, timestamp: number, count: number }> = {};
+    const grouped: Record<string, { 
+      date: string, 
+      debit: number, 
+      credit: number, 
+      timestamp: number, 
+      count: number,
+      debitRecords: any[],
+      creditRecords: any[]
+    }> = {};
 
     allSummaries.forEach(s => {
       const c1 = Number(s.employeeContribution) || 0;
@@ -147,12 +193,22 @@ export default function SubsidiaryControlLedgerPage() {
           debit: 0,
           credit: 0,
           timestamp: new Date(date).getTime(),
-          count: 0
+          count: 0,
+          debitRecords: [],
+          creditRecords: []
         };
       }
 
-      if (netCreditEffect > 0) grouped[date].credit += netCreditEffect;
-      else if (netCreditEffect < 0) grouped[date].debit += Math.abs(netCreditEffect);
+      const memberInfo = getMemberInfo(s.memberId);
+      const record = { ...s, memberName: memberInfo.name, memberIdNo: memberInfo.idNo, amount: Math.abs(netCreditEffect) };
+
+      if (netCreditEffect > 0) {
+        grouped[date].credit += netCreditEffect;
+        grouped[date].creditRecords.push(record);
+      } else if (netCreditEffect < 0) {
+        grouped[date].debit += Math.abs(netCreditEffect);
+        grouped[date].debitRecords.push(record);
+      }
       
       grouped[date].count++;
     });
@@ -175,7 +231,7 @@ export default function SubsidiaryControlLedgerPage() {
         balance: runningBalance 
       };
     });
-  }, [allSummaries, dateRange]);
+  }, [allSummaries, dateRange, members]);
 
   // VIEW 3: DAILY CONSOLIDATED SUMMARY (Already date wise)
   const dailySummaryData = useMemo(() => {
@@ -190,7 +246,9 @@ export default function SubsidiaryControlLedgerPage() {
           date,
           timestamp: new Date(date).getTime(),
           c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0,
-          totalDr: 0, totalCr: 0
+          totalDr: 0, totalCr: 0,
+          debitRecords: [],
+          creditRecords: []
         };
       }
       
@@ -210,8 +268,15 @@ export default function SubsidiaryControlLedgerPage() {
       grouped[date].c8 += v8;
       grouped[date].c9 += v9;
 
-      grouped[date].totalDr += (v2 > 0 ? v2 : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v < 0 ? Math.abs(v) : 0), 0);
-      grouped[date].totalCr += (v2 < 0 ? Math.abs(v2) : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
+      const memberInfo = getMemberInfo(s.memberId);
+      const dr = (v2 > 0 ? v2 : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v < 0 ? Math.abs(v) : 0), 0);
+      const cr = (v2 < 0 ? Math.abs(v2) : 0) + [v1, v3, v5, v6, v8, v9].reduce((sum, v) => sum + (v > 0 ? v : 0), 0);
+
+      if (dr > 0) grouped[date].debitRecords.push({ ...s, memberName: memberInfo.name, memberIdNo: memberInfo.idNo, amount: dr });
+      if (cr > 0) grouped[date].creditRecords.push({ ...s, memberName: memberInfo.name, memberIdNo: memberInfo.idNo, amount: cr });
+
+      grouped[date].totalDr += dr;
+      grouped[date].totalCr += cr;
     });
 
     const sorted = Object.values(grouped).sort((a: any, b: any) => a.timestamp - b.timestamp);
@@ -223,7 +288,7 @@ export default function SubsidiaryControlLedgerPage() {
     }
 
     return sorted;
-  }, [allSummaries, dateRange]);
+  }, [allSummaries, dateRange, members]);
 
   const exportToExcel = () => {
     let dataToExport: any[] = [];
@@ -322,7 +387,10 @@ export default function SubsidiaryControlLedgerPage() {
         <TabsContent value="institutional">
           <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-sm font-bold">Institutional Total Fund Control Ledger (Date-wise Summary)</h2>
+              <div className="flex flex-col">
+                <h2 className="text-sm font-bold">Institutional Total Fund Control Ledger (Date-wise Summary)</h2>
+                <p className="text-[10px] text-muted-foreground">Click on Debit or Credit amounts to view voucher details</p>
+              </div>
               <Badge variant="outline" className="bg-white border-slate-200">
                 {institutionalLedger.length} Active Days
               </Badge>
@@ -352,10 +420,22 @@ export default function SubsidiaryControlLedgerPage() {
                           <span className="text-[10px] text-muted-foreground italic">Daily total based on individual employee ledger postings</span>
                         </div>
                       </td>
-                      <td className="text-right font-medium p-4 text-rose-600">
+                      <td 
+                        className={cn(
+                          "text-right font-medium p-4 text-rose-600 cursor-pointer hover:bg-rose-50 rounded transition-colors",
+                          item.debit > 0 ? "font-bold" : ""
+                        )}
+                        onClick={() => item.debit > 0 && setDrillDownData({ date: item.date, type: 'Debit', records: item.debitRecords })}
+                      >
                         {item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
                       </td>
-                      <td className="text-right font-medium p-4 text-emerald-600">
+                      <td 
+                        className={cn(
+                          "text-right font-medium p-4 text-emerald-600 cursor-pointer hover:bg-emerald-50 rounded transition-colors",
+                          item.credit > 0 ? "font-bold" : ""
+                        )}
+                        onClick={() => item.credit > 0 && setDrillDownData({ date: item.date, type: 'Credit', records: item.creditRecords })}
+                      >
                         {item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
                       </td>
                       <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">
@@ -386,7 +466,10 @@ export default function SubsidiaryControlLedgerPage() {
         <TabsContent value="ledger">
           <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-              <h2 className="text-sm font-bold">{SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label} (Date-wise)</h2>
+              <div className="flex flex-col">
+                <h2 className="text-sm font-bold">{SUBSIDIARY_COLUMNS.find(c => c.key === selectedColumn)?.label} (Date-wise)</h2>
+                <p className="text-[10px] text-muted-foreground">Click on Debit or Credit amounts to view voucher details</p>
+              </div>
               <Badge variant="outline" className="bg-white border-slate-200">
                 {ledgerData.length} Postings
               </Badge>
@@ -411,8 +494,24 @@ export default function SubsidiaryControlLedgerPage() {
                     <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.date}</td>
                       <td className="p-4 text-xs font-medium text-slate-700">{item.particulars}</td>
-                      <td className="text-right font-medium p-4 text-blue-600">{item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}</td>
-                      <td className="text-right font-medium p-4 text-rose-600">{item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}</td>
+                      <td 
+                        className={cn(
+                          "text-right font-medium p-4 text-blue-600 cursor-pointer hover:bg-blue-50 rounded transition-colors",
+                          item.debit > 0 ? "font-bold" : ""
+                        )}
+                        onClick={() => item.debit > 0 && setDrillDownData({ date: item.date, type: 'Debit', records: item.debitRecords })}
+                      >
+                        {item.debit > 0 ? `৳ ${item.debit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
+                      </td>
+                      <td 
+                        className={cn(
+                          "text-right font-medium p-4 text-rose-600 cursor-pointer hover:bg-rose-50 rounded transition-colors",
+                          item.credit > 0 ? "font-bold" : ""
+                        )}
+                        onClick={() => item.credit > 0 && setDrillDownData({ date: item.date, type: 'Credit', records: item.creditRecords })}
+                      >
+                        {item.credit > 0 ? `৳ ${item.credit.toLocaleString(undefined, {minimumFractionDigits: 2})}` : "-"}
+                      </td>
                       <td className="text-right font-black text-slate-900 p-4 bg-slate-50/50 group-hover:bg-primary/5 transition-colors">৳ {item.balance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     </TableRow>
                   ))}
@@ -463,8 +562,18 @@ export default function SubsidiaryControlLedgerPage() {
                       <td className="text-right p-4 text-[11px]">{item.c6.toLocaleString()}</td>
                       <td className="text-right p-4 text-[11px]">{item.c8.toLocaleString()}</td>
                       <td className="text-right p-4 text-[11px]">{item.c9.toLocaleString()}</td>
-                      <td className="text-right p-4 font-bold">৳ {item.totalDr.toLocaleString()}</td>
-                      <td className="text-right p-4 font-bold text-primary">৳ {item.totalCr.toLocaleString()}</td>
+                      <td 
+                        className="text-right p-4 font-bold cursor-pointer hover:bg-blue-50 transition-colors"
+                        onClick={() => item.totalDr > 0 && setDrillDownData({ date: item.date, type: 'Debit', records: item.debitRecords })}
+                      >
+                        ৳ {item.totalDr.toLocaleString()}
+                      </td>
+                      <td 
+                        className="text-right p-4 font-bold text-primary cursor-pointer hover:bg-emerald-50 transition-colors"
+                        onClick={() => item.totalCr > 0 && setDrillDownData({ date: item.date, type: 'Credit', records: item.creditRecords })}
+                      >
+                        ৳ {item.totalCr.toLocaleString()}
+                      </td>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -473,6 +582,81 @@ export default function SubsidiaryControlLedgerPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Drill-Down Detail Dialog */}
+      <Dialog open={!!drillDownData} onOpenChange={(open) => !open && setDrillDownData(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="border-b pb-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-2 rounded-lg",
+                drillDownData?.type === 'Debit' ? "bg-rose-50" : "bg-emerald-50"
+              )}>
+                <Info className={cn(
+                  "size-5",
+                  drillDownData?.type === 'Debit' ? "text-rose-600" : "text-emerald-600"
+                )} />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">
+                  Daily Voucher Breakdown: {drillDownData?.date}
+                </DialogTitle>
+                <DialogDescription className="font-medium text-slate-500">
+                  Tracing individual member transactions for total {drillDownData?.type}s
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center shadow-inner">
+              <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Consolidated Amount</span>
+              <span className={cn(
+                "text-2xl font-black tabular-nums",
+                drillDownData?.type === 'Debit' ? "text-rose-700" : "text-emerald-700"
+              )}>
+                ৳ {drillDownData?.records.reduce((sum, r) => sum + r.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+
+            <div className="rounded-xl border shadow-sm overflow-hidden">
+              <Table>
+                <TableHeader className="bg-slate-100">
+                  <TableRow>
+                    <TableHead className="w-[100px] text-[10px] font-black uppercase">ID No</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Employee Name</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase">Particulars</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase">Amount (৳)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {drillDownData?.records.map((record, i) => (
+                    <TableRow key={i} className="hover:bg-slate-50/50 group">
+                      <td className="font-mono text-xs font-bold text-slate-500 py-3">{record.memberIdNo}</td>
+                      <td className="font-bold text-slate-800 py-3 text-sm">{record.memberName}</td>
+                      <td className="text-xs text-slate-600 py-3 italic">{record.particulars || "Voucher Entry"}</td>
+                      <td className={cn(
+                        "text-right font-black tabular-nums py-3",
+                        drillDownData?.type === 'Debit' ? "text-rose-600" : "text-emerald-600"
+                      )}>
+                        {record.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter className="bg-slate-50 font-black">
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-right uppercase text-[9px]">Breakdown Total:</TableCell>
+                    <TableCell className="text-right text-base underline decoration-double">
+                      ৳ {drillDownData?.records.reduce((sum, r) => sum + r.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Institutional Landscape Print View */}
       <div className="hidden print:block print-container">
