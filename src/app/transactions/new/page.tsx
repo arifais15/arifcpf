@@ -15,9 +15,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Badge } from "@/components/ui/badge";
 import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, where, getDocs, writeBatch, writeBatch as firestoreWriteBatch } from "firebase/firestore";
+import { collection, doc, query, where, getDocs } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { getSubsidiaryValues } from "@/lib/ledger-mapping";
 
 interface LineItem {
   id: string;
@@ -55,7 +56,6 @@ export default function NewTransactionPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members } = useCollection(membersRef);
 
-  // Load transaction for editing
   const transactionRef = useMemoFirebase(() => editId ? doc(firestore, "journalEntries", editId) : null, [firestore, editId]);
   const { data: existingTransaction, isLoading: isEditLoading } = useDoc(transactionRef);
 
@@ -128,50 +128,19 @@ export default function NewTransactionPage() {
     }
   };
 
-  const mapAccountToLedgerColumn = (code: string, amount: number) => {
-    // Map GL codes to Member Ledger columns
-    const cols = {
-      employeeContribution: 0,
-      loanWithdrawal: 0,
-      loanRepayment: 0,
-      profitEmployee: 0,
-      profitLoan: 0,
-      pbsContribution: 0,
-      profitPbs: 0
-    };
-
-    if (code === '225.10.0000') cols.employeeContribution = amount;
-    if (code === '105.10.0000') cols.loanWithdrawal = amount;
-    if (code === '105.20.0000') cols.loanRepayment = amount;
-    if (code === '225.30.0000') cols.profitEmployee = amount;
-    if (code === '400.60.0000') cols.profitLoan = amount;
-    if (code === '225.20.0000') cols.pbsContribution = amount;
-    if (code === '225.40.0000') cols.profitPbs = amount;
-
-    return cols;
-  };
-
   const syncSubsidiaryLedgers = async (journalId: string, entryData: any) => {
-    // First, clear existing synced entries for this journal if editing
-    if (editId) {
-      const summariesRef = collection(firestore, "fundSummaries_group_alias"); // Conceptual collectionGroup
-      // In a real app we'd query collectionGroup('fundSummaries').where('journalEntryId', '==', editId)
-      // Since collectionGroup queries are tricky here, we iterate lines and find the specific ones
-    }
-
     for (const line of entryData.lines) {
       if (line.memberId) {
-        const amount = line.credit - line.debit;
-        // Adjust amount for Assets where Debit is normal increase
-        const normalDebitAccounts = ['105.10.0000', '101.10.0000'];
-        const finalValue = normalDebitAccounts.includes(line.accountCode) ? (line.debit - line.credit) : (line.credit - line.debit);
-
-        const cols = mapAccountToLedgerColumn(line.accountCode, finalValue);
+        // Use the centralized mapping logic
+        const subsidiaryCols = getSubsidiaryValues(line.accountCode, line.debit, line.credit);
         
+        // If the account isn't mapped to a subsidiary column, skip it
+        if (!subsidiaryCols) continue;
+
         const summaryData = {
           summaryDate: entryData.entryDate,
           particulars: `${entryData.description} (JV: ${entryData.referenceNumber || 'N/A'})`,
-          ...cols,
+          ...subsidiaryCols,
           lastUpdateDate: new Date().toISOString(),
           createdAt: entryData.createdAt || new Date().toISOString(),
           memberId: line.memberId,
@@ -181,17 +150,22 @@ export default function NewTransactionPage() {
 
         const memberSummariesRef = collection(firestore, "members", line.memberId, "fundSummaries");
         
-        // If editing, find existing linked entry
         if (editId) {
-          const q = query(memberSummariesRef, where("journalEntryId", "==", editId));
+          const q = query(memberSummariesRef, where("journalEntryId", "==", editId), where("accountCodeAtSource", "==", line.accountCode));
           const snapshot = await getDocs(q);
           if (!snapshot.empty) {
-            updateDocumentNonBlocking(doc(firestore, "members", line.memberId, "fundSummaries", snapshot.docs[0].id), summaryData);
+            updateDocumentNonBlocking(doc(firestore, "members", line.memberId, "fundSummaries", snapshot.docs[0].id), {
+              ...summaryData,
+              accountCodeAtSource: line.accountCode // Store source code to identify specific line update
+            });
             continue;
           }
         }
         
-        addDocumentNonBlocking(memberSummariesRef, summaryData);
+        addDocumentNonBlocking(memberSummariesRef, {
+          ...summaryData,
+          accountCodeAtSource: line.accountCode
+        });
       }
     }
   };
@@ -252,7 +226,6 @@ export default function NewTransactionPage() {
       showCancel: true,
       confirmText: "Yes, Delete",
       onConfirm: async () => {
-        // Find and delete linked subsidiary entries
         for (const line of existingTransaction.lines || []) {
           if (line.memberId) {
             const memberSummariesRef = collection(firestore, "members", line.memberId, "fundSummaries");
