@@ -56,7 +56,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [summaries]);
 
-  // Compute individual column sums for zeroing logic
+  // Compute individual column sums for zeroing logic and totals
   const columnSums = useMemo(() => {
     return sortedSummaries.reduce((acc, row) => ({
       c1: acc.c1 + (Number(row.employeeContribution) || 0),
@@ -494,6 +494,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </tr>
               ))}
             </tbody>
+            <tfoot className="bg-slate-100/80 font-black border-t-2 border-black sticky bottom-0 z-10">
+              <tr>
+                <td className="border border-black p-1 text-center uppercase text-[7.5px]" colSpan={2}>Grand Totals:</td>
+                <td className="border border-black p-1 text-right">{columnSums.c1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-rose-800">{columnSums.c2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-emerald-800">{columnSums.c3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-slate-200/50">{latestRunningTotals.loanBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-accent">{columnSums.c5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-accent">{columnSums.c6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-primary/10">{latestRunningTotals.empFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right text-accent">{columnSums.c9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-primary/10">{latestRunningTotals.officeFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 text-right bg-slate-200 text-[10px] underline decoration-double">৳ {latestRunningTotals.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-1 no-print"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
