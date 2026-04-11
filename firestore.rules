@@ -7,15 +7,15 @@ service cloud.firestore {
      * FIREBASE SECURITY RULES
      * 
      * This ruleset is configured for the PBS CPF Management system.
-     * It strictly allows access only to authenticated Email/Password users.
-     * Anonymous users are explicitly denied.
+     * It allows access to authenticated users while maintaining
+     * strict controls over administrative roles.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
     function isSignedIn() {
-      // Must be signed in AND NOT anonymous
-      return request.auth != null && request.auth.token.firebase.sign_in_provider != 'anonymous';
+      // Must be signed in and not anonymous
+      return request.auth != null && (request.auth.token.firebase.sign_in_provider != 'anonymous');
     }
 
     function isAdmin() {
@@ -29,7 +29,7 @@ service cloud.firestore {
 
     // --- COLLECTION GROUP RULES (CRITICAL FOR REPORTS) ---
     
-    // Allows collectionGroup('fundSummaries') queries used in Audit & Tracking
+    // Allows collectionGroup('fundSummaries') queries used in Audit, Loans, and Tracking reports
     match /{path=**}/fundSummaries/{summaryId} {
       allow read: if isSignedIn();
     }
@@ -51,46 +51,46 @@ service cloud.firestore {
     // Chart of Accounts
     match /chartOfAccounts/{accountId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn();
+      allow write: if isSignedIn();
     }
 
     // Members Registry (Employees)
     match /members/{memberId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn();
+      allow write: if isSignedIn();
       
-      // Subcollection for Ledger Entries (Standard Path)
+      // Subcollection for Ledger Entries
       match /fundSummaries/{summaryId} {
         allow read: if isSignedIn();
-        allow write: if isAdmin() || isSignedIn();
+        allow write: if isSignedIn();
       }
     }
 
     // Investment Instruments
     match /investmentInstruments/{id} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn();
+      allow write: if isSignedIn();
     }
     
-    // Accrued Interest Logs
+    // Accrued Interest Logs (Provisions)
     match /accruedInterestLogs/{id} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn();
+      allow write: if isSignedIn();
     }
 
-    // Journal Entries
+    // Journal Entries (General Ledger)
     match /journalEntries/{entryId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || isSignedIn();
+      allow write: if isSignedIn();
       
       // Line Items subcollection
       match /line_items/{lineId} {
         allow read: if isSignedIn();
-        allow write: if isAdmin() || isSignedIn();
+        allow write: if isSignedIn();
       }
     }
 
-    // System Settings
+    // System Settings (Ledger Mappings)
     match /settings/{settingId} {
       allow read, write: if isSignedIn();
     }

@@ -2,7 +2,6 @@
 {
   "entities": {
     "ChartOfAccount": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ChartOfAccount",
       "type": "object",
       "description": "Represents a single account in the Chart of Accounts (COA).",
@@ -17,7 +16,6 @@
       "required": ["accountCode", "accountName"]
     },
     "Member": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Member",
       "type": "object",
       "description": "Represents a member of the CPF fund.",
@@ -27,7 +25,9 @@
         "name": { "type": "string" },
         "designation": { "type": "string" },
         "status": { "type": "string", "enum": ["Active", "Retired", "Transferred"] },
-        "dateJoined": { "type": "string", "format": "date" }
+        "dateJoined": { "type": "string", "format": "date" },
+        "zonalOffice": { "type": "string" },
+        "permanentAddress": { "type": "string" }
       },
       "required": ["memberIdNumber", "name"]
     },
@@ -46,7 +46,35 @@
         "pbsContribution": { "type": "number" },
         "profitPbs": { "type": "number" },
         "memberId": { "type": "string" },
-        "journalEntryId": { "type": "string" }
+        "journalEntryId": { "type": "string" },
+        "contributionSource": { "type": "string" },
+        "isSystemGenerated": { "type": "boolean" },
+        "isManual": { "type": "boolean" }
+      }
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "type": "object",
+      "description": "Double-entry accounting journal vouchers.",
+      "properties": {
+        "entryDate": { "type": "string", "format": "date" },
+        "description": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "lines": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "accountCode": { "type": "string" },
+              "accountName": { "type": "string" },
+              "debit": { "type": "number" },
+              "credit": { "type": "number" },
+              "memberId": { "type": "string" },
+              "memo": { "type": "string" }
+            }
+          }
+        }
       }
     },
     "SystemSettings": {
@@ -69,8 +97,8 @@
         "definition": {
           "entityName": "SystemSettings",
           "schema": { "$ref": "#/backend/entities/SystemSettings" },
-          "description": "Stores ledger mapping configurations.",
-          "params": [{ "name": "settingId", "description": "The type of setting (e.g., 'ledger')." }]
+          "description": "Stores system-wide configurations.",
+          "params": [{ "name": "settingId", "description": "Setting ID (e.g., 'ledger')." }]
         }
       },
       {
@@ -107,7 +135,7 @@
         "path": "/journalEntries/{entryId}",
         "definition": {
           "entityName": "JournalEntry",
-          "schema": { "type": "object" },
+          "schema": { "$ref": "#/backend/entities/JournalEntry" },
           "description": "Accounting journal vouchers.",
           "params": [{ "name": "entryId", "description": "Document ID." }]
         }
