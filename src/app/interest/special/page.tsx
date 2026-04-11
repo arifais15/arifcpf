@@ -22,7 +22,8 @@ import {
   ShieldCheck,
   History,
   TrendingUp,
-  UserSearch
+  UserSearch,
+  ListOrdered
 } from "lucide-react";
 import { 
   useCollection, 
@@ -144,8 +145,10 @@ export default function SpecialInterestDPPage() {
       let runningBalance = allEntries
         .filter((e: any) => new Date(e.summaryDate) <= openingRefDate)
         .reduce((sum, e: any) => {
-          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
-          return sum + (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
+          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(s.pbsContribution)||0, c9: Number(s.profitPbs)||0 };
+          // Correction: using e instead of s
+          const v2 = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
+          return sum + (v2.c1 - v2.c2 + v2.c3 + v2.c5 + v2.c6 + v2.c8 + v2.c9);
         }, 0);
 
       const openingBalance = runningBalance;
@@ -253,6 +256,24 @@ export default function SpecialInterestDPPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Special Interest");
     XLSX.writeFile(wb, `Special_Interest_DP_${dateRange.start}.xlsx`);
   };
+
+  const monthlyBreakdown = useMemo(() => {
+    if (!viewingDetails?.dailyLog) return [];
+    
+    const groups: Record<string, number> = {};
+    viewingDetails.dailyLog.forEach((day: any) => {
+      const monthKey = day.date.substring(0, 7); // YYYY-MM
+      groups[monthKey] = (groups[monthKey] || 0) + day.interest;
+    });
+
+    return Object.entries(groups).map(([key, amount]) => {
+      const date = new Date(key + "-01");
+      return {
+        label: date.toLocaleDateString('default', { month: 'long', year: 'numeric' }),
+        amount
+      };
+    });
+  }, [viewingDetails]);
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
@@ -396,14 +417,14 @@ export default function SpecialInterestDPPage() {
           <DialogHeader className="border-b pb-4 mb-4">
             <DialogTitle className="flex items-center gap-3 text-xl font-bold">
               <History className="size-5 text-amber-600" /> 
-              Daily Ledger Log: {viewingDetails?.name}
+              Detailed Profit Audit: {viewingDetails?.name}
             </DialogTitle>
             <DialogDescription className="uppercase font-black text-[10px] tracking-widest text-slate-400">
               Audit Period: {dateRange.start} to {dateRange.end} • Member ID: {viewingDetails?.memberIdNumber}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="grid grid-cols-3 gap-4">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
                 <span className="text-[10px] uppercase font-black text-slate-400 mb-1">Total DP Profit</span>
@@ -419,36 +440,67 @@ export default function SpecialInterestDPPage() {
               </div>
             </div>
 
-            <div className="border rounded-xl overflow-hidden shadow-sm">
-              <Table>
-                <TableHeader className="bg-slate-100">
-                  <TableRow>
-                    <TableHead className="text-[10px] font-black uppercase py-3">Audit Date</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase py-3">Day-End Balance (৳)</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase py-3">Day Portion Interest (৳)</TableHead>
-                    <TableHead className="text-center text-[10px] font-black uppercase py-3">Activity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {viewingDetails?.dailyLog.map((day: any, i: number) => (
-                    <TableRow key={i} className={cn("hover:bg-slate-50/50", day.hasActivity && "bg-amber-50/30")}>
-                      <td className="font-mono text-xs p-3 text-slate-600">{day.date}</td>
-                      <td className="text-right p-3 font-medium">৳ {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                      <td className="text-right p-3 font-bold text-emerald-700">৳ {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
-                      <td className="text-center p-3">
-                        {day.hasActivity ? <Badge className="bg-amber-100 text-amber-700 text-[8px] h-4 uppercase">Trxn</Badge> : <span className="text-[8px] text-slate-300 uppercase">-</span>}
-                      </td>
+            {/* NEW MONTHLY SUMMARY SECTION */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2 px-1">
+                <ListOrdered className="size-4 text-primary" />
+                Monthly Interest Summary
+              </h3>
+              <div className="border rounded-xl overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader className="bg-slate-100">
+                    <TableRow>
+                      <TableHead className="text-[10px] font-black uppercase py-3">Calendar Month</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase py-3">Total Monthly Accrual (৳)</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-                <TableFooter className="bg-slate-50 font-black">
-                  <TableRow>
-                    <TableCell colSpan={2} className="text-right uppercase text-[9px]">Sum of Daily Portions:</TableCell>
-                    <TableCell className="text-right text-base text-primary underline decoration-double">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </TableFooter>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlyBreakdown.map((month, i) => (
+                      <TableRow key={i} className="hover:bg-slate-50/50">
+                        <td className="font-bold text-xs p-3 text-slate-700">{month.label}</td>
+                        <td className="text-right p-3 font-black text-primary">৳ {month.amount.toLocaleString(undefined, { minimumFractionDigits: 4 })}</td>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter className="bg-slate-50 font-black">
+                    <TableRow>
+                      <TableCell className="text-right uppercase text-[9px]">Sum of Monthly Portions:</TableCell>
+                      <TableCell className="text-right text-base text-primary underline decoration-double">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold flex items-center gap-2 px-1">
+                <CalendarDays className="size-4 text-amber-600" />
+                Granular Daily Ledger Log
+              </h3>
+              <div className="border rounded-xl overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader className="bg-slate-100">
+                    <TableRow>
+                      <TableHead className="text-[10px] font-black uppercase py-3">Audit Date</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase py-3">Day-End Balance (৳)</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase py-3">Day Portion Interest (৳)</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase py-3">Activity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewingDetails?.dailyLog.map((day: any, i: number) => (
+                      <TableRow key={i} className={cn("hover:bg-slate-50/50", day.hasActivity && "bg-amber-50/30")}>
+                        <td className="font-mono text-xs p-3 text-slate-600">{day.date}</td>
+                        <td className="text-right p-3 font-medium">৳ {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="text-right p-3 font-bold text-emerald-700">৳ {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
+                        <td className="text-center p-3">
+                          {day.hasActivity ? <Badge className="bg-amber-100 text-amber-700 text-[8px] h-4 uppercase">Trxn</Badge> : <span className="text-[8px] text-slate-300 uppercase">-</span>}
+                        </td>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
 
             <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
@@ -456,7 +508,7 @@ export default function SpecialInterestDPPage() {
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase text-blue-700 tracking-wider">Day-Product Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-blue-600">
-                  This calculation captures exact fund utilization. Interest is computed daily using the formula: <code>(Daily Balance * Annual Tiered Rate) / 365</code>. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual.
+                  This calculation captures exact fund utilization. Interest is computed daily using the formula: <code>(Daily Balance * Annual Tiered Rate) / 365</code>. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual. The monthly summary above is the sum of these daily portions.
                 </p>
               </div>
             </div>
@@ -514,6 +566,11 @@ export default function SpecialInterestDPPage() {
           <div className="border-t border-black pt-2">Accountant (Audit)</div>
           <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
           <div className="border-t border-black pt-2">Approved By Trustee</div>
+        </div>
+        
+        <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+          <span>CPF Management Software</span>
+          <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
         </div>
       </div>
     </div>
