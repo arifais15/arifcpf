@@ -13,6 +13,7 @@ import { collection, doc } from "firebase/firestore"
 import { Loader2, Save, ShieldCheck, AlertCircle, Info } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { LEDGER_COLUMN_MAPPING, NORMAL_DEBIT_ACCOUNTS, type LedgerColumnKey } from "@/lib/ledger-mapping"
+import { cn } from "@/lib/utils"
 
 export default function SettingsPage() {
   const firestore = useFirestore()
