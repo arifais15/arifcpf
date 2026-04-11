@@ -90,5 +90,10 @@ service cloud.firestore {
       }
     }
 
+    // System Settings
+    match /settings/{settingId} {
+      allow read, write: if isSignedIn();
+    }
+
   }
 }
