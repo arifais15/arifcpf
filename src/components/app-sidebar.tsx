@@ -51,8 +51,6 @@ const navItems = [
   { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control" },
   { title: "Members", icon: Users, url: "/members" },
   { title: "Ledger Summary", icon: ClipboardCheck, url: "/reports/ledger-summary" },
-  { title: "Netfund Statement", icon: FileStack, url: "/reports/netfund" },
-  { title: "Fund Movement", icon: Activity, url: "/reports/movements" },
   { title: "Interest Accrual", icon: Percent, url: "/interest" },
   { title: "Special Interest (DP)", icon: Calculator, url: "/interest/special" },
   { title: "Investments", icon: TrendingUp, url: "/investments" },
