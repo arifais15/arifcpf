@@ -203,7 +203,7 @@ export default function SpecialInterestDPPage() {
             c5: Number(e.profitEmployee)||0, 
             c6: Number(e.profitLoan)||0, 
             c8: Number(e.pbsContribution)||0, 
-            c9: Number(s.profitPbs)||0 
+            c9: Number(e.profitPbs)||0 
           };
           currentEmpFund += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6);
           currentPbsFund += (v.c8 + v.c9);
