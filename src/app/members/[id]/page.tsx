@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -581,18 +582,33 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h2 className="text-lg md:text-xl font-bold underline underline-offset-8 uppercase tracking-[0.25em] mt-3 text-slate-800">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-4 mb-10 text-[13px]">
-          <div className="space-y-3">
-            <div className="flex gap-3 items-end"><span className="font-black min-w-[120px] uppercase text-[10px] text-slate-500 mb-0.5 tracking-wider">Member Name</span><span className="font-black border-b border-black/30 flex-1 pb-0.5 text-lg">{member.name}</span></div>
-            <div className="flex gap-3 items-end"><span className="font-black min-w-[120px] uppercase text-[10px] text-slate-500 mb-0.5 tracking-wider">Address</span><span className="font-bold border-b border-black/30 flex-1 pb-0.5">{member.currentAddress || "-"}</span></div>
-            <div className="flex gap-3 items-end"><span className="font-black min-w-[120px] uppercase text-[10px] text-slate-500 mb-0.5 tracking-wider">Joined Date</span><span className="font-black border-b border-black/30 flex-1 pb-0.5">{member.dateJoined}</span></div>
+        <div className="grid grid-cols-3 gap-x-10 gap-y-6 mb-10 text-[13px]">
+          {/* Row 1 */}
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Name</span>
+            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-base truncate">{member.name}</span>
           </div>
-          <div className="space-y-3">
-            <div className="flex gap-3 items-end"><span className="font-black min-w-[140px] uppercase text-[10px] text-slate-500 mb-0.5 tracking-wider">Designation</span><span className="font-black border-b border-black/30 flex-1 pb-0.5">{member.designation}</span></div>
-            <div className="flex gap-x-6">
-               <div className="flex gap-3 flex-1 items-end"><span className="font-black min-w-[50px] uppercase text-[10px] text-slate-500 mb-0.5 tracking-wider">ID No</span><span className="font-black border-b border-black/30 flex-1 pb-0.5 font-mono text-lg">{member.memberIdNumber}</span></div>
-               <div className="flex gap-3 flex-1 items-end"><span className="font-black whitespace-nowrap uppercase text-[10px] text-slate-500 mb-0.5 tracking-wider">Status</span><span className="font-black border-b border-black/30 flex-1 pb-0.5 uppercase text-sm text-primary">{member.status || "Active"}</span></div>
-            </div>
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Designation</span>
+            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-sm truncate">{member.designation}</span>
+          </div>
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[60px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">ID No</span>
+            <span className="font-black border-b border-black/30 flex-1 pb-0.5 font-mono text-base">{member.memberIdNumber}</span>
+          </div>
+
+          {/* Row 2 */}
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Address</span>
+            <span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-sm truncate">{member.currentAddress || member.permanentAddress || "-"}</span>
+          </div>
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Joined Date</span>
+            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-sm">{member.dateJoined}</span>
+          </div>
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[60px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Status</span>
+            <span className="font-black border-b border-black/30 flex-1 pb-0.5 uppercase text-xs text-primary">{member.status || "Active"}</span>
           </div>
         </div>
 
