@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -16,7 +15,8 @@ import {
   ListTodo,
   X,
   UserX,
-  PieChart
+  PieChart,
+  HandCoins
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -46,6 +46,7 @@ const navItems = [
   { title: "Interest Accrual", icon: Percent, url: "/interest" },
   { title: "Investments", icon: TrendingUp, url: "/investments" },
   { title: "Financial Reports", icon: FileText, url: "/reports" },
+  { title: "Loan Report", icon: HandCoins, url: "/reports/loans" },
   { title: "Settlement Report", icon: UserX, url: "/reports/settlements" },
   { title: "Audit & Tracking", icon: PieChart, url: "/reports/contributions" },
 ]
