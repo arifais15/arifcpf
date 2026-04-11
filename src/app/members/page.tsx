@@ -240,6 +240,7 @@ export default function MembersPage() {
                         <SelectItem value="Active">Active</SelectItem>
                         <SelectItem value="Retired">Retired</SelectItem>
                         <SelectItem value="Transferred">Transferred</SelectItem>
+                        <SelectItem value="InActive">InActive</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -282,7 +283,9 @@ export default function MembersPage() {
                 <TableCell>
                   <Badge variant={member.status === 'Active' ? 'outline' : 'secondary'} className={
                     member.status === 'Active' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
-                    member.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                    member.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
+                    member.status === 'Transferred' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                    'bg-slate-100 text-slate-600 border-slate-200'
                   }>
                     {member.status || "Active"}
                   </Badge>

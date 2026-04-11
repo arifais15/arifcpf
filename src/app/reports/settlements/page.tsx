@@ -41,7 +41,7 @@ export default function SettlementReportPage() {
   const settledMembers = useMemo(() => {
     if (!members) return [];
     return members
-      .filter(m => (m.status === 'Retired' || m.status === 'Transferred') && 
+      .filter(m => (m.status === 'Retired' || m.status === 'Transferred' || m.status === 'InActive') && 
         (m.name.toLowerCase().includes(search.toLowerCase()) || m.memberIdNumber?.includes(search)))
       .sort((a, b) => new Date(b.settlementDate || 0).getTime() - new Date(a.settlementDate || 0).getTime());
   }, [members, search]);
@@ -69,7 +69,7 @@ export default function SettlementReportPage() {
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Retired & Transferred Employee Settlement Report</h2>
+          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Retired, Transferred & InActive Employee Settlement Report</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <span>Report Run Date: {new Date().toLocaleDateString('en-GB')}</span>
             <span>PBS CPF Management Audit Statement</span>
@@ -120,7 +120,7 @@ export default function SettlementReportPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Settlement Audit</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Registry of Retired & Transferred Employees with Final Ledger Clearances</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Registry of Retired, Transferred & InActive Employees with Final Ledger Clearances</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-10 font-bold">
@@ -132,7 +132,7 @@ export default function SettlementReportPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 no-print">
+      <div className="grid gap-6 md:grid-cols-4 no-print">
         <Card className="border-none shadow-sm bg-orange-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-[10px] font-bold uppercase text-orange-600 tracking-widest">Retired Staff</CardTitle>
@@ -147,6 +147,14 @@ export default function SettlementReportPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{settledMembers.filter(m => m.status === 'Transferred').length} Accounts</div>
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-sm bg-slate-100">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-bold uppercase text-slate-600 tracking-widest">InActive Staff</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{settledMembers.filter(m => m.status === 'InActive').length} Accounts</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-slate-900 text-white">
@@ -186,7 +194,7 @@ export default function SettlementReportPage() {
             {isLoading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : settledMembers.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground italic">No retired or transferred employees found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-16 text-muted-foreground italic">No retired, transferred or inactive employees found.</TableCell></TableRow>
             ) : settledMembers.map((m) => (
               <TableRow key={m.id} className="hover:bg-slate-50/50">
                 <TableCell className="font-mono text-xs font-bold">{m.memberIdNumber}</TableCell>
@@ -197,7 +205,11 @@ export default function SettlementReportPage() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={m.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-blue-50 text-blue-700 border-blue-200'}>
+                  <Badge variant="outline" className={
+                    m.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
+                    m.status === 'Transferred' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
+                    'bg-slate-100 text-slate-600 border-slate-200'
+                  }>
                     {m.status}
                   </Badge>
                 </TableCell>

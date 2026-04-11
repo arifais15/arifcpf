@@ -24,7 +24,7 @@
         "memberIdNumber": { "type": "string" },
         "name": { "type": "string" },
         "designation": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Retired", "Transferred"] },
+        "status": { "type": "string", "enum": ["Active", "Retired", "Transferred", "InActive"] },
         "dateJoined": { "type": "string", "format": "date" },
         "zonalOffice": { "type": "string" },
         "permanentAddress": { "type": "string" }

@@ -398,6 +398,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                       <SelectContent>
                         <SelectItem value="Retired">Retirement</SelectItem>
                         <SelectItem value="Transferred">Transfer</SelectItem>
+                        <SelectItem value="InActive">InActive</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
