@@ -94,9 +94,16 @@ export default function CPFInterestPage() {
     return options;
   }, []);
 
+  // Default dates: Current FY July 1st to Today
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+  const today = now.toISOString().split('T')[0];
+
   const [calculationMode, setCalculationMode] = useState<"fy" | "custom">("fy");
   const [selectedFY, setSelectedFY] = useState<string>(fyOptions[1] || ""); 
-  const [customRange, setCustomRange] = useState({ start: "", end: "" });
+  const [customRange, setCustomRange] = useState({ start: fyStart, end: today });
   const [postingDate, setPostingDate] = useState("");
   
   const [isCalculating, setIsCalculating] = useState(false);
@@ -117,7 +124,6 @@ export default function CPFInterestPage() {
       if (remainingBalance <= 0) break;
 
       if (tier.limit === null) {
-        // Final catch-all tier
         totalInterest += remainingBalance * tier.rate;
         break;
       } else {
@@ -176,7 +182,6 @@ export default function CPFInterestPage() {
       let finalEmployeeFund = 0;
       let finalOfficeFund = 0;
 
-      // Current State for proportionality
       summaries.forEach((row: any) => {
         const c1 = Number(row.employeeContribution) || 0;
         const c2 = Number(row.loanWithdrawal) || 0;
@@ -212,13 +217,11 @@ export default function CPFInterestPage() {
         const end = new Date(customRange.end);
         monthsToCalculate = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
         
-        // Month 1 basis: day before start
         const opening = new Date(start);
         opening.setDate(opening.getDate() - 1);
         opening.setHours(23, 59, 59, 999);
         basisDates.push(opening);
 
-        // Subsequent months
         for (let m = 0; m < monthsToCalculate - 1; m++) {
           const next = new Date(start.getFullYear(), start.getMonth() + m + 1, 0, 23, 59, 59, 999);
           basisDates.push(next);
@@ -248,7 +251,6 @@ export default function CPFInterestPage() {
         });
       }
 
-      // Calculate the split between employee and pbs
       const totalFundAtEnd = finalEmployeeFund + finalOfficeFund;
       let employeeProfit = 0;
       let pbsProfit = 0;
@@ -302,10 +304,10 @@ export default function CPFInterestPage() {
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
-      // Rounding Logic: Total Rounded, then Employee Rounded, PBS is Remainder
+      // ROUNDING RULE: Total Rounded, PBS Rounded, Employee takes balanced remainder
       const roundedTotal = Math.round(item.calculatedInterest);
-      const roundedEmployee = Math.round(item.employeeProfit);
-      const roundedPbs = roundedTotal - roundedEmployee;
+      const roundedPbs = Math.round(item.pbsProfit);
+      const roundedEmployee = roundedTotal - roundedPbs;
 
       const entryData = {
         summaryDate: postingDate,

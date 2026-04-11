@@ -248,17 +248,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const pbsFund = latestRunningTotals.officeFund;
     const totalFund = empFund + pbsFund;
     
-    let rawProfitEmployee = 0;
+    let rawProfitPbs = 0;
     if (totalFund > 0) {
-      rawProfitEmployee = (interestCalculation.totalInterest * empFund) / totalFund;
+      rawProfitPbs = (interestCalculation.totalInterest * pbsFund) / totalFund;
     } else {
-      rawProfitEmployee = interestCalculation.totalInterest / 2;
+      rawProfitPbs = interestCalculation.totalInterest / 2;
     }
 
-    // Rounding Logic: Total Rounded, then Employee Rounded, PBS is Remainder
+    // ROUNDING RULE: Total Rounded, PBS Rounded, Employee takes balanced remainder
     const roundedTotal = Math.round(interestCalculation.totalInterest);
-    const roundedEmployee = Math.round(rawProfitEmployee);
-    const roundedPbs = roundedTotal - roundedEmployee;
+    const roundedPbs = Math.round(rawProfitPbs);
+    const roundedEmployee = roundedTotal - roundedPbs;
 
     addDocumentNonBlocking(summariesRef, {
       summaryDate: profitPostingDate,

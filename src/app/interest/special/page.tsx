@@ -32,7 +32,7 @@ import {
   useDoc,
   addDocumentNonBlocking
 } from "@/firebase";
-import { collection, collectionGroup, query, orderBy, doc, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, doc, getDocs } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -59,7 +59,7 @@ export default function SpecialInterestDPPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  // Date Logic for default FY
+  // Date Logic for default FY (July 1st to Today)
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth() + 1;
@@ -106,7 +106,6 @@ export default function SpecialInterestDPPage() {
         prevLimit = tier.limit;
       }
     }
-    // Daily portion (standard 365 day year for institutional simplicity)
     return annualInterest / 365;
   };
 
@@ -123,7 +122,6 @@ export default function SpecialInterestDPPage() {
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
     
-    // Process only selected or all members
     let targetMembers = selectedMember === "all" ? (members || []) : (members?.filter(m => m.id === selectedMember) || []);
     
     // FILTER OUT INACTIVE MEMBERS
@@ -141,7 +139,6 @@ export default function SpecialInterestDPPage() {
       let dailyLog = [];
       let currentDate = new Date(auditStart);
       
-      // Calculate initial balance as of day before start
       const openingRefDate = new Date(auditStart);
       openingRefDate.setDate(openingRefDate.getDate() - 1);
       
@@ -162,11 +159,8 @@ export default function SpecialInterestDPPage() {
 
       const openingBalance = runningBalance;
 
-      // Loop through every single day in the period
       while (currentDate <= auditEnd) {
         const dateStr = currentDate.toISOString().split('T')[0];
-        
-        // Update balance if there are transactions ON this day
         const daysEntries = allEntries.filter((e: any) => e.summaryDate === dateStr);
         daysEntries.forEach((e: any) => {
           const v = { 
@@ -194,8 +188,6 @@ export default function SpecialInterestDPPage() {
         currentDate.setDate(currentDate.getDate() + 1);
       }
 
-      // Calculate Proportional Splits for posting
-      // Since it's special interest, we typically split it based on the FINAL fund proportions at end of period
       let currentEmpFund = 0;
       let currentPbsFund = 0;
       allEntries.forEach((e: any) => {
@@ -246,10 +238,10 @@ export default function SpecialInterestDPPage() {
     for (const res of results) {
       if (res.totalInterest <= 0) continue;
       
-      // Rounding Logic: Total Rounded, then Employee Rounded, PBS is Remainder
+      // ROUNDING RULE: Total Rounded, PBS Rounded, Employee takes balanced remainder
       const roundedTotal = Math.round(res.totalInterest);
-      const roundedEmployee = Math.round(res.empProfit);
-      const roundedPbs = roundedTotal - roundedEmployee;
+      const roundedPbs = Math.round(res.pbsProfit);
+      const roundedEmployee = roundedTotal - roundedPbs;
 
       const entry = {
         summaryDate: postingDate,
@@ -369,6 +361,7 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
+            </Card>
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold text-slate-400">Sync Ledger Date</Label>
@@ -429,7 +422,6 @@ export default function SpecialInterestDPPage() {
         </div>
       )}
 
-      {/* Detail Drill-Down Dialog */}
       <Dialog open={!!viewingDetails} onOpenChange={(o) => !o && setViewingDetails(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto font-ledger">
           <DialogHeader className="border-b pb-4 mb-4">
@@ -503,7 +495,6 @@ export default function SpecialInterestDPPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Institutional Print View */}
       <div className="hidden print:block print-container font-ledger text-black">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
