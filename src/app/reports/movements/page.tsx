@@ -294,7 +294,8 @@ export default function FundMovementReportPage() {
           <CardContent>
             <div className="text-xl font-bold">৳ {stats.totalClosing.toLocaleString()}</div>
           </CardContent>
-        </div>
+        </Card>
+      </div>
 
       <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
         <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
