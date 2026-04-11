@@ -291,7 +291,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       pbsContribution: Number(formData.get("pbsContribution") || 0),
       profitPbs: Number(formData.get("profitPbs") || 0),
       lastUpdateDate: new Date().toISOString(),
-      createdAt: editingEntry ? editingEntry.createdAt : new Date().toISOString(),
+      createdAt: editingEntry?.createdAt || new Date().toISOString(),
       memberId: resolvedParams.id
     };
     if (editingEntry?.id) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), entryData);
