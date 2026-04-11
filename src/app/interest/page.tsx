@@ -295,16 +295,21 @@ export default function CPFInterestPage() {
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
+      // Rounding Logic: Total Rounded, then Employee Rounded, PBS is Remainder
+      const roundedTotal = Math.round(item.calculatedInterest);
+      const roundedEmployee = Math.round(item.employeeProfit);
+      const roundedPbs = roundedTotal - roundedEmployee;
+
       const entryData = {
         summaryDate: postingDate,
         particulars: `Annual Profit ${modeLabel} (Tiered)`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
-        profitEmployee: item.employeeProfit,
+        profitEmployee: roundedEmployee,
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: item.pbsProfit,
+        profitPbs: roundedPbs,
         lastUpdateDate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         memberId: item.memberId

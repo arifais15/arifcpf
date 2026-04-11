@@ -236,19 +236,24 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const empFund = latestRunningTotals.empFund;
     const pbsFund = latestRunningTotals.officeFund;
     const totalFund = empFund + pbsFund;
-    let profitEmployee = 0; let profitPbs = 0;
+    
+    let rawProfitEmployee = 0;
     if (totalFund > 0) {
-      profitEmployee = (interestCalculation.totalInterest * empFund) / totalFund;
-      profitPbs = (interestCalculation.totalInterest * pbsFund) / totalFund;
+      rawProfitEmployee = (interestCalculation.totalInterest * empFund) / totalFund;
     } else {
-      profitEmployee = interestCalculation.totalInterest / 2;
-      profitPbs = interestCalculation.totalInterest / 2;
+      rawProfitEmployee = interestCalculation.totalInterest / 2;
     }
+
+    // Rounding Logic: Total Rounded, then Employee Rounded, PBS is Remainder
+    const roundedTotal = Math.round(interestCalculation.totalInterest);
+    const roundedEmployee = Math.round(rawProfitEmployee);
+    const roundedPbs = roundedTotal - roundedEmployee;
+
     addDocumentNonBlocking(summariesRef, {
       summaryDate: profitPostingDate,
       particulars: `Annual Profit ${interestCalculation.label} (Tiered)`,
       employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0,
-      profitEmployee, profitLoan: 0, pbsContribution: 0, profitPbs,
+      profitEmployee: roundedEmployee, profitLoan: 0, pbsContribution: 0, profitPbs: roundedPbs,
       lastUpdateDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       memberId: resolvedParams.id,

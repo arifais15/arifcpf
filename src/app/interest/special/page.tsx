@@ -242,16 +242,21 @@ export default function SpecialInterestDPPage() {
     for (const res of results) {
       if (res.totalInterest <= 0) continue;
       
+      // Rounding Logic: Total Rounded, then Employee Rounded, PBS is Remainder
+      const roundedTotal = Math.round(res.totalInterest);
+      const roundedEmployee = Math.round(res.empProfit);
+      const roundedPbs = roundedTotal - roundedEmployee;
+
       const entry = {
         summaryDate: postingDate,
         particulars: `Annual Profit (DP Basis) ${dateRange.start} to ${dateRange.end}`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
-        profitEmployee: res.empProfit,
+        profitEmployee: roundedEmployee,
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: res.pbsProfit,
+        profitPbs: roundedPbs,
         lastUpdateDate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         memberId: res.memberId,
