@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -20,7 +21,8 @@ import {
   FileStack,
   Activity,
   ClipboardCheck,
-  BookText
+  BookText,
+  LayoutList
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -47,6 +49,7 @@ const navItems = [
   { title: "Journal Entries", icon: ListTodo, url: "/transactions" },
   { title: "New Transaction", icon: PlusCircle, url: "/transactions/new" },
   { title: "Control Ledger", icon: BookText, url: "/reports/control-ledger" },
+  { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control" },
   { title: "Members", icon: Users, url: "/members" },
   { title: "Ledger Summary", icon: ClipboardCheck, url: "/reports/ledger-summary" },
   { title: "Netfund Statement", icon: FileStack, url: "/reports/netfund" },
