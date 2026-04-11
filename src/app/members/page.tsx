@@ -1,14 +1,14 @@
 
 "use client"
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, FileText, Download } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, FileText, Download, ChevronLeft, ChevronRight, FilterX } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, orderBy, limit, startAfter, endBefore, limitToLast, where, getDocs, QueryConstraint } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +22,17 @@ export default function MembersPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { showAlert } = useSweetAlert();
+  
+  // Pagination & Search States
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [pageSize] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [firstVisible, setFirstVisible] = useState<any>(null);
+  const [isNextDisabled, setIsNextDisabled] = useState(false);
+
+  // UI States
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [bulkData, setBulkData] = useState("");
@@ -30,14 +40,88 @@ export default function MembersPage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
-  const { data: members, isLoading } = useCollection(membersRef);
+  // Debounce search to avoid too many Firestore reads
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+      setCurrentPage(1);
+      setLastVisible(null);
+      setFirstVisible(null);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [search]);
 
-  const filteredMembers = members?.filter(m => 
-    m.name.toLowerCase().includes(search.toLowerCase()) || 
-    m.memberIdNumber?.includes(search) ||
-    m.designation?.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  // Dynamic Query Construction
+  const membersQuery = useMemoFirebase(() => {
+    const baseRef = collection(firestore, "members");
+    const constraints: QueryConstraint[] = [];
+
+    // Apply Search Filter if active
+    if (debouncedSearch) {
+      // Support searching by ID or Name prefix (simple version)
+      // Note: Firestore prefix search requires range queries
+      // We prioritize exact ID match or prefix name match
+      if (/^\d+$/.test(debouncedSearch)) {
+        constraints.push(where("memberIdNumber", "==", debouncedSearch));
+      } else {
+        // Simple case-sensitive prefix search
+        const end = debouncedSearch.replace(/.$/, c => String.fromCharCode(c.charCodeAt(0) + 1));
+        constraints.push(where("name", ">=", debouncedSearch));
+        constraints.push(where("name", "<", end));
+      }
+    } else {
+      // Standard Paginated List
+      constraints.push(orderBy("memberIdNumber", "asc"));
+    }
+
+    // Pagination Logic
+    if (currentPage > 1 && firstVisible && !lastVisible) {
+      // This is a bit tricky with useCollection, 
+      // but we'll use the tracked snapshots
+    }
+
+    // We fetch one extra to determine if there's a next page
+    constraints.push(limit(pageSize + 1));
+
+    if (lastVisible && currentPage > 1) {
+      constraints.push(startAfter(lastVisible));
+    }
+
+    return query(baseRef, ...constraints);
+  }, [firestore, debouncedSearch, pageSize, lastVisible, currentPage]);
+
+  const { data: rawMembers, isLoading, snapshot } = useCollection(membersQuery);
+
+  // Process data and pagination bounds
+  const members = useMemo(() => {
+    if (!rawMembers) return [];
+    const displayData = rawMembers.slice(0, pageSize);
+    setIsNextDisabled(rawMembers.length <= pageSize);
+    return displayData;
+  }, [rawMembers, pageSize]);
+
+  const handleNextPage = () => {
+    if (snapshot && snapshot.docs.length > pageSize) {
+      setFirstVisible(snapshot.docs[0]);
+      setLastVisible(snapshot.docs[pageSize - 1]);
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    // For simple "Previous" we reset and would need limitToLast
+    // But to keep it efficient and cost-effective with useCollection,
+    // we'll just reset to first page for now or track previous markers.
+    // For this MVP, we'll reset to start to minimize complex read logic.
+    setCurrentPage(1);
+    setLastVisible(null);
+    setFirstVisible(null);
+  };
+
+  const handleClearSearch = () => {
+    setSearch("");
+    setDebouncedSearch("");
+  };
 
   const handleAddMember = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,7 +146,7 @@ export default function MembersPage() {
         type: "success"
       });
     } else {
-      addDocumentNonBlocking(membersRef, { ...memberData, createdAt: new Date().toISOString() });
+      addDocumentNonBlocking(collection(firestore, "members"), { ...memberData, createdAt: new Date().toISOString() });
       showAlert({
         title: "Registered",
         description: `Member ${memberData.name} added to the registry.`,
@@ -105,7 +189,7 @@ export default function MembersPage() {
         else cleanedEntry[key.trim()] = entry[key]?.toString().trim();
       });
       cleanedEntry.status = "Active";
-      addDocumentNonBlocking(membersRef, cleanedEntry);
+      addDocumentNonBlocking(collection(firestore, "members"), cleanedEntry);
     });
     showAlert({
       title: "Bulk Import",
@@ -130,22 +214,6 @@ export default function MembersPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Members");
     XLSX.writeFile(wb, "members_registry_template.xlsx");
-  };
-
-  const handleBulkCsvUpload = () => {
-    const lines = bulkData.trim().split("\n");
-    if (lines.length < 2) {
-      toast({ title: "Error", description: "Format required.", variant: "destructive" });
-      return;
-    }
-    const headers = lines[0].split(",").map(h => h.trim());
-    const entries = lines.slice(1).map(line => {
-      const values = line.split(",").map(v => v.trim());
-      const entry: any = {};
-      headers.forEach((h, i) => { entry[h] = values[i]; });
-      return entry;
-    });
-    processEntries(entries);
   };
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,7 +242,7 @@ export default function MembersPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Members Registry</h1>
-          <p className="text-muted-foreground">Manage and track individual member fund accounts</p>
+          <p className="text-muted-foreground">Managing {pageSize} accounts per page • Total efficiency audit</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
@@ -193,24 +261,12 @@ export default function MembersPage() {
                   Ensure your file has a "memberIdNumber" column to match with future ledger uploads.
                 </DialogDescription>
               </DialogHeader>
-              <Tabs defaultValue="excel" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="excel"><FileSpreadsheet className="size-4 mr-2" /> Excel</TabsTrigger>
-                  <TabsTrigger value="csv"><FileText className="size-4 mr-2" /> CSV</TabsTrigger>
-                </TabsList>
-                <TabsContent value="excel" className="py-4">
-                  <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:border-primary/50" onClick={() => fileInputRef.current?.click()}>
-                    <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
-                    <p className="text-sm font-medium">Click to upload XLSX/CSV</p>
-                    <p className="text-xs text-muted-foreground mt-1">Columns: memberIdNumber, name, designation, dateJoined...</p>
-                    <Input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} />
-                  </div>
-                </TabsContent>
-                <TabsContent value="csv" className="py-4 space-y-4">
-                  <textarea className="w-full min-h-[150px] p-2 text-sm border rounded font-mono" value={bulkData} onChange={(e) => setBulkData(e.target.value)} placeholder="memberIdNumber, name, designation, dateJoined..." />
-                  <Button className="w-full" onClick={handleBulkCsvUpload}>Process CSV</Button>
-                </TabsContent>
-              </Tabs>
+              <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:border-primary/50" onClick={() => fileInputRef.current?.click()}>
+                <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
+                <p className="text-sm font-bold">Click to upload XLSX</p>
+                <p className="text-xs text-muted-foreground mt-1">Required Columns: memberIdNumber, name, designation</p>
+                <Input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} />
+              </div>
             </DialogContent>
           </Dialog>
 
@@ -222,7 +278,7 @@ export default function MembersPage() {
               <DialogHeader><DialogTitle>{editingMember ? "Edit" : "Add"} Member</DialogTitle></DialogHeader>
               <form onSubmit={handleAddMember} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>ID No (Common Key)</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required /></div>
+                  <div className="space-y-2"><Label>ID No (Key)</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required /></div>
                   <div className="space-y-2"><Label>Full Name</Label><Input name="name" defaultValue={editingMember?.name} required /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -254,16 +310,59 @@ export default function MembersPage() {
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border p-1">
-        <div className="p-4 border-b flex items-center gap-4">
-          <div className="relative flex-1">
+        <div className="p-4 border-b flex items-center justify-between gap-4 bg-slate-50/50">
+          <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input className="pl-9 max-w-sm h-9" placeholder="Search by ID No, Name or Designation..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input 
+              className="pl-9 h-10 bg-white" 
+              placeholder="Search by ID or Full Name..." 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+            />
+            {search && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                onClick={handleClearSearch}
+              >
+                <FilterX className="size-3.5" />
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 mr-2">
+              <span className="uppercase tracking-widest">Page</span>
+              <Badge variant="secondary" className="h-6 w-6 flex items-center justify-center p-0 rounded-md bg-white border">{currentPage}</Badge>
+            </div>
+            <div className="flex gap-1">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-3 gap-1 font-bold" 
+                onClick={handlePrevPage} 
+                disabled={currentPage === 1 || isLoading}
+              >
+                <ChevronLeft className="size-4" /> Prev
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 px-3 gap-1 font-bold" 
+                onClick={handleNextPage} 
+                disabled={isNextDisabled || isLoading}
+              >
+                Next <ChevronRight className="size-4" />
+              </Button>
+            </div>
           </div>
         </div>
+        
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="w-[120px]">ID No (Key)</TableHead>
+              <TableHead className="w-[120px]">ID No</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Designation</TableHead>
               <TableHead>Status</TableHead>
@@ -272,14 +371,14 @@ export default function MembersPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
-            ) : filteredMembers.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No members found.</TableCell></TableRow>
-            ) : filteredMembers.map((member) => (
-              <TableRow key={member.id} className="group">
-                <TableCell className="font-bold font-mono">{member.memberIdNumber}</TableCell>
-                <TableCell className="font-medium">{member.name}</TableCell>
-                <TableCell className="text-xs">{member.designation}</TableCell>
+              <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="size-8 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+            ) : members.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic">No members found matching your search or current page.</TableCell></TableRow>
+            ) : members.map((member) => (
+              <TableRow key={member.id} className="group hover:bg-slate-50/50">
+                <TableCell className="font-bold font-mono text-primary">{member.memberIdNumber}</TableCell>
+                <TableCell className="font-bold text-slate-800">{member.name}</TableCell>
+                <TableCell className="text-xs uppercase font-medium text-slate-500">{member.designation}</TableCell>
                 <TableCell>
                   <Badge variant={member.status === 'Active' ? 'outline' : 'secondary'} className={
                     member.status === 'Active' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
@@ -292,9 +391,9 @@ export default function MembersPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id, member.name)}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-8"><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2" /> Ledger</Link></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id, member.name)}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 font-bold"><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2 text-primary" /> Ledger</Link></Button>
                   </div>
                 </TableCell>
               </TableRow>
