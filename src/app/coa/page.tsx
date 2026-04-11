@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -119,9 +119,7 @@ export default function COAPage() {
                 <div className="space-y-2">
                   <Label htmlFor="type">Account Type</Label>
                   <Select name="type" defaultValue={editingAccount ? (editingAccount.type || editingAccount.accountType || "none") : "Asset"}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select type" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Asset">Asset</SelectItem>
                       <SelectItem value="Contra-Asset">Contra-Asset</SelectItem>
@@ -142,9 +140,7 @@ export default function COAPage() {
                 <div className="space-y-2">
                   <Label htmlFor="balance">Normal Balance</Label>
                   <Select name="balance" defaultValue={editingAccount ? (editingAccount.balance || editingAccount.normalBalance || "none") : "Debit"}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select balance" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select balance" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Debit">Debit</SelectItem>
                       <SelectItem value="Credit">Credit</SelectItem>
@@ -155,9 +151,7 @@ export default function COAPage() {
                 <div className="space-y-2">
                   <Label htmlFor="isHeader">Is Group Header?</Label>
                   <Select name="isHeader" defaultValue={editingAccount?.isHeader?.toString() || "false"}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Is Header?" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Is Header?" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="true">Yes</SelectItem>
                       <SelectItem value="false">No</SelectItem>
@@ -197,7 +191,7 @@ export default function COAPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isLoading && coaData?.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">
                   <Loader2 className="size-6 animate-spin mx-auto text-primary" />
