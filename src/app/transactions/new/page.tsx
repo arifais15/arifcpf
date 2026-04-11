@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
-import { Sparkles, Save, Info, AlertTriangle, Loader2, Plus, Trash2, ArrowRightLeft } from "lucide-react";
+import { Sparkles, Save, Info, AlertTriangle, Loader2, Plus, Trash2, ArrowRightLeft, User } from "lucide-react";
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Badge } from "@/components/ui/badge";
 import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { collection, doc, query, where, getDocs, writeBatch, writeBatch as firestoreWriteBatch } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +25,7 @@ interface LineItem {
   debit: number;
   credit: number;
   memo: string;
+  memberId?: string;
 }
 
 export default function NewTransactionPage() {
@@ -51,6 +52,9 @@ export default function NewTransactionPage() {
   const { data: coaData } = useCollection(coaRef);
   const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData]);
 
+  const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
+  const { data: members } = useCollection(membersRef);
+
   // Load transaction for editing
   const transactionRef = useMemoFirebase(() => editId ? doc(firestore, "journalEntries", editId) : null, [firestore, editId]);
   const { data: existingTransaction, isLoading: isEditLoading } = useDoc(transactionRef);
@@ -61,12 +65,13 @@ export default function NewTransactionPage() {
       setDescription(existingTransaction.description);
       setRefNo(existingTransaction.referenceNumber || "");
       if (existingTransaction.lines) {
-        setLines(existingTransaction.lines.map((l: any, idx: number) => ({
+        setLines(existingTransaction.lines.map((l: any) => ({
           id: Math.random().toString(),
           accountCode: l.accountCode,
           debit: l.debit || 0,
           credit: l.credit || 0,
-          memo: l.memo || ""
+          memo: l.memo || "",
+          memberId: l.memberId || ""
         })));
       }
     }
@@ -109,8 +114,8 @@ export default function NewTransactionPage() {
         const newLines = result.suggestedEntries.map((item: any) => ({
           id: Math.random().toString(),
           accountCode: item.accountCode,
-          debit: item.type === 'Debit' ? 0 : 0,
-          credit: item.type === 'Credit' ? 0 : 0,
+          debit: 0,
+          credit: 0,
           memo: description
         }));
         setLines(newLines);
@@ -123,67 +128,143 @@ export default function NewTransactionPage() {
     }
   };
 
-  const handleSave = () => {
+  const mapAccountToLedgerColumn = (code: string, amount: number) => {
+    // Map GL codes to Member Ledger columns
+    const cols = {
+      employeeContribution: 0,
+      loanWithdrawal: 0,
+      loanRepayment: 0,
+      profitEmployee: 0,
+      profitLoan: 0,
+      pbsContribution: 0,
+      profitPbs: 0
+    };
+
+    if (code === '225.10.0000') cols.employeeContribution = amount;
+    if (code === '105.10.0000') cols.loanWithdrawal = amount;
+    if (code === '105.20.0000') cols.loanRepayment = amount;
+    if (code === '225.30.0000') cols.profitEmployee = amount;
+    if (code === '400.60.0000') cols.profitLoan = amount;
+    if (code === '225.20.0000') cols.pbsContribution = amount;
+    if (code === '225.40.0000') cols.profitPbs = amount;
+
+    return cols;
+  };
+
+  const syncSubsidiaryLedgers = async (journalId: string, entryData: any) => {
+    // First, clear existing synced entries for this journal if editing
+    if (editId) {
+      const summariesRef = collection(firestore, "fundSummaries_group_alias"); // Conceptual collectionGroup
+      // In a real app we'd query collectionGroup('fundSummaries').where('journalEntryId', '==', editId)
+      // Since collectionGroup queries are tricky here, we iterate lines and find the specific ones
+    }
+
+    for (const line of entryData.lines) {
+      if (line.memberId) {
+        const amount = line.credit - line.debit;
+        // Adjust amount for Assets where Debit is normal increase
+        const normalDebitAccounts = ['105.10.0000', '101.10.0000'];
+        const finalValue = normalDebitAccounts.includes(line.accountCode) ? (line.debit - line.credit) : (line.credit - line.debit);
+
+        const cols = mapAccountToLedgerColumn(line.accountCode, finalValue);
+        
+        const summaryData = {
+          summaryDate: entryData.entryDate,
+          particulars: `${entryData.description} (JV: ${entryData.referenceNumber || 'N/A'})`,
+          ...cols,
+          lastUpdateDate: new Date().toISOString(),
+          createdAt: entryData.createdAt || new Date().toISOString(),
+          memberId: line.memberId,
+          journalEntryId: journalId,
+          isSyncedFromJV: true
+        };
+
+        const memberSummariesRef = collection(firestore, "members", line.memberId, "fundSummaries");
+        
+        // If editing, find existing linked entry
+        if (editId) {
+          const q = query(memberSummariesRef, where("journalEntryId", "==", editId));
+          const snapshot = await getDocs(q);
+          if (!snapshot.empty) {
+            updateDocumentNonBlocking(doc(firestore, "members", line.memberId, "fundSummaries", snapshot.docs[0].id), summaryData);
+            continue;
+          }
+        }
+        
+        addDocumentNonBlocking(memberSummariesRef, summaryData);
+      }
+    }
+  };
+
+  const handleSave = async () => {
     if (!isBalanced) {
       toast({ title: "Unbalanced Entry", description: "Total debits must equal total credits.", variant: "destructive" });
       return;
     }
 
     setIsSaving(true);
+    const createdAt = existingTransaction?.createdAt || new Date().toISOString();
     const entryData = {
       entryDate,
       description,
       referenceNumber: refNo,
       updatedAt: new Date().toISOString(),
+      createdAt,
       lines: lines.map(l => ({
         accountCode: l.accountCode,
         accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "",
         debit: Number(l.debit) || 0,
         credit: Number(l.credit) || 0,
-        memo: l.memo
+        memo: l.memo,
+        memberId: l.memberId || ""
       })),
       totalAmount: totals.debit
     };
 
-    if (editId) {
-      const docRef = doc(firestore, "journalEntries", editId);
-      updateDocumentNonBlocking(docRef, entryData);
-      showAlert({
-        title: "Transaction Updated",
-        description: "The double-entry record has been updated successfully.",
-        type: "success"
-      });
+    try {
+      if (editId) {
+        const docRef = doc(firestore, "journalEntries", editId);
+        updateDocumentNonBlocking(docRef, entryData);
+        await syncSubsidiaryLedgers(editId, entryData);
+        showAlert({ title: "Updated", description: "Journal and subsidiary ledgers synchronized.", type: "success" });
+      } else {
+        const journalEntriesRef = collection(firestore, "journalEntries");
+        const newDoc = await addDocumentNonBlocking(journalEntriesRef, entryData);
+        if (newDoc) {
+          await syncSubsidiaryLedgers(newDoc.id, entryData);
+        }
+        showAlert({ title: "Posted", description: "Transaction synchronized with subsidiary ledgers.", type: "success" });
+      }
       router.push("/transactions");
-    } else {
-      const journalEntriesRef = collection(firestore, "journalEntries");
-      addDocumentNonBlocking(journalEntriesRef, { ...entryData, createdAt: new Date().toISOString() })
-        .then(() => {
-          showAlert({
-            title: "Transaction Posted",
-            description: "Double-entry transaction has been successfully recorded in the journal.",
-            type: "success"
-          });
-          router.push("/transactions");
-        });
+    } catch (err) {
+      toast({ title: "Save Failed", description: "An error occurred while synchronizing records.", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDeleteTransaction = () => {
+  const handleDeleteTransaction = async () => {
     if (!editId) return;
     showAlert({
       title: "Delete Transaction?",
-      description: "Are you sure you want to delete this entire journal entry? This action cannot be undone.",
+      description: "This will also remove linked records from member subsidiary ledgers.",
       type: "warning",
       showCancel: true,
       confirmText: "Yes, Delete",
-      onConfirm: () => {
+      onConfirm: async () => {
+        // Find and delete linked subsidiary entries
+        for (const line of existingTransaction.lines || []) {
+          if (line.memberId) {
+            const memberSummariesRef = collection(firestore, "members", line.memberId, "fundSummaries");
+            const q = query(memberSummariesRef, where("journalEntryId", "==", editId));
+            const snapshot = await getDocs(q);
+            snapshot.forEach(d => deleteDocumentNonBlocking(d.ref));
+          }
+        }
+
         const docRef = doc(firestore, "journalEntries", editId);
         deleteDocumentNonBlocking(docRef);
-        showAlert({
-          title: "Deleted",
-          description: "Journal entry has been removed.",
-          type: "success"
-        });
+        showAlert({ title: "Deleted", description: "All synchronized records removed.", type: "success" });
         router.push("/transactions");
       }
     });
@@ -206,45 +287,43 @@ export default function NewTransactionPage() {
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground">Dual accounting system for PBS CPF transactions</p>
+        <p className="text-muted-foreground">General Ledger synchronization with Member Subsidiary Ledgers</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-12">
-        <Card className="lg:col-span-9 border-none shadow-sm">
+        <Card className="lg:col-span-9 border-none shadow-sm overflow-hidden">
           <CardHeader className="border-b bg-slate-50/50">
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle>Accounting Journal</CardTitle>
-                <CardDescription>Enter multi-line accounting transactions.</CardDescription>
+                <CardDescription>Lines tagged with a Member will auto-post to their subsidiary ledger.</CardDescription>
               </div>
-              <div className="flex gap-2">
-                 <Button 
-                  type="button" 
-                  size="sm" 
-                  variant="outline"
-                  className="gap-2 border-primary/20 text-primary"
-                  onClick={handleAIClassify}
-                  disabled={isClassifying}
-                >
-                  {isClassifying ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-accent" />}
-                  {isClassifying ? "Thinking..." : "AI Assistant"}
-                </Button>
-              </div>
+              <Button 
+                type="button" 
+                size="sm" 
+                variant="outline"
+                className="gap-2 border-primary/20 text-primary"
+                onClick={handleAIClassify}
+                disabled={isClassifying}
+              >
+                {isClassifying ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-accent" />}
+                {isClassifying ? "Analyzing..." : "AI Assistant"}
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             <div className="p-6 grid grid-cols-3 gap-6 border-b">
               <div className="space-y-2">
-                <Label htmlFor="date">Posting Date</Label>
+                <Label>Posting Date</Label>
                 <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="reference">Reference / Voucher No.</Label>
-                <Input placeholder="V-2023-001" value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+                <Label>Voucher / Reference No.</Label>
+                <Input placeholder="V-2024-001" value={refNo} onChange={(e) => setRefNo(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">General Description</Label>
-                <Input placeholder="Transaction purpose..." value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Label>General Description</Label>
+                <Input placeholder="Purpose of transaction..." value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
             </div>
 
@@ -252,11 +331,12 @@ export default function NewTransactionPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 border-b">
                   <tr>
-                    <th className="p-3 text-left font-semibold w-[300px]">Account (COA)</th>
-                    <th className="p-3 text-right font-semibold w-[150px]">Debit (৳)</th>
-                    <th className="p-3 text-right font-semibold w-[150px]">Credit (৳)</th>
-                    <th className="p-3 text-left font-semibold">Line Memo</th>
-                    <th className="p-3 text-center w-[50px]"></th>
+                    <th className="p-3 text-left font-semibold w-[250px]">Account (COA)</th>
+                    <th className="p-3 text-left font-semibold w-[200px]">Member (Subsidiary)</th>
+                    <th className="p-3 text-right font-semibold w-[120px]">Debit (৳)</th>
+                    <th className="p-3 text-right font-semibold w-[120px]">Credit (৳)</th>
+                    <th className="p-3 text-left font-semibold">Memo</th>
+                    <th className="p-3 text-center w-[40px]"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -269,45 +349,39 @@ export default function NewTransactionPage() {
                           </SelectTrigger>
                           <SelectContent className="max-h-[300px]">
                             {activeCOA.filter((a: any) => !a.isHeader).map((a: any) => (
-                              <SelectItem key={a.code} value={a.code}>
-                                {a.code} - {a.name}
-                              </SelectItem>
+                              <SelectItem key={a.code} value={a.code}>{a.code} - {a.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </td>
                       <td className="p-2">
-                        <Input 
-                          type="number" 
-                          className="h-9 text-right border-none focus-visible:ring-1" 
-                          value={line.debit || ''} 
-                          onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })}
-                        />
+                        <div className="relative">
+                          <User className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-slate-300" />
+                          <Select value={line.memberId || "none"} onValueChange={(val) => updateLine(line.id, { memberId: val === "none" ? "" : val })}>
+                            <SelectTrigger className="h-9 pl-7 border-none focus:ring-0 shadow-none hover:bg-slate-50 text-[11px]">
+                              <SelectValue placeholder="General Ledger Only" />
+                            </SelectTrigger>
+                            <SelectContent className="max-h-[300px]">
+                              <SelectItem value="none">No Member (General Ledger)</SelectItem>
+                              {members?.map(m => (
+                                <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </td>
                       <td className="p-2">
-                        <Input 
-                          type="number" 
-                          className="h-9 text-right border-none focus-visible:ring-1" 
-                          value={line.credit || ''} 
-                          onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })}
-                        />
+                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.debit || ''} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} />
                       </td>
                       <td className="p-2">
-                        <Input 
-                          className="h-9 border-none focus-visible:ring-1" 
-                          placeholder="Line details..." 
-                          value={line.memo}
-                          onChange={(e) => updateLine(line.id, { memo: e.target.value })}
-                        />
+                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.credit || ''} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} />
+                      </td>
+                      <td className="p-2">
+                        <Input className="h-9 border-none focus-visible:ring-1 text-xs" placeholder="..." value={line.memo} onChange={(e) => updateLine(line.id, { memo: e.target.value })} />
                       </td>
                       <td className="p-2 text-center">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => handleRemoveLine(line.id)}
-                        >
-                          <Trash2 className="size-3.5" />
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleRemoveLine(line.id)}>
+                          <Trash2 className="size-3" />
                         </Button>
                       </td>
                     </tr>
@@ -315,15 +389,14 @@ export default function NewTransactionPage() {
                 </tbody>
                 <tfoot className="bg-slate-50/50 font-bold border-t">
                   <tr>
-                    <td className="p-3 text-right">Totals:</td>
+                    <td colSpan={2} className="p-3 text-right">Journal Totals:</td>
                     <td className="p-3 text-right text-primary">{totals.debit.toFixed(2)}</td>
                     <td className="p-3 text-right text-primary">{totals.credit.toFixed(2)}</td>
                     <td colSpan={2} className="p-3">
-                      {!isBalanced && (totals.debit > 0 || totals.credit > 0) && (
-                        <Badge variant="destructive" className="ml-2 animate-pulse">Out of Balance</Badge>
-                      )}
-                      {isBalanced && (
-                        <Badge variant="outline" className="ml-2 bg-emerald-50 text-emerald-700 border-emerald-200">Balanced</Badge>
+                      {isBalanced ? (
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Balanced</Badge>
+                      ) : (
+                        (totals.debit > 0 || totals.credit > 0) && <Badge variant="destructive" className="animate-pulse">Out of Balance</Badge>
                       )}
                     </td>
                   </tr>
@@ -333,13 +406,13 @@ export default function NewTransactionPage() {
 
             <div className="p-4 bg-slate-50/30 flex justify-between items-center border-t">
               <Button variant="outline" size="sm" onClick={handleAddLine} className="gap-2">
-                <Plus className="size-3.5" /> Add Row
+                <Plus className="size-3.5" /> Add Voucher Row
               </Button>
               <div className="flex gap-3">
                 <Button variant="ghost" onClick={() => router.back()}>Cancel</Button>
-                <Button className="gap-2" onClick={handleSave} disabled={isSaving || !isBalanced}>
+                <Button className="gap-2 px-8" onClick={handleSave} disabled={isSaving || !isBalanced}>
                   {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  {editId ? "Update Transaction" : "Post Transaction"}
+                  {editId ? "Update & Sync" : "Post & Synchronize"}
                 </Button>
               </div>
             </div>
@@ -357,12 +430,12 @@ export default function NewTransactionPage() {
             {!aiSuggestion ? (
               <div className="text-center py-12 px-4 text-muted-foreground border-2 border-dashed rounded-xl">
                 <Info className="size-8 mx-auto mb-3 opacity-20" />
-                <p className="text-xs leading-relaxed">Briefly describe the transaction and use the <b>AI Assistant</b> for suggested ledger lines.</p>
+                <p className="text-xs leading-relaxed">Describe the transaction and use the <b>AI Assistant</b> for automated account suggestions.</p>
               </div>
             ) : (
               <div className="space-y-4 animate-in slide-in-from-right duration-500">
                 <div className="p-4 bg-white rounded-lg border border-accent/20 shadow-sm">
-                  <p className="text-xs font-bold text-accent uppercase mb-3">Suggested Entries</p>
+                  <p className="text-xs font-bold text-accent uppercase mb-3">AI Recommendation</p>
                   <div className="space-y-3">
                     {aiSuggestion.suggestedEntries.map((entry: any, i: number) => (
                       <div key={i} className="flex justify-between items-start text-[11px] pb-2 border-b last:border-0">
@@ -370,25 +443,11 @@ export default function NewTransactionPage() {
                           <p className="font-bold text-slate-800">{entry.accountName}</p>
                           <p className="font-mono text-slate-400">{entry.accountCode}</p>
                         </div>
-                        <Badge variant="outline" className={cn(
-                          "text-[9px] px-1 h-4",
-                          entry.type === 'Debit' ? "text-blue-600 border-blue-200" : "text-orange-600 border-orange-200"
-                        )}>{entry.type}</Badge>
+                        <Badge variant="outline" className={cn("text-[9px] px-1 h-4", entry.type === 'Debit' ? "text-blue-600 border-blue-200" : "text-orange-600 border-orange-200")}>{entry.type}</Badge>
                       </div>
                     ))}
                   </div>
                 </div>
-
-                {aiSuggestion.potentialErrors && (
-                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
-                    <div className="flex items-center gap-2 text-rose-700 font-semibold text-[11px] mb-1">
-                      <AlertTriangle className="size-3.5" />
-                      Validation Alert
-                    </div>
-                    <p className="text-[10px] text-rose-600 leading-tight">{aiSuggestion.errorDescription}</p>
-                  </div>
-                )}
-
                 <div className="p-3 bg-slate-100/50 rounded-lg border border-slate-200">
                   <p className="text-xs font-bold text-slate-500 uppercase mb-2">Rationale</p>
                   <p className="text-[11px] leading-relaxed text-slate-600 italic">"{aiSuggestion.rationale}"</p>

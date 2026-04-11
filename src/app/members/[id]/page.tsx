@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar, UserX, AlertTriangle, Info } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar, UserX, AlertTriangle, Info, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -553,10 +553,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <tr key={idx} className={cn("bg-white hover:bg-slate-50 transition-colors", row.particulars?.includes("Settlement") && "bg-slate-50 italic")}>
                   <td className="border border-black p-1 text-center font-mono">{row.summaryDate}</td>
                   <td className="border border-black p-1 text-left break-words font-medium align-top">
-                    {row.particulars || "-"}
-                    {row.contributionSource === 'Other' && (
-                      <Badge variant="outline" className="ml-1 text-[7px] h-3 px-1 border-slate-300">Other PBS</Badge>
-                    )}
+                    <div className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-1">
+                        {row.particulars || "-"}
+                        {row.journalEntryId && <Link href={`/transactions/new?edit=${row.journalEntryId}`} className="no-print"><Badge variant="outline" className="text-[6px] h-3 px-1 bg-primary/5 text-primary border-primary/20"><LinkIcon className="size-1.5 mr-0.5" /> JV</Badge></Link>}
+                      </span>
+                      {row.contributionSource === 'Other' && (
+                        <Badge variant="outline" className="text-[7px] h-3 px-1 border-slate-300 w-fit">Other PBS</Badge>
+                      )}
+                    </div>
                   </td>
                   <td className="border border-black p-1 text-right">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-right text-rose-800">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -571,8 +576,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className={cn("border border-black p-1 text-right font-black bg-slate-50 text-[10px]", row.col11 === 0 && "text-slate-300")}>{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                   <td className="border border-black p-1 text-center no-print">
                     <div className="flex gap-1 justify-center">
-                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-3" /></Button>
+                      {!row.isSyncedFromJV ? (
+                        <>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-3" /></Button>
+                        </>
+                      ) : (
+                        <span className="text-[8px] text-muted-foreground uppercase font-bold">Sync Only</span>
+                      )}
                     </div>
                   </td>
                 </tr>
