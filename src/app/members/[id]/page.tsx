@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -703,6 +702,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </tr>
             </tfoot>
           </table>
+        </div>
+        
+        <div className="mt-8 pt-4 border-t border-black flex justify-between items-center text-[10px] font-bold uppercase tracking-widest">
+          <span>GPBS-2 Contributory Provident Fund</span>
+          <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
         </div>
       </div>
 

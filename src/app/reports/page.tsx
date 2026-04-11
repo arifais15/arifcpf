@@ -263,7 +263,10 @@ export default function ReportsPage() {
                  <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
                  <div className="border-t border-black pt-2">Approved By Trustee</div>
               </div>
-              <p className="text-[8px] text-slate-400 italic text-right mt-12 opacity-50">System Generated Audit Statement • PBS CPF Management Software</p>
+              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>System Generated Audit Statement</span>
+                <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -324,6 +327,10 @@ export default function ReportsPage() {
                  <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
                  <div className="border-t border-black pt-2">Approved By Trustee</div>
               </div>
+              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>Income Statement Audit Trail</span>
+                <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -360,6 +367,10 @@ export default function ReportsPage() {
                  <div className="border-t border-black pt-2">Accountant</div>
                  <div className="border-t border-black pt-2">Checked By</div>
                  <div className="border-t border-black pt-2">Approved By</div>
+              </div>
+              <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                <span>Fund Flow Reconciliation</span>
+                <span>Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>
