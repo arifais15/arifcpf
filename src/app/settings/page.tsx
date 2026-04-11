@@ -35,7 +35,10 @@ import {
   BookOpen, 
   Search, 
   Edit2,
-  Building
+  Building,
+  Lock,
+  Unlock,
+  KeyRound
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -47,6 +50,12 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const { showAlert } = useSweetAlert()
   const [isSaving, setIsSaving] = useState(false)
+
+  // --- SECURITY LOCK STATE ---
+  const [securityCode, setSecurityCode] = useState("")
+  // Predefined higher password code
+  const AUTHORIZATION_CODE = "Arif@PBS2" 
+  const isUnlocked = securityCode === AUTHORIZATION_CODE
 
   // --- GENERAL SETTINGS ---
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore])
@@ -262,10 +271,50 @@ export default function SettingsPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold text-primary tracking-tight">System Settings</h1>
-        <p className="text-muted-foreground">Manage institutional accounting rules and parameters</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold text-primary tracking-tight">System Settings</h1>
+          <p className="text-muted-foreground">Manage institutional accounting rules and parameters</p>
+        </div>
+
+        {/* --- HIGHER AUTHORIZATION FIELD --- */}
+        <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 animate-in slide-in-from-right-4 duration-500">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "p-2 rounded-lg transition-colors",
+              isUnlocked ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+            )}>
+              {isUnlocked ? <Unlock className="size-5" /> : <Lock className="size-5" />}
+            </div>
+            <div className="space-y-0.5">
+              <Label className="text-[10px] uppercase font-black text-slate-400">Security Authorization</Label>
+              <div className="relative">
+                <KeyRound className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
+                <Input 
+                  type="password"
+                  placeholder="Insert Higher Code..."
+                  value={securityCode}
+                  onChange={(e) => setSecurityCode(e.target.value)}
+                  className="h-9 pl-9 w-[200px] text-xs font-bold border-slate-200 focus:bg-white"
+                />
+              </div>
+            </div>
+          </div>
+          {isUnlocked && (
+            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase text-[9px] font-black tracking-widest">Authorized</Badge>
+          )}
+        </div>
       </div>
+
+      {!isUnlocked && (
+        <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
+          <ShieldCheck className="size-5 text-rose-600 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-rose-800">Operational Lock Engaged</p>
+            <p className="text-xs text-rose-700 leading-relaxed">All administrative modifications are currently disabled. Please provide the <b>Higher Authorization Code</b> to enable the "Save" and "Action" buttons across all system parameters.</p>
+          </div>
+        </div>
+      )}
 
       <Tabs defaultValue="coa" className="w-full">
         <TabsList className="bg-white p-1 rounded-xl border shadow-sm mb-8">
@@ -295,9 +344,9 @@ export default function SettingsPage() {
                 onChange={(e) => setCoaSearch(e.target.value)}
               />
             </div>
-            <Dialog open={isCoaAddOpen} onOpenChange={(open) => { setIsCoaAddOpen(open); if (!open) setEditingCoaAccount(null); }}>
+            <Dialog open={isCoaAddOpen} onOpenChange={(open) => { if (isUnlocked) { setIsCoaAddOpen(open); if (!open) setEditingCoaAccount(null); } }}>
               <DialogTrigger asChild>
-                <Button size="sm">
+                <Button size="sm" disabled={!isUnlocked}>
                   <Plus className="size-4 mr-2" />
                   Add Account
                 </Button>
@@ -408,6 +457,7 @@ export default function SettingsPage() {
                           variant="ghost" 
                           size="icon" 
                           className="h-8 w-8"
+                          disabled={!isUnlocked}
                           onClick={() => { setEditingCoaAccount(account); setIsCoaAddOpen(true); }}
                         >
                           <Edit2 className="size-3.5" />
@@ -417,7 +467,8 @@ export default function SettingsPage() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-destructive hover:bg-destructive/10" 
-                            onClick={() => handleDeleteCoaAccount(id, account.name || account.accountName)}
+                            disabled={!isUnlocked}
+                            onClick={() => handleDeleteCoaAccount(account.id, account.name || account.accountName)}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
@@ -440,7 +491,7 @@ export default function SettingsPage() {
                   <CardTitle className="text-lg">Column Mapping Configuration</CardTitle>
                   <CardDescription>Assign GL Account Codes to specific Member Ledger columns.</CardDescription>
                 </div>
-                <Button onClick={handleSaveLedger} disabled={isSaving} className="gap-2">
+                <Button onClick={handleSaveLedger} disabled={isSaving || !isUnlocked} className="gap-2">
                   {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                   Save Mappings
                 </Button>
@@ -461,12 +512,16 @@ export default function SettingsPage() {
                             <Switch 
                               checked={debitAccounts.includes(mapping[col.key] || "")} 
                               onCheckedChange={() => mapping[col.key] && toggleDebit(mapping[col.key])}
-                              disabled={!mapping[col.key]}
+                              disabled={!mapping[col.key] || !isUnlocked}
                             />
                             <span className={cn("text-[10px] font-bold", debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Debit</span>
                           </div>
                         </div>
-                        <Select value={mapping[col.key] || "none"} onValueChange={(val) => updateMapping(col.key, val === "none" ? "" : val)}>
+                        <Select 
+                          value={mapping[col.key] || "none"} 
+                          onValueChange={(val) => updateMapping(col.key, val === "none" ? "" : val)}
+                          disabled={!isUnlocked}
+                        >
                           <SelectTrigger className="w-[300px]">
                             <SelectValue placeholder="Select Account Code" />
                           </SelectTrigger>
@@ -515,7 +570,7 @@ export default function SettingsPage() {
                   <CardTitle className="text-lg">Tiered Interest Policy</CardTitle>
                   <CardDescription>Configure annual profit sharing rates based on cumulative member balances.</CardDescription>
                 </div>
-                <Button onClick={handleSaveInterest} disabled={isSaving} className="gap-2">
+                <Button onClick={handleSaveInterest} disabled={isSaving || !isUnlocked} className="gap-2">
                   {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                   Save Interest Rates
                 </Button>
@@ -542,6 +597,7 @@ export default function SettingsPage() {
                               type="number" 
                               className="pl-7 font-mono" 
                               value={tier.limit} 
+                              disabled={!isUnlocked}
                               onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })}
                             />
                           </div>
@@ -553,19 +609,31 @@ export default function SettingsPage() {
                           step="0.01" 
                           className="pr-8 font-mono" 
                           value={tier.rate} 
+                          disabled={!isUnlocked}
                           onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })}
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
                       </div>
                       <div className="col-span-2 text-right">
-                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => removeInterestTier(idx)}>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="text-destructive hover:bg-destructive/10" 
+                          disabled={!isUnlocked}
+                          onClick={() => removeInterestTier(idx)}
+                        >
                           <Trash2 className="size-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
 
-                  <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-xl gap-2 text-slate-500 hover:text-primary hover:border-primary/50" onClick={addInterestTier}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-dashed border-2 py-8 rounded-xl gap-2 text-slate-500 hover:text-primary hover:border-primary/50" 
+                    disabled={!isUnlocked}
+                    onClick={addInterestTier}
+                  >
                     <Plus className="size-4" /> Add Interest Tier
                   </Button>
                 </div>
@@ -605,7 +673,7 @@ export default function SettingsPage() {
                 <CardTitle className="text-lg">Institutional Branding</CardTitle>
                 <CardDescription>Set the name of your PBS to appear on all report headers.</CardDescription>
               </div>
-              <Button onClick={handleSaveGeneral} disabled={isSaving} className="gap-2">
+              <Button onClick={handleSaveGeneral} disabled={isSaving || !isUnlocked} className="gap-2">
                 {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 Save Branding
               </Button>
@@ -618,6 +686,7 @@ export default function SettingsPage() {
                   <Input 
                     id="pbsName" 
                     value={pbsName} 
+                    disabled={!isUnlocked}
                     onChange={(e) => setPbsName(e.target.value)} 
                     placeholder="e.g. Gazipur Palli Bidyut Samity-2"
                     className="pl-9 h-11 text-lg font-semibold"
