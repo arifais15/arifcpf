@@ -39,7 +39,7 @@ export default function RootLayout({
                     <div className="flex-1" />
                     <div className="flex items-center gap-2">
                       <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-[0.2em] opacity-50 hidden sm:block">
-                        Authorized Management Terminal
+                        CPF Management Software
                       </p>
                     </div>
                   </header>
