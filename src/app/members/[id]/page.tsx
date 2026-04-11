@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar, UserX, AlertTriangle } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar, UserX, AlertTriangle, Info } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -389,8 +389,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <Calculator className="size-4" /> Profit Calculator
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader><DialogTitle>Profit Accrual</DialogTitle></DialogHeader>
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Calculator className="size-5 text-primary" />
+                  Profit Accrual Audit
+                </DialogTitle>
+                <DialogDescription>Review monthly basis balances and tiered interest portions before posting to ledger.</DialogDescription>
+              </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
                   <TabsList className="grid w-full grid-cols-2">
@@ -398,24 +404,96 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     <TabsTrigger value="custom">Custom Range</TabsTrigger>
                   </TabsList>
                   <TabsContent value="fy" className="pt-4">
-                    <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
-                      <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}</SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Select Fiscal Year</Label>
+                        <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
+                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                          <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </TabsContent>
-                  <TabsContent value="custom" className="pt-4"><div className="flex gap-4"><div className="flex-1"><Label>Start</Label><Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} /></div><div className="flex-1"><Label>End</Label><Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} /></div></div></TabsContent>
+                  <TabsContent value="custom" className="pt-4">
+                    <div className="flex gap-4">
+                      <div className="flex-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground">Start Date</Label><Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} /></div>
+                      <div className="flex-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground">End Date</Label><Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} /></div>
+                    </div>
+                  </TabsContent>
                 </Tabs>
+
                 {interestCalculation && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-primary/5 border rounded-lg flex justify-between items-center"><span className="text-xs uppercase font-bold text-primary">Total Computed Profit</span><span className="text-xl font-bold text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
-                    <div className="space-y-2">
-                      <Label>Posting Date</Label>
-                      <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="font-bold" />
+                  <div className="space-y-6 animate-in fade-in duration-500">
+                    <div className="p-4 bg-primary/5 border rounded-xl flex justify-between items-center shadow-sm">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] uppercase font-bold text-primary opacity-70">Total Computed Profit Share</span>
+                        <span className="text-2xl font-black text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Calculation Basis</span>
+                        <span className="text-xs font-bold text-slate-600">{interestCalculation.label}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-2">
+                          <Info className="size-3.5" /> Calculation Breakdown
+                        </h4>
+                        {interestCalculation.isDuplicate && (
+                          <Badge variant="destructive" className="h-5 text-[9px] uppercase">Duplicate Entry Detected</Badge>
+                        )}
+                      </div>
+                      
+                      <div className="border rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-[10px] border-collapse">
+                          <thead className="bg-slate-50 border-b">
+                            <tr>
+                              <th className="p-2.5 text-left font-bold uppercase text-slate-500">Basis Month</th>
+                              <th className="p-2.5 text-right font-bold uppercase text-slate-500">Snapshot Balance (৳)</th>
+                              <th className="p-2.5 text-right font-bold uppercase text-slate-500">1/12th Portion (৳)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            {interestCalculation.monthlyDetails.map((m, i) => (
+                              <tr key={i} className={cn("hover:bg-slate-50/50", m.isOpening && "bg-blue-50/30")}>
+                                <td className="p-2.5 font-semibold flex items-center gap-2">
+                                  {m.label}
+                                  {m.isOpening && <Badge variant="secondary" className="text-[8px] h-4 uppercase px-1 font-black">Opening</Badge>}
+                                </td>
+                                <td className="p-2.5 text-right font-mono">{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td className="p-2.5 text-right font-bold text-emerald-700 font-mono">{m.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-slate-50 font-black border-t-2">
+                            <tr>
+                              <td className="p-2.5 uppercase text-slate-500">Total Audit Profit:</td>
+                              <td colSpan={2} className="p-2.5 text-right text-primary text-sm">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <Label className="text-[10px] uppercase font-bold text-slate-500">Ledger Posting Date</Label>
+                      <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="font-bold border-slate-300 focus:bg-white" />
+                      <p className="text-[9px] text-muted-foreground italic">Note: The profit will be split between Employee and PBS fund columns proportionally based on the current ledger status.</p>
                     </div>
                   </div>
                 )}
               </div>
-              <DialogFooter><Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button><Button onClick={handlePostInterest} disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} className="gap-2"><Plus className="size-4" /> Post Profit</Button></DialogFooter>
+              <DialogFooter className="bg-slate-50 p-4 -mx-6 -mb-6 border-t mt-4">
+                <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
+                <Button 
+                  onClick={handlePostInterest} 
+                  disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} 
+                  className="gap-2 px-8 font-bold"
+                >
+                  <Plus className="size-4" /> Synchronize to Ledger
+                </Button>
+              </DialogFooter>
             </DialogContent>
           </Dialog>
 
