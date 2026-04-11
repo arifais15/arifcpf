@@ -31,9 +31,10 @@ import {
   useCollection, 
   useFirestore, 
   useMemoFirebase, 
-  addDocumentNonBlocking 
+  addDocumentNonBlocking,
+  useDoc
 } from "@/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, doc } from "firebase/firestore";
 import { 
   Select, 
   SelectContent, 
@@ -62,6 +63,20 @@ export default function CPFInterestPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  // Fetch Interest Settings
+  const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
+  const { data: interestSettings } = useDoc(interestSettingsRef);
+
+  const interestTiers = useMemo(() => {
+    if (interestSettings?.tiers) return interestSettings.tiers;
+    // Default fallback
+    return [
+      { limit: 1500000, rate: 0.13 },
+      { limit: 3000000, rate: 0.12 },
+      { limit: null, rate: 0.11 }
+    ];
+  }, [interestSettings]);
+
   // Dynamically generate Fiscal Year options
   const fyOptions = useMemo(() => {
     const options = [];
@@ -94,15 +109,26 @@ export default function CPFInterestPage() {
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
 
   const calculateTieredAnnual = (balance: number) => {
-    let annualInterest = 0;
-    if (balance <= 1500000) {
-      annualInterest = balance * 0.13;
-    } else if (balance <= 3000000) {
-      annualInterest = (1500000 * 0.13) + ((balance - 1500000) * 0.12);
-    } else {
-      annualInterest = (1500000 * 0.13) + (1500000 * 0.12) + ((balance - 3000000) * 0.11);
+    let totalInterest = 0;
+    let remainingBalance = balance;
+    let prevLimit = 0;
+
+    for (const tier of interestTiers) {
+      if (remainingBalance <= 0) break;
+
+      if (tier.limit === null) {
+        // Final catch-all tier
+        totalInterest += remainingBalance * tier.rate;
+        break;
+      } else {
+        const tierCapacity = tier.limit - prevLimit;
+        const amountInTier = Math.min(remainingBalance, tierCapacity);
+        totalInterest += amountInTier * tier.rate;
+        remainingBalance -= amountInTier;
+        prevLimit = tier.limit;
+      }
     }
-    return annualInterest;
+    return totalInterest;
   };
 
   const handleRunCPFCalculation = async () => {
@@ -128,7 +154,7 @@ export default function CPFInterestPage() {
     const results = [];
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
 
-    for (let i = 0; i < i + 1 && i < members.length; i++) {
+    for (let i = 0; i < members.length; i++) {
       const member = members[i];
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
@@ -280,6 +306,7 @@ export default function CPFInterestPage() {
         pbsContribution: 0,
         profitPbs: item.pbsProfit,
         lastUpdateDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
         memberId: item.memberId
       };
 

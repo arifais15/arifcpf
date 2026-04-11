@@ -43,6 +43,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
+  // Fetch Interest Settings
+  const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
+  const { data: interestSettings } = useDoc(interestSettingsRef);
+
+  const interestTiers = useMemo(() => {
+    if (interestSettings?.tiers) return interestSettings.tiers;
+    return [
+      { limit: 1500000, rate: 0.13 },
+      { limit: 3000000, rate: 0.12 },
+      { limit: null, rate: 0.11 }
+    ];
+  }, [interestSettings]);
+
   const sortedSummaries = useMemo(() => {
     return [...(summaries || [])].sort((a, b) => {
       const dateA = new Date(a.summaryDate).getTime();
@@ -133,15 +146,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [availableFYs, selectedInterestFY]);
 
   const calculateTieredAnnual = (balance: number) => {
-    let annualInterest = 0;
-    if (balance <= 1500000) {
-      annualInterest = balance * 0.13;
-    } else if (balance <= 3000000) {
-      annualInterest = (1500000 * 0.13) + ((balance - 1500000) * 0.12);
-    } else {
-      annualInterest = (1500000 * 0.13) + (1500000 * 0.12) + ((balance - 3000000) * 0.11);
+    let totalInterest = 0;
+    let remainingBalance = balance;
+    let prevLimit = 0;
+
+    for (const tier of interestTiers) {
+      if (remainingBalance <= 0) break;
+
+      if (tier.limit === null) {
+        totalInterest += remainingBalance * tier.rate;
+        break;
+      } else {
+        const tierCapacity = tier.limit - prevLimit;
+        const amountInTier = Math.min(remainingBalance, tierCapacity);
+        totalInterest += amountInTier * tier.rate;
+        remainingBalance -= amountInTier;
+        prevLimit = tier.limit;
+      }
     }
-    return annualInterest;
+    return totalInterest;
   };
 
   const interestCalculation = useMemo(() => {
@@ -193,7 +216,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       });
     }
     return { totalInterest, monthlyDetails, label, isDuplicate };
-  }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows, summaries]);
+  }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows, summaries, interestTiers]);
 
   useEffect(() => {
     if (selectedInterestMode === "fy" && selectedInterestFY) {
