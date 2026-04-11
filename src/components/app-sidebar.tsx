@@ -21,7 +21,8 @@ import {
   BookText,
   LayoutList,
   Calculator,
-  Printer
+  Printer,
+  HelpCircle
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -59,6 +60,7 @@ const navItems = [
   { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans", hoverBg: "hover:bg-rose-100", iconColor: "text-rose-600" },
   { title: "নিষ্পত্তি প্রতিবেদন", icon: UserX, url: "/reports/settlements", hoverBg: "hover:bg-red-100", iconColor: "text-red-600" },
   { title: "অডিট ও ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", hoverBg: "hover:bg-pink-100", iconColor: "text-pink-600" },
+  { title: "ব্যবহারকারী নির্দেশিকা", icon: HelpCircle, url: "/manual", hoverBg: "hover:bg-slate-100", iconColor: "text-slate-500" },
 ]
 
 export function AppSidebar() {
@@ -116,14 +118,14 @@ export function AppSidebar() {
                 isActive={pathname === item.url}
                 tooltip={item.title}
                 className={cn(
-                  "transition-all duration-200 text-sky-950",
+                  "transition-all duration-200 text-sky-950 h-10",
                   item.hoverBg,
                   pathname === item.url && "bg-slate-100 font-extrabold"
                 )}
               >
                 <Link href={item.url}>
                   <item.icon className={cn("size-4 shrink-0", item.iconColor)} />
-                  <span className="font-bold">{item.title}</span>
+                  <span className="font-bold text-[15px]">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -136,21 +138,21 @@ export function AppSidebar() {
             <SidebarMenuButton 
               asChild 
               isActive={pathname === "/settings"} 
-              className="hover:bg-slate-100 text-sky-950"
+              className="hover:bg-slate-100 text-sky-950 h-10"
             >
               <Link href="/settings">
                 <Settings className="size-4 shrink-0 text-slate-500" />
-                <span className="font-bold">সেটিংস</span>
+                <span className="font-bold text-[15px]">সেটিংস</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton 
-              className="hover:bg-destructive/10 hover:text-destructive text-rose-600"
+              className="hover:bg-destructive/10 hover:text-destructive text-rose-600 h-10"
               onClick={handleLogout}
             >
               <LogOut className="size-4 shrink-0" />
-              <span className="font-bold">লগআউট</span>
+              <span className="font-bold text-[15px]">লগআউট</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
