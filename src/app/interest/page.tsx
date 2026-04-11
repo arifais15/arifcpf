@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -63,6 +62,10 @@ export default function CPFInterestPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
+  const { data: generalSettings } = useDoc(generalSettingsRef);
+  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
+
   // Fetch Interest Settings
   const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
   const { data: interestSettings } = useDoc(interestSettingsRef);
@@ -163,12 +166,6 @@ export default function CPFInterestPage() {
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
       
-      // SKIP INACTIVE MEMBERS
-      if (member.status === 'InActive') {
-        setProgress(Math.round(((i + 1) / members.length) * 100));
-        continue;
-      }
-
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
       const snapshot = await getDocs(q);
@@ -304,21 +301,16 @@ export default function CPFInterestPage() {
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
 
-      // ROUNDING RULE: Total Rounded, PBS Rounded, Employee takes balanced remainder
-      const roundedTotal = Math.round(item.calculatedInterest);
-      const roundedPbs = Math.round(item.pbsProfit);
-      const roundedEmployee = roundedTotal - roundedPbs;
-
       const entryData = {
         summaryDate: postingDate,
         particulars: `Annual Profit ${modeLabel} (Tiered)`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
-        profitEmployee: roundedEmployee,
+        profitEmployee: Math.round(item.employeeProfit),
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: roundedPbs,
+        profitPbs: Math.round(item.pbsProfit),
         lastUpdateDate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         memberId: item.memberId
@@ -371,7 +363,7 @@ export default function CPFInterestPage() {
       {/* Print View Container (Hidden in UI) */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
+          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
           <h2 className="text-lg font-bold underline underline-offset-4">CPF Interest Accrual Audit Report</h2>
           <div className="flex justify-between text-xs font-bold pt-4">
             <span>Basis: {calculationMode === 'fy' ? `Fiscal Year ${selectedFY}` : `Custom Range: ${customRange.start} to ${customRange.end}`}</span>

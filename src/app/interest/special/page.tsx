@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -58,6 +57,10 @@ import { cn } from "@/lib/utils";
 export default function SpecialInterestDPPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
+  const { data: generalSettings } = useDoc(generalSettingsRef);
+  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
   // Date Logic for default FY (July 1st to Today)
   const now = new Date();
@@ -121,12 +124,8 @@ export default function SpecialInterestDPPage() {
 
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
+    const targetMembers = selectedMember === "all" ? (members || []) : (members?.filter(m => m.id === selectedMember) || []);
     
-    let targetMembers = selectedMember === "all" ? (members || []) : (members?.filter(m => m.id === selectedMember) || []);
-    
-    // FILTER OUT INACTIVE MEMBERS
-    targetMembers = targetMembers.filter(m => m.status !== 'InActive');
-
     const auditResults = [];
 
     for (const member of targetMembers) {
@@ -145,15 +144,7 @@ export default function SpecialInterestDPPage() {
       let runningBalance = allEntries
         .filter((e: any) => new Date(e.summaryDate) <= openingRefDate)
         .reduce((sum, e: any) => {
-          const v = { 
-            c1: Number(e.employeeContribution)||0, 
-            c2: Number(e.loanWithdrawal)||0, 
-            c3: Number(e.loanRepayment)||0, 
-            c5: Number(e.profitEmployee)||0, 
-            c6: Number(e.profitLoan)||0, 
-            c8: Number(e.pbsContribution)||0, 
-            c9: Number(e.profitPbs)||0 
-          };
+          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
           return sum + (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
         }, 0);
 
@@ -163,15 +154,7 @@ export default function SpecialInterestDPPage() {
         const dateStr = currentDate.toISOString().split('T')[0];
         const daysEntries = allEntries.filter((e: any) => e.summaryDate === dateStr);
         daysEntries.forEach((e: any) => {
-          const v = { 
-            c1: Number(e.employeeContribution)||0, 
-            c2: Number(e.loanWithdrawal)||0, 
-            c3: Number(e.loanRepayment)||0, 
-            c5: Number(e.profitEmployee)||0, 
-            c6: Number(e.profitLoan)||0, 
-            c8: Number(e.pbsContribution)||0, 
-            c9: Number(e.profitPbs)||0 
-          };
+          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
           runningBalance += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
         });
 
@@ -192,15 +175,7 @@ export default function SpecialInterestDPPage() {
       let currentPbsFund = 0;
       allEntries.forEach((e: any) => {
         if (new Date(e.summaryDate) <= auditEnd) {
-          const v = { 
-            c1: Number(e.employeeContribution)||0, 
-            c2: Number(e.loanWithdrawal)||0, 
-            c3: Number(e.loanRepayment)||0, 
-            c5: Number(e.profitEmployee)||0, 
-            c6: Number(e.profitLoan)||0, 
-            c8: Number(e.pbsContribution)||0, 
-            c9: Number(e.profitPbs)||0 
-          };
+          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
           currentEmpFund += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6);
           currentPbsFund += (v.c8 + v.c9);
         }
@@ -227,7 +202,7 @@ export default function SpecialInterestDPPage() {
 
     setResults(auditResults);
     setIsCalculating(false);
-    toast({ title: "Day-Product Audit Complete", description: `Processed ${auditResults.length} active members.` });
+    toast({ title: "Day-Product Audit Complete", description: `Processed ${auditResults.length} records.` });
   };
 
   const handlePostAll = async () => {
@@ -238,26 +213,20 @@ export default function SpecialInterestDPPage() {
     for (const res of results) {
       if (res.totalInterest <= 0) continue;
       
-      // ROUNDING RULE: Total Rounded, PBS Rounded, Employee takes balanced remainder
-      const roundedTotal = Math.round(res.totalInterest);
-      const roundedPbs = Math.round(res.pbsProfit);
-      const roundedEmployee = roundedTotal - roundedPbs;
-
       const entry = {
         summaryDate: postingDate,
         particulars: `Annual Profit (DP Basis) ${dateRange.start} to ${dateRange.end}`,
         employeeContribution: 0,
         loanWithdrawal: 0,
         loanRepayment: 0,
-        profitEmployee: roundedEmployee,
+        profitEmployee: Math.round(res.empProfit),
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: roundedPbs,
+        profitPbs: Math.round(res.pbsProfit),
         lastUpdateDate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         memberId: res.memberId,
-        isSystemGenerated: true,
-        calculationMethod: 'DayProduct'
+        isSystemGenerated: true
       };
 
       await addDocumentNonBlocking(collection(firestore, "members", res.memberId, "fundSummaries"), entry);
@@ -319,7 +288,7 @@ export default function SpecialInterestDPPage() {
               <SelectContent className="max-h-[300px]">
                 <SelectItem value="all">All Institutional Personnel</SelectItem>
                 {members?.map(m => (
-                  <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name} {m.status === 'InActive' ? '(InActive)' : ''}</SelectItem>
+                  <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -497,7 +466,7 @@ export default function SpecialInterestDPPage() {
 
       <div className="hidden print:block print-container font-ledger text-black">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
+          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
           <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Day-Product Special Interest Audit Statement</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <span>Period: {dateRange.start} to {dateRange.end}</span>
@@ -535,7 +504,7 @@ export default function SpecialInterestDPPage() {
             <tr className="bg-slate-50 font-black">
               <td colSpan={5} className="border border-black p-2 text-right uppercase">Grand Total Special Interest:</td>
               <td className="border border-black p-2 text-right underline decoration-double">
-                ৳ {results.reduce((s, r) => s + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ৳ {results.reduce((sum, r) => sum + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </td>
             </tr>
           </tfoot>

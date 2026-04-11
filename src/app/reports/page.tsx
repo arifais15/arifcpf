@@ -4,8 +4,8 @@ import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS as INITIAL_COA, type COAEntry } from "@/lib/coa-data";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, Calendar, FileText, PieChart, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,10 @@ import { cn } from "@/lib/utils";
 export default function ReportsPage() {
   const firestore = useFirestore();
   const [selectedFY, setSelectedFY] = useState("");
+
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
+  const { data: generalSettings } = useDoc(generalSettingsRef);
+  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
   const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
   const { data: coaData, isLoading: isCoaLoading } = useCollection(coaRef);
@@ -194,8 +198,8 @@ export default function ReportsPage() {
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
     <div className="text-center mb-8 border-b-2 border-black pb-4">
-      <h1 className="text-xl font-bold uppercase tracking-tight text-slate-900">Gazipur Palli Bidyut Samity-2</h1>
-      <h2 className="text-md font-bold text-slate-800 mt-1 font-ledger uppercase underline decoration-1 underline-offset-4">{title}</h2>
+      <h1 className="text-xl font-bold uppercase tracking-tight text-slate-900">{pbsName}</h1>
+      <h2 className="text-md md:text-lg font-bold text-slate-800 mt-1 font-ledger uppercase underline decoration-1 underline-offset-4">{title}</h2>
       <p className="text-[10px] text-slate-600 uppercase tracking-widest mt-2">{subtitle}</p>
     </div>
   );

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from "react";
@@ -20,8 +19,8 @@ import {
   Calendar,
   ShieldCheck
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -34,6 +33,10 @@ export default function SettlementReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
+
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
+  const { data: generalSettings } = useDoc(generalSettingsRef);
+  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading } = useCollection(membersRef);
@@ -68,7 +71,7 @@ export default function SettlementReportPage() {
       {/* Print View */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
+          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
           <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Retired, Transferred & InActive Employee Settlement Report</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <span>Report Run Date: {new Date().toLocaleDateString('en-GB')}</span>

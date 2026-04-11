@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -35,7 +34,8 @@ import {
   ArrowRight, 
   BookOpen, 
   Search, 
-  Edit2 
+  Edit2,
+  Building
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -47,6 +47,11 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const { showAlert } = useSweetAlert()
   const [isSaving, setIsSaving] = useState(false)
+
+  // --- GENERAL SETTINGS ---
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore])
+  const { data: savedGeneralSettings, isLoading: isGeneralLoading } = useDoc(generalSettingsRef)
+  const [pbsName, setPbsName] = useState("Gazipur Palli Bidyut Samity-2")
 
   // --- LEDGER MAPPING & INTEREST STATES ---
   const ledgerSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "ledger"), [firestore])
@@ -82,6 +87,12 @@ export default function SettingsPage() {
   }, [coaData, coaSearch]);
 
   useEffect(() => {
+    if (savedGeneralSettings) {
+      setPbsName(savedGeneralSettings.pbsName || "Gazipur Palli Bidyut Samity-2")
+    }
+  }, [savedGeneralSettings])
+
+  useEffect(() => {
     if (savedLedgerSettings) {
       setMapping(savedLedgerSettings.mapping || {})
       setDebitAccounts(savedLedgerSettings.debitAccounts || [])
@@ -100,6 +111,19 @@ export default function SettingsPage() {
       setInterestTiers(savedInterestSettings.tiers.map((t: any) => ({ ...t, rate: t.rate * 100 })))
     }
   }, [savedInterestSettings])
+
+  const handleSaveGeneral = () => {
+    setIsSaving(true)
+    setDocumentNonBlocking(generalSettingsRef, {
+      pbsName,
+      updatedAt: new Date().toISOString()
+    }, { merge: true })
+    
+    setTimeout(() => {
+      setIsSaving(false)
+      toast({ title: "Branding Updated", description: "Institution name saved and applied to all reports." })
+    }, 500)
+  }
 
   const handleSaveLedger = () => {
     setIsSaving(true)
@@ -222,7 +246,7 @@ export default function SettingsPage() {
     });
   };
 
-  if (isLedgerLoading || isInterestLoading || isCoaLoading) {
+  if (isLedgerLoading || isInterestLoading || isCoaLoading || isGeneralLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>
   }
 
@@ -253,6 +277,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="interest" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
             <Percent className="size-4" /> Interest Rates
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Building className="size-4" /> General
           </TabsTrigger>
         </TabsList>
 
@@ -390,7 +417,7 @@ export default function SettingsPage() {
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8 text-destructive hover:bg-destructive/10" 
-                            onClick={() => handleDeleteCoaAccount(account.id, account.name || account.accountName)}
+                            onClick={() => handleDeleteCoaAccount(id, account.name || account.accountName)}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>
@@ -568,6 +595,38 @@ export default function SettingsPage() {
               </Card>
             </div>
           </div>
+        </TabsContent>
+
+        {/* --- GENERAL CONFIG TAB --- */}
+        <TabsContent value="branding" className="space-y-8 animate-in fade-in duration-500">
+          <Card className="max-w-2xl border-none shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Institutional Branding</CardTitle>
+                <CardDescription>Set the name of your PBS to appear on all report headers.</CardDescription>
+              </div>
+              <Button onClick={handleSaveGeneral} disabled={isSaving} className="gap-2">
+                {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                Save Branding
+              </Button>
+            </CardHeader>
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="pbsName">Full Institutional Name</Label>
+                <div className="relative">
+                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input 
+                    id="pbsName" 
+                    value={pbsName} 
+                    onChange={(e) => setPbsName(e.target.value)} 
+                    placeholder="e.g. Gazipur Palli Bidyut Samity-2"
+                    className="pl-9 h-11 text-lg font-semibold"
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1 opacity-60">This will be printed at the top of every generated audit statement and ledger.</p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

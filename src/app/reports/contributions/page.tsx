@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState } from "react";
@@ -22,8 +21,8 @@ import {
   UserPlus,
   ArrowRightLeft
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collectionGroup, query, where } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { collectionGroup, query, where, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -35,6 +34,10 @@ import { cn } from "@/lib/utils";
 export default function ContributionAuditPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
+
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
+  const { data: generalSettings } = useDoc(generalSettingsRef);
+  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
   // Date Logic for default FY
   const now = new Date();
@@ -118,7 +121,7 @@ export default function ContributionAuditPage() {
       {/* Print View */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
+          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
           <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Contribution & Profit Audit Report</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <span>Period: {dateRange.start || "All Time"} to {dateRange.end || "Present"}</span>
