@@ -3,7 +3,7 @@
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar, UserX, AlertTriangle, Info, Link as LinkIcon } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Upload, FileSpreadsheet, Edit2, Trash2, Calculator, ArrowRightLeft, Calendar, UserX, AlertTriangle, Info, Link as LinkIcon, Download } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -370,6 +370,27 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     reader.readAsBinaryString(file);
   };
 
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        "Date": "2024-01-01",
+        "Particulars": "Monthly Contribution",
+        "Employee Contribution": 5000,
+        "Amount Withdraws as Loan": 0,
+        "Loan Principal repayment": 0,
+        "Profit on Employee Contribution": 0,
+        "Profit on CPF Loan": 0,
+        "PBS Contribution": 5000,
+        "Profit on PBS Contribution": 0,
+        "Source": "Local"
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ledger");
+    XLSX.writeFile(wb, "member_ledger_import_template.xlsx");
+  };
+
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
   if (!member) return <div className="p-8 text-center"><h1 className="text-2xl font-bold">Member not found</h1></div>;
 
@@ -547,7 +568,30 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="gap-2 border-slate-300"><Upload className="size-4" /> Bulk Upload</Button>
+          <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 border-slate-300"><Upload className="size-4" /> Bulk Upload</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Import Ledger Records</DialogTitle>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="h-7 text-[10px] font-bold gap-1 uppercase hover:bg-primary/5">
+                    <Download className="size-3" /> Template
+                  </Button>
+                </div>
+                <DialogDescription>Select an Excel file containing historical ledger entries for this member.</DialogDescription>
+              </DialogHeader>
+              <div className="p-12 border-2 border-dashed border-muted rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
+                <FileSpreadsheet className="mx-auto size-12 text-primary opacity-50 mb-4" />
+                <p className="font-bold">Select XLSX Ledger File</p>
+                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">Max 5MB • .XLSX Only</p>
+                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} disabled={isUploading} />
+                {isUploading && <Loader2 className="animate-spin size-4 mx-auto mt-4 text-primary" />}
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button variant="secondary" size="sm" onClick={() => setIsEntryOpen(true)} className="gap-2"><Plus className="size-4" /> New Entry</Button>
           <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 border-slate-300"><Printer className="size-4" /> Print Ledger</Button>
         </div>
@@ -661,16 +705,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
       </div>
-
-      <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
-        <DialogContent><DialogHeader><DialogTitle>Import Ledger</DialogTitle></DialogHeader>
-          <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-            <FileSpreadsheet className="mx-auto size-12 text-primary opacity-50 mb-4" />
-            <p className="font-bold">Select XLSX Ledger File</p>
-            <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-2xl">
