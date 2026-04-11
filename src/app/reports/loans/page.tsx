@@ -248,7 +248,7 @@ export default function LoanReportPage() {
           <CardContent>
             <div className="text-xl font-bold">৳ {stats.totalClosing.toLocaleString()}</div>
           </CardContent>
-        </div>
+        </Card>
       </div>
 
       <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
