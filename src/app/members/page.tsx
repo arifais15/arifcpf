@@ -36,7 +36,7 @@ export default function MembersPage() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debounce search to avoid too many Firestore reads
+  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -63,7 +63,6 @@ export default function MembersPage() {
       constraints.push(orderBy("memberIdNumber", "asc"));
     }
 
-    // We fetch one extra to determine if there's a next page
     constraints.push(limit(pageSize + 1));
 
     if (lastVisible && currentPage > 1) {
@@ -75,13 +74,11 @@ export default function MembersPage() {
 
   const { data: rawMembers, isLoading, snapshot } = useCollection(membersQuery);
 
-  // Process data for display (Derived from rawMembers)
   const members = useMemo(() => {
     if (!rawMembers) return [];
     return rawMembers.slice(0, pageSize);
   }, [rawMembers, pageSize]);
 
-  // Derived pagination status (prevents re-render loops caused by state updates in render)
   const isNextDisabled = !rawMembers || rawMembers.length <= pageSize;
 
   const handleNextPage = () => {
@@ -101,7 +98,7 @@ export default function MembersPage() {
     setDebouncedSearch("");
   };
 
-  const handleAddMember = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     const memberData = {
@@ -120,8 +117,9 @@ export default function MembersPage() {
       updateDocumentNonBlocking(docRef, memberData);
       showAlert({
         title: "Success",
-        description: `${memberData.name} profile has been updated.`,
-        type: "success"
+        description: `${memberData.name} profile has been updated. Page will reload to sync.`,
+        type: "success",
+        onConfirm: () => window.location.reload()
       });
     } else {
       addDocumentNonBlocking(collection(firestore, "members"), { 
@@ -130,8 +128,9 @@ export default function MembersPage() {
       });
       showAlert({
         title: "Registered",
-        description: `Member ${memberData.name} added to the registry.`,
-        type: "success"
+        description: `Member ${memberData.name} registered. Page will reload to sync.`,
+        type: "success",
+        onConfirm: () => window.location.reload()
       });
     }
     setIsAddOpen(false);
@@ -150,8 +149,9 @@ export default function MembersPage() {
         deleteDocumentNonBlocking(docRef);
         showAlert({
           title: "Deleted",
-          description: "Member removed from database.",
-          type: "success"
+          description: "Member removed. Reloading registry...",
+          type: "success",
+          onConfirm: () => window.location.reload()
         });
       }
     });
@@ -187,8 +187,9 @@ export default function MembersPage() {
 
         showAlert({
           title: "Bulk Import",
-          description: `Processing members. They will appear in the registry shortly.`,
-          type: "info"
+          description: `Processing members. System will refresh shortly.`,
+          type: "info",
+          onConfirm: () => window.location.reload()
         });
         setIsBulkOpen(false);
       } catch (err) {
@@ -201,7 +202,7 @@ export default function MembersPage() {
   };
 
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Members Registry</h1>

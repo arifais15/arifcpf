@@ -58,15 +58,17 @@ export default function COAPage() {
       updateDocumentNonBlocking(docRef, accountData);
       showAlert({
         title: "Success",
-        description: `${accountData.accountName} has been updated successfully.`,
-        type: "success"
+        description: `${accountData.accountName} updated. Page will reload.`,
+        type: "success",
+        onConfirm: () => window.location.reload()
       });
     } else {
       addDocumentNonBlocking(coaRef, accountData);
       showAlert({
         title: "Added",
-        description: `${accountData.accountName} is now in the Chart of Accounts.`,
-        type: "success"
+        description: `${accountData.accountName} added to registry. Page will reload.`,
+        type: "success",
+        onConfirm: () => window.location.reload()
       });
     }
     setIsAddOpen(false);
@@ -76,7 +78,7 @@ export default function COAPage() {
   const handleDeleteAccount = (id: string, name: string) => {
     showAlert({
       title: "Are you sure?",
-      description: `You are about to delete account: ${name}. This action cannot be reversed.`,
+      description: `Delete account: ${name}?`,
       type: "warning",
       showCancel: true,
       confirmText: "Delete Account",
@@ -85,8 +87,9 @@ export default function COAPage() {
         deleteDocumentNonBlocking(docRef);
         showAlert({
           title: "Deleted",
-          description: "The account has been removed.",
-          type: "success"
+          description: "The account has been removed. Reloading...",
+          type: "success",
+          onConfirm: () => window.location.reload()
         });
       }
     });

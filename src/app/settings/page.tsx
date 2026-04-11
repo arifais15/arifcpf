@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -53,7 +54,6 @@ export default function SettingsPage() {
 
   // --- SECURITY LOCK STATE ---
   const [securityCode, setSecurityCode] = useState("")
-  // Predefined higher password code
   const AUTHORIZATION_CODE = "Arif@PBS2" 
   const isUnlocked = securityCode === AUTHORIZATION_CODE
 
@@ -130,7 +130,7 @@ export default function SettingsPage() {
     
     setTimeout(() => {
       setIsSaving(false)
-      toast({ title: "Branding Updated", description: "Institution name saved and applied to all reports." })
+      showAlert({ title: "Branding Updated", description: "Institution name saved. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
     }, 500)
   }
 
@@ -144,7 +144,7 @@ export default function SettingsPage() {
     
     setTimeout(() => {
       setIsSaving(false)
-      toast({ title: "Ledger Saved", description: "Mapping configuration updated successfully." })
+      showAlert({ title: "Ledger Saved", description: "Mapping configuration updated. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
     }, 500)
   }
 
@@ -162,7 +162,7 @@ export default function SettingsPage() {
 
     setTimeout(() => {
       setIsSaving(false)
-      toast({ title: "Interest Saved", description: "Interest rate tiers updated successfully." })
+      showAlert({ title: "Interest Saved", description: "Rates updated. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
     }, 500)
   }
 
@@ -219,18 +219,10 @@ export default function SettingsPage() {
     if (editingCoaAccount && editingCoaAccount.id) {
       const docRef = doc(firestore, "chartOfAccounts", editingCoaAccount.id);
       updateDocumentNonBlocking(docRef, accountData);
-      showAlert({
-        title: "Success",
-        description: `${accountData.accountName} has been updated.`,
-        type: "success"
-      });
+      showAlert({ title: "Success", description: `${accountData.accountName} updated. Refreshing...`, type: "success", onConfirm: () => window.location.reload() });
     } else {
       addDocumentNonBlocking(coaRef, accountData);
-      showAlert({
-        title: "Added",
-        description: `${accountData.accountName} added to COA.`,
-        type: "success"
-      });
+      showAlert({ title: "Added", description: `${accountData.accountName} added. Refreshing...`, type: "success", onConfirm: () => window.location.reload() });
     }
     setIsCoaAddOpen(false);
     setEditingCoaAccount(null);
@@ -239,18 +231,14 @@ export default function SettingsPage() {
   const handleDeleteCoaAccount = (id: string, name: string) => {
     showAlert({
       title: "Are you sure?",
-      description: `Delete account: ${name}? This cannot be reversed.`,
+      description: `Delete account: ${name}?`,
       type: "warning",
       showCancel: true,
       confirmText: "Delete Account",
       onConfirm: () => {
         const docRef = doc(firestore, "chartOfAccounts", id);
         deleteDocumentNonBlocking(docRef);
-        showAlert({
-          title: "Deleted",
-          description: "Account removed.",
-          type: "success"
-        });
+        showAlert({ title: "Deleted", description: "Account removed. Refreshing...", type: "success", onConfirm: () => window.location.reload() });
       }
     });
   };
@@ -277,7 +265,6 @@ export default function SettingsPage() {
           <p className="text-muted-foreground">Manage institutional accounting rules and parameters</p>
         </div>
 
-        {/* --- HIGHER AUTHORIZATION FIELD --- */}
         <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 animate-in slide-in-from-right-4 duration-500">
           <div className="flex items-center gap-3">
             <div className={cn(
@@ -311,7 +298,7 @@ export default function SettingsPage() {
           <ShieldCheck className="size-5 text-rose-600 mt-0.5" />
           <div className="space-y-1">
             <p className="text-sm font-bold text-rose-800">Operational Lock Engaged</p>
-            <p className="text-xs text-rose-700 leading-relaxed">All administrative modifications are currently disabled. Please provide the <b>Higher Authorization Code</b> to enable the "Save" and "Action" buttons across all system parameters.</p>
+            <p className="text-xs text-rose-700 leading-relaxed">Authorization Code required to modify system parameters.</p>
           </div>
         </div>
       )}
@@ -332,7 +319,6 @@ export default function SettingsPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* --- CHART OF ACCOUNTS TAB --- */}
         <TabsContent value="coa" className="space-y-6 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-2">
             <div className="relative flex-1 max-w-sm">
@@ -482,14 +468,13 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {/* --- LEDGER MAPPING TAB --- */}
         <TabsContent value="ledger" className="space-y-8 animate-in fade-in duration-500">
           <div className="grid gap-8 lg:grid-cols-12">
             <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden">
               <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-lg">Column Mapping Configuration</CardTitle>
-                  <CardDescription>Assign GL Account Codes to specific Member Ledger columns.</CardDescription>
+                  <CardDescription>Assign GL Account Codes to Subsidiary Ledger columns.</CardDescription>
                 </div>
                 <Button onClick={handleSaveLedger} disabled={isSaving || !isUnlocked} className="gap-2">
                   {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
@@ -540,159 +525,65 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
-
-            <div className="lg:col-span-4 space-y-6">
-              <Card className="border-none shadow-sm bg-blue-50/50">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Info className="size-4 text-blue-600" />
-                    Ledger Sync Rules
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-xs leading-relaxed text-blue-700">
-                  <p>When you record a <b>Journal Entry</b> and tag a member, the system checks these mappings to decide where to post the amount.</p>
-                  <p><b>Normal Balance:</b>
-                    <br/>• <b>Debit:</b> Amount increases with [Debit - Credit]
-                    <br/>• <b>Credit:</b> Amount increases with [Credit - Debit]
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </TabsContent>
 
-        {/* --- INTEREST RATES TAB --- */}
         <TabsContent value="interest" className="space-y-8 animate-in fade-in duration-500">
           <div className="grid gap-8 lg:grid-cols-12">
             <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden">
               <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-lg">Tiered Interest Policy</CardTitle>
-                  <CardDescription>Configure annual profit sharing rates based on cumulative member balances.</CardDescription>
+                  <CardDescription>Configure annual profit sharing rates.</CardDescription>
                 </div>
                 <Button onClick={handleSaveInterest} disabled={isSaving || !isUnlocked} className="gap-2">
                   {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  Save Interest Rates
+                  Save Rates
                 </Button>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  <div className="grid grid-cols-12 gap-4 px-2 text-[10px] uppercase font-bold text-slate-400">
-                    <div className="col-span-5">Balance Limit (৳)</div>
-                    <div className="col-span-5">Annual Interest Rate (%)</div>
-                    <div className="col-span-2 text-right">Actions</div>
-                  </div>
-                  
                   {interestTiers.map((tier, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-4 items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
                       <div className="col-span-5 relative">
                         {tier.limit === null ? (
-                          <div className="h-10 flex items-center px-3 bg-slate-200/50 rounded-md text-slate-500 text-sm font-bold italic">
-                            Above previous limit
-                          </div>
+                          <div className="h-10 flex items-center px-3 bg-slate-200/50 rounded-md text-slate-500 text-sm font-bold italic">Above previous limit</div>
                         ) : (
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">৳</span>
-                            <Input 
-                              type="number" 
-                              className="pl-7 font-mono" 
-                              value={tier.limit} 
-                              disabled={!isUnlocked}
-                              onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })}
-                            />
-                          </div>
+                          <Input type="number" className="font-mono" value={tier.limit} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
                         )}
                       </div>
                       <div className="col-span-5 relative">
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          className="pr-8 font-mono" 
-                          value={tier.rate} 
-                          disabled={!isUnlocked}
-                          onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })}
-                        />
+                        <Input type="number" step="0.01" className="pr-8 font-mono" value={tier.rate} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
                       </div>
                       <div className="col-span-2 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive hover:bg-destructive/10" 
-                          disabled={!isUnlocked}
-                          onClick={() => removeInterestTier(idx)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={!isUnlocked} onClick={() => removeInterestTier(idx)}><Trash2 className="size-4" /></Button>
                       </div>
                     </div>
                   ))}
-
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-dashed border-2 py-8 rounded-xl gap-2 text-slate-500 hover:text-primary hover:border-primary/50" 
-                    disabled={!isUnlocked}
-                    onClick={addInterestTier}
-                  >
-                    <Plus className="size-4" /> Add Interest Tier
-                  </Button>
+                  <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-xl gap-2" disabled={!isUnlocked} onClick={addInterestTier}><Plus className="size-4" /> Add Tier</Button>
                 </div>
               </CardContent>
             </Card>
-
-            <div className="lg:col-span-4 space-y-6">
-              <Card className="border-none shadow-sm bg-accent/5">
-                <CardHeader>
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Percent className="size-4 text-accent" />
-                    How Calculation Works
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-xs leading-relaxed text-slate-600">
-                  <p>Profit is computed monthly as <b>1/12th</b> of the annual rate. The rate applied depends on the tier:</p>
-                  <div className="space-y-2 py-2">
-                    {interestTiers.map((t, i) => (
-                      <div key={i} className="flex items-center gap-2 font-medium">
-                        <ArrowRight className="size-3 text-accent" />
-                        <span>{t.limit ? `Up to ৳${t.limit.toLocaleString()}` : 'Remaining balance'} at <b>{t.rate}%</b></span>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="italic text-[10px] text-muted-foreground border-t pt-2 mt-2">Example: If a member has ৳2M balance, the first ৳1.5M is computed at Tier 1, and the next ৳0.5M at Tier 2.</p>
-                </CardContent>
-              </Card>
-            </div>
           </div>
         </TabsContent>
 
-        {/* --- GENERAL CONFIG TAB --- */}
         <TabsContent value="branding" className="space-y-8 animate-in fade-in duration-500">
           <Card className="max-w-2xl border-none shadow-sm overflow-hidden">
             <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-lg">Institutional Branding</CardTitle>
-                <CardDescription>Set the name of your PBS to appear on all report headers.</CardDescription>
+                <CardDescription>Set the name of your PBS.</CardDescription>
               </div>
               <Button onClick={handleSaveGeneral} disabled={isSaving || !isUnlocked} className="gap-2">
                 {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 Save Branding
               </Button>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
+            <CardContent className="p-6">
               <div className="space-y-2">
                 <Label htmlFor="pbsName">Full Institutional Name</Label>
-                <div className="relative">
-                  <Building className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input 
-                    id="pbsName" 
-                    value={pbsName} 
-                    disabled={!isUnlocked}
-                    onChange={(e) => setPbsName(e.target.value)} 
-                    placeholder="e.g. Gazipur Palli Bidyut Samity-2"
-                    className="pl-9 h-11 text-lg font-semibold"
-                  />
-                </div>
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mt-1 opacity-60">This will be printed at the top of every generated audit statement and ledger.</p>
+                <Input id="pbsName" value={pbsName} disabled={!isUnlocked} onChange={(e) => setPbsName(e.target.value)} className="h-11 text-lg font-semibold" />
               </div>
             </CardContent>
           </Card>

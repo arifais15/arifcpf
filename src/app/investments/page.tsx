@@ -80,10 +80,20 @@ export default function InvestmentsPage() {
     if (editingInvestment) {
       const docRef = doc(firestore, "investmentInstruments", editingInvestment.id);
       updateDocumentNonBlocking(docRef, investmentData);
-      showAlert({ title: "Updated", description: `Instrument ${investmentData.referenceNumber} has been modified.`, type: "success" });
+      showAlert({ 
+        title: "Updated", 
+        description: `Instrument ${investmentData.referenceNumber} updated. System will refresh.`, 
+        type: "success",
+        onConfirm: () => window.location.reload()
+      });
     } else {
       addDocumentNonBlocking(investmentsRef, investmentData);
-      showAlert({ title: "Success", description: `New ${investmentData.instrumentType} investment recorded.`, type: "success" });
+      showAlert({ 
+        title: "Success", 
+        description: `New ${investmentData.instrumentType} recorded. System will refresh.`, 
+        type: "success",
+        onConfirm: () => window.location.reload()
+      });
     }
     setIsAddOpen(false);
     setEditingInvestment(null);
@@ -115,7 +125,12 @@ export default function InvestmentsPage() {
           };
           if (mapped.bankName) addDocumentNonBlocking(investmentsRef, mapped);
         });
-        showAlert({ title: "Success", description: "Bulk processing complete.", type: "success" });
+        showAlert({ 
+          title: "Success", 
+          description: "Bulk processing complete. Page will refresh.", 
+          type: "success",
+          onConfirm: () => window.location.reload()
+        });
       } catch (err) { toast({ title: "Upload Failed", variant: "destructive" }); }
       finally { setIsUploading(false); setIsBulkOpen(false); }
     };
@@ -228,7 +243,7 @@ export default function InvestmentsPage() {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { showAlert({ title: "Delete?", type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)) }); }}><Trash2 className="size-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { showAlert({ title: "Delete?", description: "Remove this investment record?", type: "warning", showCancel: true, onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); window.location.reload(); } }); }}><Trash2 className="size-3.5" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
