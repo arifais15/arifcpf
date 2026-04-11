@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -18,7 +17,8 @@ import {
   UserX,
   PieChart,
   HandCoins,
-  FileStack
+  FileStack,
+  Activity
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -46,6 +46,7 @@ const navItems = [
   { title: "New Transaction", icon: PlusCircle, url: "/transactions/new" },
   { title: "Members", icon: Users, url: "/members" },
   { title: "Netfund Statement", icon: FileStack, url: "/reports/netfund" },
+  { title: "Fund Movement", icon: Activity, url: "/reports/movements" },
   { title: "Interest Accrual", icon: Percent, url: "/interest" },
   { title: "Investments", icon: TrendingUp, url: "/investments" },
   { title: "Financial Reports", icon: FileText, url: "/reports" },
