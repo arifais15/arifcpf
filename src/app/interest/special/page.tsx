@@ -123,8 +123,12 @@ export default function SpecialInterestDPPage() {
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
     
-    // Process only selected or all active members
-    const targetMembers = selectedMember === "all" ? (members || []) : (members?.filter(m => m.id === selectedMember) || []);
+    // Process only selected or all members
+    let targetMembers = selectedMember === "all" ? (members || []) : (members?.filter(m => m.id === selectedMember) || []);
+    
+    // FILTER OUT INACTIVE MEMBERS
+    targetMembers = targetMembers.filter(m => m.status !== 'InActive');
+
     const auditResults = [];
 
     for (const member of targetMembers) {
@@ -231,7 +235,7 @@ export default function SpecialInterestDPPage() {
 
     setResults(auditResults);
     setIsCalculating(false);
-    toast({ title: "Day-Product Audit Complete", description: `Processed ${auditResults.length} members.` });
+    toast({ title: "Day-Product Audit Complete", description: `Processed ${auditResults.length} active members.` });
   };
 
   const handlePostAll = async () => {
@@ -323,7 +327,7 @@ export default function SpecialInterestDPPage() {
               <SelectContent className="max-h-[300px]">
                 <SelectItem value="all">All Institutional Personnel</SelectItem>
                 {members?.map(m => (
-                  <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name}</SelectItem>
+                  <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name} {m.status === 'InActive' ? '(InActive)' : ''}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -365,7 +369,6 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
-            </Card>
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold text-slate-400">Sync Ledger Date</Label>

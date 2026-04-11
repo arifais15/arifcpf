@@ -156,6 +156,13 @@ export default function CPFInterestPage() {
 
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
+      
+      // SKIP INACTIVE MEMBERS
+      if (member.status === 'InActive') {
+        setProgress(Math.round(((i + 1) / members.length) * 100));
+        continue;
+      }
+
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
       const snapshot = await getDocs(q);
@@ -273,7 +280,7 @@ export default function CPFInterestPage() {
 
     setPreviewData(results);
     setIsCalculating(false);
-    toast({ title: "Audit Complete", description: `Computed tiered profit for ${results.length} members.` });
+    toast({ title: "Audit Complete", description: `Computed tiered profit for ${results.length} active members.` });
   };
 
   const handlePostAllInterest = async () => {
@@ -322,7 +329,7 @@ export default function CPFInterestPage() {
 
     setIsPosting(false);
     setPreviewData([]);
-    toast({ title: "Posting Complete", description: `Successfully recorded profit for ${postedCount} members.` });
+    toast({ title: "Posting Complete", description: `Successfully recorded profit for ${postedCount} active members.` });
   };
 
   const exportToExcel = () => {

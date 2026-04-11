@@ -229,6 +229,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const handlePostInterest = () => {
     if (!interestCalculation || !profitPostingDate) return;
+    
+    // BLOCK POSTING FOR INACTIVE MEMBERS
+    if (member?.status === 'InActive') {
+      showAlert({ 
+        title: "Posting Restricted", 
+        description: "Interest cannot be posted to an account with InActive status. Please activate the member if this is required.", 
+        type: "error" 
+      });
+      return;
+    }
+
     if (interestCalculation.isDuplicate) {
       showAlert({ title: "Duplicate Entry", description: "Profit for this period is already posted.", type: "error" });
       return;
@@ -297,7 +308,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       settledAmount: latestRunningTotals.total
     });
 
-    showAlert({ title: "Account Zeroed", description: `Final reversal entries posted. All ledger columns now zero.`, type: "success" });
+    showAlert({ title: "Account Zeroed", description: `Final reversal entries posted. All ledger columns now zero. Status set to ${type}.`, type: "success" });
     setIsSettlementOpen(false);
   };
 
@@ -427,6 +438,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <DialogDescription>Review monthly basis balances and tiered interest portions before posting to ledger.</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
+                {member.status === 'InActive' && (
+                  <div className="bg-rose-50 border border-rose-200 p-4 rounded-xl flex gap-3 items-start">
+                    <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-rose-700 uppercase">Account Status: InActive</p>
+                      <p className="text-[11px] text-rose-600">The system has blocked posting for this account. Interest cannot be added to an InActive ledger.</p>
+                    </div>
+                  </div>
+                )}
+
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="fy">Fiscal Year</TabsTrigger>
@@ -517,7 +538,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
                 <Button 
                   onClick={handlePostInterest} 
-                  disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} 
+                  disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate || member.status === 'InActive'} 
                   className="gap-2 px-8 font-bold"
                 >
                   <Plus className="size-4" /> Synchronize to Ledger
@@ -536,7 +557,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="relative mb-6 text-center border-b-2 border-black pb-4">
           <p className="text-[9px] absolute left-0 top-0 font-bold uppercase tracking-widest opacity-70">REB Form no: 224</p>
           {member.status && member.status !== 'Active' && (
-            <Badge className="absolute right-0 top-0 bg-red-50 text-red-700 border-red-200 uppercase text-[10px] px-3 py-1 font-black shadow-none">{member.status} ACCOUNT</Badge>
+            <Badge className={cn("absolute right-0 top-0 uppercase text-[10px] px-3 py-1 font-black shadow-none border", member.status === 'InActive' ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-red-50 text-red-700 border-red-200')}>
+              {member.status} ACCOUNT
+            </Badge>
           )}
           <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900">Gazipur Palli Bidyut Samity-2</h1>
           <h2 className="text-md md:text-lg font-bold underline underline-offset-8 uppercase tracking-[0.2em] mt-2 text-slate-800">Provident Fund Subsidiary Ledger</h2>
