@@ -27,6 +27,18 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // --- COLLECTION GROUP RULES (CRITICAL FOR REPORTS) ---
+    
+    // Allows collectionGroup('fundSummaries') queries used in Audit & Tracking
+    match /{path=**}/fundSummaries/{summaryId} {
+      allow read: if isSignedIn();
+    }
+
+    // Allows collectionGroup('line_items') queries if used for subsidiary ledgers
+    match /{path=**}/line_items/{lineId} {
+      allow read: if isSignedIn();
+    }
+
     // --- COLLECTION RULES ---
 
     // Admin Roles Registry
@@ -47,7 +59,7 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow write: if isAdmin() || isSignedIn();
       
-      // Subcollection for Ledger Entries
+      // Subcollection for Ledger Entries (Standard Path)
       match /fundSummaries/{summaryId} {
         allow read: if isSignedIn();
         allow write: if isAdmin() || isSignedIn();
