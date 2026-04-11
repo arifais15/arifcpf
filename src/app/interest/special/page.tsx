@@ -145,10 +145,16 @@ export default function SpecialInterestDPPage() {
       let runningBalance = allEntries
         .filter((e: any) => new Date(e.summaryDate) <= openingRefDate)
         .reduce((sum, e: any) => {
-          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(s.pbsContribution)||0, c9: Number(s.profitPbs)||0 };
-          // Correction: using e instead of s
-          const v2 = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
-          return sum + (v2.c1 - v2.c2 + v2.c3 + v2.c5 + v2.c6 + v2.c8 + v2.c9);
+          const v = { 
+            c1: Number(e.employeeContribution)||0, 
+            c2: Number(e.loanWithdrawal)||0, 
+            c3: Number(e.loanRepayment)||0, 
+            c5: Number(e.profitEmployee)||0, 
+            c6: Number(e.profitLoan)||0, 
+            c8: Number(e.pbsContribution)||0, 
+            c9: Number(e.profitPbs)||0 
+          };
+          return sum + (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
         }, 0);
 
       const openingBalance = runningBalance;
@@ -157,7 +163,15 @@ export default function SpecialInterestDPPage() {
         const dateStr = currentDate.toISOString().split('T')[0];
         const daysEntries = allEntries.filter((e: any) => e.summaryDate === dateStr);
         daysEntries.forEach((e: any) => {
-          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
+          const v = { 
+            c1: Number(e.employeeContribution)||0, 
+            c2: Number(e.loanWithdrawal)||0, 
+            c3: Number(e.loanRepayment)||0, 
+            c5: Number(e.profitEmployee)||0, 
+            c6: Number(e.profitLoan)||0, 
+            c8: Number(e.pbsContribution)||0, 
+            c9: Number(e.profitPbs)||0 
+          };
           runningBalance += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
         });
 
@@ -178,7 +192,15 @@ export default function SpecialInterestDPPage() {
       let currentPbsFund = 0;
       allEntries.forEach((e: any) => {
         if (new Date(e.summaryDate) <= auditEnd) {
-          const v = { c1: Number(e.employeeContribution)||0, c2: Number(e.loanWithdrawal)||0, c3: Number(e.loanRepayment)||0, c5: Number(e.profitEmployee)||0, c6: Number(e.profitLoan)||0, c8: Number(e.pbsContribution)||0, c9: Number(e.profitPbs)||0 };
+          const v = { 
+            c1: Number(e.employeeContribution)||0, 
+            c2: Number(e.loanWithdrawal)||0, 
+            c3: Number(e.loanRepayment)||0, 
+            c5: Number(e.profitEmployee)||0, 
+            c6: Number(e.profitLoan)||0, 
+            c8: Number(e.pbsContribution)||0, 
+            c9: Number(e.profitPbs)||0 
+          };
           currentEmpFund += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6);
           currentPbsFund += (v.c8 + v.c9);
         }
@@ -440,7 +462,6 @@ export default function SpecialInterestDPPage() {
               </div>
             </div>
 
-            {/* NEW MONTHLY SUMMARY SECTION */}
             <div className="space-y-3">
               <h3 className="text-sm font-bold flex items-center gap-2 px-1">
                 <ListOrdered className="size-4 text-primary" />
@@ -499,6 +520,13 @@ export default function SpecialInterestDPPage() {
                       </TableRow>
                     ))}
                   </TableBody>
+                  <TableFooter className="bg-slate-50 font-black">
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-right uppercase text-[9px]">Sum of Daily Portions:</TableCell>
+                      <TableCell className="text-right text-emerald-700 font-mono text-xs">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableFooter>
                 </Table>
               </div>
             </div>
