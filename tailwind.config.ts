@@ -13,6 +13,7 @@ export default {
         body: ['Inter', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
         ledger: ['"Calibri Light"', 'Calibri', 'Candara', 'Segoe UI', 'Optima', 'Arial', 'sans-serif'],
+        bangla: ['Nikosh', '"Hind Siliguri"', 'serif'],
         code: ['monospace'],
       },
       colors: {

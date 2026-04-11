@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -44,20 +43,20 @@ import { useSweetAlert } from "@/hooks/use-sweet-alert"
 import { Button } from "@/components/ui/button"
 
 const navItems = [
-  { title: "Dashboard", icon: LayoutDashboard, url: "/" },
-  { title: "Journal Entries", icon: ListTodo, url: "/transactions" },
-  { title: "New Transaction", icon: PlusCircle, url: "/transactions/new" },
-  { title: "Control Ledger", icon: BookText, url: "/reports/control-ledger" },
-  { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control" },
-  { title: "Members", icon: Users, url: "/members" },
-  { title: "Ledger Summary", icon: ClipboardCheck, url: "/reports/ledger-summary" },
-  { title: "Interest Accrual", icon: Percent, url: "/interest" },
-  { title: "Special Interest (DP)", icon: Calculator, url: "/interest/special" },
-  { title: "Investments", icon: TrendingUp, url: "/investments" },
-  { title: "Financial Reports", icon: FileText, url: "/reports" },
-  { title: "Loan Report", icon: HandCoins, url: "/reports/loans" },
-  { title: "Settlement Report", icon: UserX, url: "/reports/settlements" },
-  { title: "Audit & Tracking", icon: PieChart, url: "/reports/contributions" },
+  { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/" },
+  { title: "জাবেদা এন্ট্রি", icon: ListTodo, url: "/transactions" },
+  { title: "নতুন লেনদেন", icon: PlusCircle, url: "/transactions/new" },
+  { title: "কন্ট্রোল লেজার", icon: BookText, url: "/reports/control-ledger" },
+  { title: "সাবসিডিয়ারি কন্ট্রোল", icon: LayoutList, url: "/reports/subsidiary-control" },
+  { title: "সদস্য তালিকা", icon: Users, url: "/members" },
+  { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary" },
+  { title: "মুনাফা হিসাব", icon: Percent, url: "/interest" },
+  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/interest/special" },
+  { title: "বিনিয়োগ", icon: TrendingUp, url: "/investments" },
+  { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports" },
+  { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans" },
+  { title: "নিষ্পত্তি প্রতিবেদন", icon: UserX, url: "/reports/settlements" },
+  { title: "অডিট ও ট্র্যাকিং", icon: PieChart, url: "/reports/contributions" },
 ]
 
 export function AppSidebar() {
@@ -69,11 +68,12 @@ export function AppSidebar() {
 
   const handleLogout = () => {
     showAlert({
-      title: "Confirm Logout",
-      description: "Are you sure you want to end your session?",
+      title: "লগআউট নিশ্চিত করুন",
+      description: "আপনি কি আপনার সেশন শেষ করতে চান?",
       type: "warning",
       showCancel: true,
-      confirmText: "Logout",
+      confirmText: "লগআউট",
+      cancelText: "বাতিল",
       onConfirm: async () => {
         await signOut(auth)
         router.push("/login")
@@ -82,15 +82,15 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
+    <Sidebar variant="inset" collapsible="icon" className="font-bangla">
       <SidebarHeader className="p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <ShieldCheck className="size-5" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-            <span className="font-semibold text-primary">PBS CPF</span>
-            <span className="text-xs text-muted-foreground">Management</span>
+            <span className="font-semibold text-primary">পিবিএস সিপিএফ</span>
+            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">ম্যানেজমেন্ট</span>
           </div>
         </div>
         {isMobile && (
@@ -117,7 +117,7 @@ export function AppSidebar() {
               >
                 <Link href={item.url}>
                   <item.icon className="size-4" />
-                  <span>{item.title}</span>
+                  <span className="font-medium">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -130,7 +130,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === "/settings"} className="hover:bg-sidebar-accent">
               <Link href="/settings">
                 <Settings className="size-4" />
-                <span>Settings</span>
+                <span className="font-medium">সেটিংস</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -140,7 +140,7 @@ export function AppSidebar() {
               onClick={handleLogout}
             >
               <LogOut className="size-4" />
-              <span>Logout</span>
+              <span className="font-medium">লগআউট</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
