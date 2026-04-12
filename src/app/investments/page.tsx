@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -27,7 +28,6 @@ export default function InvestmentsPage() {
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
-  const [isGlobalHistoryOpen, setIsGlobalHistoryOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   const [editingInvestment, setEditingInvestment] = useState<any>(null);
@@ -49,14 +49,15 @@ export default function InvestmentsPage() {
       inv.referenceNumber?.toLowerCase().includes(search.toLowerCase()) ||
       inv.instrumentType?.toLowerCase().includes(search.toLowerCase()) ||
       inv.bankName?.toLowerCase().includes(search.toLowerCase())
-    );
+    ).sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
   }, [investments, search]);
 
   const stats = useMemo(() => {
     if (!investments || investments.length === 0) return { total: 0, count: 0, avgRate: 0 };
-    const total = investments.reduce((sum, inv) => sum + (Number(inv.principalAmount) || 0), 0);
-    const sumRates = investments.reduce((sum, inv) => sum + (Number(inv.interestRate) || 0), 0);
-    return { total, count: investments.length, avgRate: (sumRates / (investments.length || 1)) * 100 };
+    const activeOnes = investments.filter(i => i.status === 'Active');
+    const total = activeOnes.reduce((sum, inv) => sum + (Number(inv.principalAmount) || 0), 0);
+    const sumRates = activeOnes.reduce((sum, inv) => sum + (Number(inv.interestRate) || 0), 0);
+    return { total, count: activeOnes.length, avgRate: (sumRates / (activeOnes.length || 1)) * 100 };
   }, [investments]);
 
   const handleSaveInvestment = (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,14 +65,13 @@ export default function InvestmentsPage() {
     const formData = new FormData(e.currentTarget);
     const investmentData = {
       bankName: formData.get("bankName") as string,
-      chartOfAccountId: formData.get("chartOfAccountId") as string,
-      instrumentType: formData.get("instrumentType") as string,
       referenceNumber: formData.get("referenceNumber") as string,
-      issueDate: formData.get("issueDate") as string,
-      maturityDate: formData.get("maturityDate") as string,
       principalAmount: Number(formData.get("principalAmount")),
       interestRate: Number(formData.get("interestRate")) / 100,
-      accrualFrequency: formData.get("accrualFrequency") as string || "Quarterly",
+      issueDate: formData.get("issueDate") as string,
+      maturityDate: formData.get("maturityDate") as string,
+      instrumentType: formData.get("instrumentType") as string,
+      chartOfAccountId: formData.get("chartOfAccountId") as string,
       status: formData.get("status") as string || "Active",
       updatedAt: new Date().toISOString(),
     };
@@ -111,22 +111,22 @@ export default function InvestmentsPage() {
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         data.forEach((entry: any) => {
           const mapped = {
-            bankName: entry.bankName || entry["Bank Name"] || "",
-            referenceNumber: entry.referenceNumber || entry["Ref No"] || "",
-            principalAmount: Number(entry.principalAmount || entry["Principal"] || 0),
-            interestRate: Number(entry.interestRate || entry["Rate"] || 0) / 100,
-            issueDate: entry.issueDate || "",
-            maturityDate: entry.maturityDate || "",
-            instrumentType: entry.instrumentType || "FDR",
-            chartOfAccountId: entry.chartOfAccountId || "101.10.0000",
-            status: entry.status || "Active",
+            bankName: entry["Bank Name"] || entry.bankName || "",
+            referenceNumber: entry["Ref No"] || entry.referenceNumber || entry.refNo || "",
+            principalAmount: Number(entry["Principal"] || entry.principalAmount || 0),
+            interestRate: Number(entry["Rate"] || entry.interestRate || 0) / 100,
+            issueDate: entry["Issue Date"] || entry.issueDate || "",
+            maturityDate: entry["Maturity Date"] || entry.maturityDate || "",
+            instrumentType: entry["Instrument Type"] || entry.instrumentType || "FDR",
+            chartOfAccountId: entry["chartOfAccountId"] || entry.chartOfAccountId || "101.10.0000",
+            status: entry["status"] || entry.status || "Active",
             updatedAt: new Date().toISOString()
           };
           if (mapped.bankName) addDocumentNonBlocking(investmentsRef, mapped);
         });
         showAlert({ 
           title: "Success", 
-          description: "Bulk processing complete. Page will refresh.", 
+          description: "Bulk processing complete. System will refresh.", 
           type: "success",
           onConfirm: () => window.location.reload()
         });
@@ -148,24 +148,13 @@ export default function InvestmentsPage() {
         "Instrument Type": "FDR",
         "chartOfAccountId": "101.10.0000",
         "status": "Active"
-      },
-      {
-        "Bank Name": "Janata Bank PLC",
-        "Ref No": "BOND-2024-005",
-        "Principal": 5000000,
-        "Rate": 11.0,
-        "Issue Date": "2024-06-01",
-        "Maturity Date": "2029-06-01",
-        "Instrument Type": "Govt. Treasury Bond",
-        "chartOfAccountId": "101.30.0000",
-        "status": "Active"
       }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Investments");
-    XLSX.writeFile(wb, "investments_bulk_upload_template.xlsx");
-    toast({ title: "Template Downloaded", description: "Use this file to prepare your investment data." });
+    XLSX.writeFile(wb, "investments_bulk_template.xlsx");
+    toast({ title: "Template Downloaded" });
   };
 
   const getStatusBadge = (status: string) => {
@@ -182,7 +171,7 @@ export default function InvestmentsPage() {
       <div className="flex items-center justify-between no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Investment Portfolio</h1>
-          <p className="text-muted-foreground">Manage FDRs, Bonds and Savings Certificates</p>
+          <p className="text-muted-foreground">Managing institutional certificates, FDRs and Treasury Bonds</p>
         </div>
         <div className="flex items-center gap-3">
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
@@ -196,13 +185,13 @@ export default function InvestmentsPage() {
                   </Button>
                 </div>
                 <DialogDescription>
-                  Download the template, fill in your instrument details, and upload the XLSX file below.
+                  Upload your XLSX file. Use the template to ensure column names match exactly.
                 </DialogDescription>
               </DialogHeader>
               <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary opacity-50" />
                 <p className="font-bold">Select XLSX Investment File</p>
-                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">Bank Name, Ref No, Principal, Rate required</p>
+                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">Bank Name, Ref No, Principal, Rate, Date columns required</p>
                 <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} accept=".xlsx" />
                 {isUploading && <Loader2 className="size-4 animate-spin mx-auto mt-4" />}
               </div>
@@ -212,24 +201,37 @@ export default function InvestmentsPage() {
           <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingInvestment(null); }}>
             <DialogTrigger asChild><Button className="gap-2"><Plus className="size-4" /> New Investment</Button></DialogTrigger>
             <DialogContent className="max-w-xl">
-              <DialogHeader><DialogTitle>{editingInvestment ? "Edit" : "Add"} Investment</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{editingInvestment ? "Edit" : "Add"} Investment Record</DialogTitle></DialogHeader>
               <form onSubmit={handleSaveInvestment} className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2"><Label>Bank Name</Label><Input name="bankName" defaultValue={editingInvestment?.bankName} required /></div>
+                  <div className="space-y-2"><Label>Ref No (Reference)</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} required placeholder="e.g. FDR-12345" /></div>
+                  <div className="space-y-2"><Label>Principal Amount (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required /></div>
+                  <div className="space-y-2"><Label>Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? editingInvestment.interestRate * 100 : ""} required /></div>
+                  <div className="space-y-2"><Label>Issue Date</Label><Input name="issueDate" type="date" defaultValue={editingInvestment?.issueDate} required /></div>
+                  <div className="space-y-2"><Label>Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} /></div>
                   <div className="space-y-2">
-                    <Label>Account Code</Label>
-                    <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}>
+                    <Label>Instrument Type</Label>
+                    <Select name="instrumentType" defaultValue={editingInvestment?.instrumentType || "FDR"}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {investmentAccounts.map(a => <SelectItem key={a.code} value={a.code}>{a.code}</SelectItem>)}
+                        <SelectItem value="FDR">FDR</SelectItem>
+                        <SelectItem value="Savings Certificate">Savings Certificate</SelectItem>
+                        <SelectItem value="Govt. Treasury Bond">Govt. Treasury Bond</SelectItem>
+                        <SelectItem value="Other">Other Investment</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Principal</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required /></div>
-                  <div className="space-y-2"><Label>Issue Date</Label><Input name="issueDate" type="date" defaultValue={editingInvestment?.issueDate} required /></div>
-                  <div className="space-y-2"><Label>Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} /></div>
-                  <div className="space-y-2"><Label>Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? editingInvestment.interestRate * 100 : ""} required /></div>
                   <div className="space-y-2">
+                    <Label>GL Account Code</Label>
+                    <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {investmentAccounts.map(a => <SelectItem key={a.code} value={a.code}>{a.code} - {a.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="col-span-2 space-y-2">
                     <Label>Status</Label>
                     <Select name="status" defaultValue={editingInvestment?.status || "Active"}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -249,16 +251,16 @@ export default function InvestmentsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-3 no-print">
-        <Card className="bg-primary/5 border-none"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase text-muted-foreground">Total Principal</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">৳ {stats.total.toLocaleString()}</div></CardContent></Card>
-        <Card className="bg-accent/5 border-none"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase text-muted-foreground">Weighted Yield</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.avgRate.toFixed(2)}%</div></CardContent></Card>
-        <Card className="bg-emerald-50 border-none"><CardHeader className="pb-2"><CardTitle className="text-xs uppercase text-muted-foreground">Active Certificates</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.count} Items</div></CardContent></Card>
+        <Card className="bg-primary/5 border-none shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest">Active Principal</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">৳ {stats.total.toLocaleString()}</div></CardContent></Card>
+        <Card className="bg-accent/5 border-none shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-bold uppercase text-accent tracking-widest">Weighted Yield</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.avgRate.toFixed(2)}%</div></CardContent></Card>
+        <Card className="bg-emerald-50 border-none shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-bold uppercase text-emerald-600 tracking-widest">Active Instruments</CardTitle></CardHeader><CardContent><div className="text-2xl font-bold">{stats.count} Certificates</div></CardContent></Card>
       </div>
 
       <div className="bg-card rounded-xl shadow-sm border overflow-hidden no-print">
         <div className="p-4 border-b bg-slate-50/50">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search portfolio..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="pl-9 h-10 bg-white" placeholder="Search portfolio..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
         <Table>
@@ -268,24 +270,31 @@ export default function InvestmentsPage() {
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Principal (৳)</TableHead>
               <TableHead className="text-right">Rate</TableHead>
+              <TableHead className="text-center">Dates</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && filteredInvestments.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : filteredInvestments.map((inv) => (
-              <TableRow key={inv.id} className="hover:bg-slate-50">
+              <TableRow key={inv.id} className="hover:bg-slate-50 transition-colors">
                 <TableCell><div className="flex flex-col"><span className="font-bold">{inv.bankName}</span><span className="font-mono text-[10px] text-muted-foreground">{inv.referenceNumber}</span></div></TableCell>
-                <TableCell className="text-xs">{inv.instrumentType}</TableCell>
+                <TableCell><Badge variant="secondary" className="text-[10px] uppercase font-bold">{inv.instrumentType}</Badge></TableCell>
                 <TableCell className="text-right font-bold">৳ {Number(inv.principalAmount).toLocaleString()}</TableCell>
                 <TableCell className="text-right text-accent font-semibold">{(Number(inv.interestRate) * 100).toFixed(2)}%</TableCell>
+                <TableCell className="text-center">
+                  <div className="flex flex-col text-[10px] gap-0.5">
+                    <span className="text-slate-400">Issue: {inv.issueDate}</span>
+                    <span className="font-bold">Mat: {inv.maturityDate || "N/A"}</span>
+                  </div>
+                </TableCell>
                 <TableCell>{getStatusBadge(inv.status)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { showAlert({ title: "Delete?", description: "Remove this investment record?", type: "warning", showCancel: true, onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); window.location.reload(); } }); }}><Trash2 className="size-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => { showAlert({ title: "Delete Record?", description: `Remove ${inv.referenceNumber} from portfolio?`, type: "warning", showCancel: true, onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); window.location.reload(); } }); }}><Trash2 className="size-3.5" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
