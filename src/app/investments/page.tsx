@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -109,10 +110,12 @@ export default function InvestmentsPage() {
   const handleSaveInvestment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const principal = Number(formData.get("principalAmount"));
     const investmentData = {
       bankName: formData.get("bankName") as string,
       referenceNumber: formData.get("referenceNumber") as string,
-      principalAmount: Number(formData.get("principalAmount")),
+      principalAmount: principal,
+      initialPrincipalAmount: Number(formData.get("initialPrincipalAmount")) || principal,
       interestRate: Number(formData.get("interestRate")) / 100,
       firstOpeningDate: formData.get("firstOpeningDate") as string,
       issueDate: formData.get("issueDate") as string, 
@@ -167,7 +170,7 @@ export default function InvestmentsPage() {
     
     showAlert({ 
       title: "Renewed", 
-      description: "Investment cycle has been updated. Original opening date preserved.", 
+      description: "Investment cycle has been updated. Original inception values preserved.", 
       type: "success",
       onConfirm: () => window.location.reload()
     });
@@ -188,10 +191,12 @@ export default function InvestmentsPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         data.forEach((entry: any) => {
+          const principal = Number(entry["Principal"] || entry.principalAmount || 0);
           const mapped = {
             bankName: entry["Bank Name"] || entry.bankName || "",
             referenceNumber: entry["Ref No"] || entry.referenceNumber || "",
-            principalAmount: Number(entry["Principal"] || entry.principalAmount || 0),
+            principalAmount: principal,
+            initialPrincipalAmount: Number(entry["Initial Principal"] || entry.initialPrincipalAmount || principal),
             interestRate: Number(entry["Rate"] || entry.interestRate || 0) / 100,
             firstOpeningDate: entry["First Opening Date"] || entry.firstOpeningDate || entry["Issue Date"] || "",
             issueDate: entry["Renew Date"] || entry.issueDate || "",
@@ -221,6 +226,7 @@ export default function InvestmentsPage() {
         "Bank Name": "Sonali Bank PLC",
         "Ref No": "FDR-2024-001",
         "Principal": 1000000,
+        "Initial Principal": 1000000,
         "Rate": 12.5,
         "First Opening Date": "2020-01-01",
         "Renew Date": "2024-01-01",
@@ -265,13 +271,13 @@ export default function InvestmentsPage() {
                   </Button>
                 </div>
                 <DialogDescription>
-                  Upload your XLSX file. Use the template to ensure lifecycle dates (First Opening, Renew, Maturity) are handled correctly.
+                  Upload your XLSX file. Use the template to ensure lifecycle dates and initial principal tracking are handled correctly.
                 </DialogDescription>
               </DialogHeader>
               <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary opacity-50" />
                 <p className="font-bold">Select XLSX Investment File</p>
-                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">First Opening Date, Renew Date columns supported</p>
+                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">First Opening Date, Renew Date, Initial Principal supported</p>
                 <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} accept=".xlsx" />
                 {isUploading && <Loader2 className="size-4 animate-spin mx-auto mt-4" />}
               </div>
@@ -298,7 +304,14 @@ export default function InvestmentsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2"><Label>Principal Amount (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required /></div>
+                  <div className="space-y-2">
+                    <Label>Current Principal (৳)</Label>
+                    <Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Initial Principal (৳)</Label>
+                    <Input name="initialPrincipalAmount" type="number" step="0.01" defaultValue={editingInvestment?.initialPrincipalAmount} placeholder="Default: Same as principal" />
+                  </div>
                   <div className="space-y-2"><Label>Interest Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} required /></div>
                   
                   <div className="col-span-2 grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
@@ -367,7 +380,14 @@ export default function InvestmentsPage() {
               <TableRow key={inv.id} className="hover:bg-slate-50 transition-colors">
                 <TableCell><div className="flex flex-col"><span className="font-bold">{inv.bankName}</span><span className="font-mono text-[10px] text-muted-foreground">{inv.referenceNumber}</span></div></TableCell>
                 <TableCell><Badge variant="secondary" className="text-[10px] uppercase font-bold">{inv.instrumentType}</Badge></TableCell>
-                <TableCell className="text-right font-bold">৳ {Number(inv.principalAmount).toLocaleString()}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-sm">৳ {Number(inv.principalAmount).toLocaleString()}</span>
+                    {inv.initialPrincipalAmount && (
+                      <span className="text-[9px] text-muted-foreground uppercase font-medium">Initial: ৳{Number(inv.initialPrincipalAmount).toLocaleString()}</span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-right text-accent font-semibold">{(Number(inv.interestRate) * 100).toFixed(2)}%</TableCell>
                 <TableCell className="text-center">
                   <div className="flex items-center justify-center gap-2 text-[10px]">
@@ -410,13 +430,13 @@ export default function InvestmentsPage() {
               Renew Investment Cycle
             </DialogTitle>
             <DialogDescription>
-              Preserving original Opening Date: <b>{renewingInvestment?.firstOpeningDate || renewingInvestment?.issueDate}</b>
+              Preserving original Inception Principal: <b>৳{renewingInvestment?.initialPrincipalAmount?.toLocaleString() || renewingInvestment?.principalAmount?.toLocaleString()}</b>
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleRenewInvestment} className="space-y-4 pt-4">
             <div className="grid gap-4">
               <div className="space-y-2">
-                <Label>Current Principal (৳)</Label>
+                <Label>New Cycle Principal (৳)</Label>
                 <Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} required />
               </div>
               <div className="space-y-2">
