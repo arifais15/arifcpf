@@ -5,7 +5,25 @@ import { useState, useMemo, useRef, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, TrendingUp, Wallet, Edit2, Trash2, Loader2, AlertCircle, CheckCircle2, Clock, History, Building2, Upload, FileSpreadsheet, Download, ClipboardList } from "lucide-react";
+import { 
+  Search, 
+  Plus, 
+  TrendingUp, 
+  Wallet, 
+  Edit2, 
+  Trash2, 
+  Loader2, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock, 
+  History, 
+  Building2, 
+  Upload, 
+  FileSpreadsheet, 
+  Download, 
+  RefreshCw,
+  Calendar
+} from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -28,9 +46,11 @@ export default function InvestmentsPage() {
   const [search, setSearch] = useState("");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isRenewOpen, setIsRenewOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   const [editingInvestment, setEditingInvestment] = useState<any>(null);
+  const [renewingInvestment, setRenewingInvestment] = useState<any>(null);
 
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
@@ -68,7 +88,8 @@ export default function InvestmentsPage() {
       referenceNumber: formData.get("referenceNumber") as string,
       principalAmount: Number(formData.get("principalAmount")),
       interestRate: Number(formData.get("interestRate")) / 100,
-      issueDate: formData.get("issueDate") as string,
+      firstOpeningDate: formData.get("firstOpeningDate") as string,
+      issueDate: formData.get("issueDate") as string, // This serves as current Renew Date
       maturityDate: formData.get("maturityDate") as string,
       instrumentType: formData.get("instrumentType") as string,
       chartOfAccountId: formData.get("chartOfAccountId") as string,
@@ -81,21 +102,52 @@ export default function InvestmentsPage() {
       updateDocumentNonBlocking(docRef, investmentData);
       showAlert({ 
         title: "Updated", 
-        description: `Instrument ${investmentData.referenceNumber} updated. System will refresh.`, 
+        description: `Instrument ${investmentData.referenceNumber} updated.`, 
         type: "success",
         onConfirm: () => window.location.reload()
       });
     } else {
-      addDocumentNonBlocking(investmentsRef, investmentData);
+      addDocumentNonBlocking(investmentsRef, {
+        ...investmentData,
+        createdAt: new Date().toISOString()
+      });
       showAlert({ 
         title: "Success", 
-        description: `New ${investmentData.instrumentType} recorded. System will refresh.`, 
+        description: `New ${investmentData.instrumentType} recorded.`, 
         type: "success",
         onConfirm: () => window.location.reload()
       });
     }
     setIsAddOpen(false);
     setEditingInvestment(null);
+  };
+
+  const handleRenewInvestment = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    if (!renewingInvestment) return;
+
+    const renewData = {
+      principalAmount: Number(formData.get("principalAmount")),
+      interestRate: Number(formData.get("interestRate")) / 100,
+      issueDate: formData.get("renewDate") as string, // New Cycle Start
+      maturityDate: formData.get("maturityDate") as string,
+      status: "Active",
+      updatedAt: new Date().toISOString(),
+    };
+
+    const docRef = doc(firestore, "investmentInstruments", renewingInvestment.id);
+    updateDocumentNonBlocking(docRef, renewData);
+    
+    showAlert({ 
+      title: "Renewed", 
+      description: "Investment cycle has been updated. Original opening date preserved.", 
+      type: "success",
+      onConfirm: () => window.location.reload()
+    });
+    
+    setIsRenewOpen(false);
+    setRenewingInvestment(null);
   };
 
   const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,21 +164,22 @@ export default function InvestmentsPage() {
         data.forEach((entry: any) => {
           const mapped = {
             bankName: entry["Bank Name"] || entry.bankName || "",
-            referenceNumber: entry["Ref No"] || entry.referenceNumber || entry.refNo || "",
+            referenceNumber: entry["Ref No"] || entry.referenceNumber || "",
             principalAmount: Number(entry["Principal"] || entry.principalAmount || 0),
             interestRate: Number(entry["Rate"] || entry.interestRate || 0) / 100,
-            issueDate: entry["Issue Date"] || entry.issueDate || "",
+            firstOpeningDate: entry["First Opening Date"] || entry.firstOpeningDate || entry["Issue Date"] || "",
+            issueDate: entry["Renew Date"] || entry.issueDate || "",
             maturityDate: entry["Maturity Date"] || entry.maturityDate || "",
             instrumentType: entry["Instrument Type"] || entry.instrumentType || "FDR",
             chartOfAccountId: entry["chartOfAccountId"] || entry.chartOfAccountId || "101.10.0000",
-            status: entry["status"] || entry.status || "Active",
+            status: entry["Status"] || entry.status || "Active",
             updatedAt: new Date().toISOString()
           };
           if (mapped.bankName) addDocumentNonBlocking(investmentsRef, mapped);
         });
         showAlert({ 
           title: "Success", 
-          description: "Bulk processing complete. System will refresh.", 
+          description: "Bulk processing complete.", 
           type: "success",
           onConfirm: () => window.location.reload()
         });
@@ -143,17 +196,18 @@ export default function InvestmentsPage() {
         "Ref No": "FDR-2024-001",
         "Principal": 1000000,
         "Rate": 12.5,
-        "Issue Date": "2024-01-01",
+        "First Opening Date": "2020-01-01",
+        "Renew Date": "2024-01-01",
         "Maturity Date": "2025-01-01",
         "Instrument Type": "FDR",
         "chartOfAccountId": "101.10.0000",
-        "status": "Active"
+        "Status": "Active"
       }
     ];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Investments");
-    XLSX.writeFile(wb, "investments_bulk_template.xlsx");
+    XLSX.writeFile(wb, "investments_lifecycle_template.xlsx");
     toast({ title: "Template Downloaded" });
   };
 
@@ -171,7 +225,7 @@ export default function InvestmentsPage() {
       <div className="flex items-center justify-between no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">Investment Portfolio</h1>
-          <p className="text-muted-foreground">Managing institutional certificates, FDRs and Treasury Bonds</p>
+          <p className="text-muted-foreground">Managing institutional certificates with lifecycle tracking (Opening → Renewals → Maturity)</p>
         </div>
         <div className="flex items-center gap-3">
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
@@ -185,13 +239,13 @@ export default function InvestmentsPage() {
                   </Button>
                 </div>
                 <DialogDescription>
-                  Upload your XLSX file. Use the template to ensure column names match exactly.
+                  Upload your XLSX file. Use the template to ensure lifecycle dates (First Opening, Renew, Maturity) are handled correctly.
                 </DialogDescription>
               </DialogHeader>
               <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary opacity-50" />
                 <p className="font-bold">Select XLSX Investment File</p>
-                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">Bank Name, Ref No, Principal, Rate, Date columns required</p>
+                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">First Opening Date, Renew Date columns supported</p>
                 <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} accept=".xlsx" />
                 {isUploading && <Loader2 className="size-4 animate-spin mx-auto mt-4" />}
               </div>
@@ -206,10 +260,6 @@ export default function InvestmentsPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2 space-y-2"><Label>Bank Name</Label><Input name="bankName" defaultValue={editingInvestment?.bankName} required /></div>
                   <div className="space-y-2"><Label>Ref No (Reference)</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} required placeholder="e.g. FDR-12345" /></div>
-                  <div className="space-y-2"><Label>Principal Amount (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required /></div>
-                  <div className="space-y-2"><Label>Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? editingInvestment.interestRate * 100 : ""} required /></div>
-                  <div className="space-y-2"><Label>Issue Date</Label><Input name="issueDate" type="date" defaultValue={editingInvestment?.issueDate} required /></div>
-                  <div className="space-y-2"><Label>Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} /></div>
                   <div className="space-y-2">
                     <Label>Instrument Type</Label>
                     <Select name="instrumentType" defaultValue={editingInvestment?.instrumentType || "FDR"}>
@@ -222,6 +272,15 @@ export default function InvestmentsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+                  <div className="space-y-2"><Label>Principal Amount (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} required /></div>
+                  <div className="space-y-2"><Label>Interest Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} required /></div>
+                  
+                  <div className="col-span-2 grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-bold text-slate-500">First Opening</Label><Input name="firstOpeningDate" type="date" defaultValue={editingInvestment?.firstOpeningDate || editingInvestment?.issueDate} required /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-bold text-slate-500">Current Issue/Renew</Label><Input name="issueDate" type="date" defaultValue={editingInvestment?.issueDate} required /></div>
+                    <div className="space-y-2"><Label className="text-[10px] uppercase font-bold text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} /></div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label>GL Account Code</Label>
                     <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}>
@@ -231,7 +290,7 @@ export default function InvestmentsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="col-span-2 space-y-2">
+                  <div className="space-y-2">
                     <Label>Status</Label>
                     <Select name="status" defaultValue={editingInvestment?.status || "Active"}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
@@ -270,7 +329,7 @@ export default function InvestmentsPage() {
               <TableHead>Type</TableHead>
               <TableHead className="text-right">Principal (৳)</TableHead>
               <TableHead className="text-right">Rate</TableHead>
-              <TableHead className="text-center">Dates</TableHead>
+              <TableHead className="text-center">Timeline</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -285,14 +344,27 @@ export default function InvestmentsPage() {
                 <TableCell className="text-right font-bold">৳ {Number(inv.principalAmount).toLocaleString()}</TableCell>
                 <TableCell className="text-right text-accent font-semibold">{(Number(inv.interestRate) * 100).toFixed(2)}%</TableCell>
                 <TableCell className="text-center">
-                  <div className="flex flex-col text-[10px] gap-0.5">
-                    <span className="text-slate-400">Issue: {inv.issueDate}</span>
-                    <span className="font-bold">Mat: {inv.maturityDate || "N/A"}</span>
+                  <div className="flex items-center justify-center gap-2 text-[10px]">
+                    <div className="flex flex-col items-center">
+                      <span className="text-slate-400 font-bold uppercase">Opening</span>
+                      <span>{inv.firstOpeningDate || inv.issueDate}</span>
+                    </div>
+                    <ArrowRight className="size-3 text-slate-300" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-primary font-bold uppercase">Renewed</span>
+                      <span>{inv.issueDate}</span>
+                    </div>
+                    <ArrowRight className="size-3 text-slate-300" />
+                    <div className="flex flex-col items-center">
+                      <span className="text-rose-500 font-bold uppercase">Maturity</span>
+                      <span className="font-bold">{inv.maturityDate || "N/A"}</span>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(inv.status)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" title="Renew" onClick={() => { setRenewingInvestment(inv); setIsRenewOpen(true); }}><RefreshCw className="size-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => { showAlert({ title: "Delete Record?", description: `Remove ${inv.referenceNumber} from portfolio?`, type: "warning", showCancel: true, onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); window.location.reload(); } }); }}><Trash2 className="size-3.5" /></Button>
                   </div>
@@ -302,6 +374,47 @@ export default function InvestmentsPage() {
           </TableBody>
         </Table>
       </div>
+
+      {/* RENEW DIALOG */}
+      <Dialog open={isRenewOpen} onOpenChange={setIsRenewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="size-5 text-primary" />
+              Renew Investment Cycle
+            </DialogTitle>
+            <DialogDescription>
+              Preserving original Opening Date: <b>{renewingInvestment?.firstOpeningDate || renewingInvestment?.issueDate}</b>
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleRenewInvestment} className="space-y-4 pt-4">
+            <div className="grid gap-4">
+              <div className="space-y-2">
+                <Label>Current Principal (৳)</Label>
+                <Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} required />
+              </div>
+              <div className="space-y-2">
+                <Label>New Interest Rate (%)</Label>
+                <Input name="interestRate" type="number" step="0.01" defaultValue={renewingInvestment ? (renewingInvestment.interestRate * 100).toFixed(2) : ""} required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Renew Date</Label>
+                  <Input name="renewDate" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
+                </div>
+                <div className="space-y-2">
+                  <Label>New Maturity Date</Label>
+                  <Input name="maturityDate" type="date" required />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsRenewOpen(false)}>Cancel</Button>
+              <Button type="submit" className="gap-2"><CheckCircle2 className="size-4" /> Finalize Renewal</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -78,6 +78,24 @@
         }
       }
     },
+    "InvestmentInstrument": {
+      "title": "InvestmentInstrument",
+      "type": "object",
+      "description": "Fixed income or deposit instruments (FDR, Bonds).",
+      "properties": {
+        "id": { "type": "string" },
+        "bankName": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "principalAmount": { "type": "number" },
+        "interestRate": { "type": "number" },
+        "firstOpeningDate": { "type": "string", "format": "date" },
+        "issueDate": { "type": "string", "format": "date", "description": "Current cycle start or renew date" },
+        "maturityDate": { "type": "string", "format": "date" },
+        "instrumentType": { "type": "string" },
+        "chartOfAccountId": { "type": "string" },
+        "status": { "type": "string", "enum": ["Active", "Matured", "Closed"] }
+      }
+    },
     "SystemSettings": {
       "title": "SystemSettings",
       "type": "object",
@@ -85,23 +103,6 @@
       "properties": {
         "mapping": { "type": "object" },
         "debitAccounts": { "type": "array", "items": { "type": "string" } }
-      }
-    },
-    "InterestSettings": {
-      "title": "InterestSettings",
-      "type": "object",
-      "description": "Global system configuration for interest rate tiers.",
-      "properties": {
-        "tiers": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "limit": { "type": "number" },
-              "rate": { "type": "number" }
-            }
-          }
-        }
       }
     }
   },
@@ -115,8 +116,8 @@
         "definition": {
           "entityName": "SystemSettings",
           "schema": { "$ref": "#/backend/entities/SystemSettings" },
-          "description": "Stores system-wide configurations (ledger, interest).",
-          "params": [{ "name": "settingId", "description": "Setting ID (e.g., 'ledger', 'interest')." }]
+          "description": "Stores system-wide configurations.",
+          "params": [{ "name": "settingId", "description": "Setting ID." }]
         }
       },
       {
@@ -138,24 +139,12 @@
         }
       },
       {
-        "path": "/members/{memberId}/fundSummaries/{summaryId}",
+        "path": "/investmentInstruments/{id}",
         "definition": {
-          "entityName": "FundSummary",
-          "schema": { "$ref": "#/backend/entities/FundSummary" },
-          "description": "Member subsidiary ledger records.",
-          "params": [
-            { "name": "memberId", "description": "Parent member." },
-            { "name": "summaryId", "description": "Entry ID." }
-          ]
-        }
-      },
-      {
-        "path": "/journalEntries/{entryId}",
-        "definition": {
-          "entityName": "JournalEntry",
-          "schema": { "$ref": "#/backend/entities/JournalEntry" },
-          "description": "Accounting journal vouchers.",
-          "params": [{ "name": "entryId", "description": "Document ID." }]
+          "entityName": "InvestmentInstrument",
+          "schema": { "$ref": "#/backend/entities/InvestmentInstrument" },
+          "description": "Institutional investment portfolio items.",
+          "params": [{ "name": "id", "description": "Document ID." }]
         }
       }
     ]
