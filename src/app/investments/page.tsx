@@ -62,8 +62,36 @@ export default function InvestmentsPage() {
   const [renewDate, setRenewDate] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
 
+  // States for Add/Edit Form Auto-fills
+  const [formPrincipal, setFormPrincipal] = useState<string>("");
+  const [formInitialPrincipal, setFormInitialPrincipal] = useState<string>("");
+  const [formOpeningDate, setFormOpeningDate] = useState<string>("");
+  const [formIssueDate, setFormIssueDate] = useState<string>("");
+
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
+
+  // Sync form states when editing or opening add dialog
+  useEffect(() => {
+    if (editingInvestment) {
+      setFormPrincipal(editingInvestment.principalAmount?.toString() || "");
+      setFormInitialPrincipal(editingInvestment.initialPrincipalAmount?.toString() || "");
+      setFormOpeningDate(editingInvestment.firstOpeningDate || "");
+      setFormIssueDate(editingInvestment.issueDate || "");
+    } else {
+      setFormPrincipal("");
+      setFormInitialPrincipal("");
+      setFormOpeningDate("");
+      setFormIssueDate("");
+    }
+  }, [editingInvestment, isAddOpen]);
+
+  // Extract unique bank names for suggestions
+  const uniqueBankNames = useMemo(() => {
+    if (!investments) return [];
+    const names = new Set(investments.map(i => i.bankName).filter(Boolean));
+    return Array.from(names).sort();
+  }, [investments]);
 
   // Fetch history for selected instrument
   const historyQuery = useMemoFirebase(() => {
@@ -311,7 +339,19 @@ export default function InvestmentsPage() {
               <DialogHeader><DialogTitle className="text-2xl font-black">{editingInvestment ? "Edit" : "Add"} Investment Record</DialogTitle></DialogHeader>
               <form onSubmit={handleSaveInvestment} className="space-y-6 pt-4">
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="col-span-2 space-y-2"><Label className="text-sm font-black">Bank Name</Label><Input name="bankName" defaultValue={editingInvestment?.bankName} className="h-11 font-bold" required /></div>
+                  <div className="col-span-2 space-y-2">
+                    <Label className="text-sm font-black">Bank Name</Label>
+                    <Input 
+                      name="bankName" 
+                      list="bank-names"
+                      defaultValue={editingInvestment?.bankName} 
+                      className="h-11 font-bold" 
+                      required 
+                    />
+                    <datalist id="bank-names">
+                      {uniqueBankNames.map(name => <option key={name} value={name} />)}
+                    </datalist>
+                  </div>
                   <div className="space-y-2"><Label className="text-sm font-black">Ref No (Reference)</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} className="h-11 font-bold" required /></div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Instrument Type</Label>
@@ -327,17 +367,60 @@ export default function InvestmentsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Current Principal (৳)</Label>
-                    <Input name="principalAmount" type="number" step="0.01" defaultValue={editingInvestment?.principalAmount} className="h-11 font-bold" required />
+                    <Input 
+                      name="principalAmount" 
+                      type="number" 
+                      step="0.01" 
+                      value={formPrincipal}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormPrincipal(val);
+                        if (!editingInvestment) setFormInitialPrincipal(val);
+                      }}
+                      className="h-11 font-bold" 
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Initial Principal (৳)</Label>
-                    <Input name="initialPrincipalAmount" type="number" step="0.01" defaultValue={editingInvestment?.initialPrincipalAmount} className="h-11 font-bold" />
+                    <Input 
+                      name="initialPrincipalAmount" 
+                      type="number" 
+                      step="0.01" 
+                      value={formInitialPrincipal}
+                      onChange={(e) => setFormInitialPrincipal(e.target.value)}
+                      className="h-11 font-bold" 
+                    />
                   </div>
                   <div className="space-y-2"><Label className="text-sm font-black">Interest Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} className="h-11 font-bold" required /></div>
                   
                   <div className="col-span-2 grid grid-cols-3 gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-200">
-                    <div className="space-y-2"><Label className="text-[11px] uppercase font-black text-slate-500">First Opening</Label><Input name="firstOpeningDate" type="date" defaultValue={editingInvestment?.firstOpeningDate || editingInvestment?.issueDate} className="font-bold" required /></div>
-                    <div className="space-y-2"><Label className="text-[11px] uppercase font-black text-slate-500">Cycle Issue/Renew</Label><Input name="issueDate" type="date" defaultValue={editingInvestment?.issueDate} className="font-bold" required /></div>
+                    <div className="space-y-2">
+                      <Label className="text-[11px] uppercase font-black text-slate-500">First Opening</Label>
+                      <Input 
+                        name="firstOpeningDate" 
+                        type="date" 
+                        value={formOpeningDate}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormOpeningDate(val);
+                          if (!editingInvestment) setFormIssueDate(val);
+                        }}
+                        className="font-bold" 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[11px] uppercase font-black text-slate-500">Cycle Issue/Renew</Label>
+                      <Input 
+                        name="issueDate" 
+                        type="date" 
+                        value={formIssueDate}
+                        onChange={(e) => setFormIssueDate(e.target.value)}
+                        className="font-bold" 
+                        required 
+                      />
+                    </div>
                     <div className="space-y-2"><Label className="text-[11px] uppercase font-black text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} className="font-bold" /></div>
                   </div>
 
@@ -548,7 +631,12 @@ export default function InvestmentsPage() {
                     {isHistoryLoading ? (
                       <TableRow><TableCell colSpan={5} className="text-center py-16"><Loader2 className="size-8 animate-spin mx-auto text-slate-300" /></TableCell></TableRow>
                     ) : (!auditHistory || auditHistory.length === 0) ? (
-                      null
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-12">
+                          <Info className="size-8 mx-auto mb-2 text-slate-300" />
+                          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No previous renewal history found</p>
+                        </TableCell>
+                      </TableRow>
                     ) : auditHistory.map((h, i) => (
                       <TableRow key={i} className="hover:bg-slate-50 transition-colors opacity-90 border-b">
                         <TableCell className="text-sm font-black text-slate-500 uppercase pl-6 py-4">{h.cycleLabel || "Archived Cycle"}</TableCell>
