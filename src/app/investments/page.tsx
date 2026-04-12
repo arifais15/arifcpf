@@ -471,7 +471,7 @@ export default function InvestmentsPage() {
 
       {/* AUDIT HISTORY DIALOG */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto font-ledger">
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto font-ledger">
           <DialogHeader className="border-b pb-4">
             <DialogTitle className="flex items-center gap-3 text-xl font-bold">
               <ShieldCheck className="size-6 text-primary" />
@@ -495,67 +495,92 @@ export default function InvestmentsPage() {
             </div>
 
             <div className="space-y-4">
-              <h3 className="text-sm font-bold flex items-center gap-2 px-1">
-                <Clock className="size-4 text-slate-400" />
-                Lifecycle Timeline (Previous Cycles)
-              </h3>
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-sm font-bold flex items-center gap-2">
+                  <Clock className="size-4 text-slate-400" />
+                  Cycle Transaction Log
+                </h3>
+                <Badge variant="outline" className="text-[10px] uppercase font-black text-slate-400">Institutional Audit Trace</Badge>
+              </div>
               
-              <div className="relative pl-8 space-y-6 before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-                {/* Current State Indicator */}
-                <div className="relative">
-                  <div className="absolute -left-8 top-1 size-7 rounded-full bg-primary flex items-center justify-center border-4 border-white shadow-sm">
-                    <CheckCircle2 className="size-3 text-white" />
-                  </div>
-                  <div className="bg-white p-4 rounded-xl border-2 border-primary shadow-sm">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <Badge className="mb-2 bg-primary">CURRENT ACTIVE CYCLE</Badge>
-                        <p className="text-sm font-bold">৳ {viewingHistory?.principalAmount?.toLocaleString()} @ {(viewingHistory?.interestRate * 100).toFixed(2)}%</p>
-                      </div>
-                      <div className="text-right text-[10px] text-muted-foreground uppercase font-black">
-                        {viewingHistory?.issueDate} <ArrowRight className="inline size-2 mx-1" /> {viewingHistory?.maturityDate}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Historical Snapshots */}
-                {isHistoryLoading ? (
-                  <div className="flex justify-center py-8"><Loader2 className="size-6 animate-spin text-slate-300" /></div>
-                ) : (!auditHistory || auditHistory.length === 0) ? (
-                  <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed">
-                    <Info className="size-8 mx-auto mb-2 text-slate-300" />
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No previous renewal history found</p>
-                  </div>
-                ) : auditHistory.map((h, i) => (
-                  <div key={i} className="relative">
-                    <div className="absolute -left-8 top-1 size-7 rounded-full bg-slate-100 flex items-center justify-center border-4 border-white">
-                      <div className="size-1.5 rounded-full bg-slate-400" />
-                    </div>
-                    <div className="bg-slate-50/50 p-4 rounded-xl border border-slate-200">
-                      <div className="flex justify-between items-start opacity-70">
-                        <div>
-                          <p className="text-[10px] font-black uppercase text-slate-400 mb-1">{h.cycleLabel || "Archived Record"}</p>
-                          <p className="text-xs font-bold">৳ {h.principalAmount?.toLocaleString()} @ {(h.interestRate * 100).toFixed(2)}%</p>
+              <div className="border rounded-xl overflow-hidden shadow-sm">
+                <Table>
+                  <TableHeader className="bg-slate-50">
+                    <TableRow>
+                      <TableHead className="w-[150px] font-bold uppercase text-[10px]">Audit Cycle</TableHead>
+                      <TableHead className="font-bold uppercase text-[10px]">Effective Date Range</TableHead>
+                      <TableHead className="text-right font-bold uppercase text-[10px]">Principal (৳)</TableHead>
+                      <TableHead className="text-right font-bold uppercase text-[10px]">Rate (%)</TableHead>
+                      <TableHead className="text-center font-bold uppercase text-[10px]">Type</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* 1. Show Current Active Cycle First */}
+                    <TableRow className="bg-primary/5 hover:bg-primary/10 transition-colors">
+                      <TableCell className="font-black text-primary text-[11px] uppercase">Active Cycle</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 font-mono text-[11px]">
+                          <span className="font-bold">{viewingHistory?.issueDate}</span>
+                          <ArrowRight className="size-2 text-slate-300" />
+                          <span className="text-rose-600 font-bold">{viewingHistory?.maturityDate || "N/A"}</span>
                         </div>
-                        <div className="text-right text-[10px] font-mono text-slate-500">
-                          {h.issueDate} <ArrowRight className="inline size-2 mx-1" /> {h.maturityDate}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-right font-black text-slate-900">
+                        ৳ {viewingHistory?.principalAmount?.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-accent">
+                        {(viewingHistory?.interestRate * 100).toFixed(2)}%
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge className="bg-primary text-[9px] h-5 uppercase">Current</Badge>
+                      </TableCell>
+                    </TableRow>
 
-                {/* Original Opening Marker */}
-                <div className="relative">
-                  <div className="absolute -left-8 top-1 size-7 rounded-full bg-emerald-50 flex items-center justify-center border-4 border-white">
-                    <ArrowDownRight className="size-3 text-emerald-600" />
-                  </div>
-                  <div className="bg-emerald-50/30 p-4 rounded-xl border border-emerald-100">
-                    <p className="text-[10px] font-black uppercase text-emerald-600 mb-1">ORIGINAL INCEPTION</p>
-                    <p className="text-xs font-bold">Investment Opened on {viewingHistory?.firstOpeningDate}</p>
-                  </div>
-                </div>
+                    {/* 2. Show Historical Snapshots */}
+                    {isHistoryLoading ? (
+                      <TableRow><TableCell colSpan={5} className="text-center py-8"><Loader2 className="size-6 animate-spin mx-auto text-slate-300" /></TableCell></TableRow>
+                    ) : (!auditHistory || auditHistory.length === 0) ? (
+                      null
+                    ) : auditHistory.map((h, i) => (
+                      <TableRow key={i} className="hover:bg-slate-50 transition-colors opacity-80">
+                        <TableCell className="text-[11px] font-bold text-slate-500 uppercase">{h.cycleLabel || "Previous Cycle"}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
+                            <span>{h.issueDate}</span>
+                            <ArrowRight className="size-2 text-slate-300" />
+                            <span>{h.maturityDate}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-slate-600">
+                          ৳ {h.principalAmount?.toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right font-medium text-slate-600">
+                          {(h.interestRate * 100).toFixed(2)}%
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-[9px] h-5 uppercase border-slate-200 text-slate-400">Archived</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+
+                    {/* 3. Show Original Inception Marker */}
+                    <TableRow className="bg-emerald-50/30 border-t-2">
+                      <TableCell className="font-black text-emerald-700 text-[11px] uppercase">Initial Inception</TableCell>
+                      <TableCell className="font-mono text-[11px] font-bold text-emerald-600">
+                        Opened on {viewingHistory?.firstOpeningDate}
+                      </TableCell>
+                      <TableCell className="text-right font-black text-emerald-700">
+                        ৳ {viewingHistory?.initialPrincipalAmount?.toLocaleString()}
+                      </TableCell>
+                      <TableCell colSpan={2} className="text-center">
+                        <div className="flex items-center justify-center gap-2 text-emerald-600">
+                          <ArrowDownRight className="size-3" />
+                          <span className="text-[10px] font-black uppercase tracking-tighter">Genesis Record</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           </div>
