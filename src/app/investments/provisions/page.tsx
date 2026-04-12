@@ -35,6 +35,7 @@ export default function InvestmentProvisionsPage() {
 
   const [fyEndDate, setFyEndDate] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const TDS_RATE = 0.20; // 20% TDS
 
   // Defer date initialization to ensure same value on server/client
   useEffect(() => {
@@ -67,28 +68,32 @@ export default function InvestmentProvisionsPage() {
         const principal = Number(inv.principalAmount) || 0;
         
         // Formula: Principal * Rate * (Days / 365)
-        const accruedInterest = principal * rate * (days / 365);
+        const grossInterest = principal * rate * (days / 365);
+        const tdsAmount = grossInterest * TDS_RATE;
+        const netAccruedInterest = grossInterest - tdsAmount;
 
         return {
           ...inv,
           days,
-          accruedInterest,
+          grossInterest,
+          tdsAmount,
+          accruedInterest: netAccruedInterest, // Net for posting
           periodStart: inv.issueDate,
           periodEnd: fyEndDate
         };
       });
   }, [investments, fyEndDate]);
 
-  const totalAccrued = useMemo(() => {
-    return accrualData.reduce((sum, item) => sum + item.accruedInterest, 0);
-  }, [accrualData]);
+  const totalGross = useMemo(() => accrualData.reduce((sum, item) => sum + item.grossInterest, 0), [accrualData]);
+  const totalTDS = useMemo(() => accrualData.reduce((sum, item) => sum + item.tdsAmount, 0), [accrualData]);
+  const totalNet = useMemo(() => accrualData.reduce((sum, item) => sum + item.accruedInterest, 0), [accrualData]);
 
   const handlePostProvisions = async () => {
     if (accrualData.length === 0) return;
 
     showAlert({
       title: "Post Provisions?",
-      description: `Synchronize year-end interest accruals for ${accrualData.length} active investments?`,
+      description: `Synchronize year-end interest accruals (with 20% TDS) for ${accrualData.length} active investments?`,
       type: "warning",
       showCancel: true,
       confirmText: "Post to Logs",
@@ -109,6 +114,8 @@ export default function InvestmentProvisionsPage() {
               days: item.days,
               principalAmount: item.principalAmount,
               interestRate: item.interestRate,
+              grossInterest: Math.round(item.grossInterest),
+              tdsAmount: Math.round(item.tdsAmount),
               accruedInterest: Math.round(item.accruedInterest),
               postedAt: new Date().toISOString()
             });
@@ -116,7 +123,7 @@ export default function InvestmentProvisionsPage() {
 
           showAlert({
             title: "Success",
-            description: "Interest provisions have been logged successfully for audit.",
+            description: "Interest provisions (Net of 20% TDS) have been logged successfully.",
             type: "success"
           });
         } catch (error) {
@@ -134,15 +141,15 @@ export default function InvestmentProvisionsPage() {
       "Ref No": item.referenceNumber,
       "Principal (৳)": item.principalAmount,
       "Rate (%)": (Number(item.interestRate) * 100).toFixed(2),
-      "Start Date": item.periodStart,
-      "End Date": item.periodEnd,
       "Days": item.days,
-      "Accrued Interest (৳)": item.accruedInterest.toFixed(2)
+      "Gross Interest (৳)": item.grossInterest.toFixed(2),
+      "TDS (20%) (৳)": item.tdsAmount.toFixed(2),
+      "Net Accrued (৳)": item.accruedInterest.toFixed(2)
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Provisions");
-    XLSX.writeFile(wb, `Investment_Provisions_${fyEndDate}.xlsx`);
+    XLSX.writeFile(wb, `Investment_Provisions_TDS_${fyEndDate}.xlsx`);
   };
 
   return (
@@ -154,7 +161,7 @@ export default function InvestmentProvisionsPage() {
           </div>
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-black text-primary tracking-tight">Interest Provisions</h1>
-            <p className="text-lg font-bold text-slate-600 uppercase tracking-widest">Year-end Accrual Audit (June 30th Basis)</p>
+            <p className="text-lg font-bold text-slate-600 uppercase tracking-widest">Year-end Accrual Audit • 20% TDS Deducted</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -183,8 +190,8 @@ export default function InvestmentProvisionsPage() {
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center gap-3">
           <AlertCircle className="size-5 text-amber-600" />
           <p className="text-xs font-bold text-slate-600 leading-tight">
-            Provision Logic: <code>Principal * Rate * (Days / 365)</code>. <br/>
-            Calculates interest earned from the <b>Last Renewed Date</b> until <b>June 30th</b>.
+            <b>Provision Logic:</b> <code>(Gross - 20% TDS)</code>.<br/>
+            Calculates interest earned from <b>Renew Date</b> until <b>June 30th</b>.
           </p>
         </div>
         <Button 
@@ -200,26 +207,26 @@ export default function InvestmentProvisionsPage() {
       <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="bg-primary/5 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Total Projected Accrual</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Gross Accrual</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">৳ {totalAccrued.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-black text-slate-900">৳ {totalGross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
           </CardContent>
         </Card>
-        <Card className="bg-indigo-50 border-none shadow-sm rounded-3xl">
+        <Card className="bg-rose-50 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-indigo-600 tracking-widest opacity-70">Active Instruments</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">TDS Deduction (20%)</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">{accrualData.length} FDR/Bonds</div>
+            <div className="text-3xl font-black text-rose-700">৳ {totalTDS.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
           </CardContent>
         </Card>
         <Card className="bg-emerald-50 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Audit Alignment</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Net Provision</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900">100% Accurate</div>
+            <div className="text-3xl font-black text-emerald-700">৳ {totalNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
           </CardContent>
         </Card>
       </div>
@@ -238,17 +245,17 @@ export default function InvestmentProvisionsPage() {
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="font-black py-5 pl-6">Bank & Reference</TableHead>
-              <TableHead className="text-right font-black py-5">Principal (৳)</TableHead>
-              <TableHead className="text-right font-black py-5">Yield</TableHead>
-              <TableHead className="text-center font-black py-5">Provision Timeline</TableHead>
-              <TableHead className="text-right font-black py-5 pr-6 text-primary">Accrued Interest (৳)</TableHead>
+              <TableHead className="text-right font-black py-5">Gross Int. (৳)</TableHead>
+              <TableHead className="text-right font-black py-5 text-rose-600">TDS (20%) (৳)</TableHead>
+              <TableHead className="text-center font-black py-5">Days</TableHead>
+              <TableHead className="text-right font-black py-5 pr-6 text-primary">Net Accrued (৳)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : accrualData.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-bold text-lg italic">No active investments found for calculation.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-bold text-lg italic">No active investments found.</TableCell></TableRow>
             ) : accrualData.map((item) => (
               <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b">
                 <TableCell className="py-6 pl-6">
@@ -258,31 +265,18 @@ export default function InvestmentProvisionsPage() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="font-black text-base">৳ {item.principalAmount.toLocaleString()}</span>
+                  <span className="font-bold text-slate-600">৳ {item.grossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className="font-black text-indigo-700">{(Number(item.interestRate) * 100).toFixed(2)}%</span>
+                  <span className="font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                 </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-4 text-xs font-black">
-                    <div className="flex flex-col items-center">
-                      <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Last Renewed</span>
-                      <span className="text-slate-600">{item.periodStart}</span>
-                    </div>
-                    <div className="flex flex-col items-center bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100">
-                      <span className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mb-0.5">Days</span>
-                      <span className="text-indigo-700 text-sm">{item.days}d</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <span className="text-[9px] text-rose-400 font-black uppercase tracking-widest mb-1">Accrual End</span>
-                      <span className="text-rose-600 font-black">{item.periodEnd}</span>
-                    </div>
-                  </div>
+                  <Badge variant="secondary" className="font-black">{item.days}d</Badge>
                 </TableCell>
                 <TableCell className="text-right pr-6">
                   <div className="flex flex-col items-end">
                     <span className="font-black text-xl text-primary">৳ {item.accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Projected Provision</span>
+                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Net Provision</span>
                   </div>
                 </TableCell>
               </TableRow>
@@ -290,9 +284,9 @@ export default function InvestmentProvisionsPage() {
           </TableBody>
           <TableFooter className="bg-slate-900 text-white font-black">
             <TableRow>
-              <TableCell colSpan={4} className="text-right uppercase tracking-widest text-sm pl-6 py-6">Consolidated Interest Accrual for the Period:</TableCell>
+              <TableCell colSpan={4} className="text-right uppercase tracking-widest text-sm pl-6 py-6">Consolidated Net Interest Accrual:</TableCell>
               <TableCell className="text-right pr-6 py-6">
-                <span className="text-2xl underline decoration-double">৳ {totalAccrued.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span className="text-2xl underline decoration-double">৳ {totalNet.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </TableCell>
             </TableRow>
           </TableFooter>
@@ -305,7 +299,7 @@ export default function InvestmentProvisionsPage() {
           <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
           <h2 className="text-xl font-bold underline underline-offset-8 uppercase tracking-[0.2em]">Interest Provision (Accrual) Statement</h2>
           <div className="flex justify-between text-xs font-bold pt-6">
-            <span>Accrual Basis: From Last Renewal Date to {fyEndDate}</span>
+            <span>Basis: From Last Renewal Date to {fyEndDate} (Net of 20% TDS)</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
@@ -313,11 +307,11 @@ export default function InvestmentProvisionsPage() {
         <table className="w-full text-[10px] border-collapse border border-black">
           <thead>
             <tr className="bg-slate-100">
-              <th className="border border-black p-3 text-left w-[200px]">Bank Name & Reference</th>
-              <th className="border border-black p-3 text-right">Principal (৳)</th>
-              <th className="border border-black p-3 text-center">Rate</th>
-              <th className="border border-black p-3 text-center">Days Audited</th>
-              <th className="border border-black p-3 text-right font-black">Accrued Interest (৳)</th>
+              <th className="border border-black p-3 text-left">Bank & Reference</th>
+              <th className="border border-black p-3 text-right">Gross (৳)</th>
+              <th className="border border-black p-3 text-right text-rose-900">TDS (20%) (৳)</th>
+              <th className="border border-black p-3 text-center">Days</th>
+              <th className="border border-black p-3 text-right font-black">Net Accrued (৳)</th>
             </tr>
           </thead>
           <tbody>
@@ -327,18 +321,18 @@ export default function InvestmentProvisionsPage() {
                   <span className="font-bold">{item.bankName}</span><br/>
                   <span className="text-[8px] font-mono">{item.referenceNumber}</span>
                 </td>
-                <td className="border border-black p-3 text-right">{item.principalAmount.toLocaleString()}</td>
-                <td className="border border-black p-3 text-center">{(Number(item.interestRate) * 100).toFixed(2)}%</td>
-                <td className="border border-black p-3 text-center">{item.days} days</td>
+                <td className="border border-black p-3 text-right">{item.grossInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-3 text-right">{item.tdsAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-3 text-center">{item.days}</td>
                 <td className="border border-black p-3 text-right font-bold">{item.accruedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="bg-slate-50 font-black">
-              <td colSpan={4} className="border border-black p-3 text-right uppercase tracking-widest">Total Accrued Provision:</td>
+              <td colSpan={4} className="border border-black p-3 text-right uppercase tracking-widest">Total Net Accrued Provision:</td>
               <td className="border border-black p-3 text-right underline decoration-double">
-                ৳ {totalAccrued.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ৳ {totalNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </td>
             </tr>
           </tfoot>
@@ -348,11 +342,6 @@ export default function InvestmentProvisionsPage() {
           <div className="border-t border-black pt-2">Accountant (Audit)</div>
           <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
           <div className="border-t border-black pt-2">Approved By Trustee</div>
-        </div>
-        
-        <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
-          <span>PBS CPF Management Software • Accrual Module v1.0</span>
-          <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
         </div>
       </div>
     </div>

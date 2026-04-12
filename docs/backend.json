@@ -111,7 +111,9 @@
         "days": { "type": "number" },
         "principalAmount": { "type": "number" },
         "interestRate": { "type": "number" },
-        "accruedInterest": { "type": "number" },
+        "grossInterest": { "type": "number" },
+        "tdsAmount": { "type": "number" },
+        "accruedInterest": { "type": "number", "description": "Net interest after TDS" },
         "postedAt": { "type": "string" }
       }
     },
