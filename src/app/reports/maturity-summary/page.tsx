@@ -347,14 +347,14 @@ export default function InvestmentMaturityReportPage() {
           </div>
         </div>
       ) : (
-        /* --- OFFICIAL NOTE SHEET VIEW --- */
-        <Card className="max-w-4xl mx-auto border shadow-2xl rounded-none bg-white p-16 animate-in zoom-in duration-500 font-ledger text-black">
-          <div className="text-center space-y-2 mb-12 border-b-4 border-double border-black pb-8">
+        /* --- ENHANCED OFFICIAL NOTE SHEET VIEW --- */
+        <Card className="max-w-5xl mx-auto border shadow-2xl rounded-none bg-white p-12 print:p-0 print:border-none animate-in zoom-in duration-500 font-ledger text-black">
+          <div className="text-center space-y-2 mb-10 border-b-4 border-double border-black pb-8">
             <h1 className="text-3xl font-black uppercase tracking-tight">{pbsName}</h1>
             <h2 className="text-xl font-bold uppercase tracking-[0.3em] underline underline-offset-8">Office Note</h2>
           </div>
 
-          <div className="flex justify-between items-start mb-10 text-sm font-black">
+          <div className="flex justify-between items-start mb-8 text-sm font-black">
             <div className="space-y-1">
               <p>Reference: PBS/CPF/INVEST/{new Date().getFullYear()}/_______</p>
               <p>Section: Accounts / Finance</p>
@@ -364,87 +364,90 @@ export default function InvestmentMaturityReportPage() {
             </div>
           </div>
 
-          <div className="space-y-10">
+          <div className="space-y-8">
             <div className="flex gap-4">
               <span className="font-black uppercase min-w-[80px]">Subject:</span>
               <span className="font-black uppercase underline decoration-2 underline-offset-4 leading-relaxed">
-                Approval for encashment and re-investment of maturing fixed deposits (FDRs) / Investments maturing between {dateRange.start} and {dateRange.end}.
+                Approval for encashment or renewal of institutional investment certificates maturing between {dateRange.start} and {dateRange.end}.
               </span>
             </div>
 
             <div className="space-y-6 text-sm leading-relaxed text-justify font-medium">
               <p>
-                It is submitted for favor of kind information and necessary approval that several institutional investment certificates (FDRs/Bonds) 
-                held under the Contributory Provident Fund (CPF) of {pbsName} are reaching their respective maturity dates 
-                within the specified period from <b>{dateRange.start}</b> to <b>{dateRange.end}</b>.
-              </p>
-              
-              <p>
-                The following is a summarized schedule of the maturing instruments and their projected yields net of 20% TDS:
+                The following is a detailed schedule of institutional investment certificates held under the Contributory Provident Fund (CPF) 
+                that are reaching maturity within the period from <b>{dateRange.start}</b> to <b>{dateRange.end}</b>. This information is submitted 
+                for favor of kind review and necessary decision regarding their encashment or further renewal.
               </p>
 
-              <div className="py-4">
-                <table className="w-full border-collapse border border-black text-[11px]">
+              <div className="py-2 overflow-x-auto">
+                <table className="w-full border-collapse border border-black text-[10px]">
                   <thead>
-                    <tr className="bg-slate-50 font-black">
-                      <th className="border border-black p-2 text-left">Category / Bank Name</th>
+                    <tr className="bg-slate-100 font-black">
+                      <th className="border border-black p-2 text-left">Bank & Reference No.</th>
                       <th className="border border-black p-2 text-right">Principal (৳)</th>
-                      <th className="border border-black p-2 text-right">Net Interest (৳)</th>
+                      <th className="border border-black p-2 text-center">Rate (%)</th>
                       <th className="border border-black p-2 text-center">Maturity Date</th>
+                      <th className="border border-black p-2 text-right">Net Interest (৳)</th>
+                      <th className="border border-black p-2 text-center w-[120px]">Decision (Initial)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {groupedData.map(([code, items]) => {
-                      const accountName = activeCOA.find(a => a.code === code)?.name || "Other";
-                      const groupPrincipal = items.reduce((s, i) => s + (Number(i.principalAmount) || 0), 0);
-                      const groupNet = items.reduce((s, i) => s + i.netInterest, 0);
-                      return (
-                        <tr key={code} className="font-bold">
-                          <td className="border border-black p-2 uppercase">{accountName}</td>
-                          <td className="border border-black p-2 text-right">{groupPrincipal.toLocaleString()}</td>
-                          <td className="border border-black p-2 text-right">{groupNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                          <td className="border border-black p-2 text-center text-[10px]">Various</td>
-                        </tr>
-                      );
-                    })}
+                    {reportData.map((item, i) => (
+                      <tr key={i} className="font-bold">
+                        <td className="border border-black p-2">
+                          <span className="uppercase">{item.bankName}</span><br/>
+                          <span className="text-[8px] font-mono opacity-70">REF: {item.referenceNumber}</span>
+                        </td>
+                        <td className="border border-black p-2 text-right">{item.principalAmount?.toLocaleString()}</td>
+                        <td className="border border-black p-2 text-center">{(item.interestRate * 100).toFixed(2)}%</td>
+                        <td className="border border-black p-2 text-center">{item.maturityDate}</td>
+                        <td className="border border-black p-2 text-right">{item.netInterest?.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                        <td className="border border-black p-2 text-center italic text-slate-300 text-[8px]">Encash / Renew</td>
+                      </tr>
+                    ))}
                   </tbody>
-                  <tfoot className="bg-slate-100 font-black">
+                  <tfoot className="bg-slate-50 font-black">
                     <tr>
-                      <td className="border border-black p-2 text-right uppercase">Consolidated Total:</td>
+                      <td className="border border-black p-2 text-right uppercase">Consolidated Grand Total:</td>
                       <td className="border border-black p-2 text-right">৳ {totals.principal.toLocaleString()}</td>
+                      <td colSpan={2} className="border border-black p-2 text-center">—</td>
                       <td className="border border-black p-2 text-right">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                      <td className="border border-black p-2 text-center">—</td>
+                      <td className="border border-black p-2"></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
 
-              <p className="font-black italic">
-                * Note: Net Interest figures are computed after deducting 20% Tax (TDS) as per institutional policy.
-              </p>
-
-              <div className="space-y-4 pt-4">
-                <h4 className="font-black uppercase underline decoration-1 underline-offset-4">Recommendation / Proposal:</h4>
-                <p>
-                  Considering the current liquidity requirements for CPF loan disbursements and the existing market interest rates offered by various banks, 
-                  it is proposed that the maturing principal amounts, along with the accrued net interest, be:
-                </p>
-                <div className="pl-8 space-y-2 font-bold">
-                  <p>1. Re-invested in the same bank for another cycle at the highest available competitive rate.</p>
-                  <p>2. Encashed and transferred to the CPF STD Bank Account for upcoming fund disbursements.</p>
-                  <p>3. Partially encashed to meet immediate liabilities and the remainder re-invested.</p>
+              <div className="bg-slate-50 p-4 border border-black/10 rounded-lg">
+                <p className="font-black text-xs uppercase mb-2 underline">Analysis Summary:</p>
+                <div className="grid grid-cols-2 gap-x-12 gap-y-1">
+                  <div className="flex justify-between border-b border-black/5 py-1"><span>Aggregate Maturing Principal:</span> <b>৳ {totals.principal.toLocaleString()}</b></div>
+                  <div className="flex justify-between border-b border-black/5 py-1"><span>Estimated Net Interest (Post 20% TDS):</span> <b>৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></div>
+                  <div className="flex justify-between border-b border-black/5 py-1"><span>Total Estimated Fund Liquidity:</span> <b className="text-base">৳ {(totals.principal + totals.net).toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></div>
                 </div>
               </div>
 
-              <p className="pt-6">
-                Submitted for favor of your kind consideration and approval of the proposed action.
+              <div className="space-y-4 pt-4">
+                <h4 className="font-black uppercase underline decoration-1 underline-offset-4">Recommendation for Approval:</h4>
+                <p>
+                  Based on current cash flow requirements for member settlements and loan disbursements, it is proposed that:
+                </p>
+                <div className="pl-8 space-y-3 font-bold text-xs">
+                  <p>1. Instruments yielding below current market competitive rates may be encashed and re-invested in STD or higher-yield FDRs.</p>
+                  <p>2. Instruments with favorable institutional rates may be renewed for another term (e.g. 6 months or 1 year).</p>
+                  <p>3. A portion of the net yield may be transferred to the Operating Bank Account to meet immediate CPF liabilities.</p>
+                </div>
+              </div>
+
+              <p className="pt-6 font-black italic">
+                Submitted for kind information and approval of the proposed actions.
               </p>
             </div>
 
             <div className="mt-32 grid grid-cols-3 gap-16 text-center font-black text-xs">
-              <div className="border-t-2 border-black pt-3 uppercase">Accountant / AGM (Finance)</div>
+              <div className="border-t-2 border-black pt-3 uppercase">Accountant / AGM (F)</div>
               <div className="border-t-2 border-black pt-3 uppercase">Internal Auditor / DGM</div>
-              <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee / Chairman</div>
+              <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
             </div>
           </div>
         </Card>
@@ -555,50 +558,50 @@ export default function InvestmentMaturityReportPage() {
               <div className="flex gap-4">
                 <span className="font-black uppercase min-w-[60px]">Subject:</span>
                 <span className="font-black uppercase underline underline-offset-4">
-                  Approval for re-investment of FDRs maturing between {dateRange.start} and {dateRange.end}.
+                  Approval for encashment or renewal of FDRs maturing between {dateRange.start} and {dateRange.end}.
                 </span>
               </div>
 
               <p className="text-justify">
-                 Maturing investment certificates (FDRs/Bonds) totaling <b>৳ {totals.principal.toLocaleString()}</b> principal amount held under the CPF fund 
-                 are reaching their maturity within the period <b>{dateRange.start}</b> to <b>{dateRange.end}</b>. 
-                 Total expected net yield is <b>৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>.
+                 It is submitted that the following investment certificates totaling <b>৳ {totals.principal.toLocaleString()}</b> principal amount 
+                 held under the CPF fund are reaching their maturity. The estimated net yield after 20% TDS is <b>৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>.
               </p>
 
               <table className="w-full border-collapse border border-black text-[9px]">
                 <thead className="bg-slate-50 font-black">
                   <tr>
-                    <th className="border border-black p-1 text-left">Account Category</th>
+                    <th className="border border-black p-1 text-left">Bank & Ref.</th>
                     <th className="border border-black p-1 text-right">Principal (৳)</th>
+                    <th className="border border-black p-1 text-center">Maturity</th>
                     <th className="border border-black p-1 text-right">Net Yield (৳)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {groupedData.map(([code, items]) => {
-                    const accountName = activeCOA.find(a => a.code === code)?.name || "Other";
-                    const gp = items.reduce((s, i) => s + (Number(i.principalAmount) || 0), 0);
-                    const gn = items.reduce((s, i) => s + i.netInterest, 0);
-                    return (
-                      <tr key={code} className="font-bold">
-                        <td className="border border-black p-1">{accountName}</td>
-                        <td className="border border-black p-1 text-right">{gp.toLocaleString()}</td>
-                        <td className="border border-black p-1 text-right">{gn.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                      </tr>
-                    );
-                  })}
+                  {reportData.map((item, i) => (
+                    <tr key={i} className="font-bold">
+                      <td className="border border-black p-1">
+                        {item.bankName}<br/>
+                        <span className="text-[7px] opacity-60">{item.referenceNumber}</span>
+                      </td>
+                      <td className="border border-black p-1 text-right">{item.principalAmount?.toLocaleString()}</td>
+                      <td className="border border-black p-1 text-center">{item.maturityDate}</td>
+                      <td className="border border-black p-1 text-right">{item.netInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
                 </tbody>
-                <tfoot className="font-black">
+                <tfoot className="font-black bg-slate-50">
                   <tr>
-                    <td className="border border-black p-1 text-right">TOTAL:</td>
+                    <td className="border border-black p-1 text-right">GRAND TOTAL:</td>
                     <td className="border border-black p-1 text-right">৳ {totals.principal.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-center">—</td>
                     <td className="border border-black p-1 text-right">৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   </tr>
                 </tfoot>
               </table>
 
               <div className="space-y-2">
-                <h4 className="font-black uppercase underline underline-offset-2">Proposal:</h4>
-                <p>It is recommended to renew the maturing FDRs for a further term at the prevailing market interest rates.</p>
+                <h4 className="font-black uppercase underline underline-offset-2">Decision Proposal:</h4>
+                <p>It is recommended to evaluate each maturing certificate for either renewal at current market rates or encashment for liquidity requirements.</p>
               </div>
 
               <div className="mt-32 grid grid-cols-3 gap-12 text-center font-black text-[9px]">
