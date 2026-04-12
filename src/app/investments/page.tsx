@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -25,7 +24,8 @@ import {
   Calendar,
   ArrowRight,
   ShieldCheck,
-  ArrowDownRight
+  ArrowDownRight,
+  Info
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy } from "firebase/firestore";
