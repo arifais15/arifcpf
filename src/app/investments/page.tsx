@@ -522,7 +522,7 @@ export default function InvestmentsPage() {
                 {/* Historical Snapshots */}
                 {isHistoryLoading ? (
                   <div className="flex justify-center py-8"><Loader2 className="size-6 animate-spin text-slate-300" /></div>
-                ) : auditHistory?.length === 0 ? (
+                ) : (!auditHistory || auditHistory.length === 0) ? (
                   <div className="text-center py-12 bg-slate-50 rounded-xl border-2 border-dashed">
                     <Info className="size-8 mx-auto mb-2 text-slate-300" />
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No previous renewal history found</p>
