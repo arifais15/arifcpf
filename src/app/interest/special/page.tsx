@@ -377,6 +377,8 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
+            </Card>
+
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-bold text-slate-400">Sync Ledger Date</Label>
