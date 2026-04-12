@@ -97,6 +97,24 @@
         "status": { "type": "string", "enum": ["Active", "Matured", "Closed"] }
       }
     },
+    "InterestProvision": {
+      "title": "InterestProvision",
+      "type": "object",
+      "description": "Year-end interest accrual records for investments.",
+      "properties": {
+        "investmentId": { "type": "string" },
+        "bankName": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "fiscalYear": { "type": "string" },
+        "periodStart": { "type": "string", "format": "date" },
+        "periodEnd": { "type": "string", "format": "date" },
+        "days": { "type": "number" },
+        "principalAmount": { "type": "number" },
+        "interestRate": { "type": "number" },
+        "accruedInterest": { "type": "number" },
+        "postedAt": { "type": "string" }
+      }
+    },
     "SystemSettings": {
       "title": "SystemSettings",
       "type": "object",
@@ -146,6 +164,15 @@
           "schema": { "$ref": "#/backend/entities/InvestmentInstrument" },
           "description": "Institutional investment portfolio items.",
           "params": [{ "name": "id", "description": "Document ID." }]
+        }
+      },
+      {
+        "path": "/accruedInterestLogs/{id}",
+        "definition": {
+          "entityName": "InterestProvision",
+          "schema": { "$ref": "#/backend/entities/InterestProvision" },
+          "description": "Logs of accrued interest provisions.",
+          "params": [{ "name": "id", "description": "Log ID." }]
         }
       }
     ]
