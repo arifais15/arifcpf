@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -26,8 +25,10 @@ import {
   ArrowRight,
   ShieldCheck,
   ArrowDownRight,
-  Info
+  Info,
+  HandCoins
 } from "lucide-react";
+import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -310,6 +311,12 @@ export default function InvestmentsPage() {
           <p className="text-lg font-bold text-slate-600">Managing institutional certificates with lifecycle tracking and audit history</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" asChild className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-black h-11 text-base">
+            <Link href="/investments/provisions">
+              <HandCoins className="size-5" /> Interest Provisions
+            </Link>
+          </Button>
+
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild><Button variant="outline" className="gap-2 border-slate-300 font-black h-11 text-base"><Upload className="size-5" /> Bulk Upload</Button></DialogTrigger>
             <DialogContent className="max-w-2xl">
