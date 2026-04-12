@@ -17,7 +17,9 @@ import {
   ArrowRight,
   ArrowRightLeft,
   ArrowLeft,
-  BookOpen
+  BookOpen,
+  FileText,
+  Layout
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
@@ -29,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parseISO, startOfMonth, endOfMonth, format } from "date-fns";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 
 export default function InvestmentMaturityReportPage() {
   const firestore = useFirestore();
@@ -36,6 +39,7 @@ export default function InvestmentMaturityReportPage() {
   const TDS_RATE = 0.20; // 20% TDS
 
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [viewMode, setViewMode] = useState<"report" | "note">("report");
 
   // Initialize date range to current month
   useEffect(() => {
@@ -149,15 +153,30 @@ export default function InvestmentMaturityReportPage() {
           </Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-black text-primary tracking-tight">Provision Report</h1>
-            <p className="text-lg font-bold text-slate-600 uppercase tracking-widest">Full Cycle Yield Audit • Adjustment Journal Guide</p>
+            <p className="text-lg font-bold text-slate-600 uppercase tracking-widest">Full Cycle Yield Audit • Maturity Decision Matrix</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Button 
+            variant={viewMode === 'report' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('report')} 
+            className="gap-2 h-11 font-black"
+          >
+            <Layout className="size-5" /> Schedule View
+          </Button>
+          <Button 
+            variant={viewMode === 'note' ? 'default' : 'outline'} 
+            onClick={() => setViewMode('note')} 
+            className="gap-2 h-11 font-black border-amber-200 text-amber-700 hover:bg-amber-50"
+          >
+            <FileText className="size-5" /> Official Note
+          </Button>
+          <div className="w-px h-11 bg-slate-200 mx-2" />
           <Button variant="outline" onClick={exportToExcel} disabled={reportData.length === 0} className="gap-2 h-11 font-black border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-            <FileSpreadsheet className="size-5" /> Export Schedule
+            <FileSpreadsheet className="size-5" /> Export
           </Button>
           <Button onClick={() => window.print()} disabled={reportData.length === 0} className="gap-2 h-11 font-black shadow-lg shadow-primary/20">
-            <Printer className="size-5" /> Print Statement
+            <Printer className="size-5" /> Print
           </Button>
         </div>
       </div>
@@ -190,245 +209,406 @@ export default function InvestmentMaturityReportPage() {
         <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center gap-3">
           <AlertCircle className="size-5 text-amber-600" />
           <p className="text-xs font-bold text-amber-800 leading-tight">
-            Showing instruments with <b>Maturity Date</b> between selected range.
+            Institutional Rule: Showing all active instruments with <b>Maturity Date</b> within the specified range.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4 no-print">
-        <Card className="bg-slate-50 border-none shadow-sm rounded-3xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-slate-500 tracking-widest">Selected Principal</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-slate-900">৳ {totals.principal.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-primary/5 border-none shadow-sm rounded-3xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Total Gross Yield</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-primary">৳ {totals.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-rose-50 border-none shadow-sm rounded-3xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">Expected Tax (20%)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-rose-700">৳ {totals.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-emerald-50 border-none shadow-sm rounded-3xl">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Net Maturity Yield</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-black text-emerald-700">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
-          </CardContent>
-        </Card>
-      </div>
+      {viewMode === 'report' ? (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="grid gap-6 md:grid-cols-4 no-print">
+            <Card className="bg-slate-50 border-none shadow-sm rounded-3xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-black uppercase text-slate-500 tracking-widest">Maturing Principal</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-slate-900">৳ {totals.principal.toLocaleString()}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-primary/5 border-none shadow-sm rounded-3xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Total Gross Yield</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-primary">৳ {totals.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-rose-50 border-none shadow-sm rounded-3xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">Expected Tax (20%)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-rose-700">৳ {totals.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </CardContent>
+            </Card>
+            <Card className="bg-emerald-50 border-none shadow-sm rounded-3xl">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Net Maturity Yield</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-black text-emerald-700">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+              </CardContent>
+            </Card>
+          </div>
 
-      <div className="bg-card rounded-3xl shadow-2xl border overflow-hidden no-print">
-        <div className="p-6 border-b bg-slate-50/50 flex items-center justify-between">
-          <h2 className="text-xl font-black flex items-center gap-3">
-            <TrendingUp className="size-6 text-indigo-600" />
-            Full Cycle Interest Matrix (Grouped)
-          </h2>
-          <Badge variant="outline" className="bg-white border-slate-200 px-4 py-1.5 font-black uppercase text-[10px]">
-            Period: {dateRange.start} to {dateRange.end}
-          </Badge>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/30 hover:bg-muted/30">
-              <TableHead className="font-black py-5 pl-6">Bank & Reference</TableHead>
-              <TableHead className="text-center font-black py-5">Cycle / Tenure</TableHead>
-              <TableHead className="text-right font-black py-5">Principal (৳)</TableHead>
-              <TableHead className="text-right font-black py-5">Gross Yield (৳)</TableHead>
-              <TableHead className="text-right font-black py-5 text-rose-600">TDS (20%)</TableHead>
-              <TableHead className="text-right font-black py-5 pr-6 text-primary">Net at Maturity (৳)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-            ) : reportData.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-bold text-lg italic">No active investments maturing in this period.</TableCell></TableRow>
-            ) : groupedData.map(([code, items]) => {
-              const accountName = activeCOA.find(a => a.code === code)?.name || "Other Investment";
-              const groupSubtotal = items.reduce((acc, curr) => ({
-                gross: acc.gross + curr.totalGrossInterest,
-                tds: acc.tds + curr.tdsAmount,
-                net: acc.net + curr.netInterest,
-                principal: acc.principal + (Number(curr.principalAmount) || 0)
-              }), { gross: 0, tds: 0, net: 0, principal: 0 });
+          <div className="bg-card rounded-3xl shadow-2xl border overflow-hidden no-print">
+            <div className="p-6 border-b bg-slate-50/50 flex items-center justify-between">
+              <h2 className="text-xl font-black flex items-center gap-3">
+                <TrendingUp className="size-6 text-indigo-600" />
+                Investment Yield Schedule (Grouped by Account)
+              </h2>
+              <Badge variant="outline" className="bg-white border-slate-200 px-4 py-1.5 font-black uppercase text-[10px]">
+                Audit Period: {dateRange.start} to {dateRange.end}
+              </Badge>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/30 hover:bg-muted/30">
+                  <TableHead className="font-black py-5 pl-6">Bank & Reference</TableHead>
+                  <TableHead className="text-center font-black py-5">Cycle / Tenure</TableHead>
+                  <TableHead className="text-right font-black py-5">Principal (৳)</TableHead>
+                  <TableHead className="text-right font-black py-5">Gross Yield (৳)</TableHead>
+                  <TableHead className="text-right font-black py-5 text-rose-600">TDS (20%)</TableHead>
+                  <TableHead className="text-right font-black py-5 pr-6 text-primary">Net at Maturity (৳)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+                ) : reportData.length === 0 ? (
+                  <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-bold text-lg italic">No maturing investments in this range.</TableCell></TableRow>
+                ) : groupedData.map(([code, items]) => {
+                  const accountName = activeCOA.find(a => a.code === code)?.name || "Other Investment";
+                  const groupSubtotal = items.reduce((acc, curr) => ({
+                    gross: acc.gross + curr.totalGrossInterest,
+                    tds: acc.tds + curr.tdsAmount,
+                    net: acc.net + curr.netInterest,
+                    principal: acc.principal + (Number(curr.principalAmount) || 0)
+                  }), { gross: 0, tds: 0, net: 0, principal: 0 });
 
-              return (
-                <React.Fragment key={code}>
-                  {/* Account Group Header */}
-                  <TableRow className="bg-slate-100/50">
-                    <TableCell colSpan={6} className="py-2 pl-6">
-                      <span className="font-black text-[11px] uppercase tracking-widest text-indigo-700 flex items-center gap-2">
-                        <BookOpen className="size-3.5" /> Account Code: {code} — {accountName}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-
-                  {/* Account Items */}
-                  {items.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b">
-                      <TableCell className="py-6 pl-6">
-                        <div className="flex flex-col">
-                          <span className="font-black text-slate-900 text-base">{item.bankName}</span>
-                          <span className="font-mono text-[11px] text-muted-foreground font-bold uppercase tracking-tight">Ref: {item.referenceNumber}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex flex-col items-center">
-                          <div className="flex items-center gap-2 font-black text-[11px] text-slate-600">
-                            <span>{item.issueDate}</span>
-                            <ArrowRight className="size-3 text-slate-300" />
-                            <span className="text-rose-600">{item.maturityDate || "N/A"}</span>
-                          </div>
-                          <Badge variant="secondary" className="mt-1 h-5 text-[10px] font-black">{item.tenureDays} Days Tenure</Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-bold text-slate-600">
-                        ৳ {Number(item.principalAmount).toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-black text-slate-900">৳ {item.totalGrossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex flex-col items-end">
-                          <span className="font-black text-xl text-primary">৳ {item.netInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                          <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Total Yield</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-
-                  {/* Account Group Subtotal */}
-                  <TableRow className="bg-slate-50 border-b-2 font-black">
-                    <TableCell colSpan={2} className="text-right py-4 pr-10 uppercase text-[10px] text-slate-500 tracking-wider italic">
-                      Subtotal {code} ({items.length} Units):
-                    </TableCell>
-                    <TableCell className="text-right py-4 text-slate-900">৳ {groupSubtotal.principal.toLocaleString()}</TableCell>
-                    <TableCell className="text-right py-4 text-slate-900">৳ {groupSubtotal.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right py-4 text-rose-700">৳ {groupSubtotal.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                    <TableCell className="text-right py-4 pr-6 text-primary">৳ {groupSubtotal.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                  </TableRow>
-                </React.Fragment>
-              );
-            })}
-          </TableBody>
-          <TableFooter className="bg-slate-900 text-white font-black">
-            <TableRow>
-              <TableCell colSpan={5} className="text-right uppercase tracking-widest text-sm pl-6 py-6">Consolidated Maturity Yield (Net):</TableCell>
-              <TableCell className="text-right pr-6 py-6">
-                <span className="text-2xl underline decoration-double">৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
-      </div>
-
-      <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex gap-4 items-start no-print">
-        <ShieldCheck className="size-8 text-blue-600 shrink-0" />
-        <div className="space-y-1">
-          <h3 className="font-black text-blue-800 uppercase text-sm">Adjustment Journal Guide</h3>
-          <p className="text-sm text-blue-700 leading-relaxed font-bold">
-            Use the "Subtotal" rows to record group-level adjustments for institutional reporting. 
-            Adjustments should be posted to <b>Accrued Interest (106.10.0000)</b> or <b>Interest Income (400.10.0000)</b> based on your periodic recognition rules.
-          </p>
-        </div>
-      </div>
-
-      {/* INSTITUTIONAL PRINT VIEW (Landscape) */}
-      <div className="hidden print:block print-container text-black">
-        <div className="text-center space-y-2 mb-10 border-b-2 border-black pb-8">
-          <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
-          <h2 className="text-xl font-bold underline underline-offset-8 uppercase tracking-[0.2em]">Investment Maturity Interest Schedule</h2>
-          <div className="flex justify-between text-xs font-bold pt-6">
-            <span>Report Period: From {dateRange.start} to {dateRange.end} (Maturity Basis)</span>
-            <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
+                  return (
+                    <React.Fragment key={code}>
+                      <TableRow className="bg-slate-100/50">
+                        <TableCell colSpan={6} className="py-2 pl-6">
+                          <span className="font-black text-[11px] uppercase tracking-widest text-indigo-700 flex items-center gap-2">
+                            <BookOpen className="size-3.5" /> {code} — {accountName}
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                      {items.map((item) => (
+                        <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b">
+                          <TableCell className="py-6 pl-6">
+                            <div className="flex flex-col">
+                              <span className="font-black text-slate-900 text-base">{item.bankName}</span>
+                              <span className="font-mono text-[11px] text-muted-foreground font-bold uppercase tracking-tight">Ref: {item.referenceNumber}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center">
+                              <div className="flex items-center gap-2 font-black text-[11px] text-slate-600">
+                                <span>{item.issueDate}</span>
+                                <ArrowRight className="size-3 text-slate-300" />
+                                <span className="text-rose-600 font-black">{item.maturityDate}</span>
+                              </div>
+                              <Badge variant="secondary" className="mt-1 h-5 text-[10px] font-black">{item.tenureDays} Days</Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-slate-600">৳ {Number(item.principalAmount).toLocaleString()}</TableCell>
+                          <TableCell className="text-right font-black text-slate-900">৳ {item.totalGrossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                          <TableCell className="text-right pr-6">
+                            <div className="flex flex-col items-end">
+                              <span className="font-black text-xl text-primary">৳ {item.netInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                              <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Total Yield</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-slate-50 border-b-2 font-black">
+                        <TableCell colSpan={2} className="text-right py-4 pr-10 uppercase text-[10px] text-slate-500 italic tracking-wider">Subtotal Category {code}:</TableCell>
+                        <TableCell className="text-right py-4 text-slate-900">৳ {groupSubtotal.principal.toLocaleString()}</TableCell>
+                        <TableCell className="text-right py-4 text-slate-900">৳ {groupSubtotal.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right py-4 text-rose-700">৳ {groupSubtotal.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                        <TableCell className="text-right py-4 pr-6 text-primary">৳ {groupSubtotal.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                      </TableRow>
+                    </React.Fragment>
+                  );
+                })}
+              </TableBody>
+              <TableFooter className="bg-slate-900 text-white font-black">
+                <TableRow>
+                  <TableCell colSpan={5} className="text-right uppercase tracking-widest text-sm pl-6 py-6">Consolidated Portfolio Net Maturity Yield:</TableCell>
+                  <TableCell className="text-right pr-6 py-6">
+                    <span className="text-2xl underline decoration-double">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  </TableCell>
+                </TableRow>
+              </TableFooter>
+            </Table>
           </div>
         </div>
+      ) : (
+        /* --- OFFICIAL NOTE SHEET VIEW --- */
+        <Card className="max-w-4xl mx-auto border shadow-2xl rounded-none bg-white p-16 animate-in zoom-in duration-500 font-ledger text-black">
+          <div className="text-center space-y-2 mb-12 border-b-4 border-double border-black pb-8">
+            <h1 className="text-3xl font-black uppercase tracking-tight">{pbsName}</h1>
+            <h2 className="text-xl font-bold uppercase tracking-[0.3em] underline underline-offset-8">Office Note</h2>
+          </div>
 
-        <table className="w-full text-[9px] border-collapse border border-black">
-          <thead>
-            <tr className="bg-slate-100">
-              <th className="border border-black p-2 text-left">Bank & Reference</th>
-              <th className="border border-black p-2 text-center">Cycle (Issue - Mature)</th>
-              <th className="border border-black p-2 text-right">Principal (৳)</th>
-              <th className="border border-black p-2 text-right">Gross Yield (৳)</th>
-              <th className="border border-black p-2 text-right">TDS (20%) (৳)</th>
-              <th className="border border-black p-2 text-right font-black">Net Yield (৳)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groupedData.map(([code, items]) => {
-              const groupSubtotal = items.reduce((acc, curr) => ({
-                gross: acc.gross + curr.totalGrossInterest,
-                tds: acc.tds + curr.tdsAmount,
-                net: acc.net + curr.netInterest,
-                principal: acc.principal + (Number(curr.principalAmount) || 0)
-              }), { gross: 0, tds: 0, net: 0, principal: 0 });
+          <div className="flex justify-between items-start mb-10 text-sm font-black">
+            <div className="space-y-1">
+              <p>Reference: PBS/CPF/INVEST/{new Date().getFullYear()}/_______</p>
+              <p>Section: Accounts / Finance</p>
+            </div>
+            <div className="text-right">
+              <p>Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            </div>
+          </div>
 
-              return (
-                <React.Fragment key={code}>
-                  <tr className="bg-slate-50 font-black">
-                    <td colSpan={6} className="border border-black p-1 text-[8px] uppercase tracking-wider pl-4">
-                      ACCOUNT CATEGORY: {code} — {activeCOA.find(a => a.code === code)?.name || "OTHER"}
-                    </td>
-                  </tr>
-                  {items.map((item, i) => (
-                    <tr key={i}>
-                      <td className="border border-black p-2">
-                        <span className="font-bold">{item.bankName}</span><br/>
-                        <span className="text-[7px] font-mono">{item.referenceNumber}</span>
-                      </td>
-                      <td className="border border-black p-2 text-center">
-                        {item.issueDate} to {item.maturityDate}<br/>
-                        <span className="text-[7px] uppercase">({item.tenureDays} Days)</span>
-                      </td>
-                      <td className="border border-black p-2 text-right">{Number(item.principalAmount).toLocaleString()}</td>
-                      <td className="border border-black p-2 text-right">{item.totalGrossInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                      <td className="border border-black p-2 text-right">{item.tdsAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                      <td className="border border-black p-2 text-right font-bold">{item.netInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+          <div className="space-y-10">
+            <div className="flex gap-4">
+              <span className="font-black uppercase min-w-[80px]">Subject:</span>
+              <span className="font-black uppercase underline decoration-2 underline-offset-4 leading-relaxed">
+                Approval for encashment and re-investment of maturing fixed deposits (FDRs) / Investments maturing between {dateRange.start} and {dateRange.end}.
+              </span>
+            </div>
+
+            <div className="space-y-6 text-sm leading-relaxed text-justify font-medium">
+              <p>
+                It is submitted for favor of kind information and necessary approval that several institutional investment certificates (FDRs/Bonds) 
+                held under the Contributory Provident Fund (CPF) of {pbsName} are reaching their respective maturity dates 
+                within the specified period from <b>{dateRange.start}</b> to <b>{dateRange.end}</b>.
+              </p>
+              
+              <p>
+                The following is a summarized schedule of the maturing instruments and their projected yields net of 20% TDS:
+              </p>
+
+              <div className="py-4">
+                <table className="w-full border-collapse border border-black text-[11px]">
+                  <thead>
+                    <tr className="bg-slate-50 font-black">
+                      <th className="border border-black p-2 text-left">Category / Bank Name</th>
+                      <th className="border border-black p-2 text-right">Principal (৳)</th>
+                      <th className="border border-black p-2 text-right">Net Interest (৳)</th>
+                      <th className="border border-black p-2 text-center">Maturity Date</th>
                     </tr>
-                  ))}
-                  <tr className="bg-slate-50 font-black text-[10px]">
-                    <td colSpan={2} className="border border-black p-2 text-right uppercase text-[8px]">Group Subtotal ({code}):</td>
-                    <td className="border border-black p-2 text-right">{groupSubtotal.principal.toLocaleString()}</td>
-                    <td className="border border-black p-2 text-right">{groupSubtotal.gross.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="border border-black p-2 text-right">{groupSubtotal.tds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td className="border border-black p-2 text-right underline">৳ {groupSubtotal.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  </tr>
-                </React.Fragment>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-900 text-white font-black">
-              <td colSpan={5} className="border border-black p-3 text-right uppercase tracking-widest text-sm">Consolidated Portfolio Net Yield:</td>
-              <td className="border border-black p-3 text-right text-base underline decoration-double">
-                ৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
+                  </thead>
+                  <tbody>
+                    {groupedData.map(([code, items]) => {
+                      const accountName = activeCOA.find(a => a.code === code)?.name || "Other";
+                      const groupPrincipal = items.reduce((s, i) => s + (Number(i.principalAmount) || 0), 0);
+                      const groupNet = items.reduce((s, i) => s + i.netInterest, 0);
+                      return (
+                        <tr key={code} className="font-bold">
+                          <td className="border border-black p-2 uppercase">{accountName}</td>
+                          <td className="border border-black p-2 text-right">{groupPrincipal.toLocaleString()}</td>
+                          <td className="border border-black p-2 text-right">{groupNet.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-2 text-center text-[10px]">Various</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-slate-100 font-black">
+                    <tr>
+                      <td className="border border-black p-2 text-right uppercase">Consolidated Total:</td>
+                      <td className="border border-black p-2 text-right">৳ {totals.principal.toLocaleString()}</td>
+                      <td className="border border-black p-2 text-right">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="border border-black p-2 text-center">—</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
 
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-bold text-center">
-          <div className="border-t border-black pt-2">Accountant (Audit)</div>
-          <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
-          <div className="border-t border-black pt-2">Approved By Trustee</div>
-        </div>
+              <p className="font-black italic">
+                * Note: Net Interest figures are computed after deducting 20% Tax (TDS) as per institutional policy.
+              </p>
+
+              <div className="space-y-4 pt-4">
+                <h4 className="font-black uppercase underline decoration-1 underline-offset-4">Recommendation / Proposal:</h4>
+                <p>
+                  Considering the current liquidity requirements for CPF loan disbursements and the existing market interest rates offered by various banks, 
+                  it is proposed that the maturing principal amounts, along with the accrued net interest, be:
+                </p>
+                <div className="pl-8 space-y-2 font-bold">
+                  <p>1. Re-invested in the same bank for another cycle at the highest available competitive rate.</p>
+                  <p>2. Encashed and transferred to the CPF STD Bank Account for upcoming fund disbursements.</p>
+                  <p>3. Partially encashed to meet immediate liabilities and the remainder re-invested.</p>
+                </div>
+              </div>
+
+              <p className="pt-6">
+                Submitted for favor of your kind consideration and approval of the proposed action.
+              </p>
+            </div>
+
+            <div className="mt-32 grid grid-cols-3 gap-16 text-center font-black text-xs">
+              <div className="border-t-2 border-black pt-3 uppercase">Accountant / AGM (Finance)</div>
+              <div className="border-t-2 border-black pt-3 uppercase">Internal Auditor / DGM</div>
+              <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee / Chairman</div>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* --- INSTITUTIONAL PRINT VIEW (Landscape) --- */}
+      <div className="hidden print:block print-container text-black">
+        {viewMode === 'report' ? (
+          <>
+            <div className="text-center space-y-2 mb-10 border-b-2 border-black pb-8">
+              <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
+              <h2 className="text-xl font-bold underline underline-offset-8 uppercase tracking-[0.2em]">Investment Maturity Interest Schedule</h2>
+              <div className="flex justify-between text-xs font-bold pt-6">
+                <span>Report Period: From {dateRange.start} to {dateRange.end} (Maturity Basis)</span>
+                <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
+              </div>
+            </div>
+
+            <table className="w-full text-[9px] border-collapse border border-black">
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="border border-black p-2 text-left">Bank & Reference</th>
+                  <th className="border border-black p-2 text-center">Cycle (Issue - Mature)</th>
+                  <th className="border border-black p-2 text-right">Principal (৳)</th>
+                  <th className="border border-black p-2 text-right">Gross Yield (৳)</th>
+                  <th className="border border-black p-2 text-right">TDS (20%) (৳)</th>
+                  <th className="border border-black p-2 text-right font-black">Net Yield (৳)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {groupedData.map(([code, items]) => {
+                  const groupSubtotal = items.reduce((acc, curr) => ({
+                    gross: acc.gross + curr.totalGrossInterest,
+                    tds: acc.tds + curr.tdsAmount,
+                    net: acc.net + curr.netInterest,
+                    principal: acc.principal + (Number(curr.principalAmount) || 0)
+                  }), { gross: 0, tds: 0, net: 0, principal: 0 });
+
+                  return (
+                    <React.Fragment key={code}>
+                      <tr className="bg-slate-50 font-black">
+                        <td colSpan={6} className="border border-black p-1 text-[8px] uppercase tracking-wider pl-4">
+                          ACCOUNT CATEGORY: {code} — {activeCOA.find(a => a.code === code)?.name || "OTHER"}
+                        </td>
+                      </tr>
+                      {items.map((item, i) => (
+                        <tr key={i}>
+                          <td className="border border-black p-2">
+                            <span className="font-bold">{item.bankName}</span><br/>
+                            <span className="text-[7px] font-mono">{item.referenceNumber}</span>
+                          </td>
+                          <td className="border border-black p-2 text-center">
+                            {item.issueDate} to {item.maturityDate}<br/>
+                            <span className="text-[7px] uppercase">({item.tenureDays} Days)</span>
+                          </td>
+                          <td className="border border-black p-2 text-right">{Number(item.principalAmount).toLocaleString()}</td>
+                          <td className="border border-black p-2 text-right">{item.totalGrossInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-2 text-right">{item.tdsAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td className="border border-black p-2 text-right font-bold">{item.netInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      ))}
+                      <tr className="bg-slate-50 font-black text-[10px]">
+                        <td colSpan={2} className="border border-black p-2 text-right uppercase text-[8px]">Group Subtotal ({code}):</td>
+                        <td className="border border-black p-2 text-right">{groupSubtotal.principal.toLocaleString()}</td>
+                        <td className="border border-black p-2 text-right">{groupSubtotal.gross.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="border border-black p-2 text-right">{groupSubtotal.tds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="border border-black p-2 text-right underline">৳ {groupSubtotal.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="bg-slate-900 text-white font-black">
+                  <td colSpan={5} className="border border-black p-3 text-right uppercase tracking-widest text-sm">Consolidated Portfolio Net Yield:</td>
+                  <td className="border border-black p-3 text-right text-base underline decoration-double">
+                    ৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+
+            <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-bold text-center">
+              <div className="border-t border-black pt-2">Accountant (Audit)</div>
+              <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
+              <div className="border-t border-black pt-2">Approved By Trustee</div>
+            </div>
+          </>
+        ) : (
+          /* Official Note Print Layout (Portrait Optimized) */
+          <div className="print-portrait-fix mx-auto p-0 text-black font-ledger">
+            <div className="text-center space-y-2 mb-12 border-b-4 border-double border-black pb-8">
+              <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
+              <h2 className="text-lg font-bold uppercase tracking-[0.3em] underline underline-offset-8">Office Note</h2>
+            </div>
+
+            <div className="flex justify-between items-start mb-10 text-xs font-black">
+              <div className="space-y-1">
+                <p>Reference: PBS/CPF/INVEST/{new Date().getFullYear()}/_______</p>
+                <p>Section: Accounts / Finance</p>
+              </div>
+              <div className="text-right">
+                <p>Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+              </div>
+            </div>
+
+            <div className="space-y-8 text-xs leading-relaxed font-medium">
+              <div className="flex gap-4">
+                <span className="font-black uppercase min-w-[60px]">Subject:</span>
+                <span className="font-black uppercase underline underline-offset-4">
+                  Approval for re-investment of FDRs maturing between {dateRange.start} and {dateRange.end}.
+                </span>
+              </div>
+
+              <p className="text-justify">
+                 Maturing investment certificates (FDRs/Bonds) totaling <b>৳ {totals.principal.toLocaleString()}</b> principal amount held under the CPF fund 
+                 are reaching their maturity within the period <b>{dateRange.start}</b> to <b>{dateRange.end}</b>. 
+                 Total expected net yield is <b>৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</b>.
+              </p>
+
+              <table className="w-full border-collapse border border-black text-[9px]">
+                <thead className="bg-slate-50 font-black">
+                  <tr>
+                    <th className="border border-black p-1 text-left">Account Category</th>
+                    <th className="border border-black p-1 text-right">Principal (৳)</th>
+                    <th className="border border-black p-1 text-right">Net Yield (৳)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupedData.map(([code, items]) => {
+                    const accountName = activeCOA.find(a => a.code === code)?.name || "Other";
+                    const gp = items.reduce((s, i) => s + (Number(i.principalAmount) || 0), 0);
+                    const gn = items.reduce((s, i) => s + i.netInterest, 0);
+                    return (
+                      <tr key={code} className="font-bold">
+                        <td className="border border-black p-1">{accountName}</td>
+                        <td className="border border-black p-1 text-right">{gp.toLocaleString()}</td>
+                        <td className="border border-black p-1 text-right">{gn.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="font-black">
+                  <tr>
+                    <td className="border border-black p-1 text-right">TOTAL:</td>
+                    <td className="border border-black p-1 text-right">৳ {totals.principal.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right">৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div className="space-y-2">
+                <h4 className="font-black uppercase underline underline-offset-2">Proposal:</h4>
+                <p>It is recommended to renew the maturing FDRs for a further term at the prevailing market interest rates.</p>
+              </div>
+
+              <div className="mt-32 grid grid-cols-3 gap-12 text-center font-black text-[9px]">
+                <div className="border-t border-black pt-2 uppercase">Accountant</div>
+                <div className="border-t border-black pt-2 uppercase">Auditor</div>
+                <div className="border-t border-black pt-2 uppercase">Trustee</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
