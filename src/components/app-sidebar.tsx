@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -21,7 +22,8 @@ import {
   LayoutList,
   Calculator,
   Printer,
-  HelpCircle
+  HelpCircle,
+  CalendarClock
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -53,7 +55,8 @@ const navItems = [
   { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary", hoverBg: "hover:bg-teal-100", iconColor: "text-teal-600" },
   { title: "মুনাফা হিসাব", icon: Percent, url: "/interest", hoverBg: "hover:bg-orange-100", iconColor: "text-orange-600" },
   { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/interest/special", hoverBg: "hover:bg-amber-100", iconColor: "text-amber-600" },
-  { title: "বিনিয়োগ", icon: TrendingUp, url: "/investments", hoverBg: "hover:bg-blue-200", iconColor: "text-blue-700" },
+  { title: "বিনিয়োগ তালিকা", icon: TrendingUp, url: "/investments", hoverBg: "hover:bg-blue-200", iconColor: "text-blue-700" },
+  { title: "পরিপক্কতা রিপোর্ট", icon: CalendarClock, url: "/reports/maturity-summary", hoverBg: "hover:bg-indigo-200", iconColor: "text-indigo-700" },
   { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", hoverBg: "hover:bg-slate-200", iconColor: "text-slate-700" },
   { title: "লেজার ব্যাচ প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", hoverBg: "hover:bg-purple-100", iconColor: "text-purple-600" },
   { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans", hoverBg: "hover:bg-rose-100", iconColor: "text-rose-600" },
