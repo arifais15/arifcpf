@@ -26,7 +26,8 @@ import {
   ShieldCheck,
   ArrowDownRight,
   Info,
-  HandCoins
+  HandCoins,
+  CalendarClock
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -311,6 +312,12 @@ export default function InvestmentsPage() {
           <p className="text-lg font-bold text-slate-600">Managing institutional certificates with lifecycle tracking and audit history</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button variant="outline" asChild className="gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 font-black h-11 text-base">
+            <Link href="/reports/maturity-summary">
+              <CalendarClock className="size-5" /> Provision Report
+            </Link>
+          </Button>
+
           <Button variant="outline" asChild className="gap-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50 font-black h-11 text-base">
             <Link href="/investments/provisions">
               <HandCoins className="size-5" /> Interest Provisions
