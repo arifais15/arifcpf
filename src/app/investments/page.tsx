@@ -52,6 +52,10 @@ export default function InvestmentsPage() {
   const [editingInvestment, setEditingInvestment] = useState<any>(null);
   const [renewingInvestment, setRenewingInvestment] = useState<any>(null);
 
+  // States for automatic date calculation in Renew dialog
+  const [renewDate, setRenewDate] = useState("");
+  const [maturityDate, setMaturityDate] = useState("");
+
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
 
@@ -80,6 +84,28 @@ export default function InvestmentsPage() {
     return { total, count: activeOnes.length, avgRate: (sumRates / (activeOnes.length || 1)) * 100 };
   }, [investments]);
 
+  // Handle auto-filling of dates when a renewal starts
+  useEffect(() => {
+    if (renewingInvestment) {
+      const defaultStart = renewingInvestment.maturityDate || new Date().toISOString().split('T')[0];
+      setRenewDate(defaultStart);
+      
+      const d = new Date(defaultStart);
+      d.setFullYear(d.getFullYear() + 1);
+      setMaturityDate(d.toISOString().split('T')[0]);
+    }
+  }, [renewingInvestment]);
+
+  // Update maturity date when renew date changes manually
+  const handleRenewDateChange = (val: string) => {
+    setRenewDate(val);
+    const d = new Date(val);
+    if (!isNaN(d.getTime())) {
+      d.setFullYear(d.getFullYear() + 1);
+      setMaturityDate(d.toISOString().split('T')[0]);
+    }
+  };
+
   const handleSaveInvestment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -89,7 +115,7 @@ export default function InvestmentsPage() {
       principalAmount: Number(formData.get("principalAmount")),
       interestRate: Number(formData.get("interestRate")) / 100,
       firstOpeningDate: formData.get("firstOpeningDate") as string,
-      issueDate: formData.get("issueDate") as string, // This serves as current Renew Date
+      issueDate: formData.get("issueDate") as string, 
       maturityDate: formData.get("maturityDate") as string,
       instrumentType: formData.get("instrumentType") as string,
       chartOfAccountId: formData.get("chartOfAccountId") as string,
@@ -130,8 +156,8 @@ export default function InvestmentsPage() {
     const renewData = {
       principalAmount: Number(formData.get("principalAmount")),
       interestRate: Number(formData.get("interestRate")) / 100,
-      issueDate: formData.get("renewDate") as string, // New Cycle Start
-      maturityDate: formData.get("maturityDate") as string,
+      issueDate: renewDate, 
+      maturityDate: maturityDate,
       status: "Active",
       updatedAt: new Date().toISOString(),
     };
@@ -400,11 +426,23 @@ export default function InvestmentsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Renew Date</Label>
-                  <Input name="renewDate" type="date" required defaultValue={new Date().toISOString().split('T')[0]} />
+                  <Input 
+                    name="renewDate" 
+                    type="date" 
+                    required 
+                    value={renewDate}
+                    onChange={(e) => handleRenewDateChange(e.target.value)} 
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>New Maturity Date</Label>
-                  <Input name="maturityDate" type="date" required />
+                  <Input 
+                    name="maturityDate" 
+                    type="date" 
+                    required 
+                    value={maturityDate}
+                    onChange={(e) => setMaturityDate(e.target.value)}
+                  />
                 </div>
               </div>
             </div>
