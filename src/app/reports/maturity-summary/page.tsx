@@ -1,6 +1,7 @@
+
 "use client"
 
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,8 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowRightLeft,
-  ArrowLeft
+  ArrowLeft,
+  BookOpen
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
@@ -25,6 +27,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { differenceInDays, parseISO, startOfMonth, endOfMonth, format } from "date-fns";
+import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import * as XLSX from "xlsx";
 
 export default function InvestmentMaturityReportPage() {
@@ -48,6 +51,10 @@ export default function InvestmentMaturityReportPage() {
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
+
+  const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
+  const { data: coaData } = useCollection(coaRef);
+  const activeCOA = useMemo(() => (coaData && coaData.length > 0 ? coaData : INITIAL_COA), [coaData]);
 
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
@@ -92,6 +99,17 @@ export default function InvestmentMaturityReportPage() {
       .sort((a, b) => new Date(a.maturityDate || "").getTime() - new Date(b.maturityDate || "").getTime());
   }, [investments, dateRange]);
 
+  // --- Grouping logic for subtotals ---
+  const groupedData = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    reportData.forEach(item => {
+      const code = item.chartOfAccountId || "101.60.0000"; // Default to Other if unassigned
+      if (!groups[code]) groups[code] = [];
+      groups[code].push(item);
+    });
+    return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
+  }, [reportData]);
+
   const totals = useMemo(() => {
     return reportData.reduce((acc, curr) => ({
       gross: acc.gross + curr.totalGrossInterest,
@@ -103,6 +121,7 @@ export default function InvestmentMaturityReportPage() {
 
   const exportToExcel = () => {
     const data = reportData.map(item => ({
+      "Account Code": item.chartOfAccountId,
       "Bank Name": item.bankName,
       "Ref No": item.referenceNumber,
       "Principal (৳)": item.principalAmount,
@@ -215,7 +234,7 @@ export default function InvestmentMaturityReportPage() {
         <div className="p-6 border-b bg-slate-50/50 flex items-center justify-between">
           <h2 className="text-xl font-black flex items-center gap-3">
             <TrendingUp className="size-6 text-indigo-600" />
-            Full Cycle Interest Matrix
+            Full Cycle Interest Matrix (Grouped)
           </h2>
           <Badge variant="outline" className="bg-white border-slate-200 px-4 py-1.5 font-black uppercase text-[10px]">
             Period: {dateRange.start} to {dateRange.end}
@@ -237,41 +256,76 @@ export default function InvestmentMaturityReportPage() {
               <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : reportData.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-bold text-lg italic">No active investments maturing in this period.</TableCell></TableRow>
-            ) : reportData.map((item) => (
-              <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b">
-                <TableCell className="py-6 pl-6">
-                  <div className="flex flex-col">
-                    <span className="font-black text-slate-900 text-base">{item.bankName}</span>
-                    <span className="font-mono text-[11px] text-muted-foreground font-bold uppercase tracking-tight">Ref: {item.referenceNumber}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-2 font-black text-[11px] text-slate-600">
-                      <span>{item.issueDate}</span>
-                      <ArrowRight className="size-3 text-slate-300" />
-                      <span className="text-rose-600">{item.maturityDate || "N/A"}</span>
-                    </div>
-                    <Badge variant="secondary" className="mt-1 h-5 text-[10px] font-black">{item.tenureDays} Days Tenure</Badge>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-bold text-slate-600">
-                  ৳ {Number(item.principalAmount).toLocaleString()}
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="font-black text-slate-900">৳ {item.totalGrossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className="font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                </TableCell>
-                <TableCell className="text-right pr-6">
-                  <div className="flex flex-col items-end">
-                    <span className="font-black text-xl text-primary">৳ {item.netInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                    <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Total Yield</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            ) : groupedData.map(([code, items]) => {
+              const accountName = activeCOA.find(a => a.code === code)?.name || "Other Investment";
+              const groupSubtotal = items.reduce((acc, curr) => ({
+                gross: acc.gross + curr.totalGrossInterest,
+                tds: acc.tds + curr.tdsAmount,
+                net: acc.net + curr.netInterest,
+                principal: acc.principal + (Number(curr.principalAmount) || 0)
+              }), { gross: 0, tds: 0, net: 0, principal: 0 });
+
+              return (
+                <React.Fragment key={code}>
+                  {/* Account Group Header */}
+                  <TableRow className="bg-slate-100/50">
+                    <TableCell colSpan={6} className="py-2 pl-6">
+                      <span className="font-black text-[11px] uppercase tracking-widest text-indigo-700 flex items-center gap-2">
+                        <BookOpen className="size-3.5" /> Account Code: {code} — {accountName}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Account Items */}
+                  {items.map((item) => (
+                    <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b">
+                      <TableCell className="py-6 pl-6">
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-900 text-base">{item.bankName}</span>
+                          <span className="font-mono text-[11px] text-muted-foreground font-bold uppercase tracking-tight">Ref: {item.referenceNumber}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-2 font-black text-[11px] text-slate-600">
+                            <span>{item.issueDate}</span>
+                            <ArrowRight className="size-3 text-slate-300" />
+                            <span className="text-rose-600">{item.maturityDate || "N/A"}</span>
+                          </div>
+                          <Badge variant="secondary" className="mt-1 h-5 text-[10px] font-black">{item.tenureDays} Days Tenure</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-slate-600">
+                        ৳ {Number(item.principalAmount).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-black text-slate-900">৳ {item.totalGrossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className="font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      </TableCell>
+                      <TableCell className="text-right pr-6">
+                        <div className="flex flex-col items-end">
+                          <span className="font-black text-xl text-primary">৳ {item.netInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          <span className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">Total Yield</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {/* Account Group Subtotal */}
+                  <TableRow className="bg-slate-50 border-b-2 font-black">
+                    <TableCell colSpan={2} className="text-right py-4 pr-10 uppercase text-[10px] text-slate-500 tracking-wider italic">
+                      Subtotal {code} ({items.length} Units):
+                    </TableCell>
+                    <TableCell className="text-right py-4 text-slate-900">৳ {groupSubtotal.principal.toLocaleString()}</TableCell>
+                    <TableCell className="text-right py-4 text-slate-900">৳ {groupSubtotal.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right py-4 text-rose-700">৳ {groupSubtotal.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-right py-4 pr-6 text-primary">৳ {groupSubtotal.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                  </TableRow>
+                </React.Fragment>
+              );
+            })}
           </TableBody>
           <TableFooter className="bg-slate-900 text-white font-black">
             <TableRow>
@@ -289,13 +343,13 @@ export default function InvestmentMaturityReportPage() {
         <div className="space-y-1">
           <h3 className="font-black text-blue-800 uppercase text-sm">Adjustment Journal Guide</h3>
           <p className="text-sm text-blue-700 leading-relaxed font-bold">
-            Use the "Net Maturity Yield" column to record the cumulative income earned by an instrument upon its scheduled end date.
+            Use the "Subtotal" rows to record group-level adjustments for institutional reporting. 
             Adjustments should be posted to <b>Accrued Interest (106.10.0000)</b> or <b>Interest Income (400.10.0000)</b> based on your periodic recognition rules.
           </p>
         </div>
       </div>
 
-      {/* INSTITUTIONAL PRINT VIEW */}
+      {/* INSTITUTIONAL PRINT VIEW (Landscape) */}
       <div className="hidden print:block print-container text-black">
         <div className="text-center space-y-2 mb-10 border-b-2 border-black pb-8">
           <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
@@ -306,39 +360,64 @@ export default function InvestmentMaturityReportPage() {
           </div>
         </div>
 
-        <table className="w-full text-[10px] border-collapse border border-black">
+        <table className="w-full text-[9px] border-collapse border border-black">
           <thead>
             <tr className="bg-slate-100">
-              <th className="border border-black p-3 text-left">Bank & Reference</th>
-              <th className="border border-black p-3 text-center">Cycle (Issue - Mature)</th>
-              <th className="border border-black p-3 text-right">Principal (৳)</th>
-              <th className="border border-black p-3 text-right">Gross Yield (৳)</th>
-              <th className="border border-black p-3 text-right">TDS (20%) (৳)</th>
-              <th className="border border-black p-3 text-right font-black">Net at Maturity (৳)</th>
+              <th className="border border-black p-2 text-left">Bank & Reference</th>
+              <th className="border border-black p-2 text-center">Cycle (Issue - Mature)</th>
+              <th className="border border-black p-2 text-right">Principal (৳)</th>
+              <th className="border border-black p-2 text-right">Gross Yield (৳)</th>
+              <th className="border border-black p-2 text-right">TDS (20%) (৳)</th>
+              <th className="border border-black p-2 text-right font-black">Net Yield (৳)</th>
             </tr>
           </thead>
           <tbody>
-            {reportData.map((item, i) => (
-              <tr key={i}>
-                <td className="border border-black p-3">
-                  <span className="font-bold">{item.bankName}</span><br/>
-                  <span className="text-[8px] font-mono">{item.referenceNumber}</span>
-                </td>
-                <td className="border border-black p-3 text-center">
-                  {item.issueDate} to {item.maturityDate}<br/>
-                  <span className="text-[8px] uppercase">({item.tenureDays} Days)</span>
-                </td>
-                <td className="border border-black p-3 text-right">{Number(item.principalAmount).toLocaleString()}</td>
-                <td className="border border-black p-3 text-right">{item.totalGrossInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-3 text-right">{item.tdsAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-3 text-right font-bold">{item.netInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              </tr>
-            ))}
+            {groupedData.map(([code, items]) => {
+              const groupSubtotal = items.reduce((acc, curr) => ({
+                gross: acc.gross + curr.totalGrossInterest,
+                tds: acc.tds + curr.tdsAmount,
+                net: acc.net + curr.netInterest,
+                principal: acc.principal + (Number(curr.principalAmount) || 0)
+              }), { gross: 0, tds: 0, net: 0, principal: 0 });
+
+              return (
+                <React.Fragment key={code}>
+                  <tr className="bg-slate-50 font-black">
+                    <td colSpan={6} className="border border-black p-1 text-[8px] uppercase tracking-wider pl-4">
+                      ACCOUNT CATEGORY: {code} — {activeCOA.find(a => a.code === code)?.name || "OTHER"}
+                    </td>
+                  </tr>
+                  {items.map((item, i) => (
+                    <tr key={i}>
+                      <td className="border border-black p-2">
+                        <span className="font-bold">{item.bankName}</span><br/>
+                        <span className="text-[7px] font-mono">{item.referenceNumber}</span>
+                      </td>
+                      <td className="border border-black p-2 text-center">
+                        {item.issueDate} to {item.maturityDate}<br/>
+                        <span className="text-[7px] uppercase">({item.tenureDays} Days)</span>
+                      </td>
+                      <td className="border border-black p-2 text-right">{Number(item.principalAmount).toLocaleString()}</td>
+                      <td className="border border-black p-2 text-right">{item.totalGrossInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="border border-black p-2 text-right">{item.tdsAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="border border-black p-2 text-right font-bold">{item.netInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-50 font-black text-[10px]">
+                    <td colSpan={2} className="border border-black p-2 text-right uppercase text-[8px]">Group Subtotal ({code}):</td>
+                    <td className="border border-black p-2 text-right">{groupSubtotal.principal.toLocaleString()}</td>
+                    <td className="border border-black p-2 text-right">{groupSubtotal.gross.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-2 text-right">{groupSubtotal.tds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-2 text-right underline">৳ {groupSubtotal.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                </React.Fragment>
+              );
+            })}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-50 font-black">
-              <td colSpan={5} className="border border-black p-3 text-right uppercase tracking-widest">Total Estimated Net Yield:</td>
-              <td className="border border-black p-3 text-right underline decoration-double">
+            <tr className="bg-slate-900 text-white font-black">
+              <td colSpan={5} className="border border-black p-3 text-right uppercase tracking-widest text-sm">Consolidated Portfolio Net Yield:</td>
+              <td className="border border-black p-3 text-right text-base underline decoration-double">
                 ৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </td>
             </tr>
