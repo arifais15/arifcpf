@@ -1,9 +1,10 @@
 
 "use client"
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Calculator, 
   Loader2, 
@@ -13,20 +14,35 @@ import {
   Printer,
   TrendingUp,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  ArrowRightLeft
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { differenceInDays, parseISO } from "date-fns";
+import { differenceInDays, parseISO, startOfMonth, endOfMonth, format } from "date-fns";
 import * as XLSX from "xlsx";
 
 export default function InvestmentMaturityReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const TDS_RATE = 0.20; // 20% TDS
+
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+
+  // Initialize date range to current month
+  useEffect(() => {
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(new Date(now.getFullYear(), now.getMonth() + 11, 1)); // Default to 1 year range
+    setDateRange({
+      start: format(start, 'yyyy-MM-dd'),
+      end: format(end, 'yyyy-MM-dd')
+    });
+  }, []);
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
@@ -39,16 +55,23 @@ export default function InvestmentMaturityReportPage() {
     if (!investments) return [];
 
     return investments
-      .filter(inv => inv.status === 'Active')
+      .filter(inv => {
+        if (inv.status !== 'Active') return false;
+        if (!inv.maturityDate) return false;
+        
+        if (dateRange.start && dateRange.end) {
+          const mDate = parseISO(inv.maturityDate).getTime();
+          const sDate = parseISO(dateRange.start).getTime();
+          const eDate = parseISO(dateRange.end).getTime();
+          return mDate >= sDate && mDate <= eDate;
+        }
+        return true;
+      })
       .map(inv => {
         const issueDate = parseISO(inv.issueDate);
-        const maturityDate = inv.maturityDate ? parseISO(inv.maturityDate) : null;
+        const maturityDate = parseISO(inv.maturityDate);
         
-        let tenureDays = 0;
-        if (maturityDate) {
-          tenureDays = Math.max(0, differenceInDays(maturityDate, issueDate));
-        }
-
+        const tenureDays = Math.max(0, differenceInDays(maturityDate, issueDate));
         const rate = Number(inv.interestRate) || 0;
         const principal = Number(inv.principalAmount) || 0;
         
@@ -66,7 +89,7 @@ export default function InvestmentMaturityReportPage() {
         };
       })
       .sort((a, b) => new Date(a.maturityDate || "").getTime() - new Date(b.maturityDate || "").getTime());
-  }, [investments]);
+  }, [investments, dateRange]);
 
   const totals = useMemo(() => {
     return reportData.reduce((acc, curr) => ({
@@ -93,7 +116,7 @@ export default function InvestmentMaturityReportPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Maturity Schedule");
-    XLSX.writeFile(wb, `Investment_Maturity_Schedule_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Investment_Maturity_Schedule_${dateRange.start}_to_${dateRange.end}.xlsx`);
     toast({ title: "Exported", description: "Maturity yield schedule saved to Excel." });
   };
 
@@ -119,10 +142,43 @@ export default function InvestmentMaturityReportPage() {
         </div>
       </div>
 
+      <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col md:flex-row items-center gap-6 no-print">
+        <div className="flex-1 w-full space-y-2">
+          <Label className="text-xs font-black uppercase text-slate-400 ml-1">Maturity Period Filter</Label>
+          <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
+            <div className="flex-1 flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase text-slate-400">From</span>
+              <Input 
+                type="date" 
+                value={dateRange.start} 
+                onChange={(e) => setDateRange({...dateRange, start: e.target.value})} 
+                className="h-9 font-black border-none bg-transparent shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <ArrowRightLeft className="size-4 text-slate-300" />
+            <div className="flex-1 flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase text-slate-400">To</span>
+              <Input 
+                type="date" 
+                value={dateRange.end} 
+                onChange={(e) => setDateRange({...dateRange, end: e.target.value})} 
+                className="h-9 font-black border-none bg-transparent shadow-none focus-visible:ring-0"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center gap-3">
+          <AlertCircle className="size-5 text-amber-600" />
+          <p className="text-xs font-bold text-amber-800 leading-tight">
+            Showing instruments with <b>Maturity Date</b> between selected range.
+          </p>
+        </div>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-4 no-print">
         <Card className="bg-slate-50 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-slate-500 tracking-widest">Total Principal</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-slate-500 tracking-widest">Selected Principal</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-slate-900">৳ {totals.principal.toLocaleString()}</div>
@@ -130,7 +186,7 @@ export default function InvestmentMaturityReportPage() {
         </Card>
         <Card className="bg-primary/5 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Expected Gross Yield</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Total Gross Yield</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-primary">৳ {totals.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
@@ -138,7 +194,7 @@ export default function InvestmentMaturityReportPage() {
         </Card>
         <Card className="bg-rose-50 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">Tax Liability (20%)</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">Expected Tax (20%)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-rose-700">৳ {totals.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
@@ -146,7 +202,7 @@ export default function InvestmentMaturityReportPage() {
         </Card>
         <Card className="bg-emerald-50 border-none shadow-sm rounded-3xl">
           <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Net Maturity Fund</CardTitle>
+            <CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Net Maturity Yield</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black text-emerald-700">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
@@ -160,10 +216,9 @@ export default function InvestmentMaturityReportPage() {
             <TrendingUp className="size-6 text-indigo-600" />
             Full Cycle Interest Matrix
           </h2>
-          <div className="bg-white border-slate-200 px-4 py-1.5 rounded-full border flex items-center gap-2">
-            <AlertCircle className="size-4 text-amber-600" />
-            <span className="font-black uppercase text-[10px] text-slate-600">Note: Yield is calculated for entire tenure (Issue to Maturity)</span>
-          </div>
+          <Badge variant="outline" className="bg-white border-slate-200 px-4 py-1.5 font-black uppercase text-[10px]">
+            Period: {dateRange.start} to {dateRange.end}
+          </Badge>
         </div>
         <Table>
           <TableHeader>
@@ -180,7 +235,7 @@ export default function InvestmentMaturityReportPage() {
             {isLoading ? (
               <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : reportData.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-bold text-lg italic">No active investments found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-bold text-lg italic">No active investments maturing in this period.</TableCell></TableRow>
             ) : reportData.map((item) => (
               <TableRow key={item.id} className="hover:bg-slate-50 transition-colors border-b">
                 <TableCell className="py-6 pl-6">
@@ -231,11 +286,10 @@ export default function InvestmentMaturityReportPage() {
       <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex gap-4 items-start no-print">
         <ShieldCheck className="size-8 text-blue-600 shrink-0" />
         <div className="space-y-1">
-          <h3 className="font-black text-blue-800 uppercase text-sm">Accounting Adjustment Guide</h3>
+          <h3 className="font-black text-blue-800 uppercase text-sm">Adjustment Journal Guide</h3>
           <p className="text-sm text-blue-700 leading-relaxed font-bold">
-            To make your adjustment journal, debit your <b>"Accrued Interest" (Asset)</b> and credit <b>"Interest Income" (Revenue)</b>. 
-            Use the "Net Yield" column for periodic accruals or the "Gross Yield" if your system records tax separately. 
-            The tenure days provided help in calculating exact daily interest portions for mid-month entries.
+            Use the "Net Maturity Yield" column to record the cumulative income earned by an instrument upon its scheduled end date.
+            Adjustments should be posted to <b>Accrued Interest (106.10.0000)</b> or <b>Interest Income (400.10.0000)</b> based on your periodic recognition rules.
           </p>
         </div>
       </div>
@@ -246,7 +300,7 @@ export default function InvestmentMaturityReportPage() {
           <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
           <h2 className="text-xl font-bold underline underline-offset-8 uppercase tracking-[0.2em]">Investment Maturity Interest Schedule</h2>
           <div className="flex justify-between text-xs font-bold pt-6">
-            <span>Report: Total Expected Yield for Full Maturity Cycle (Net of 20% TDS)</span>
+            <span>Report Period: From {dateRange.start} to {dateRange.end} (Maturity Basis)</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
