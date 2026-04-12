@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -137,6 +136,38 @@ export default function InvestmentsPage() {
     reader.readAsBinaryString(file);
   };
 
+  const handleDownloadTemplate = () => {
+    const templateData = [
+      {
+        "Bank Name": "Sonali Bank PLC",
+        "Ref No": "FDR-2024-001",
+        "Principal": 1000000,
+        "Rate": 12.5,
+        "Issue Date": "2024-01-01",
+        "Maturity Date": "2025-01-01",
+        "Instrument Type": "FDR",
+        "chartOfAccountId": "101.10.0000",
+        "status": "Active"
+      },
+      {
+        "Bank Name": "Janata Bank PLC",
+        "Ref No": "BOND-2024-005",
+        "Principal": 5000000,
+        "Rate": 11.0,
+        "Issue Date": "2024-06-01",
+        "Maturity Date": "2029-06-01",
+        "Instrument Type": "Govt. Treasury Bond",
+        "chartOfAccountId": "101.30.0000",
+        "status": "Active"
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Investments");
+    XLSX.writeFile(wb, "investments_bulk_upload_template.xlsx");
+    toast({ title: "Template Downloaded", description: "Use this file to prepare your investment data." });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active': return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1"><CheckCircle2 className="size-3" /> Active</Badge>;
@@ -157,10 +188,21 @@ export default function InvestmentsPage() {
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild><Button variant="outline" className="gap-2 border-slate-300"><Upload className="size-4" /> Bulk Upload</Button></DialogTrigger>
             <DialogContent className="max-w-2xl">
-              <DialogHeader><DialogTitle>Bulk Upload Investments</DialogTitle></DialogHeader>
-              <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
-                <p className="font-medium">Select XLSX Template</p>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Bulk Upload Investments</DialogTitle>
+                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="h-7 text-[10px] font-bold gap-1 uppercase hover:bg-primary/5">
+                    <Download className="size-3" /> Template
+                  </Button>
+                </div>
+                <DialogDescription>
+                  Download the template, fill in your instrument details, and upload the XLSX file below.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="p-12 border-2 border-dashed rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
+                <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary opacity-50" />
+                <p className="font-bold">Select XLSX Investment File</p>
+                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">Bank Name, Ref No, Principal, Rate required</p>
                 <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} accept=".xlsx" />
                 {isUploading && <Loader2 className="size-4 animate-spin mx-auto mt-4" />}
               </div>
