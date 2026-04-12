@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -16,8 +15,10 @@ import {
   TrendingUp,
   AlertCircle,
   FileSpreadsheet,
-  Printer
+  Printer,
+  ArrowLeft
 } from "lucide-react";
+import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, useDoc } from "@/firebase";
 import { collection, doc, query, orderBy } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -156,9 +157,9 @@ export default function InvestmentProvisionsPage() {
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
-          <div className="bg-indigo-500/10 p-3 rounded-2xl">
-            <Calculator className="size-8 text-indigo-600" />
-          </div>
+          <Link href="/investments" className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors group">
+            <ArrowLeft className="size-6 text-slate-600 group-hover:text-primary" />
+          </Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-4xl font-black text-primary tracking-tight">Interest Provisions</h1>
             <p className="text-lg font-bold text-slate-600 uppercase tracking-widest">Year-end Accrual Audit • 20% TDS Deducted</p>
