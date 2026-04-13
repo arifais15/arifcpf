@@ -49,7 +49,7 @@ const navItems = [
   { title: "নতুন লেনদেন", icon: PlusCircle, url: "/transactions/new", hoverBg: "hover:bg-sky-100", iconColor: "text-sky-600" },
   { title: "কন্ট্রোল লেজার", icon: BookText, url: "/reports/control-ledger", hoverBg: "hover:bg-indigo-100", iconColor: "text-indigo-600" },
   { title: "সাবসিডিয়ারি কন্ট্রোল", icon: LayoutList, url: "/reports/subsidiary-control", hoverBg: "hover:bg-violet-100", iconColor: "text-violet-600" },
-  { title: "সদস্য তালিকা", icon: Users, url: "/members", hoverBg: "hover:bg-cyan-100", iconColor: "text-cyan-600" },
+  { title: "সিপিএফ-সাবসিডিয়ারি", icon: Users, url: "/members", hoverBg: "hover:bg-cyan-100", iconColor: "text-cyan-600" },
   { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary", hoverBg: "hover:bg-teal-100", iconColor: "text-teal-600" },
   { title: "মুনাফা হিসাব", icon: Percent, url: "/interest", hoverBg: "hover:bg-orange-100", iconColor: "text-orange-600" },
   { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/interest/special", hoverBg: "hover:bg-amber-100", iconColor: "text-amber-600" },
@@ -57,7 +57,7 @@ const navItems = [
   { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", hoverBg: "hover:bg-slate-200", iconColor: "text-slate-700" },
   { title: "লেজার ব্যাচ প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", hoverBg: "hover:bg-purple-100", iconColor: "text-purple-600" },
   { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans", hoverBg: "hover:bg-rose-100", iconColor: "text-rose-600" },
-  { title: "নিষ্পত্তি প্রতিবেদন", icon: UserX, url: "/reports/settlements", hoverBg: "hover:bg-red-100", iconColor: "text-red-600" },
+  { title: "বদলিকৃত/অবসর তালিকা", icon: UserX, url: "/reports/settlements", hoverBg: "hover:bg-red-100", iconColor: "text-red-600" },
   { title: "অডিট ও ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", hoverBg: "hover:bg-pink-100", iconColor: "text-pink-600" },
   { title: "ব্যবহারকারী নির্দেশিকা", icon: HelpCircle, url: "/manual", hoverBg: "hover:bg-slate-100", iconColor: "text-slate-500" },
 ]

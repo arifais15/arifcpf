@@ -17,8 +17,7 @@ import {
   Printer, 
   Loader2, 
   Search,
-  FileStack,
-  ArrowRight
+  FileStack
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
@@ -28,7 +27,6 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
-import Link from "next/link";
 
 export default function NetfundStatementPage() {
   const firestore = useFirestore();
@@ -41,7 +39,6 @@ export default function NetfundStatementPage() {
   const [asOfDate, setAsOfDate] = useState("");
   const [search, setSearch] = useState("");
 
-  // Defer date initialization to avoid hydration errors
   useEffect(() => {
     setAsOfDate(new Date().toISOString().split('T')[0]);
   }, []);
@@ -122,96 +119,104 @@ export default function NetfundStatementPage() {
     XLSX.writeFile(wb, `Netfund_Statement_${asOfDate}.xlsx`);
   };
 
+  if (isMembersLoading || isSummariesLoading) {
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-black" /></div>;
+  }
+
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
+    <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex items-center gap-4">
-          <div className="bg-black p-3 rounded-2xl">
+        <div className="flex items-center gap-5">
+          <div className="bg-black p-4 rounded-2xl shadow-lg">
             <FileStack className="size-8 text-white" />
           </div>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-black text-black tracking-tight">Netfund Statement</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black">Consolidated Subsidiary Statement • Institutional View</p>
+          <div className="flex flex-col">
+            <h1 className="text-3xl font-black text-black tracking-tighter uppercase">Netfund Statement</h1>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Balances Audit</p>
           </div>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-sm">
+        <div className="flex flex-col sm:flex-row items-center gap-6 bg-white p-4 rounded-2xl border-4 border-black shadow-2xl">
           <div className="flex items-center gap-3">
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-black text-black">Statement As Of</Label>
-              <Input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="h-8 text-xs border-black font-black" />
+            <div className="grid gap-1.5">
+              <Label className="text-[10px] uppercase font-black text-black tracking-widest">Statement Cut-off</Label>
+              <Input type="date" value={asOfDate} onChange={(e) => setAsOfDate(e.target.value)} className="h-10 text-sm border-2 border-black font-black" />
             </div>
           </div>
-          <div className="h-6 w-px bg-black" />
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-black text-black font-black h-9 text-xs">
-              <FileSpreadsheet className="size-4" /> Export
+          <div className="h-10 w-0.5 bg-black" />
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-2 border-black text-black font-black h-11 px-6 uppercase tracking-widest">
+              <FileSpreadsheet className="size-5" /> Export
             </Button>
-            <Button onClick={() => window.print()} className="gap-2 h-9 font-black text-xs bg-black text-white">
-              <Printer className="size-4" /> Print
+            <Button onClick={() => window.print()} className="gap-2 h-11 font-black px-8 bg-black text-white shadow-xl uppercase tracking-widest hover:bg-black/90">
+              <Printer className="size-5" /> Print
             </Button>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4 no-print">
-        <Card className="border-2 border-black shadow-sm bg-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Aggregate Emp Fund</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black">৳ {stats.empFund.toLocaleString()}</div></CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-sm bg-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Aggregate Office Fund</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black">৳ {stats.officeFund.toLocaleString()}</div></CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-sm bg-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Total Loans</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black">৳ {stats.loans.toLocaleString()}</div></CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-sm bg-black text-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-white">Total Netfund</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black">৳ {stats.total.toLocaleString()}</div></CardContent>
-        </Card>
+      <div className="grid gap-8 md:grid-cols-4 no-print">
+        {[
+          { l: "Aggregate Emp Fund", v: stats.empFund, c: "bg-white" },
+          { l: "Aggregate Office Fund", v: stats.officeFund, c: "bg-white" },
+          { l: "Total Outstanding Loans", v: stats.loans, c: "bg-white" },
+          { l: "Total Institutional Netfund", v: stats.total, c: "bg-black text-white" },
+        ].map((s, i) => (
+          <Card key={i} className={cn("border-2 border-black shadow-lg", s.c)}>
+            <CardHeader className="pb-2">
+              <CardTitle className={cn("text-[11px] font-black uppercase tracking-widest", i === 3 ? "text-white" : "text-black")}>{s.l}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black tabular-nums">৳ {s.v.toLocaleString()}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden no-print">
-        <div className="p-4 border-b-2 border-black bg-slate-100 flex items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black" />
-            <Input className="pl-9 h-9 border-black font-black" placeholder="Search ID or Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print">
+        <div className="p-6 border-b-2 border-black bg-slate-50 flex items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-black" />
+            <Input className="pl-10 h-11 border-2 border-black font-black text-base" placeholder="Audit Registry Search (ID/Name)..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge variant="outline" className="border-black text-black font-black">{reportData.length} Personnel</Badge>
+          <Badge className="bg-black text-white font-black px-4 py-1.5 uppercase tracking-[0.2em]">{reportData.length} Personnel Audited</Badge>
         </div>
         <div className="overflow-x-auto">
-          <Table className="text-black font-black">
-            <TableHeader className="bg-slate-50 border-b-2 border-black">
+          <Table className="text-black font-black border-collapse">
+            <TableHeader className="bg-slate-100 border-b-2 border-black">
               <TableRow>
-                <TableHead className="font-black text-black">ID No</TableHead>
-                <TableHead className="font-black text-black">Member Name</TableHead>
-                <TableHead className="text-right font-black text-black">Loan Balance</TableHead>
-                <TableHead className="text-right font-black text-black">Net Emp Fund</TableHead>
-                <TableHead className="text-right font-black text-black">Net Office Fund</TableHead>
-                <TableHead className="text-right font-black text-black">Total Netfund</TableHead>
+                <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
+                <TableHead className="font-black text-black uppercase tracking-widest py-5">Personnel Metadata</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11)</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="font-black tabular-nums">
               {reportData.map((row, idx) => (
-                <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
-                  <td className="font-mono text-xs p-4">{row.memberIdNumber}</td>
-                  <td className="p-4">{row.name}</td>
-                  <td className="text-right p-4">৳ {row.col4.toLocaleString()}</td>
-                  <td className="text-right p-4">৳ {row.col7.toLocaleString()}</td>
-                  <td className="text-right p-4">৳ {row.col10.toLocaleString()}</td>
-                  <td className="text-right p-4 font-black">৳ {row.col11.toLocaleString()}</td>
+                <TableRow key={idx} className="hover:bg-slate-100 border-b border-black">
+                  <td className="font-mono text-base p-5 border-r border-black">{row.memberIdNumber}</td>
+                  <td className="p-5 border-r border-black">
+                    <div className="flex flex-col">
+                      <span className="uppercase text-sm tracking-tight">{row.name}</span>
+                      <span className="text-[10px] uppercase text-black italic tracking-widest">{row.designation}</span>
+                    </div>
+                  </td>
+                  <td className="text-right p-5 border-r border-black">৳ {row.col4.toLocaleString()}</td>
+                  <td className="text-right p-5 border-r border-black">৳ {row.col7.toLocaleString()}</td>
+                  <td className="text-right p-5 border-r border-black">৳ {row.col10.toLocaleString()}</td>
+                  <td className="text-right p-5 bg-slate-50 text-lg underline decoration-black decoration-2">৳ {row.col11.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
-            <TableFooter className="bg-slate-100 font-black border-t-2 border-black">
-              <TableRow>
-                <TableCell colSpan={2} className="text-right uppercase">GRAND TOTALS:</TableCell>
-                <TableCell className="text-right">৳ {stats.loans.toLocaleString()}</TableCell>
-                <TableCell className="text-right">৳ {stats.empFund.toLocaleString()}</TableCell>
-                <TableCell className="text-right">৳ {stats.officeFund.toLocaleString()}</TableCell>
-                <TableCell className="text-right text-base underline decoration-double">৳ {stats.total.toLocaleString()}</TableCell>
+            <TableFooter className="bg-slate-100 font-black border-t-2 border-black text-black tabular-nums">
+              <TableRow className="h-20">
+                <TableCell colSpan={2} className="text-right uppercase tracking-[0.3em] text-sm">Institutional Aggregates:</TableCell>
+                <TableCell className="text-right border-l border-black">৳ {stats.loans.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-black">৳ {stats.empFund.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-black">৳ {stats.officeFund.toLocaleString()}</TableCell>
+                <TableCell className="text-right text-2xl underline decoration-double bg-slate-200 border-l border-black">৳ {stats.total.toLocaleString()}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -219,54 +224,62 @@ export default function NetfundStatementPage() {
       </div>
 
       <div className="hidden print:block print-container font-ledger text-black">
-        <div className="text-center space-y-2 mb-8 border-b-4 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
-          <p className="text-sm font-black uppercase tracking-widest">Contributory Provident Fund</p>
-          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Statement of Members' Net Fund Balances</h2>
-          <div className="flex justify-between text-[10px] font-black pt-4">
-            <span>Statement As Of: {asOfDate}</span>
-            <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
+        <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
+          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
+          <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
+          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Statement of Members' Net Fund Balances</h2>
+          <div className="flex justify-between text-[11px] font-black pt-8">
+            <span className="bg-black text-white px-4 py-1 rounded">Statement Cut-off: {asOfDate}</span>
+            <span>Audit Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
 
-        <table className="w-full text-[9px] border-collapse border-2 border-black text-black font-black">
+        <table className="w-full text-[10px] border-collapse border-2 border-black text-black font-black tabular-nums">
           <thead>
-            <tr className="bg-slate-100">
-              <th className="border border-black p-2">ID No</th>
-              <th className="border border-black p-2 text-left">Member Name</th>
-              <th className="border border-black p-2 text-right">Loan Bal</th>
-              <th className="border border-black p-2 text-right">Net Emp Fund</th>
-              <th className="border border-black p-2 text-right">Net Office Fund</th>
-              <th className="border border-black p-2 text-right">Total Netfund</th>
+            <tr className="bg-slate-100 border-b-2 border-black">
+              <th className="border border-black p-2.5 uppercase tracking-widest">ID No</th>
+              <th className="border border-black p-2.5 text-left uppercase tracking-widest">Member Name & Designation</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Loan Bal</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Net Emp Fund</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Net Office Fund</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest bg-slate-100">Total Netfund</th>
             </tr>
           </thead>
           <tbody>
             {reportData.map((row, idx) => (
-              <tr key={idx}>
-                <td className="border border-black p-2 text-center font-mono">{row.memberIdNumber}</td>
-                <td className="border border-black p-2">{row.name}</td>
-                <td className="border border-black p-2 text-right">{row.col4.toLocaleString()}</td>
-                <td className="border border-black p-2 text-right">{row.col7.toLocaleString()}</td>
-                <td className="border border-black p-2 text-right">{row.col10.toLocaleString()}</td>
-                <td className="border border-black p-2 text-right">{row.col11.toLocaleString()}</td>
+              <tr key={idx} className="border-b border-black">
+                <td className="border border-black p-2.5 text-center font-mono text-base">{row.memberIdNumber}</td>
+                <td className="border border-black p-2.5">
+                  <span className="font-black uppercase text-sm block">{row.name}</span>
+                  <span className="text-[8px] uppercase tracking-widest italic">{row.designation}</span>
+                </td>
+                <td className="border border-black p-2.5 text-right">{row.col4.toLocaleString()}</td>
+                <td className="border border-black p-2.5 text-right">{row.col7.toLocaleString()}</td>
+                <td className="border border-black p-2.5 text-right">{row.col10.toLocaleString()}</td>
+                <td className="border border-black p-2.5 text-right font-black text-base underline decoration-black decoration-2">{row.col11.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-slate-50 font-black">
-              <td colSpan={2} className="border border-black p-2 text-right uppercase">Totals:</td>
-              <td className="border border-black p-2 text-right">{stats.loans.toLocaleString()}</td>
-              <td className="border border-black p-2 text-right">{stats.empFund.toLocaleString()}</td>
-              <td className="border border-black p-2 text-right">{stats.officeFund.toLocaleString()}</td>
-              <td className="border border-black p-2 text-right underline decoration-double">৳ {stats.total.toLocaleString()}</td>
+            <tr className="bg-slate-100 font-black border-t-2 border-black h-16">
+              <td colSpan={2} className="border border-black p-2.5 text-right uppercase tracking-[0.2em]">Grand Totals:</td>
+              <td className="border border-black p-2.5 text-right">{stats.loans.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right">{stats.empFund.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right">{stats.officeFund.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right underline decoration-double text-lg underline-offset-4">৳ {stats.total.toLocaleString()}</td>
             </tr>
           </tfoot>
         </table>
 
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center">
-          <div className="border-t-2 border-black pt-2 uppercase">Prepared by</div>
-          <div className="border-t-2 border-black pt-2 uppercase">Checked by</div>
-          <div className="border-t-2 border-black pt-2 uppercase">Approved By Trustee</div>
+        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center">
+          <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
+          <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
+          <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
+        </div>
+        
+        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
+          <span>Institutional Trust Registry v1.0</span>
+          <span className="italic">Form Generated via PBS CPF Software</span>
         </div>
       </div>
     </div>

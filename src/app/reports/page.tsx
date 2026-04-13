@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS as INITIAL_COA, type COAEntry } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, Calendar, FileText, PieChart, ShieldCheck } from "lucide-react";
+import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 export default function ReportsPage() {
   const firestore = useFirestore();
-  const [selectedFY] = useState("");
+  const [selectedFiscalYear, setSelectedFY] = useState("");
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
@@ -56,10 +56,8 @@ export default function ReportsPage() {
         : `${year - 1}-${year.toString().slice(-2)}`;
       fys.add(fy);
     });
-    return Array.from(fys).sort((a, b) => b.compare(a));
+    return Array.from(fys).sort((a, b) => b.localeCompare(a));
   }, [entries]);
-
-  const [selectedFiscalYear, setSelectedFY] = useState("");
 
   useEffect(() => {
     if (availableFYs.length > 0 && (!selectedFiscalYear || !availableFYs.includes(selectedFiscalYear))) {
@@ -165,46 +163,46 @@ export default function ReportsPage() {
     const grandTotal = groups.reduce((sum, g) => sum + g.total, 0);
 
     return (
-      <div className={cn("space-y-6", className)}>
-        <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">{title}</h3>
-        <div className="space-y-6">
+      <div className={cn("space-y-8", className)}>
+        <h3 className="text-sm font-black border-b-4 border-black pb-2 uppercase tracking-[0.2em] text-black">{title}</h3>
+        <div className="space-y-8">
           {groups.map((group, idx) => (
-            <div key={idx} className="space-y-1.5">
-              <div className="flex justify-between font-black text-xs text-black bg-slate-100 p-1 rounded">
-                <span>{group.header.name}</span>
+            <div key={idx} className="space-y-2">
+              <div className="flex justify-between font-black text-xs text-black bg-slate-100 p-2 rounded-md border-l-4 border-black">
+                <span className="uppercase tracking-widest">{group.header.name}</span>
               </div>
               <div className="pl-6 space-y-1">
                 {group.items.map(item => (
-                  <div key={item.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black">
-                    <span className="flex gap-6">
-                       <span className="text-black font-mono w-[90px] font-black">{item.code}</span>
-                       <span className="font-black text-black">{item.name}</span>
+                  <div key={item.code} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black hover:bg-slate-50 transition-colors tabular-nums font-black text-black">
+                    <span className="flex gap-8">
+                       <span className="font-mono w-[100px]">{item.code}</span>
+                       <span>{item.name}</span>
                     </span>
-                    <span className="font-mono font-black text-black">{formatCurrency(balancesMap[item.code])}</span>
+                    <span>{formatCurrency(balancesMap[item.code])}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-2 pl-6 pr-1 italic text-black">
-                <span>Total {group.header.name}</span>
-                <span className="font-mono">{formatCurrency(group.total)}</span>
+              <div className="flex justify-between font-black text-[12px] pt-3 border-t-2 border-black mt-3 pl-6 pr-2 italic text-black tabular-nums">
+                <span className="uppercase tracking-tight">Total {group.header.name}</span>
+                <span className="underline decoration-black">{formatCurrency(group.total)}</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="flex justify-between font-black text-[13px] bg-black text-white p-3 rounded-xl mt-6 uppercase tracking-wider">
-          <span>Total {title}</span>
-          <span className="font-mono underline decoration-double">৳ {formatCurrency(grandTotal)}</span>
+        <div className="flex justify-between font-black text-base bg-black text-white p-4 rounded-xl mt-10 uppercase tracking-widest shadow-lg">
+          <span>Total Consolidated {title}</span>
+          <span className="tabular-nums underline decoration-double">৳ {formatCurrency(grandTotal)}</span>
         </div>
       </div>
     );
   };
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="text-center mb-10 border-b-2 border-black pb-6">
-      <h1 className="text-2xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
-      <p className="text-sm font-black uppercase tracking-widest text-black">Contributory Provident Fund</p>
-      <h2 className="text-lg md:text-xl font-black text-black mt-2 font-ledger uppercase underline decoration-2 underline-offset-8">{title}</h2>
-      <p className="text-[11px] text-black font-black uppercase tracking-[0.3em] mt-4 opacity-100">{subtitle}</p>
+    <div className="text-center mb-12 border-b-4 border-black pb-8">
+      <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+      <p className="text-base font-black uppercase tracking-[0.25em] text-black mt-1">Contributory Provident Fund</p>
+      <h2 className="text-xl md:text-2xl font-black text-black mt-4 uppercase underline decoration-2 underline-offset-8 decoration-black">{title}</h2>
+      <p className="text-[12px] text-black font-black uppercase tracking-[0.4em] mt-6 bg-black text-white py-1.5 px-4 inline-block rounded-md">{subtitle}</p>
     </div>
   );
 
@@ -221,59 +219,59 @@ export default function ReportsPage() {
   const totalExpense = expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
 
   return (
-    <div className="p-10 flex flex-col gap-10 bg-background min-h-screen font-ledger text-black">
-      <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-8 rounded-3xl border-2 border-black shadow-xl">
-        <div className="flex items-center gap-5">
+    <div className="p-10 flex flex-col gap-10 bg-white min-h-screen font-ledger text-black">
+      <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-8 rounded-3xl border-2 border-black shadow-2xl">
+        <div className="flex items-center gap-6">
           <div className="bg-black p-4 rounded-2xl">
              <ShieldCheck className="size-10 text-white" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-3xl font-black tracking-tight text-black">Financial Terminal</h1>
-            <p className="text-sm text-black uppercase tracking-[0.2em] font-black opacity-100">Professional Reporting Suite • {fyDates.display}</p>
+            <h1 className="text-3xl font-black tracking-tighter text-black uppercase">Institutional Financials</h1>
+            <p className="text-sm text-black uppercase tracking-[0.2em] font-black">{fyDates.display}</p>
           </div>
         </div>
         <div className="flex items-center gap-8">
           <div className="flex flex-col gap-1.5">
-            <Label className="text-[11px] uppercase font-black text-black tracking-wider">Active Fiscal Year</Label>
+            <Label className="text-[11px] uppercase font-black text-black tracking-widest">Target Fiscal Period</Label>
             <Select value={selectedFiscalYear} onValueChange={setSelectedFY}>
-              <SelectTrigger className="w-[180px] h-11 text-sm font-black border-2 border-black">
+              <SelectTrigger className="w-[200px] h-12 text-sm font-black border-2 border-black bg-white">
                 <SelectValue placeholder="Select FY" />
               </SelectTrigger>
               <SelectContent>
-                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-black">Fiscal Year {fy}</SelectItem>)}
+                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-black">FY {fy}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => window.print()} className="h-11 gap-2 font-black px-8 shadow-xl bg-black text-white rounded-xl">
+          <Button onClick={() => window.print()} className="h-12 gap-3 font-black px-10 shadow-xl bg-black text-white rounded-xl uppercase tracking-widest hover:bg-black/90">
             <Printer className="size-5" />
-            Print Reports
+            Generate Statement
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="position" className="w-full max-w-5xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3 mb-10 no-print h-16 bg-white border-2 border-black p-1.5 rounded-[20px] shadow-sm">
-          <TabsTrigger value="position" className="gap-3 rounded-xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white"><Wallet className="size-5" /> Position</TabsTrigger>
-          <TabsTrigger value="income" className="gap-3 rounded-xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white"><TrendingUp className="size-5" /> Income</TabsTrigger>
-          <TabsTrigger value="receipts" className="gap-3 rounded-xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white"><ArrowDownUp className="size-5" /> Receipts</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-12 no-print h-16 bg-white border-2 border-black p-1.5 rounded-[24px] shadow-md">
+          <TabsTrigger value="position" className="gap-3 rounded-2xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><Wallet className="size-5" /> Balance Sheet</TabsTrigger>
+          <TabsTrigger value="income" className="gap-3 rounded-2xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><TrendingUp className="size-5" /> Profit & Loss</TabsTrigger>
+          <TabsTrigger value="receipts" className="gap-3 rounded-2xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><ArrowDownUp className="size-5" /> Cash Flow</TabsTrigger>
         </TabsList>
 
         <TabsContent value="position">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto">
             <CardContent className="p-16 print:p-0">
               <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="space-y-16">
-                <ClassifiedSection title="Institutional Assets" accounts={assetAccounts} balancesMap={balances} />
-                <ClassifiedSection title="Equity and Fund Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
+              <div className="space-y-20">
+                <ClassifiedSection title="Institutional Assets & Portfolio" accounts={assetAccounts} balancesMap={balances} />
+                <ClassifiedSection title="Member Equity & Trust Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
               </div>
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
-                 <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
-                 <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
+              <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t border-black flex justify-between items-center text-[10px] text-black font-black uppercase tracking-widest opacity-100">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[11px] text-black font-black uppercase tracking-[0.3em]">
+                <span>CPF Management Software v1.0</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>
@@ -283,58 +281,58 @@ export default function ReportsPage() {
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto">
             <CardContent className="p-16 print:p-0">
               <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="space-y-12">
-                <div className="space-y-6">
-                  <h3 className="text-sm font-black border-b-2 border-black text-black pb-1 uppercase tracking-widest">Operating Revenue</h3>
-                  <div className="space-y-2 pl-6">
+              <div className="space-y-16">
+                <div className="space-y-8">
+                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-2 uppercase tracking-[0.2em]">Institutional Revenue</h3>
+                  <div className="space-y-3 pl-6">
                     {incomeAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black">
-                          <span className="font-black text-black">{acc.name}</span>
-                          <span className="font-mono font-black text-black">{formatCurrency(val)}</span>
+                        <div key={acc.code} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
+                          <span className="uppercase tracking-tight">{acc.name}</span>
+                          <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-black text-xs pt-3 border-t-2 border-black mt-4 text-black">
-                       <span>Total Consolidated Revenue</span>
-                       <span className="font-mono">{formatCurrency(totalIncome)}</span>
+                    <div className="flex justify-between font-black text-[13px] pt-4 border-t-2 border-black mt-6 text-black tabular-nums uppercase">
+                       <span>Gross Consolidated Income</span>
+                       <span className="underline decoration-black">{formatCurrency(totalIncome)}</span>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-6">
-                  <h3 className="text-sm font-black border-b-2 border-black text-black pb-1 uppercase tracking-widest">Operating Expenditures</h3>
-                  <div className="space-y-2 pl-6">
+                <div className="space-y-8">
+                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-2 uppercase tracking-[0.2em]">Operating Expenditures</h3>
+                  <div className="space-y-3 pl-6">
                     {expenseAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black">
-                          <span className="font-black text-black">{acc.name}</span>
-                          <span className="font-mono font-black text-black">{formatCurrency(val)}</span>
+                        <div key={acc.code} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
+                          <span className="uppercase tracking-tight">{acc.name}</span>
+                          <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-black text-xs pt-3 border-t-2 border-black mt-4 text-black">
-                       <span>Total Expenditures</span>
-                       <span className="font-mono">{formatCurrency(totalExpense)}</span>
+                    <div className="flex justify-between font-black text-[13px] pt-4 border-t-2 border-black mt-6 text-black tabular-nums uppercase">
+                       <span>Total Trust Expenditures</span>
+                       <span className="underline decoration-black">{formatCurrency(totalExpense)}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between font-black text-lg p-6 border-[3px] border-black mt-16 rounded-2xl bg-slate-50 text-black">
-                  <span className="uppercase text-sm tracking-widest">Net Surplus / (Deficit) for the Period</span>
-                  <span className="font-mono underline decoration-double decoration-4">৳ {formatCurrency(totalIncome - totalExpense)}</span>
+                <div className="flex justify-between font-black text-xl p-8 border-[4px] border-black mt-20 rounded-2xl bg-slate-50 text-black tabular-nums">
+                  <span className="uppercase text-sm tracking-[0.3em]">Net Trust Surplus / (Deficit)</span>
+                  <span className="underline decoration-double decoration-4">৳ {formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
               </div>
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
-                 <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
-                 <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
+              <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t border-black flex justify-between items-center text-[10px] text-black font-black uppercase tracking-widest opacity-100">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[11px] text-black font-black uppercase tracking-[0.3em]">
+                <span>CPF Management Software v1.0</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>
@@ -344,38 +342,38 @@ export default function ReportsPage() {
            <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto">
             <CardContent className="p-16 print:p-0">
               <ReportHeader title="Receipts and Payments Statement" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="grid grid-cols-2 gap-x-16 mt-10">
-                 <div className="space-y-8">
-                    <h4 className="font-black text-[12px] text-black border-b-2 border-black pb-2 uppercase tracking-[0.2em]">Institutional Receipts</h4>
-                    <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-x-24 mt-12">
+                 <div className="space-y-10">
+                    <h4 className="font-black text-[13px] text-black border-b-4 border-black pb-2 uppercase tracking-[0.2em]">Institutional Receipts</h4>
+                    <div className="space-y-4">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
-                        <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black">
-                          <span className="max-w-[180px] font-black text-black">{activeCOA.find(a => a.code === c)?.name}</span>
-                          <span className="font-mono font-black text-black">{formatCurrency(periodBalances[c])}</span>
+                        <div key={c} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
+                          <span className="max-w-[200px] uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
+                          <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
-                 <div className="space-y-8 border-l-2 border-black pl-16">
-                    <h4 className="font-black text-[12px] text-black border-b-2 border-black pb-2 uppercase tracking-[0.2em]">Institutional Payments</h4>
-                    <div className="space-y-3">
+                 <div className="space-y-10 border-l-4 border-black pl-24">
+                    <h4 className="font-black text-[13px] text-black border-b-4 border-black pb-2 uppercase tracking-[0.2em]">Institutional Payments</h4>
+                    <div className="space-y-4">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Debit').map(c => (
-                        <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black">
-                          <span className="max-w-[180px] font-black text-black">{activeCOA.find(a => a.code === c)?.name}</span>
-                          <span className="font-mono font-black text-black">{formatCurrency(periodBalances[c])}</span>
+                        <div key={c} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
+                          <span className="max-w-[200px] uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
+                          <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
               </div>
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
-                 <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
-                 <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
+              <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t border-black flex justify-between items-center text-[10px] text-black font-black uppercase tracking-widest opacity-100">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
+              <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[11px] text-black font-black uppercase tracking-[0.3em]">
+                <span>CPF Management Software v1.0</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
             </CardContent>
           </Card>
