@@ -8,7 +8,6 @@ import {
   Search, 
   Plus, 
   TrendingUp, 
-  Wallet, 
   Edit2, 
   Trash2, 
   Loader2, 
@@ -16,19 +15,16 @@ import {
   CheckCircle2, 
   Clock, 
   History as HistoryIcon, 
-  Building2, 
   Upload, 
   FileSpreadsheet, 
   Download, 
   RefreshCw,
-  Calendar,
   ArrowRight,
   ShieldCheck,
   ArrowDownRight,
   Info,
   HandCoins,
-  CalendarClock,
-  ArrowLeftRight
+  CalendarClock
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -61,11 +57,9 @@ export default function InvestmentsPage() {
   const [renewingInvestment, setRenewingInvestment] = useState<any>(null);
   const [viewingHistory, setViewingHistory] = useState<any>(null);
 
-  // States for automatic date calculation in Renew dialog
   const [renewDate, setRenewDate] = useState("");
   const [maturityDate, setMaturityDate] = useState("");
 
-  // States for Add/Edit Form Auto-fills
   const [formPrincipal, setFormPrincipal] = useState<string>("");
   const [formInitialPrincipal, setFormInitialPrincipal] = useState<string>("");
   const [formOpeningDate, setFormOpeningDate] = useState<string>("");
@@ -74,7 +68,6 @@ export default function InvestmentsPage() {
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
 
-  // Sync form states when editing or opening add dialog
   useEffect(() => {
     if (editingInvestment) {
       setFormPrincipal(editingInvestment.principalAmount?.toString() || "");
@@ -89,14 +82,12 @@ export default function InvestmentsPage() {
     }
   }, [editingInvestment, isAddOpen]);
 
-  // Extract unique bank names for suggestions
   const uniqueBankNames = useMemo(() => {
     if (!investments) return [];
     const names = new Set(investments.map(i => i.bankName).filter(Boolean));
     return Array.from(names).sort();
   }, [investments]);
 
-  // Fetch history for selected instrument
   const historyQuery = useMemoFirebase(() => {
     if (!firestore || !viewingHistory?.id) return null;
     return query(
@@ -131,12 +122,10 @@ export default function InvestmentsPage() {
     return { total, count: activeOnes.length, avgRate: (sumRates / (activeOnes.length || 1)) * 100 };
   }, [investments]);
 
-  // Handle auto-filling of dates when a renewal starts
   useEffect(() => {
     if (renewingInvestment) {
       const defaultStart = renewingInvestment.maturityDate || new Date().toISOString().split('T')[0];
       setRenewDate(defaultStart);
-      
       const d = new Date(defaultStart);
       d.setFullYear(d.getFullYear() + 1);
       setMaturityDate(d.toISOString().split('T')[0]);
@@ -174,23 +163,10 @@ export default function InvestmentsPage() {
     if (editingInvestment) {
       const docRef = doc(firestore, "investmentInstruments", editingInvestment.id);
       updateDocumentNonBlocking(docRef, investmentData);
-      showAlert({ 
-        title: "Updated", 
-        description: `Instrument ${investmentData.referenceNumber} updated.`, 
-        type: "success",
-        onConfirm: () => window.location.reload()
-      });
+      showAlert({ title: "Updated", description: `Instrument ${investmentData.referenceNumber} updated.`, type: "success" });
     } else {
-      addDocumentNonBlocking(investmentsRef, {
-        ...investmentData,
-        createdAt: new Date().toISOString()
-      });
-      showAlert({ 
-        title: "Success", 
-        description: `New ${investmentData.instrumentType} recorded.`, 
-        type: "success",
-        onConfirm: () => window.location.reload()
-      });
+      addDocumentNonBlocking(investmentsRef, { ...investmentData, createdAt: new Date().toISOString() });
+      showAlert({ title: "Success", description: `New ${investmentData.instrumentType} recorded.`, type: "success" });
     }
     setIsAddOpen(false);
     setEditingInvestment(null);
@@ -201,7 +177,6 @@ export default function InvestmentsPage() {
     const formData = new FormData(e.currentTarget);
     if (!renewingInvestment) return;
 
-    // 1. Create a history snapshot before updating
     const historyRef = collection(firestore, "investmentInstruments", renewingInvestment.id, "auditHistory");
     addDocumentNonBlocking(historyRef, {
       cycleLabel: "Completed Cycle",
@@ -213,7 +188,6 @@ export default function InvestmentsPage() {
       type: "Renewal Snapshot"
     });
 
-    // 2. Update current state
     const renewData = {
       principalAmount: Number(formData.get("principalAmount")),
       interestRate: Number(formData.get("interestRate")) / 100,
@@ -223,16 +197,8 @@ export default function InvestmentsPage() {
       updatedAt: new Date().toISOString(),
     };
 
-    const docRef = doc(firestore, "investmentInstruments", renewingInvestment.id);
-    updateDocumentNonBlocking(docRef, renewData);
-    
-    showAlert({ 
-      title: "Renewed", 
-      description: "Investment cycle updated. Previous state archived for audit.", 
-      type: "success",
-      onConfirm: () => window.location.reload()
-    });
-    
+    updateDocumentNonBlocking(doc(firestore, "investmentInstruments", renewingInvestment.id), renewData);
+    showAlert({ title: "Renewed", description: "Investment cycle updated. History archived.", type: "success" });
     setIsRenewOpen(false);
     setRenewingInvestment(null);
   };
@@ -266,34 +232,11 @@ export default function InvestmentsPage() {
           };
           if (mapped.bankName) addDocumentNonBlocking(investmentsRef, mapped);
         });
-        showAlert({ title: "Success", description: "Bulk processing complete.", type: "success", onConfirm: () => window.location.reload() });
+        showAlert({ title: "Success", description: "Bulk processing complete.", type: "success" });
       } catch (err) { toast({ title: "Upload Failed", variant: "destructive" }); }
       finally { setIsUploading(false); setIsBulkOpen(false); }
     };
     reader.readAsBinaryString(file);
-  };
-
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        "Bank Name": "Sonali Bank PLC",
-        "Ref No": "FDR-2024-001",
-        "Principal": 1000000,
-        "Initial Principal": 1000000,
-        "Rate": 12.5,
-        "First Opening Date": "2020-01-01",
-        "Renew Date": "2024-01-01",
-        "Maturity Date": "2025-01-01",
-        "Instrument Type": "FDR",
-        "chartOfAccountId": "101.10.0000",
-        "Status": "Active"
-      }
-    ];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Investments");
-    XLSX.writeFile(wb, "investments_lifecycle_template.xlsx");
-    toast({ title: "Template Downloaded" });
   };
 
   const getStatusBadge = (status: string) => {
@@ -333,13 +276,15 @@ export default function InvestmentsPage() {
               <DialogHeader>
                 <div className="flex items-center justify-between">
                   <DialogTitle className="text-2xl font-black">Bulk Upload Investments</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="h-8 text-xs font-black gap-1 uppercase hover:bg-primary/5">
-                    <Download className="size-4" /> Template
-                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const templateData = [{ "Bank Name": "Sonali Bank PLC", "Ref No": "FDR-2024-001", "Principal": 1000000, "Initial Principal": 1000000, "Rate": 12.5, "First Opening Date": "2020-01-01", "Renew Date": "2024-01-01", "Maturity Date": "2025-01-01", "Instrument Type": "FDR", "chartOfAccountId": "101.10.0000", "Status": "Active" }];
+                    const ws = XLSX.utils.json_to_sheet(templateData);
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, "Investments");
+                    XLSX.writeFile(wb, "investments_lifecycle_template.xlsx");
+                  }} className="h-8 text-xs font-black gap-1 uppercase hover:bg-primary/5"><Download className="size-4" /> Template</Button>
                 </div>
-                <DialogDescription className="text-sm font-bold text-slate-500">
-                  Upload your XLSX file. Ensure lifecycle dates and initial principal tracking are handled correctly.
-                </DialogDescription>
+                <DialogDescription className="text-sm font-bold text-slate-500">Upload your XLSX file. Lifecycle dates and initial principal tracking are required.</DialogDescription>
               </DialogHeader>
               <div className="p-12 border-2 border-dashed rounded-2xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
                 <FileSpreadsheet className="size-12 mx-auto mb-4 text-primary opacity-50" />
@@ -358,16 +303,8 @@ export default function InvestmentsPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2 space-y-2">
                     <Label className="text-sm font-black">Bank Name</Label>
-                    <Input 
-                      name="bankName" 
-                      list="bank-names"
-                      defaultValue={editingInvestment?.bankName} 
-                      className="h-11 font-bold" 
-                      required 
-                    />
-                    <datalist id="bank-names">
-                      {uniqueBankNames.map(name => <option key={name} value={name} />)}
-                    </datalist>
+                    <Input name="bankName" list="bank-names" defaultValue={editingInvestment?.bankName} className="h-11 font-bold" required />
+                    <datalist id="bank-names">{uniqueBankNames.map(name => <option key={name} value={name} />)}</datalist>
                   </div>
                   <div className="space-y-2"><Label className="text-sm font-black">Ref No (Reference)</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} className="h-11 font-bold" required /></div>
                   <div className="space-y-2">
@@ -384,59 +321,22 @@ export default function InvestmentsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Current Principal (৳)</Label>
-                    <Input 
-                      name="principalAmount" 
-                      type="number" 
-                      step="0.01" 
-                      value={formPrincipal}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setFormPrincipal(val);
-                        if (!editingInvestment) setFormInitialPrincipal(val);
-                      }}
-                      className="h-11 font-bold" 
-                      required 
-                    />
+                    <Input name="principalAmount" type="number" step="0.01" value={formPrincipal} onChange={(e) => { setFormPrincipal(e.target.value); if (!editingInvestment) setFormInitialPrincipal(e.target.value); }} className="h-11 font-bold" required />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Initial Principal (৳)</Label>
-                    <Input 
-                      name="initialPrincipalAmount" 
-                      type="number" 
-                      step="0.01" 
-                      value={formInitialPrincipal}
-                      onChange={(e) => setFormInitialPrincipal(e.target.value)}
-                      className="h-11 font-bold" 
-                    />
+                    <Input name="initialPrincipalAmount" type="number" step="0.01" value={formInitialPrincipal} onChange={(e) => setFormInitialPrincipal(e.target.value)} className="h-11 font-bold" />
                   </div>
                   <div className="space-y-2"><Label className="text-sm font-black">Interest Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} className="h-11 font-bold" required /></div>
                   
                   <div className="col-span-2 grid grid-cols-3 gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-200">
                     <div className="space-y-2">
                       <Label className="text-[11px] uppercase font-black text-slate-500">First Opening</Label>
-                      <Input 
-                        name="firstOpeningDate" 
-                        type="date" 
-                        value={formOpeningDate}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormOpeningDate(val);
-                          if (!editingInvestment) setFormIssueDate(val);
-                        }}
-                        className="font-bold" 
-                        required 
-                      />
+                      <Input name="firstOpeningDate" type="date" value={formOpeningDate} onChange={(e) => { setFormOpeningDate(e.target.value); if (!editingInvestment) setFormIssueDate(e.target.value); }} className="font-bold" required />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[11px] uppercase font-black text-slate-500">Cycle Issue/Renew</Label>
-                      <Input 
-                        name="issueDate" 
-                        type="date" 
-                        value={formIssueDate}
-                        onChange={(e) => setFormIssueDate(e.target.value)}
-                        className="font-bold" 
-                        required 
-                      />
+                      <Input name="issueDate" type="date" value={formIssueDate} onChange={(e) => setFormIssueDate(e.target.value)} className="font-bold" required />
                     </div>
                     <div className="space-y-2"><Label className="text-[11px] uppercase font-black text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} className="font-bold" /></div>
                   </div>
@@ -498,13 +398,13 @@ export default function InvestmentsPage() {
             {isLoading && filteredInvestments.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : filteredInvestments.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-32 text-slate-400 font-bold text-lg italic">No investment records found.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-32 text-slate-400 font-bold text-lg italic">No records found.</TableCell></TableRow>
             ) : filteredInvestments.map((inv) => (
               <TableRow key={inv.id} className="hover:bg-slate-50 transition-colors border-b">
                 <TableCell className="py-5">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-black text-slate-900 text-base">{inv.bankName}</span>
-                    <span className="font-mono text-xs text-muted-foreground font-bold tracking-tight uppercase">Ref: {inv.referenceNumber}</span>
+                    <span className="font-mono text-xs text-muted-foreground font-bold uppercase tracking-tight">Ref: {inv.referenceNumber}</span>
                   </div>
                 </TableCell>
                 <TableCell><Badge variant="secondary" className="text-[11px] uppercase font-black tracking-wider px-2 py-1">{inv.instrumentType}</Badge></TableCell>
@@ -539,7 +439,7 @@ export default function InvestmentsPage() {
                     <Button variant="ghost" size="icon" className="h-9 w-9 text-indigo-600 hover:bg-indigo-50" title="Audit History" onClick={() => { setViewingHistory(inv); setIsHistoryOpen(true); }}><HistoryIcon className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9 text-primary hover:bg-primary/5" title="Renew Cycle" onClick={() => { setRenewingInvestment(inv); setIsRenewOpen(true); }}><RefreshCw className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-100" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => { showAlert({ title: "Delete Instrument?", description: "This will remove the current record. Audit trail history remains.", type: "warning", showCancel: true, confirmText: "Delete", onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); window.location.reload(); } }); }}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => { showAlert({ title: "Delete Instrument?", description: "This will remove the current record. Audit trail history remains.", type: "warning", showCancel: true, confirmText: "Delete", onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); } }); }}><Trash2 className="size-4" /></Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -548,17 +448,11 @@ export default function InvestmentsPage() {
         </Table>
       </div>
 
-      {/* RENEW DIALOG */}
       <Dialog open={isRenewOpen} onOpenChange={setIsRenewOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-3 text-2xl font-black">
-              <RefreshCw className="size-6 text-primary" />
-              Renew Investment Cycle
-            </DialogTitle>
-            <DialogDescription className="text-base font-bold text-slate-500">
-              Inception Principal: <span className="text-slate-900">৳{renewingInvestment?.initialPrincipalAmount?.toLocaleString()}</span>
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-3 text-2xl font-black"><RefreshCw className="size-6 text-primary" /> Renew Investment Cycle</DialogTitle>
+            <DialogDescription className="text-base font-bold text-slate-500">Inception Principal: <span className="text-slate-900">৳{renewingInvestment?.initialPrincipalAmount?.toLocaleString()}</span></DialogDescription>
           </DialogHeader>
           <form onSubmit={handleRenewInvestment} className="space-y-6 pt-4">
             <div className="grid gap-6">
@@ -569,48 +463,24 @@ export default function InvestmentsPage() {
                 <div className="space-y-2"><Label className="text-sm font-black">New Maturity Date</Label><Input name="maturityDate" type="date" required value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className="h-11 font-bold" /></div>
               </div>
             </div>
-            <DialogFooter className="gap-3">
-              <Button type="button" variant="outline" className="h-11 font-black px-8" onClick={() => setIsRenewOpen(false)}>Cancel</Button>
-              <Button type="submit" className="h-11 font-black px-10 gap-2">Confirm Renewal</Button>
-            </DialogFooter>
+            <DialogFooter className="gap-3 pt-4"><Button type="button" variant="outline" className="h-11 font-black px-8" onClick={() => setIsRenewOpen(false)}>Cancel</Button><Button type="submit" className="h-11 font-black px-10">Confirm Renewal</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* AUDIT HISTORY DIALOG */}
       <Dialog open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto font-ledger">
           <DialogHeader className="border-b pb-6">
-            <DialogTitle className="flex items-center gap-4 text-3xl font-black">
-              <ShieldCheck className="size-8 text-primary" />
-              Audit Trail: {viewingHistory?.bankName}
-            </DialogTitle>
-            <DialogDescription className="font-mono text-sm font-bold text-muted-foreground mt-2">
-              Reference: {viewingHistory?.referenceNumber} • Inception: {viewingHistory?.firstOpeningDate}
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-4 text-3xl font-black"><ShieldCheck className="size-8 text-primary" /> Audit Trail: {viewingHistory?.bankName}</DialogTitle>
+            <DialogDescription className="font-mono text-sm font-bold text-muted-foreground mt-2">Reference: {viewingHistory?.referenceNumber} • Inception: {viewingHistory?.firstOpeningDate}</DialogDescription>
           </DialogHeader>
-          
           <div className="py-8 space-y-10">
             <div className="grid grid-cols-2 gap-6">
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-sm">
-                <p className="text-xs uppercase font-black text-slate-400 mb-2 tracking-widest">Inception Principal</p>
-                <p className="text-3xl font-black text-slate-900">৳ {viewingHistory?.initialPrincipalAmount?.toLocaleString()}</p>
-              </div>
-              <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 shadow-sm">
-                <p className="text-xs uppercase font-black text-primary opacity-60 mb-2 tracking-widest">Current Principal</p>
-                <p className="text-3xl font-black text-primary">৳ {viewingHistory?.principalAmount?.toLocaleString()}</p>
-              </div>
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 shadow-sm"><p className="text-xs uppercase font-black text-slate-400 mb-2 tracking-widest">Inception Principal</p><p className="text-3xl font-black text-slate-900">৳ {viewingHistory?.initialPrincipalAmount?.toLocaleString()}</p></div>
+              <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 shadow-sm"><p className="text-xs uppercase font-black text-primary opacity-60 mb-2 tracking-widest">Current Principal</p><p className="text-3xl font-black text-primary">৳ {viewingHistory?.principalAmount?.toLocaleString()}</p></div>
             </div>
-
             <div className="space-y-6">
-              <div className="flex items-center justify-between px-2">
-                <h3 className="text-lg font-black flex items-center gap-2">
-                  <Clock className="size-5 text-slate-400" />
-                  Lifecycle Audit Matrix
-                </h3>
-                <Badge variant="outline" className="text-[11px] uppercase font-black tracking-widest text-slate-500 py-1 px-3">Institutional Trace</Badge>
-              </div>
-              
+              <h3 className="text-lg font-black flex items-center gap-2 px-2"><Clock className="size-5 text-slate-400" /> Lifecycle Audit Matrix</h3>
               <div className="border rounded-2xl overflow-hidden shadow-md">
                 <Table>
                   <TableHeader className="bg-slate-50">
@@ -623,83 +493,34 @@ export default function InvestmentsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {/* 1. Show Current Active Cycle First */}
                     <TableRow className="bg-primary/5 hover:bg-primary/10 transition-colors border-b-2">
                       <TableCell className="font-black text-primary text-sm uppercase pl-6 py-5">Active Cycle</TableCell>
-                      <TableCell className="py-5">
-                        <div className="flex items-center gap-3 font-mono text-xs font-black">
-                          <span className="text-slate-900">{viewingHistory?.issueDate}</span>
-                          <ArrowRight className="size-3 text-slate-300" />
-                          <span className="text-rose-600">{viewingHistory?.maturityDate || "N/A"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-black text-lg text-slate-900 py-5">
-                        ৳ {viewingHistory?.principalAmount?.toLocaleString()}
-                      </TableCell>
-                      <TableCell className="text-right font-black text-lg text-indigo-700 py-5">
-                        {(viewingHistory?.interestRate * 100).toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-center pr-6 py-5">
-                        <Badge className="bg-primary text-[10px] h-6 px-3 uppercase font-black tracking-widest">Active</Badge>
-                      </TableCell>
+                      <TableCell className="py-5"><div className="flex items-center gap-3 font-mono text-xs font-black"><span className="text-slate-900">{viewingHistory?.issueDate}</span><ArrowRight className="size-3 text-slate-300" /><span className="text-rose-600">{viewingHistory?.maturityDate || "N/A"}</span></div></TableCell>
+                      <TableCell className="text-right font-black text-lg text-slate-900 py-5">৳ {viewingHistory?.principalAmount?.toLocaleString()}</TableCell>
+                      <TableCell className="text-right font-black text-lg text-indigo-700 py-5">{(viewingHistory?.interestRate * 100).toFixed(2)}%</TableCell>
+                      <TableCell className="text-center pr-6 py-5"><Badge className="bg-primary text-[10px] h-6 px-3 uppercase font-black tracking-widest">Active</Badge></TableCell>
                     </TableRow>
-
-                    {/* 2. Show Historical Snapshots */}
-                    {isHistoryLoading ? (
-                      <TableRow><TableCell colSpan={5} className="text-center py-16"><Loader2 className="size-8 animate-spin mx-auto text-slate-300" /></TableCell></TableRow>
-                    ) : (!auditHistory || auditHistory.length === 0) ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-12">
-                          <Info className="size-8 mx-auto mb-2 text-slate-300" />
-                          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No previous renewal history found</p>
-                        </TableCell>
-                      </TableRow>
-                    ) : auditHistory.map((h, i) => (
+                    {isHistoryLoading ? <TableRow><TableCell colSpan={5} className="text-center py-16"><Loader2 className="size-8 animate-spin mx-auto text-slate-300" /></TableCell></TableRow> : (!auditHistory || auditHistory.length === 0) ? <TableRow><TableCell colSpan={5} className="text-center py-12"><Info className="size-8 mx-auto mb-2 text-slate-300" /><p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No renewal history found</p></TableCell></TableRow> : auditHistory.map((h, i) => (
                       <TableRow key={i} className="hover:bg-slate-50 transition-colors opacity-90 border-b">
                         <TableCell className="text-sm font-black text-slate-500 uppercase pl-6 py-4">{h.cycleLabel || "Archived Cycle"}</TableCell>
-                        <TableCell className="py-4">
-                          <div className="flex items-center gap-3 font-mono text-xs font-bold text-slate-500">
-                            <span>{h.issueDate}</span>
-                            <ArrowRight className="size-3 text-slate-200" />
-                            <span>{h.maturityDate}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-base text-slate-600 py-4">
-                          ৳ {h.principalAmount?.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-right font-bold text-base text-slate-600 py-4">
-                          {(h.interestRate * 100).toFixed(2)}%
-                        </TableCell>
-                        <TableCell className="text-center pr-6 py-4">
-                          <Badge variant="outline" className="text-[10px] h-6 px-3 uppercase font-black border-slate-200 text-slate-400">Archived</Badge>
-                        </TableCell>
+                        <TableCell className="py-4"><div className="flex items-center gap-3 font-mono text-xs font-bold text-slate-500"><span>{h.issueDate}</span><ArrowRight className="size-3 text-slate-200" /><span>{h.maturityDate}</span></div></TableCell>
+                        <TableCell className="text-right font-bold text-base text-slate-600 py-4">৳ {h.principalAmount?.toLocaleString()}</TableCell>
+                        <TableCell className="text-right font-bold text-base text-slate-600 py-4">{(h.interestRate * 100).toFixed(2)}%</TableCell>
+                        <TableCell className="text-center pr-6 py-4"><Badge variant="outline" className="text-[10px] h-6 px-3 uppercase font-black border-slate-200 text-slate-400">Archived</Badge></TableCell>
                       </TableRow>
                     ))}
-
-                    {/* 3. Show Original Inception Marker */}
                     <TableRow className="bg-emerald-50/30 border-t-4 border-emerald-100">
                       <TableCell className="font-black text-emerald-700 text-sm uppercase pl-6 py-6">Initial Inception</TableCell>
-                      <TableCell className="font-mono text-xs font-black text-emerald-600 py-6">
-                        Genesis: {viewingHistory?.firstOpeningDate}
-                      </TableCell>
-                      <TableCell className="text-right font-black text-lg text-emerald-700 py-6">
-                        ৳ {viewingHistory?.initialPrincipalAmount?.toLocaleString()}
-                      </TableCell>
-                      <TableCell colSpan={2} className="text-center pr-6 py-6">
-                        <div className="flex items-center justify-center gap-3 text-emerald-600">
-                          <ArrowDownRight className="size-4" />
-                          <span className="text-[11px] font-black uppercase tracking-tighter">Inception Anchor</span>
-                        </div>
-                      </TableCell>
+                      <TableCell className="font-mono text-xs font-black text-emerald-600 py-6">Genesis: {viewingHistory?.firstOpeningDate}</TableCell>
+                      <TableCell className="text-right font-black text-lg text-emerald-700 py-6">৳ {viewingHistory?.initialPrincipalAmount?.toLocaleString()}</TableCell>
+                      <TableCell colSpan={2} className="text-center pr-6 py-6"><div className="flex items-center justify-center gap-3 text-emerald-600"><ArrowDownRight className="size-4" /><span className="text-[11px] font-black uppercase tracking-tighter">Inception Anchor</span></div></TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
               </div>
             </div>
           </div>
-          <DialogFooter className="bg-slate-50 -mx-6 -mb-6 p-6 border-t">
-            <Button variant="ghost" className="font-black h-11 px-8 text-base" onClick={() => setIsHistoryOpen(false)}>Close Audit Terminal</Button>
-          </DialogFooter>
+          <DialogFooter className="bg-slate-50 -mx-6 -mb-6 p-6 border-t"><Button variant="ghost" className="font-black h-11 px-8 text-base" onClick={() => setIsHistoryOpen(false)}>Close Audit Terminal</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
