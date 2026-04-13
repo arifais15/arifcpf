@@ -20,8 +20,8 @@ import {
   FileStack,
   ArrowRight
 } from "lucide-react";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, collectionGroup } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
+import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -34,6 +34,10 @@ export default function NetfundStatementPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
+  const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
+  const { data: generalSettings } = useDoc(generalSettingsRef);
+  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
+
   const [asOfDate, setAsOfDate] = useState("");
   const [search, setSearch] = useState("");
 
@@ -189,7 +193,7 @@ export default function NetfundStatementPage() {
 
       <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
         <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 max-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
             <Input 
               className="pl-9 h-9 bg-white" 
@@ -260,7 +264,8 @@ export default function NetfundStatementPage() {
       {/* Landscape Print Optimized View */}
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">Gazipur Palli Bidyut Samity-2</h1>
+          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
+          <p className="text-sm font-black uppercase tracking-widest text-slate-700">Contributory Provident Fund</p>
           <h2 className="text-lg font-bold underline underline-offset-4 uppercase text-slate-800">Statement of Members' Net Fund Balances</h2>
           <div className="flex justify-between text-[10px] font-bold pt-4">
             <span>Statement As Of: {asOfDate}</span>

@@ -139,6 +139,7 @@ export default function AllLedgersPrintPage() {
             <div className="relative mb-8 text-center border-b-2 border-black pb-6">
               <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] opacity-70">REB Form no: 224</p>
               <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">{pbsName}</h1>
+              <p className="text-sm font-black uppercase tracking-widest text-slate-700">Contributory Provident Fund</p>
               <h2 className="text-lg font-bold underline underline-offset-8 uppercase tracking-[0.25em] mt-3">Provident Fund Subsidiary Ledger</h2>
             </div>
 

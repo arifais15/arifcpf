@@ -171,7 +171,11 @@ export default function InvestmentMaturityReportPage() {
         </div>
       ) : (
         <Card className="max-w-5xl mx-auto border shadow-2xl rounded-none bg-white p-12 print:p-0 print:border-none animate-in zoom-in duration-500 font-ledger text-black">
-          <div className="text-center space-y-2 mb-10 border-b-4 border-double border-black pb-8"><h1 className="text-3xl font-black uppercase">{pbsName}</h1><h2 className="text-xl font-bold uppercase tracking-[0.3em] underline underline-offset-8">Office Note</h2></div>
+          <div className="text-center space-y-2 mb-10 border-b-4 border-double border-black pb-8">
+            <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
+            <p className="text-sm font-black uppercase tracking-widest text-slate-700">Contributory Provident Fund</p>
+            <h2 className="text-xl font-bold uppercase tracking-[0.3em] underline underline-offset-8">Office Note</h2>
+          </div>
           <div className="flex justify-between items-start mb-8 text-sm font-black"><div><p>Reference: PBS/CPF/INVEST/{new Date().getFullYear()}/_______</p><p>Section: Accounts / Finance</p></div><div className="text-right"><p>Date: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}</p></div></div>
           <div className="space-y-8">
             <div className="flex gap-4"><span className="font-black uppercase min-w-[80px]">Subject:</span><span className="font-black uppercase underline decoration-2 underline-offset-4 leading-relaxed">Approval for encashment or renewal of investment certificates maturing between {dateRange.start} and {dateRange.end}.</span></div>
@@ -199,7 +203,12 @@ export default function InvestmentMaturityReportPage() {
       <div className="hidden print:block print-container text-black">
         {viewMode === 'report' ? (
           <>
-            <div className="text-center space-y-2 mb-10 border-b-2 border-black pb-8"><h1 className="text-3xl font-black uppercase">{pbsName}</h1><h2 className="text-xl font-bold underline underline-offset-8 uppercase tracking-[0.2em]">Investment Maturity Interest Schedule</h2><div className="flex justify-between text-xs font-bold pt-6"><span>Report Period: {dateRange.start} to {dateRange.end}</span><span>Run Date: {new Date().toLocaleDateString('en-GB')}</span></div></div>
+            <div className="text-center space-y-2 mb-10 border-b-2 border-black pb-8">
+              <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
+              <p className="text-sm font-black uppercase tracking-widest text-slate-700">Contributory Provident Fund</p>
+              <h2 className="text-xl font-bold underline underline-offset-8 uppercase tracking-[0.2em]">Investment Maturity Interest Schedule</h2>
+              <div className="flex justify-between text-xs font-bold pt-6"><span>Report Period: {dateRange.start} to {dateRange.end}</span><span>Run Date: {new Date().toLocaleDateString('en-GB')}</span></div>
+            </div>
             <table className="w-full text-[9px] border-collapse border border-black">
               <thead><tr className="bg-slate-100"><th className="border border-black p-2 text-left">Bank & Reference</th><th className="border border-black p-2 text-center">Cycle</th><th className="border border-black p-2 text-right">Principal</th><th className="border border-black p-2 text-right">Gross Yield</th><th className="border border-black p-2 text-right">TDS (20%)</th><th className="border border-black p-2 text-right font-black">Net Yield</th></tr></thead>
               <tbody>{groupedData.map(([code, items]) => (

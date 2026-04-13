@@ -202,6 +202,7 @@ export default function ReportsPage() {
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
     <div className="text-center mb-10 border-b-2 border-black pb-6">
       <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">{pbsName}</h1>
+      <p className="text-sm font-black uppercase tracking-widest text-slate-700">Contributory Provident Fund</p>
       <h2 className="text-lg md:text-xl font-black text-slate-800 mt-2 font-ledger uppercase underline decoration-2 underline-offset-8">{title}</h2>
       <p className="text-[11px] text-slate-600 font-bold uppercase tracking-[0.3em] mt-4 opacity-70">{subtitle}</p>
     </div>

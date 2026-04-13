@@ -459,6 +459,7 @@ export default function LedgerSummaryReportPage() {
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
+          <p className="text-sm font-black uppercase tracking-widest text-slate-700">Contributory Provident Fund</p>
           <h2 className="text-lg font-bold underline underline-offset-4 uppercase">
             {activeTab === 'matrix' ? 'Ledger Summary Matrix' : activeTab === 'netfund' ? 'Statement of Members Netfund Balances' : 'Fund Movement Audit Report'}
           </h2>
