@@ -173,8 +173,8 @@ export default function SpecialInterestDPPage() {
             c3: Number(e.loanRepayment)||0, 
             c5: Number(e.profitEmployee)||0, 
             c6: Number(e.profitLoan)||0, 
-            c8: Number(e.pbsContribution)||0, 
-            c9: Number(e.profitPbs)||0 
+            c8: Number(s.pbsContribution)||0, 
+            c9: Number(s.profitPbs)||0 
           };
           runningBalance += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
         });
@@ -377,7 +377,6 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
-            </Card>
 
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print">
               <div className="space-y-1">
@@ -596,9 +595,9 @@ export default function SpecialInterestDPPage() {
         </table>
 
         <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
-          <div className="border-t border-black pt-2">Accountant (Audit)</div>
-          <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
-          <div className="border-t border-black pt-2">Approved By Trustee</div>
+          <div className="border-t border-black pt-2 uppercase">Prepared by</div>
+          <div className="border-t border-black pt-2 uppercase">Checked by</div>
+          <div className="border-t border-black pt-2 uppercase">Approved By Trustee</div>
         </div>
         
         <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">

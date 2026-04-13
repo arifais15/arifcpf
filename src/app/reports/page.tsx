@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -14,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 export default function ReportsPage() {
   const firestore = useFirestore();
-  const [selectedFY, setSelectedFY] = useState("");
+  const [selectedFY] = useState("");
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
@@ -58,27 +59,29 @@ export default function ReportsPage() {
     return Array.from(fys).sort((a, b) => b.localeCompare(a));
   }, [entries]);
 
+  const [selectedFiscalYear, setSelectedFY] = useState("");
+
   useEffect(() => {
-    if (availableFYs.length > 0 && (!selectedFY || !availableFYs.includes(selectedFY))) {
+    if (availableFYs.length > 0 && (!selectedFiscalYear || !availableFYs.includes(selectedFiscalYear))) {
       setSelectedFY(availableFYs[0]);
     }
-  }, [availableFYs, selectedFY]);
+  }, [availableFYs, selectedFiscalYear]);
 
   const fyDates = useMemo(() => {
-    if (!selectedFY) return { start: '', end: '', display: '' };
-    const parts = selectedFY.split("-");
+    if (!selectedFiscalYear) return { start: '', end: '', display: '' };
+    const parts = selectedFiscalYear.split("-");
     const startYear = parseInt(parts[0]);
     const endYear = startYear + 1;
     return {
       start: `${startYear}-07-01`,
       end: `${endYear}-06-30`,
-      display: `FY ${selectedFY}`
+      display: `FY ${selectedFiscalYear}`
     };
-  }, [selectedFY]);
+  }, [selectedFiscalYear]);
 
   const balances = useMemo(() => {
     const map: Record<string, number> = {};
-    if (!entries || !selectedFY) return map;
+    if (!entries || !selectedFiscalYear) return map;
     const endDate = new Date(fyDates.end).getTime();
     entries.forEach(entry => {
       const entryDate = new Date(entry.entryDate).getTime();
@@ -101,11 +104,11 @@ export default function ReportsPage() {
       });
     });
     return map;
-  }, [entries, activeCOA, fyDates.end, selectedFY]);
+  }, [entries, activeCOA, fyDates.end, selectedFiscalYear]);
 
   const periodBalances = useMemo(() => {
     const map: Record<string, number> = {};
-    if (!entries || !selectedFY) return map;
+    if (!entries || !selectedFiscalYear) return map;
     const startDate = new Date(fyDates.start).getTime();
     const endDate = new Date(fyDates.end).getTime();
     entries.forEach(entry => {
@@ -129,7 +132,7 @@ export default function ReportsPage() {
       });
     });
     return map;
-  }, [entries, activeCOA, fyDates.start, fyDates.end, selectedFY]);
+  }, [entries, activeCOA, fyDates.start, fyDates.end, selectedFiscalYear]);
 
   const formatCurrency = (val: number) => {
     const absVal = Math.abs(val);
@@ -231,7 +234,7 @@ export default function ReportsPage() {
         <div className="flex items-center gap-8">
           <div className="flex flex-col gap-1.5">
             <Label className="text-[11px] uppercase font-black text-slate-500 tracking-wider">Active Fiscal Year</Label>
-            <Select value={selectedFY} onValueChange={setSelectedFY}>
+            <Select value={selectedFiscalYear} onValueChange={setSelectedFY}>
               <SelectTrigger className="w-[180px] h-11 text-sm font-black border-2 border-slate-200">
                 <SelectValue placeholder="Select FY" />
               </SelectTrigger>
@@ -263,9 +266,9 @@ export default function ReportsPage() {
                 <ClassifiedSection title="Equity and Fund Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
               </div>
               <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-black text-center">
-                 <div className="border-t-2 border-black pt-3">Accountant / AGM(F)</div>
-                 <div className="border-t-2 border-black pt-3">Internal Auditor / DGM</div>
-                 <div className="border-t-2 border-black pt-3">Approved By Trustee</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
               </div>
               <div className="mt-16 pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest opacity-60">
                 <span>CPF Management Software</span>
@@ -327,9 +330,9 @@ export default function ReportsPage() {
                 </div>
               </div>
               <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-black text-center">
-                 <div className="border-t-2 border-black pt-3">Accountant / AGM(F)</div>
-                 <div className="border-t-2 border-black pt-3">Internal Auditor / DGM</div>
-                 <div className="border-t-2 border-black pt-3">Approved By Trustee</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
               </div>
               <div className="mt-16 pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest opacity-60">
                 <span>CPF Management Software</span>
@@ -368,9 +371,9 @@ export default function ReportsPage() {
                  </div>
               </div>
               <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-black text-center">
-                 <div className="border-t-2 border-black pt-3">Accountant</div>
-                 <div className="border-t-2 border-black pt-3">Checked By</div>
-                 <div className="border-t-2 border-black pt-3">Approved By</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
+                 <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
               </div>
               <div className="mt-16 pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 font-black uppercase tracking-widest opacity-60">
                 <span>CPF Management Software</span>

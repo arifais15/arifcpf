@@ -185,9 +185,9 @@ export default function LoanReportPage() {
         </table>
 
         <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
-          <div className="border-t border-black pt-2">Accountant (Loan)</div>
-          <div className="border-t border-black pt-2">Internal Auditor / DGM</div>
-          <div className="border-t border-black pt-2">Approved By Trustee</div>
+          <div className="border-t border-black pt-2 uppercase">Prepared by</div>
+          <div className="border-t border-black pt-2 uppercase">Checked by</div>
+          <div className="border-t border-black pt-2 uppercase">Approved By Trustee</div>
         </div>
       </div>
 

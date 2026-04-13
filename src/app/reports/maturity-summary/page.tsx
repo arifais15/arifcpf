@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -186,7 +187,11 @@ export default function InvestmentMaturityReportPage() {
               <div className="bg-slate-50 p-4 border border-black/10 rounded-lg"><p className="font-black text-xs uppercase mb-2 underline">Analysis Summary:</p><div className="grid grid-cols-2 gap-x-12 gap-y-1"><div className="flex justify-between border-b py-1"><span>Aggregate Maturing Principal:</span> <b>৳ {totals.principal.toLocaleString()}</b></div><div className="flex justify-between border-b py-1"><span>Estimated Net Interest (Post 20% TDS):</span> <b>৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></div></div></div>
               <p className="pt-6 font-black italic">Submitted for kind information and approval of the proposed actions.</p>
             </div>
-            <div className="mt-32 grid grid-cols-3 gap-16 text-center font-black text-xs"><div className="border-t-2 border-black pt-3 uppercase">Accountant / AGM (F)</div><div className="border-t-2 border-black pt-3 uppercase">Internal Auditor / DGM</div><div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div></div>
+            <div className="mt-32 grid grid-cols-3 gap-16 text-center font-black text-xs">
+              <div className="border-t-2 border-black pt-3 uppercase">Prepared by</div>
+              <div className="border-t-2 border-black pt-3 uppercase">Checked by</div>
+              <div className="border-t-2 border-black pt-3 uppercase">Approved By Trustee</div>
+            </div>
           </div>
         </Card>
       )}
@@ -205,7 +210,11 @@ export default function InvestmentMaturityReportPage() {
               ))}</tbody>
               <tfoot><tr className="bg-slate-900 text-white font-black"><td colSpan={5} className="border border-black p-3 text-right uppercase tracking-widest text-sm">Consolidated Net Yield:</td><td className="border border-black p-3 text-right text-base underline decoration-double">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td></tr></tfoot>
             </table>
-            <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-bold text-center"><div className="border-t border-black pt-2 uppercase">Accountant</div><div className="border-t border-black pt-2 uppercase">Auditor</div><div className="border-t border-black pt-2 uppercase">Trustee</div></div>
+            <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-bold text-center">
+              <div className="border-t border-black pt-2 uppercase">Prepared by</div>
+              <div className="border-t border-black pt-2 uppercase">Checked by</div>
+              <div className="border-t border-black pt-2 uppercase">Trustee</div>
+            </div>
           </>
         ) : <div className="print-portrait-fix mx-auto text-black font-ledger"><p>Office Note Print Placeholder</p></div>}
       </div>

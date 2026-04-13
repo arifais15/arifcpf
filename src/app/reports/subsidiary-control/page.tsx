@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState } from "react";
@@ -307,7 +308,11 @@ export default function SubsidiaryControlLedgerPage() {
       <div className="hidden print:block print-container">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6"><h1 className="text-2xl font-black uppercase">{pbsName}</h1><h2 className="text-lg font-bold underline underline-offset-4 uppercase">Subsidiary Control Ledger Statement</h2><div className="flex justify-between text-[10px] font-bold pt-4"><span>Period: {dateRange.start || "Beginning"} to {dateRange.end || "Present"}</span><span>Run Date: {new Date().toLocaleDateString('en-GB')}</span></div></div>
         <table className="w-full text-[9px] border-collapse border border-black"><thead><tr className="bg-slate-100"><th className="border border-black p-2 text-center w-[80px]">Date</th><th className="border border-black p-2 text-left">Particulars & Audit Trail</th><th className="border border-black p-2 text-right">Debit (৳)</th><th className="border border-black p-2 text-right">Credit (৳)</th><th className="border border-black p-2 text-right">Balance (৳)</th></tr></thead><tbody>{(viewMode === 'institutional' ? institutionalLedger : ledgerData).map((item: any, idx: number) => <tr key={idx}><td className="border border-black p-2 text-center font-mono">{item.date}</td><td className="border border-black p-2">{item.particulars}</td><td className="border border-black p-2 text-right">{item.debit.toLocaleString()}</td><td className="border border-black p-2 text-right">{item.credit.toLocaleString()}</td><td className="border border-black p-2 text-right font-bold">{item.balance.toLocaleString()}</td></tr>)}</tbody></table>
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center"><div className="border-t border-black pt-2">Accountant / AGM(F)</div><div className="border-t border-black pt-2">Internal Auditor / DGM</div><div className="border-t border-black pt-2">Approved By Trustee</div></div>
+        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
+          <div className="border-t border-black pt-2 uppercase">Prepared by</div>
+          <div className="border-t border-black pt-2 uppercase">Checked by</div>
+          <div className="border-t border-black pt-2 uppercase">Approved By Trustee</div>
+        </div>
       </div>
     </div>
   );
