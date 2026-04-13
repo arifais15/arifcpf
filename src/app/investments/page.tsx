@@ -25,7 +25,10 @@ import {
   ArrowDownRight,
   Info,
   HandCoins,
-  CalendarClock
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  ListFilter
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -65,6 +68,10 @@ export default function InvestmentsPage() {
   const [formInitialPrincipal, setFormInitialPrincipal] = useState<string>("");
   const [formOpeningDate, setFormOpeningDate] = useState<string>("");
   const [formIssueDate, setFormIssueDate] = useState<string>("");
+
+  // Pagination States
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(5);
 
   const investmentsRef = useMemoFirebase(() => collection(firestore, "investmentInstruments"), [firestore]);
   const { data: investments, isLoading } = useCollection(investmentsRef);
@@ -114,6 +121,19 @@ export default function InvestmentsPage() {
       inv.bankName?.toLowerCase().includes(search.toLowerCase())
     ).sort((a, b) => new Date(b.issueDate).getTime() - new Date(a.issueDate).getTime());
   }, [investments, search]);
+
+  // Reset to page 1 when searching
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const paginatedInvestments = useMemo(() => {
+    if (pageSize === -1) return filteredInvestments;
+    const start = (currentPage - 1) * pageSize;
+    return filteredInvestments.slice(start, start + pageSize);
+  }, [filteredInvestments, currentPage, pageSize]);
+
+  const totalPages = pageSize === -1 ? 1 : Math.ceil(filteredInvestments.length / pageSize);
 
   const stats = useMemo(() => {
     if (!investments || investments.length === 0) return { total: 0, count: 0, avgRate: 0 };
@@ -445,10 +465,60 @@ export default function InvestmentsPage() {
       </div>
 
       <div className="bg-card rounded-2xl shadow-lg border overflow-hidden no-print">
-        <div className="p-6 border-b bg-slate-50/50">
-          <div className="relative max-w-md">
+        <div className="p-6 border-b bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="relative max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground" />
             <Input className="pl-10 h-12 bg-white text-base font-bold shadow-sm" placeholder="Search portfolio (Bank, Ref, Type)..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-[10px] font-black uppercase text-slate-400">Display</Label>
+              <Select 
+                value={pageSize.toString()} 
+                onValueChange={(v) => { 
+                  setPageSize(parseInt(v)); 
+                  setCurrentPage(1); 
+                }}
+              >
+                <SelectTrigger className="h-9 w-24 font-black text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5" className="font-bold">5 Items</SelectItem>
+                  <SelectItem value="10" className="font-bold">10 Items</SelectItem>
+                  <SelectItem value="25" className="font-bold">25 Items</SelectItem>
+                  <SelectItem value="-1" className="font-bold">All Records</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {pageSize !== -1 && totalPages > 1 && (
+              <div className="flex items-center gap-2 border-l pl-4 border-slate-200">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-9 p-0" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <div className="flex items-center gap-1.5 px-3">
+                  <span className="text-[10px] font-black uppercase text-slate-400">Page</span>
+                  <span className="text-sm font-black">{currentPage} / {totalPages}</span>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-9 w-9 p-0" 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         <Table>
@@ -466,9 +536,9 @@ export default function InvestmentsPage() {
           <TableBody>
             {isLoading && filteredInvestments.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-            ) : filteredInvestments.length === 0 ? (
+            ) : paginatedInvestments.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-32 text-slate-400 font-bold text-lg italic">No records found.</TableCell></TableRow>
-            ) : filteredInvestments.map((inv) => (
+            ) : paginatedInvestments.map((inv) => (
               <TableRow key={inv.id} className="hover:bg-slate-50 transition-colors border-b">
                 <TableCell className="py-5">
                   <div className="flex flex-col gap-0.5">
