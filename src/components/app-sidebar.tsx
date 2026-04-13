@@ -22,6 +22,7 @@ import {
   Calculator,
   Printer,
   HelpCircle,
+  Activity,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -51,9 +52,10 @@ const navItems = [
   { title: "সাবসিডিয়ারি কন্ট্রোল", icon: LayoutList, url: "/reports/subsidiary-control", hoverBg: "hover:bg-violet-100", iconColor: "text-violet-600" },
   { title: "সিপিএফ-সাবসিডিয়ারি", icon: Users, url: "/members", hoverBg: "hover:bg-cyan-100", iconColor: "text-cyan-600" },
   { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary", hoverBg: "hover:bg-teal-100", iconColor: "text-teal-600" },
-  { title: "মুনাফা হিসাব", icon: Percent, url: "/interest", hoverBg: "hover:bg-orange-100", iconColor: "text-orange-600" },
-  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/interest/special", hoverBg: "hover:bg-amber-100", iconColor: "text-amber-600" },
-  { title: "বিনিয়োগ", icon: TrendingUp, url: "/investments", hoverBg: "hover:bg-blue-200", iconColor: "text-blue-700" },
+  { title: "বিনিয়োগ পোর্টফোলিও", icon: TrendingUp, url: "/investments", hoverBg: "hover:bg-blue-200", iconColor: "text-blue-700" },
+  { title: "মুনাফা হিসাব", icon: Percent, url: "/investments/member-interest", hoverBg: "hover:bg-orange-100", iconColor: "text-orange-600" },
+  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", hoverBg: "hover:bg-amber-100", iconColor: "text-amber-600" },
+  { title: "ফান্ড মুভমেন্ট", icon: Activity, url: "/investments/movements", hoverBg: "hover:bg-slate-200", iconColor: "text-slate-700" },
   { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", hoverBg: "hover:bg-slate-200", iconColor: "text-slate-700" },
   { title: "লেজার ব্যাচ প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", hoverBg: "hover:bg-purple-100", iconColor: "text-purple-600" },
   { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans", hoverBg: "hover:bg-rose-100", iconColor: "text-rose-600" },
