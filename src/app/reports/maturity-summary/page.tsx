@@ -35,10 +35,14 @@ import { cn } from "@/lib/utils";
 export default function InvestmentMaturityReportPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const TDS_RATE = 0.20; // 20% TDS
 
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [viewMode, setViewMode] = useState<"report" | "note">("report");
+
+  // Fetch Interest Settings for TDS rate
+  const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
+  const { data: interestSettings } = useDoc(interestSettingsRef);
+  const TDS_RATE = useMemo(() => interestSettings?.tdsRate !== undefined ? interestSettings.tdsRate : 0.20, [interestSettings]);
 
   useEffect(() => {
     const now = new Date();
@@ -75,7 +79,7 @@ export default function InvestmentMaturityReportPage() {
       const tds = gross * TDS_RATE;
       return { ...inv, tenureDays: days, totalGrossInterest: gross, tdsAmount: tds, netInterest: gross - tds };
     }).sort((a, b) => new Date(a.maturityDate || "").getTime() - new Date(b.maturityDate || "").getTime());
-  }, [investments, dateRange]);
+  }, [investments, dateRange, TDS_RATE]);
 
   const groupedData = useMemo(() => {
     const groups: Record<string, any[]> = {};
@@ -97,7 +101,17 @@ export default function InvestmentMaturityReportPage() {
   }, [reportData]);
 
   const exportToExcel = () => {
-    const data = reportData.map(item => ({ "Account": item.chartOfAccountId, "Bank": item.bankName, "Ref": item.referenceNumber, "Principal": item.principalAmount, "Rate (%)": (Number(item.interestRate)*100).toFixed(2), "Maturity": item.maturityDate, "Net Yield": item.netInterest.toFixed(2) }));
+    const data = reportData.map(item => ({ 
+      "Account": item.chartOfAccountId, 
+      "Bank": item.bankName, 
+      "Ref": item.referenceNumber, 
+      "Principal": item.principalAmount, 
+      "Rate (%)": (Number(item.interestRate)*100).toFixed(2), 
+      "Maturity": item.maturityDate, 
+      "Gross Yield": item.totalGrossInterest.toFixed(2),
+      [`TDS (${(TDS_RATE * 100).toFixed(0)}%)`]: item.tdsAmount.toFixed(2),
+      "Net Yield": item.netInterest.toFixed(2) 
+    }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Maturity Schedule");
@@ -136,14 +150,14 @@ export default function InvestmentMaturityReportPage() {
           <div className="grid gap-6 md:grid-cols-4 no-print">
             <Card className="bg-slate-50 border-none shadow-sm rounded-3xl"><CardHeader className="pb-2"><CardTitle className="text-xs font-black uppercase text-slate-500 tracking-widest">Maturing Principal</CardTitle></CardHeader><CardContent><div className="text-2xl font-black text-slate-900">৳ {totals.principal.toLocaleString()}</div></CardContent></Card>
             <Card className="bg-primary/5 border-none shadow-sm rounded-3xl"><CardHeader className="pb-2"><CardTitle className="text-xs font-black uppercase text-primary tracking-widest opacity-70">Total Gross Yield</CardTitle></CardHeader><CardContent><div className="text-2xl font-black text-primary">৳ {totals.gross.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div></CardContent></Card>
-            <Card className="bg-rose-50 border-none shadow-sm rounded-3xl"><CardHeader className="pb-2"><CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">Tax (20%)</CardTitle></CardHeader><CardContent><div className="text-2xl font-black text-rose-700">৳ {totals.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div></CardContent></Card>
+            <Card className="bg-rose-50 border-none shadow-sm rounded-3xl"><CardHeader className="pb-2"><CardTitle className="text-xs font-black uppercase text-rose-600 tracking-widest opacity-70">Tax ({(TDS_RATE * 100).toFixed(0)}%)</CardTitle></CardHeader><CardContent><div className="text-2xl font-black text-rose-700">৳ {totals.tds.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div></CardContent></Card>
             <Card className="bg-emerald-50 border-none shadow-sm rounded-3xl"><CardHeader className="pb-2"><CardTitle className="text-xs font-black uppercase text-emerald-600 tracking-widest opacity-70">Net Maturity Yield</CardTitle></CardHeader><CardContent><div className="text-2xl font-black text-emerald-700">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div></CardContent></Card>
           </div>
 
           <div className="bg-card rounded-3xl shadow-2xl border overflow-hidden no-print">
             <div className="p-6 border-b bg-slate-50/50 flex items-center justify-between"><h2 className="text-xl font-black flex items-center gap-3"><TrendingUp className="size-6 text-indigo-600" /> Yield Schedule</h2><Badge variant="outline" className="bg-white border-slate-200 px-4 py-1.5 font-black uppercase text-[10px]">Basis: {dateRange.start} to {dateRange.end}</Badge></div>
             <Table>
-              <TableHeader><TableRow className="bg-muted/30"><TableHead className="font-black py-5 pl-6">Bank & Reference</TableHead><TableHead className="text-center font-black py-5">Tenure</TableHead><TableHead className="text-right font-black py-5">Principal (৳)</TableHead><TableHead className="text-right font-black py-5">Gross Yield</TableHead><TableHead className="text-right font-black py-5 text-rose-600">TDS (20%)</TableHead><TableHead className="text-right font-black py-5 pr-6 text-primary">Net Yield (৳)</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow className="bg-muted/30"><TableHead className="font-black py-5 pl-6">Bank & Reference</TableHead><TableHead className="text-center font-black py-5">Tenure</TableHead><TableHead className="text-right font-black py-5">Principal (৳)</TableHead><TableHead className="text-right font-black py-5">Gross Yield</TableHead><TableHead className="text-right font-black py-5 text-rose-600">TDS ({(TDS_RATE * 100).toFixed(0)}%)</TableHead><TableHead className="text-right font-black py-5 pr-6 text-primary">Net Yield (৳)</TableHead></TableRow></TableHeader>
               <TableBody>
                 {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow> : groupedData.map(([code, items]) => {
                   const sub = items.reduce((acc, curr) => ({ g: acc.g+curr.totalGrossInterest, t: acc.t+curr.tdsAmount, n: acc.n+curr.netInterest, p: acc.p+(Number(curr.principalAmount)||0) }), { g: 0, t: 0, n: 0, p: 0 });
@@ -188,7 +202,7 @@ export default function InvestmentMaturityReportPage() {
                   <tfoot className="bg-slate-50 font-black"><tr><td className="border border-black p-2 text-right uppercase">Consolidated Total:</td><td className="border border-black p-2 text-right">৳ {totals.principal.toLocaleString()}</td><td colSpan={2} className="border border-black p-2 text-center">—</td><td className="border border-black p-2 text-right">৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td><td className="border border-black p-2"></td></tr></tfoot>
                 </table>
               </div>
-              <div className="bg-slate-50 p-4 border border-black/10 rounded-lg"><p className="font-black text-xs uppercase mb-2 underline">Analysis Summary:</p><div className="grid grid-cols-2 gap-x-12 gap-y-1"><div className="flex justify-between border-b py-1"><span>Aggregate Maturing Principal:</span> <b>৳ {totals.principal.toLocaleString()}</b></div><div className="flex justify-between border-b py-1"><span>Estimated Net Interest (Post 20% TDS):</span> <b>৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></div></div></div>
+              <div className="bg-slate-50 p-4 border border-black/10 rounded-lg"><p className="font-black text-xs uppercase mb-2 underline">Analysis Summary:</p><div className="grid grid-cols-2 gap-x-12 gap-y-1"><div className="flex justify-between border-b py-1"><span>Aggregate Maturing Principal:</span> <b>৳ {totals.principal.toLocaleString()}</b></div><div className="flex justify-between border-b py-1"><span>Estimated Net Interest (Post {(TDS_RATE * 100).toFixed(0)}% TDS):</span> <b>৳ {totals.net.toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></div></div></div>
               <p className="pt-6 font-black italic">Submitted for kind information and approval of the proposed actions.</p>
             </div>
             <div className="mt-32 grid grid-cols-3 gap-16 text-center font-black text-xs">
@@ -210,7 +224,7 @@ export default function InvestmentMaturityReportPage() {
               <div className="flex justify-between text-xs font-bold pt-6"><span>Report Period: {dateRange.start} to {dateRange.end}</span><span>Run Date: {new Date().toLocaleDateString('en-GB')}</span></div>
             </div>
             <table className="w-full text-[9px] border-collapse border border-black">
-              <thead><tr className="bg-slate-100"><th className="border border-black p-2 text-left">Bank & Reference</th><th className="border border-black p-2 text-center">Cycle</th><th className="border border-black p-2 text-right">Principal</th><th className="border border-black p-2 text-right">Gross Yield</th><th className="border border-black p-2 text-right">TDS (20%)</th><th className="border border-black p-2 text-right font-black">Net Yield</th></tr></thead>
+              <thead><tr className="bg-slate-100"><th className="border border-black p-2 text-left">Bank & Reference</th><th className="border border-black p-2 text-center">Cycle</th><th className="border border-black p-2 text-right">Principal</th><th className="border border-black p-2 text-right">Gross Yield</th><th className="border border-black p-2 text-right">TDS ({(TDS_RATE * 100).toFixed(0)}%)</th><th className="border border-black p-2 text-right font-black">Net Yield</th></tr></thead>
               <tbody>{groupedData.map(([code, items]) => (
                 <React.Fragment key={code}>
                   <tr className="bg-slate-50 font-black"><td colSpan={6} className="border border-black p-1 text-[8px] uppercase pl-4">ACCOUNT: {code} — {activeCOA.find(a => a.code === code)?.name}</td></tr>
@@ -222,10 +236,12 @@ export default function InvestmentMaturityReportPage() {
             <div className="mt-24 grid grid-cols-3 gap-12 text-[12px] font-bold text-center">
               <div className="border-t border-black pt-2 uppercase">Prepared by</div>
               <div className="border-t border-black pt-2 uppercase">Checked by</div>
-              <div className="border-t border-black pt-2 uppercase">Trustee</div>
+              <div className="border-t border-black pt-2 uppercase">Approved By Trustee</div>
             </div>
           </>
-        ) : <div className="print-portrait-fix mx-auto text-black font-ledger"><p>Office Note Print Placeholder</p></div>}
+        ) : <div className="print-portrait-fix mx-auto text-black font-ledger">
+              <p className="text-center font-bold">Office Note sheet is optimized for standard portrait/landscape printing.</p>
+            </div>}
       </div>
     </div>
   );

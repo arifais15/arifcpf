@@ -39,7 +39,8 @@ import {
   Building,
   Lock,
   Unlock,
-  KeyRound
+  KeyRound,
+  Coins
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -76,6 +77,7 @@ export default function SettingsPage() {
     { limit: 3000000, rate: 12 },
     { limit: null, rate: 11 }
   ])
+  const [tdsRate, setTdsRate] = useState<number>(20)
 
   // --- CHART OF ACCOUNTS STATES ---
   const [coaSearch, setCoaSearch] = useState("")
@@ -116,8 +118,13 @@ export default function SettingsPage() {
   }, [savedLedgerSettings])
 
   useEffect(() => {
-    if (savedInterestSettings && savedInterestSettings.tiers) {
-      setInterestTiers(savedInterestSettings.tiers.map((t: any) => ({ ...t, rate: t.rate * 100 })))
+    if (savedInterestSettings) {
+      if (savedInterestSettings.tiers) {
+        setInterestTiers(savedInterestSettings.tiers.map((t: any) => ({ ...t, rate: t.rate * 100 })))
+      }
+      if (savedInterestSettings.tdsRate !== undefined) {
+        setTdsRate(savedInterestSettings.tdsRate * 100)
+      }
     }
   }, [savedInterestSettings])
 
@@ -157,12 +164,13 @@ export default function SettingsPage() {
 
     setDocumentNonBlocking(interestSettingsRef, {
       tiers: tiersToSave,
+      tdsRate: Number(tdsRate) / 100,
       updatedAt: new Date().toISOString()
     }, { merge: true })
 
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Interest Saved", description: "Rates updated. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
+      showAlert({ title: "Policy Updated", description: "Interest tiers and TDS rates saved. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
     }, 500)
   }
 
@@ -312,7 +320,7 @@ export default function SettingsPage() {
             <ShieldCheck className="size-4" /> Ledger Mapping
           </TabsTrigger>
           <TabsTrigger value="interest" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-            <Percent className="size-4" /> Interest Rates
+            <Percent className="size-4" /> Interest & Tax
           </TabsTrigger>
           <TabsTrigger value="branding" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
             <Building className="size-4" /> General
@@ -321,10 +329,10 @@ export default function SettingsPage() {
 
         <TabsContent value="coa" className="space-y-6 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-2">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 max-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input 
-                className="pl-9 h-10" 
+                className="pl-9 h-10 max-w-sm" 
                 placeholder="Search accounts..." 
                 value={coaSearch}
                 onChange={(e) => setCoaSearch(e.target.value)}
@@ -530,41 +538,69 @@ export default function SettingsPage() {
 
         <TabsContent value="interest" className="space-y-8 animate-in fade-in duration-500">
           <div className="grid gap-8 lg:grid-cols-12">
-            <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden">
-              <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Tiered Interest Policy</CardTitle>
-                  <CardDescription>Configure annual profit sharing rates.</CardDescription>
-                </div>
-                <Button onClick={handleSaveInterest} disabled={isSaving || !isUnlocked} className="gap-2">
-                  {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  Save Rates
-                </Button>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  {interestTiers.map((tier, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-4 items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                      <div className="col-span-5 relative">
-                        {tier.limit === null ? (
-                          <div className="h-10 flex items-center px-3 bg-slate-200/50 rounded-md text-slate-500 text-sm font-bold italic">Above previous limit</div>
-                        ) : (
-                          <Input type="number" className="font-mono" value={tier.limit} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
-                        )}
+            <div className="lg:col-span-8 space-y-8">
+              <Card className="border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">Tiered Interest Policy</CardTitle>
+                    <CardDescription>Configure annual profit sharing rates for member funds.</CardDescription>
+                  </div>
+                  <Button onClick={handleSaveInterest} disabled={isSaving || !isUnlocked} className="gap-2">
+                    {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                    Save Policy
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-4">
+                    {interestTiers.map((tier, idx) => (
+                      <div key={idx} className="grid grid-cols-12 gap-4 items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <div className="col-span-5 relative">
+                          {tier.limit === null ? (
+                            <div className="h-10 flex items-center px-3 bg-slate-200/50 rounded-md text-slate-500 text-sm font-bold italic">Above previous limit</div>
+                          ) : (
+                            <Input type="number" className="font-mono" value={tier.limit} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
+                          )}
+                        </div>
+                        <div className="col-span-5 relative">
+                          <Input type="number" step="0.01" className="pr-8 font-mono" value={tier.rate} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
+                        </div>
+                        <div className="col-span-2 text-right">
+                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={!isUnlocked} onClick={() => removeInterestTier(idx)}><Trash2 className="size-4" /></Button>
+                        </div>
                       </div>
-                      <div className="col-span-5 relative">
-                        <Input type="number" step="0.01" className="pr-8 font-mono" value={tier.rate} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={!isUnlocked} onClick={() => removeInterestTier(idx)}><Trash2 className="size-4" /></Button>
-                      </div>
+                    ))}
+                    <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-xl gap-2" disabled={!isUnlocked} onClick={addInterestTier}><Plus className="size-4" /> Add Tier</Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-none shadow-sm overflow-hidden">
+                <CardHeader className="bg-slate-50 border-b">
+                  <CardTitle className="text-lg flex items-center gap-2"><Coins className="size-5 text-indigo-600" /> Tax Settings</CardTitle>
+                  <CardDescription>Define the institutional TDS rate for investment income.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-indigo-50/30 p-6 rounded-2xl border border-indigo-100">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-black">Default TDS Rate (%)</Label>
+                      <p className="text-xs text-muted-foreground">Applied to gross interest during provisions and maturity schedules.</p>
                     </div>
-                  ))}
-                  <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-xl gap-2" disabled={!isUnlocked} onClick={addInterestTier}><Plus className="size-4" /> Add Tier</Button>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="relative w-full md:w-[200px]">
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        value={tdsRate} 
+                        onChange={(e) => setTdsRate(Number(e.target.value))}
+                        disabled={!isUnlocked}
+                        className="h-12 font-black text-xl text-center pr-10 border-indigo-200"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-indigo-400">%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
