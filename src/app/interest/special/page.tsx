@@ -173,8 +173,8 @@ export default function SpecialInterestDPPage() {
             c3: Number(e.loanRepayment)||0, 
             c5: Number(e.profitEmployee)||0, 
             c6: Number(e.profitLoan)||0, 
-            c8: Number(s.pbsContribution)||0, 
-            c9: Number(s.profitPbs)||0 
+            c8: Number(e.pbsContribution)||0, 
+            c9: Number(e.profitPbs)||0 
           };
           runningBalance += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
         });
@@ -309,15 +309,15 @@ export default function SpecialInterestDPPage() {
             <Calculator className="size-8 text-amber-600" />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-primary tracking-tight">Special Interest (Day-Product)</h1>
-            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Mid-month balance tracking • Fraction month settlement audit</p>
+            <h1 className="text-3xl font-black text-primary tracking-tight">Special Interest (Day-Product)</h1>
+            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black">Mid-month balance tracking • Fraction month settlement audit</p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel} disabled={results.length === 0} className="gap-2 h-10 font-bold border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+          <Button variant="outline" onClick={exportToExcel} disabled={results.length === 0} className="gap-2 h-10 font-black border-emerald-200 text-emerald-700 hover:bg-emerald-50">
             <FileSpreadsheet className="size-4" /> Excel Export
           </Button>
-          <Button onClick={() => window.print()} disabled={results.length === 0} className="gap-2 h-10 font-bold shadow-lg shadow-primary/20">
+          <Button onClick={() => window.print()} disabled={results.length === 0} className="gap-2 h-10 font-black shadow-lg shadow-primary/20">
             <Printer className="size-4" /> Print Statement
           </Button>
         </div>
@@ -328,7 +328,7 @@ export default function SpecialInterestDPPage() {
           <div className="space-y-1.5">
             <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Member Focus</Label>
             <Select value={selectedMember} onValueChange={setSelectedMember}>
-              <SelectTrigger className="h-11 font-bold border-slate-200">
+              <SelectTrigger className="h-11 font-black border-slate-200">
                 <UserSearch className="size-4 mr-2 text-slate-400" />
                 <SelectValue placeholder="All Active Members" />
               </SelectTrigger>
@@ -344,9 +344,9 @@ export default function SpecialInterestDPPage() {
           <div className="space-y-1.5">
             <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Audit Period Range</Label>
             <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-lg border">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none bg-transparent font-bold" />
+              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
               <ArrowRightLeft className="size-3 text-slate-300" />
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none bg-transparent font-bold" />
+              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
             </div>
           </div>
 
@@ -377,13 +377,14 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
+            </Card>
 
-            <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print">
+            <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print h-full">
               <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-bold text-slate-400">Sync Ledger Date</Label>
-                <Input type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-bold text-xs" />
+                <Label className="text-[10px] uppercase font-black text-slate-400">Sync Ledger Date</Label>
+                <Input type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs" />
               </div>
-              <Button onClick={handlePostAll} disabled={!postingDate} className="bg-emerald-600 hover:bg-emerald-700 h-10 font-bold gap-2">
+              <Button onClick={handlePostAll} disabled={!postingDate} className="bg-emerald-600 hover:bg-emerald-700 h-10 font-black gap-2">
                 <ShieldCheck className="size-4" /> Synchronize All
               </Button>
             </div>
@@ -391,7 +392,7 @@ export default function SpecialInterestDPPage() {
 
           <div className="bg-card rounded-xl shadow-xl border overflow-hidden no-print">
             <div className="p-4 border-b bg-slate-50 flex items-center justify-between">
-              <h2 className="text-sm font-bold flex items-center gap-2">
+              <h2 className="text-sm font-black flex items-center gap-2 uppercase tracking-wider">
                 <TrendingUp className="size-4 text-amber-600" />
                 Special Interest Statement Preview
               </h2>
@@ -402,28 +403,28 @@ export default function SpecialInterestDPPage() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableHead className="py-4">ID No</TableHead>
-                  <TableHead className="py-4">Member Details</TableHead>
-                  <TableHead className="text-right py-4">Opening Bal (৳)</TableHead>
-                  <TableHead className="text-right py-4">Closing Bal (৳)</TableHead>
-                  <TableHead className="text-right py-4">Days</TableHead>
+                  <TableHead className="py-4 font-black">ID No</TableHead>
+                  <TableHead className="py-4 font-black">Member Details</TableHead>
+                  <TableHead className="text-right py-4 font-black">Opening Bal (৳)</TableHead>
+                  <TableHead className="text-right py-4 font-black">Closing Bal (৳)</TableHead>
+                  <TableHead className="text-right py-4 font-black">Days</TableHead>
                   <TableHead className="text-right py-4 font-black">Total Interest (৳)</TableHead>
-                  <TableHead className="text-center py-4">Audit</TableHead>
+                  <TableHead className="text-center py-4 font-black">Audit</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {results.map((row, idx) => (
                   <TableRow key={idx} className="hover:bg-slate-50/50 group">
-                    <td className="font-mono text-xs font-bold p-4 text-slate-500">{row.memberIdNumber}</td>
+                    <td className="font-mono text-xs font-black p-4 text-slate-500">{row.memberIdNumber}</td>
                     <td className="p-4">
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-slate-800">{row.name}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase">{row.designation}</span>
+                        <span className="text-sm font-black text-slate-800">{row.name}</span>
+                        <span className="text-[10px] text-muted-foreground font-black uppercase">{row.designation}</span>
                       </div>
                     </td>
-                    <td className="text-right p-4 font-medium text-slate-400">৳ {row.openingBalance.toLocaleString()}</td>
-                    <td className="text-right p-4 font-medium">৳ {row.closingBalance.toLocaleString()}</td>
-                    <td className="text-right p-4"><Badge variant="secondary" className="h-5 text-[10px]">{row.days}d</Badge></td>
+                    <td className="text-right p-4 font-black text-slate-400">৳ {row.openingBalance.toLocaleString()}</td>
+                    <td className="text-right p-4 font-black">৳ {row.closingBalance.toLocaleString()}</td>
+                    <td className="text-right p-4"><Badge variant="secondary" className="h-5 text-[10px] font-black">{row.days}d</Badge></td>
                     <td className="text-right p-4 font-black text-primary">৳ {row.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     <td className="text-center p-4">
                       <Button variant="ghost" size="icon" onClick={() => setViewingDetails(row)} className="h-8 w-8 hover:bg-amber-50">
@@ -441,7 +442,7 @@ export default function SpecialInterestDPPage() {
       <Dialog open={!!viewingDetails} onOpenChange={(o) => !o && setViewingDetails(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto font-ledger">
           <DialogHeader className="border-b pb-4 mb-4">
-            <DialogTitle className="flex items-center gap-3 text-xl font-bold">
+            <DialogTitle className="flex items-center gap-3 text-xl font-black">
               <History className="size-5 text-amber-600" /> 
               Detailed Profit Audit: {viewingDetails?.name}
             </DialogTitle>
@@ -458,16 +459,16 @@ export default function SpecialInterestDPPage() {
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
                 <span className="text-[10px] uppercase font-black text-slate-400 mb-1">Emp Portion (Col 5)</span>
-                <span className="text-lg font-bold text-slate-700">৳ {viewingDetails?.empProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="text-lg font-black text-slate-700">৳ {viewingDetails?.empProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col items-center justify-center">
                 <span className="text-[10px] uppercase font-black text-slate-400 mb-1">Office Portion (Col 9)</span>
-                <span className="text-lg font-bold text-slate-700">৳ {viewingDetails?.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                <span className="text-lg font-black text-slate-700">৳ {viewingDetails?.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 px-1">
+              <h3 className="text-sm font-black flex items-center gap-2 px-1 uppercase tracking-tight">
                 <ListOrdered className="size-4 text-primary" />
                 Monthly Interest Summary
               </h3>
@@ -482,15 +483,15 @@ export default function SpecialInterestDPPage() {
                   <TableBody>
                     {monthlyBreakdown.map((month, i) => (
                       <TableRow key={i} className="hover:bg-slate-50/50">
-                        <td className="font-bold text-xs p-3 text-slate-700">{month.label}</td>
+                        <td className="font-black text-xs p-3 text-slate-700">{month.label}</td>
                         <td className="text-right p-3 font-black text-primary">৳ {month.amount.toLocaleString(undefined, { minimumFractionDigits: 4 })}</td>
                       </TableRow>
                     ))}
                   </TableBody>
                   <TableFooter className="bg-slate-50 font-black">
                     <TableRow>
-                      <TableCell className="text-right uppercase text-[9px]">Sum of Monthly Portions:</TableCell>
-                      <TableCell className="text-right text-base text-primary underline decoration-double">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-right uppercase text-[9px] font-black">Sum of Monthly Portions:</TableCell>
+                      <TableCell className="text-right text-base text-primary underline decoration-double font-black">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                     </TableRow>
                   </TableFooter>
                 </Table>
@@ -498,7 +499,7 @@ export default function SpecialInterestDPPage() {
             </div>
 
             <div className="space-y-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 px-1">
+              <h3 className="text-sm font-black flex items-center gap-2 px-1 uppercase tracking-tight">
                 <CalendarDays className="size-4 text-amber-600" />
                 Granular Daily Ledger Log
               </h3>
@@ -515,19 +516,19 @@ export default function SpecialInterestDPPage() {
                   <TableBody>
                     {viewingDetails?.dailyLog.map((day: any, i: number) => (
                       <TableRow key={i} className={cn("hover:bg-slate-50/50", day.hasActivity && "bg-amber-50/30")}>
-                        <td className="font-mono text-xs p-3 text-slate-600">{day.date}</td>
-                        <td className="text-right p-3 font-medium">৳ {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                        <td className="text-right p-3 font-bold text-emerald-700">৳ {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
+                        <td className="font-mono text-xs p-3 text-slate-600 font-black">{day.date}</td>
+                        <td className="text-right p-3 font-black text-slate-800">৳ {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="text-right p-3 font-black text-emerald-700">৳ {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
                         <td className="text-center p-3">
-                          {day.hasActivity ? <Badge className="bg-amber-100 text-amber-700 text-[8px] h-4 uppercase">Trxn</Badge> : <span className="text-[8px] text-slate-300 uppercase">-</span>}
+                          {day.hasActivity ? <Badge className="bg-amber-100 text-amber-700 text-[8px] h-4 uppercase font-black">Trxn</Badge> : <span className="text-[8px] text-slate-300 uppercase font-black">-</span>}
                         </td>
                       </TableRow>
                     ))}
                   </TableBody>
                   <TableFooter className="bg-slate-50 font-black">
                     <TableRow>
-                      <TableCell colSpan={2} className="text-right uppercase text-[9px]">Sum of Daily Portions:</TableCell>
-                      <TableCell className="text-right text-emerald-700 font-mono text-xs">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</TableCell>
+                      <TableCell colSpan={2} className="text-right uppercase text-[9px] font-black">Sum of Daily Portions:</TableCell>
+                      <TableCell className="text-right text-emerald-700 font-mono text-xs font-black">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</TableCell>
                       <TableCell />
                     </TableRow>
                   </TableFooter>
@@ -539,8 +540,8 @@ export default function SpecialInterestDPPage() {
               <ShieldCheck className="size-5 text-blue-600 mt-0.5 shrink-0" />
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase text-blue-700 tracking-wider">Day-Product Logic Verification</p>
-                <p className="text-[11px] leading-relaxed text-blue-600">
-                  This calculation captures exact fund utilization. Interest is computed daily using the formula: <code>(Daily Balance * Annual Tiered Rate) / 365</code>. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual. The monthly summary above is the sum of these daily portions.
+                <p className="text-[11px] leading-relaxed text-blue-600 font-black italic">
+                  This calculation captures exact fund utilization. Interest is computed daily using the formula: (Daily Balance * Annual Tiered Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual. The monthly summary above is the sum of these daily portions.
                 </p>
               </div>
             </div>
@@ -551,8 +552,8 @@ export default function SpecialInterestDPPage() {
       <div className="hidden print:block print-container font-ledger text-black">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Day-Product Special Interest Audit Statement</h2>
-          <div className="flex justify-between text-[10px] font-bold pt-4">
+          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Day-Product Special Interest Audit Statement</h2>
+          <div className="flex justify-between text-[10px] font-black pt-4">
             <span>Period: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
@@ -561,46 +562,46 @@ export default function SpecialInterestDPPage() {
         <table className="w-full text-[9px] border-collapse border border-black">
           <thead>
             <tr className="bg-slate-100">
-              <th className="border border-black p-2 text-center w-[80px]">ID No</th>
-              <th className="border border-black p-2 text-left">Name & Designation</th>
-              <th className="border border-black p-2 text-right">Days</th>
-              <th className="border border-black p-2 text-right">Opening Bal (৳)</th>
-              <th className="border border-black p-2 text-right">Closing Bal (৳)</th>
+              <th className="border border-black p-2 text-center w-[80px] font-black">ID No</th>
+              <th className="border border-black p-2 text-left font-black">Name & Designation</th>
+              <th className="border border-black p-2 text-right font-black">Days</th>
+              <th className="border border-black p-2 text-right font-black">Opening Bal (৳)</th>
+              <th className="border border-black p-2 text-right font-black">Closing Bal (৳)</th>
               <th className="border border-black p-2 text-right font-black">Total Interest (৳)</th>
             </tr>
           </thead>
           <tbody>
             {results.map((r, i) => (
               <tr key={i}>
-                <td className="border border-black p-2 text-center font-mono">{r.memberIdNumber}</td>
+                <td className="border border-black p-2 text-center font-mono font-black">{r.memberIdNumber}</td>
                 <td className="border border-black p-2">
-                  <span className="font-bold">{r.name}</span><br/>
-                  <span className="text-[8px] uppercase">{r.designation}</span>
+                  <span className="font-black">{r.name}</span><br/>
+                  <span className="text-[8px] uppercase font-black">{r.designation}</span>
                 </td>
-                <td className="border border-black p-2 text-right">{r.days}</td>
-                <td className="border border-black p-2 text-right">{r.openingBalance.toLocaleString()}</td>
-                <td className="border border-black p-2 text-right">{r.closingBalance.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right font-black">{r.days}</td>
+                <td className="border border-black p-2 text-right font-black">{r.openingBalance.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right font-black">{r.closingBalance.toLocaleString()}</td>
                 <td className="border border-black p-2 text-right font-black">{r.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="bg-slate-50 font-black">
-              <td colSpan={5} className="border border-black p-2 text-right uppercase">Grand Total Special Interest:</td>
-              <td className="border border-black p-2 text-right underline decoration-double">
+              <td colSpan={5} className="border border-black p-2 text-right uppercase font-black">Grand Total Special Interest:</td>
+              <td className="border border-black p-2 text-right underline decoration-double font-black">
                 ৳ {results.reduce((sum, r) => sum + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </td>
             </tr>
           </tfoot>
         </table>
 
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
+        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center">
           <div className="border-t border-black pt-2 uppercase">Prepared by</div>
           <div className="border-t border-black pt-2 uppercase">Checked by</div>
           <div className="border-t border-black pt-2 uppercase">Approved By Trustee</div>
         </div>
         
-        <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-bold uppercase tracking-widest">
+        <div className="mt-12 pt-4 border-t border-slate-100 flex justify-between items-center text-[8px] text-slate-400 font-black uppercase tracking-widest">
           <span>CPF Management Software</span>
           <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
         </div>
