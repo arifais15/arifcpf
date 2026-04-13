@@ -15,17 +15,17 @@ export type LedgerColumnKey =
 
 /**
  * 2. ACCOUNT CODE MAPPING
- * Edit this object if you change your Chart of Accounts codes.
+ * Updated to match the new Chart of Accounts standard.
  * Format: 'ACCOUNT_CODE': 'LEDGER_COLUMN_NAME'
  */
 export const LEDGER_COLUMN_MAPPING: Record<string, LedgerColumnKey> = {
-  '225.10.0000': 'employeeContribution', // Employees' Own Contribution (Col 1)
+  '200.10.0000': 'employeeContribution', // Employees' Own Contribution (Col 1)
   '105.10.0000': 'loanWithdrawal',        // CPF Loan Disburse (Col 2)
   '105.20.0000': 'loanRepayment',         // CPF Loan Recover (Col 3)
-  '225.30.0000': 'profitEmployee',        // Cum. Interest on Emp. Contribution (Col 5)
-  '400.60.0000': 'profitLoan',            // Interest on Member Loan (Col 6)
-  '225.20.0000': 'pbsContribution',       // PBS Contribution (Col 8)
-  '225.40.0000': 'profitPbs',             // Cum. Interest on PBS Contribution (Col 9)
+  '200.30.0000': 'profitEmployee',        // Cum. Interest on Emp. Contribution (Col 5)
+  '400.40.0000': 'profitLoan',            // Interest on Member Loan (Col 6)
+  '200.20.0000': 'pbsContribution',       // PBS Contribution (Col 8)
+  '200.40.0000': 'profitPbs',             // Cum. Interest on PBS Contribution (Col 9)
 };
 
 /**
@@ -37,7 +37,9 @@ export const LEDGER_COLUMN_MAPPING: Record<string, LedgerColumnKey> = {
 export const NORMAL_DEBIT_ACCOUNTS = [
   '105.10.0000', // Loan Disburse (Asset)
   '101.10.0000', // FDR (Asset)
-  '131.10.0001', // Bank (Asset)
+  '101.20.0000', // Savings Certificate
+  '101.30.0000', // Treasury Bond
+  '131.10.0000', // Bank (Asset)
 ];
 
 /**
@@ -46,14 +48,11 @@ export const NORMAL_DEBIT_ACCOUNTS = [
 export function getSubsidiaryValues(code: string, debit: number, credit: number) {
   const columnKey = LEDGER_COLUMN_MAPPING[code];
   
-  // If this code isn't mapped to a member ledger column, return all zeros
   if (!columnKey) return null;
 
-  // Calculate the net increase based on normal balance rules
   const isNormalDebit = NORMAL_DEBIT_ACCOUNTS.includes(code);
   const amount = isNormalDebit ? (debit - credit) : (credit - debit);
 
-  // Return the specific column object
   return {
     employeeContribution: columnKey === 'employeeContribution' ? amount : 0,
     loanWithdrawal: columnKey === 'loanWithdrawal' ? amount : 0,

@@ -60,18 +60,18 @@ Account Code | Account Name                          | Account Type | Normal Bal
 106.10.0000  | Accrued Interest on FDR               | Asset        | Debit
 106.40.0000  | Accrued Interest on Member Loan       | Asset        | Debit
 107.10.0000  | Receivable from PBS                   | Asset        | Debit
-131.10.0001  | STD Bank Account                      | Asset        | Debit
-131.10.0002  | CD / Savings Account                  | Asset        | Debit
+131.10.0000  | STD Bank Account                      | Asset        | Debit
+200.10.0000  | Employees' Own Contribution           | Liability    | Credit
+200.20.0000  | PBS Contribution                      | Liability    | Credit
+200.30.0000  | Cum. Interest on Emp. Contribution    | Liability    | Credit
+200.40.0000  | Cum. Interest on PBS Contribution     | Liability    | Credit
 205.10.0000  | Lapse & Forfeiture Account            | Liability    | Credit
-225.10.0000  | Employees' Own Contribution           | Liability    | Credit
-225.20.0000  | PBS Contribution                      | Liability    | Credit
-225.30.0000  | Cum. Interest on Emp. Contribution    | Liability    | Credit
-225.40.0000  | Cum. Interest on PBS Contribution     | Liability    | Credit
 400.10.0000  | Interest on FDR                       | Income       | Credit
-400.60.0000  | Interest on Member Loan               | Income       | Credit
-400.70.0000  | Interest on Bank Balance              | Income       | Credit
-510.00.0000  | Bank Charges & Excise Duty            | Expense      | Debit
-530.00.0000  | Administrative Expenses               | Expense      | Debit
+400.40.0000  | Interest on Member Loan               | Income       | Credit
+400.50.0000  | Interest on Bank Balance              | Income       | Credit
+500.10.0000  | Bank Charges & Excise Duty            | Expense      | Debit
+500.30.0000  | Administrative Expenses               | Expense      | Debit
+500.60.0000  | Interest Distribution                 | Expense      | Debit
 ----------------------------------------------------------------------------------------------
 `;
 
@@ -80,13 +80,16 @@ const prompt = ai.definePrompt({
   input: {schema: TransactionClassificationAssistantInputSchema},
   output: {schema: TransactionClassificationAssistantOutputSchema},
   prompt: `You are an expert accountant for a CPF (Contributory Provident Fund) management system.
-Analyze the description and suggest a complete Double-Entry Transaction (Debit and Credit).
+Analyze the description and suggest a complete Double-Entry Transaction (Debit and Credit) using the provided Chart of Accounts.
 
 ${chartOfAccounts}
 
 Transaction Description: {{{transactionDescription}}}
 
-Return a balanced set of entries. For example, if a member contributes, Debit Cash/Bank and Credit Employees' Own Contribution.
+Return a balanced set of entries. For example:
+- If a member contributes: Debit Bank (131.10.0000) and Credit Employees' Own Contribution (200.10.0000).
+- If a loan is recovered: Debit Bank (131.10.0000) and Credit CPF Loan Recover (105.20.0000).
+- If interest is distributed: Debit Interest Distribution (500.60.0000) and Credit Cumulative Interest (200.30.0000/200.40.0000).
 `,
 });
 
