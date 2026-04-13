@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -50,7 +49,6 @@ export default function LedgerSummaryReportPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("matrix");
 
-  // Defer date initialization to avoid hydration errors
   useEffect(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -67,7 +65,6 @@ export default function LedgerSummaryReportPage() {
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
-  // --- DATA FOR 11-COLUMN MATRIX ---
   const matrixData = useMemo(() => {
     if (!members || !allSummaries || !dateRange.start) return [];
     const start = new Date(dateRange.start).getTime();
@@ -115,7 +112,6 @@ export default function LedgerSummaryReportPage() {
     return res;
   }, [matrixData]);
 
-  // --- DATA FOR NETFUND STATEMENT ---
   const netfundData = useMemo(() => {
     if (!members || !allSummaries || !asOfDate) return [];
     const cutOff = new Date(asOfDate).getTime();
@@ -183,23 +179,27 @@ export default function LedgerSummaryReportPage() {
     <TableHead colSpan={colSpan} className={cn("text-center border-x-2 border-black font-black uppercase text-[10px] py-2 leading-tight text-black", className)}>{title}</TableHead>
   );
 
+  if (isMembersLoading || isSummariesLoading) {
+    return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
+  }
+
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
+    <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
-          <div className="bg-black p-3 rounded-2xl">
+          <div className="bg-black p-3 rounded-2xl shadow-lg">
             <ClipboardCheck className="size-8 text-white" />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-black text-black tracking-tight">Ledger Summary</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black">Consolidated Subsidiary Reports • Institutional View</p>
+            <h1 className="text-3xl font-black text-black tracking-tight uppercase">Ledger Summary Matrix</h1>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Balances Audit Trail</p>
           </div>
         </div>
-        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-sm">
+        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
           <div className="relative flex-1 max-w-[200px]">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-black" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-black" />
             <Input 
-              className="pl-7 h-8 text-xs border-black border font-black" 
+              className="pl-8 h-9 text-xs border-black border-2 font-black text-black" 
               placeholder="Search ID/Name..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -207,10 +207,10 @@ export default function LedgerSummaryReportPage() {
           </div>
           <div className="h-6 w-px bg-black" />
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 h-9 font-black text-xs border-black">
+            <Button variant="outline" onClick={exportToExcel} className="gap-2 h-10 font-black text-xs border-2 border-black uppercase tracking-widest">
               <FileSpreadsheet className="size-4" /> Export
             </Button>
-            <Button onClick={() => window.print()} className="gap-2 h-9 font-black text-xs bg-black text-white">
+            <Button onClick={() => window.print()} className="gap-2 h-10 font-black text-xs bg-black text-white shadow-lg uppercase tracking-widest">
               <Printer className="size-4" /> Print
             </Button>
           </div>
@@ -218,37 +218,37 @@ export default function LedgerSummaryReportPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-white p-1 rounded-xl border-2 border-black mb-8 no-print h-12">
-          <TabsTrigger value="matrix" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black">
+        <TabsList className="bg-white p-1 rounded-xl border-2 border-black mb-8 no-print h-14 shadow-md">
+          <TabsTrigger value="matrix" className="px-8 h-full gap-2 rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-xs">
             <ClipboardCheck className="size-4" /> Ledger Matrix
           </TabsTrigger>
-          <TabsTrigger value="netfund" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black">
+          <TabsTrigger value="netfund" className="px-8 h-full gap-2 rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-xs">
             <FileStack className="size-4" /> Netfund Statement
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="matrix" className="space-y-6 animate-in fade-in duration-500">
-          <div className="bg-white p-4 rounded-xl border-2 border-black flex items-center gap-6 no-print">
+          <div className="bg-white p-4 rounded-xl border-2 border-black flex items-center gap-6 no-print shadow-sm">
             <div className="flex items-center gap-3">
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-black text-black">Date From</Label>
-                <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" />
+                <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
               </div>
               <ArrowRightLeft className="size-3 text-black mt-3" />
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-black text-black">Date To</Label>
-                <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" />
+                <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden no-print">
+          <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print">
             <div className="overflow-x-auto">
               <Table className="min-w-[2200px] border-collapse text-black font-black">
-                <TableHeader className="sticky top-0 bg-white z-30 shadow-sm border-b-2 border-black">
+                <TableHeader className="sticky top-0 bg-white z-30 shadow-md border-b-2 border-black">
                   <TableRow className="bg-slate-100">
-                    <TableHead rowSpan={2} className="w-[60px] sticky left-0 bg-white border-r-2 border-black z-40 text-black font-black">ID No</TableHead>
-                    <TableHead rowSpan={2} className="w-[180px] sticky left-[60px] bg-white border-r-2 border-black z-40 text-black font-black">Name</TableHead>
+                    <TableHead rowSpan={2} className="w-[80px] sticky left-0 bg-white border-r-2 border-black z-40 text-black font-black uppercase tracking-widest p-4">ID No</TableHead>
+                    <TableHead rowSpan={2} className="w-[200px] sticky left-[80px] bg-white border-r-2 border-black z-40 text-black font-black uppercase tracking-widest p-4">Member Name</TableHead>
                     <ColumnGroupHead title="Emp. Contribution (Col 1)" />
                     <ColumnGroupHead title="Loan Disburse (Col 2)" />
                     <ColumnGroupHead title="Loan Repayment (Col 3)" />
@@ -261,44 +261,44 @@ export default function LedgerSummaryReportPage() {
                   <TableRow className="bg-slate-50 text-[8px] uppercase font-black border-b-2 border-black">
                     {[1,2,3,5,6,8,9,11].map(i => (
                       <React.Fragment key={i}>
-                        <TableHead className="text-right px-1 border-l border-black text-black">Opening</TableHead>
-                        <TableHead className="text-right px-1 text-black border-l border-black">Period</TableHead>
-                        <TableHead className="text-right px-1 font-black bg-slate-200 border-l border-black text-black">Closing</TableHead>
+                        <TableHead className="text-right px-2 border-l border-black text-black">Opening</TableHead>
+                        <TableHead className="text-right px-2 text-black border-l border-black">Period</TableHead>
+                        <TableHead className="text-right px-2 font-black bg-slate-200 border-l border-black text-black">Closing</TableHead>
                       </React.Fragment>
                     ))}
                   </TableRow>
                 </TableHeader>
-                <TableBody>
+                <TableBody className="tabular-nums">
                   {matrixData.map((row, idx) => (
-                    <TableRow key={idx} className="hover:bg-slate-100 border-b border-black text-[10px]">
-                      <td className="font-mono font-black p-2 sticky left-0 bg-white border-r-2 border-black z-10 text-black">{row.memberIdNumber}</td>
-                      <td className="p-2 font-black sticky left-[60px] bg-white border-r-2 border-black z-10 truncate text-black">{row.name}</td>
+                    <TableRow key={idx} className="hover:bg-slate-100 border-b border-black text-[11px]">
+                      <td className="font-mono font-black p-3 sticky left-0 bg-white border-r-2 border-black z-10 text-black">{row.memberIdNumber}</td>
+                      <td className="p-3 font-black sticky left-[80px] bg-white border-r-2 border-black z-10 truncate text-black uppercase">{row.name}</td>
                       {['c1', 'c2', 'c3', 'c5', 'c6', 'c8', 'c9'].map(k => (
                         <React.Fragment key={k}>
-                          <td className="text-right p-2 border-l border-black text-black">{row.stats[k].opening.toLocaleString()}</td>
-                          <td className="text-right p-2 border-l border-black text-black">{row.stats[k].period.toLocaleString()}</td>
-                          <td className="text-right p-2 border-l border-black font-black bg-slate-50 text-black">{row.stats[k].closing.toLocaleString()}</td>
+                          <td className="text-right p-3 border-l border-black text-black">{row.stats[k].opening.toLocaleString()}</td>
+                          <td className="text-right p-3 border-l border-black text-black">{row.stats[k].period.toLocaleString()}</td>
+                          <td className="text-right p-3 border-l border-black font-black bg-slate-50 text-black">{row.stats[k].closing.toLocaleString()}</td>
                         </React.Fragment>
                       ))}
-                      <td className="text-right p-2 border-l border-black text-black bg-slate-100">{row.total.opening.toLocaleString()}</td>
-                      <td className="text-right p-2 border-l border-black font-black bg-slate-100 text-black">{row.total.period.toLocaleString()}</td>
-                      <td className="text-right p-2 border-l border-black font-black bg-slate-200 text-black">{row.total.closing.toLocaleString()}</td>
+                      <td className="text-right p-3 border-l border-black text-black bg-slate-100">{row.total.opening.toLocaleString()}</td>
+                      <td className="text-right p-3 border-l border-black font-black bg-slate-100 text-black">{row.total.period.toLocaleString()}</td>
+                      <td className="text-right p-3 border-l border-black font-black bg-slate-200 text-black text-xs underline decoration-black">{row.total.closing.toLocaleString()}</td>
                     </TableRow>
                   ))}
                 </TableBody>
                 <TableFooter className="sticky bottom-0 bg-slate-100 z-30 font-black border-t-4 border-black text-black">
-                  <TableRow>
-                    <TableCell colSpan={2} className="sticky left-0 bg-slate-100 z-40 border-r-2 border-black text-right uppercase text-[9px] text-black">Grand Totals:</TableCell>
+                  <TableRow className="h-16">
+                    <TableCell colSpan={2} className="sticky left-0 bg-slate-100 z-40 border-r-2 border-black text-right uppercase tracking-widest text-[10px] text-black pr-4">Consolidated Institutional Portions:</TableCell>
                     {['c1', 'c2', 'c3', 'c5', 'c6', 'c8', 'c9'].map(k => (
                       <React.Fragment key={k}>
-                        <TableCell className="text-right p-2 text-[9px] border-l border-black text-black">{matrixTotals.stats[k].opening.toLocaleString()}</TableCell>
-                        <TableCell className="text-right p-2 text-[9px] border-l border-black text-black">{matrixTotals.stats[k].period.toLocaleString()}</TableCell>
-                        <TableCell className="text-right p-2 text-[9px] border-l border-black bg-slate-200 text-black">{matrixTotals.stats[k].closing.toLocaleString()}</TableCell>
+                        <TableCell className="text-right p-3 text-[10px] border-l border-black text-black">{matrixTotals.stats[k].opening.toLocaleString()}</TableCell>
+                        <TableCell className="text-right p-3 text-[10px] border-l border-black text-black">{matrixTotals.stats[k].period.toLocaleString()}</TableCell>
+                        <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-200 text-black">{matrixTotals.stats[k].closing.toLocaleString()}</TableCell>
                       </React.Fragment>
                     ))}
-                    <TableCell className="text-right p-2 text-[9px] border-l border-black bg-slate-100 text-black">{matrixTotals.total.opening.toLocaleString()}</TableCell>
-                    <TableCell className="text-right p-2 text-[9px] border-l border-black bg-slate-100 text-black">{matrixTotals.total.period.toLocaleString()}</TableCell>
-                    <TableCell className="text-right p-2 text-xs border-l border-black bg-slate-300 underline decoration-double text-black">৳ {matrixTotals.total.closing.toLocaleString()}</TableCell>
+                    <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-100 text-black">{matrixTotals.total.opening.toLocaleString()}</TableCell>
+                    <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-100 text-black">{matrixTotals.total.period.toLocaleString()}</TableCell>
+                    <TableCell className="text-right p-3 text-sm border-l border-black bg-slate-300 underline decoration-double text-black"> {matrixTotals.total.closing.toLocaleString()}</TableCell>
                   </TableRow>
                 </TableFooter>
               </Table>
@@ -307,56 +307,61 @@ export default function LedgerSummaryReportPage() {
         </TabsContent>
 
         <TabsContent value="netfund" className="space-y-6 animate-in fade-in duration-500">
-          <div className="grid gap-6 md:grid-cols-4 no-print">
-            <Card className="border-2 border-black shadow-sm bg-white">
-              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Aggregate Emp Fund</CardTitle></CardHeader>
-              <CardContent><div className="text-xl font-black text-black">৳ {netfundStats.empFund.toLocaleString()}</div></CardContent>
+          <div className="grid gap-8 md:grid-cols-4 no-print">
+            <Card className="border-2 border-black shadow-lg bg-white">
+              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black tracking-widest">Aggregate Emp Fund</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black tabular-nums">{netfundStats.empFund.toLocaleString()}</div></CardContent>
             </Card>
-            <Card className="border-2 border-black shadow-sm bg-white">
-              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Aggregate Office Fund</CardTitle></CardHeader>
-              <CardContent><div className="text-xl font-black text-black">৳ {netfundStats.officeFund.toLocaleString()}</div></CardContent>
+            <Card className="border-2 border-black shadow-lg bg-white">
+              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black tracking-widest">Aggregate Office Fund</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black tabular-nums">{netfundStats.officeFund.toLocaleString()}</div></CardContent>
             </Card>
-            <Card className="border-2 border-black shadow-sm bg-white">
-              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Total Loans</CardTitle></CardHeader>
-              <CardContent><div className="text-xl font-black text-black">৳ {netfundStats.loans.toLocaleString()}</div></CardContent>
+            <Card className="border-2 border-black shadow-lg bg-white">
+              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black tracking-widest">Total Loans</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black tabular-nums">{netfundStats.loans.toLocaleString()}</div></CardContent>
             </Card>
-            <Card className="border-2 border-black shadow-sm bg-black">
-              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-white">Total Netfund</CardTitle></CardHeader>
-              <CardContent><div className="text-xl font-black text-white">৳ {netfundStats.total.toLocaleString()}</div></CardContent>
+            <Card className="border-2 border-black shadow-lg bg-black text-white">
+              <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-white tracking-widest">Total Institutional Netfund</CardTitle></CardHeader>
+              <CardContent><div className="text-2xl font-black tabular-nums">{netfundStats.total.toLocaleString()}</div></CardContent>
             </Card>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border-2 border-black shadow-lg overflow-hidden no-print">
-            <Table>
+          <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print">
+            <Table className="text-black font-black border-collapse">
               <TableHeader className="bg-slate-100 border-b-2 border-black">
                 <TableRow>
-                  <TableHead className="font-black text-black">ID No</TableHead>
-                  <TableHead className="font-black text-black">Member Name</TableHead>
-                  <TableHead className="text-right font-black text-black">Loan Balance (Col 4)</TableHead>
-                  <TableHead className="text-right font-black text-black">Net Emp Fund (Col 7)</TableHead>
-                  <TableHead className="text-right font-black text-black">Net Office Fund (Col 10)</TableHead>
-                  <TableHead className="text-right font-black text-black">Total Netfund (Col 11)</TableHead>
+                  <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
+                  <TableHead className="font-black text-black uppercase tracking-widest py-5">Member Name & Designation</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11)</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-black font-black">
+              <TableBody className="tabular-nums">
                 {netfundData.map((row, idx) => (
-                  <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
-                    <td className="font-mono text-xs p-4">{row.memberIdNumber}</td>
-                    <td className="p-4">{row.name}</td>
-                    <td className="text-right p-4">৳ {row.col4.toLocaleString()}</td>
-                    <td className="text-right p-4">৳ {row.col7.toLocaleString()}</td>
-                    <td className="text-right p-4">৳ {row.col10.toLocaleString()}</td>
-                    <td className="text-right p-4">৳ {row.col11.toLocaleString()}</td>
+                  <TableRow key={idx} className="hover:bg-slate-100 border-b border-black">
+                    <td className="font-mono text-base p-5 border-r border-black">{row.memberIdNumber}</td>
+                    <td className="p-5 border-r border-black">
+                      <div className="flex flex-col">
+                        <span className="uppercase text-sm tracking-tight">{row.name}</span>
+                        <span className="text-[10px] uppercase text-black italic tracking-widest">{row.designation}</span>
+                      </div>
+                    </td>
+                    <td className="text-right p-5 border-r border-black">{row.col4.toLocaleString()}</td>
+                    <td className="text-right p-5 border-r border-black">{row.col7.toLocaleString()}</td>
+                    <td className="text-right p-5 border-r border-black">{row.col10.toLocaleString()}</td>
+                    <td className="text-right p-5 bg-slate-50 text-lg underline decoration-black decoration-2"> {row.col11.toLocaleString()}</td>
                   </TableRow>
                 ))}
               </TableBody>
-              <TableFooter className="bg-slate-100 font-black border-t-2 border-black text-black">
-                <TableRow>
-                  <TableCell colSpan={2} className="text-right uppercase">GRAND TOTALS:</TableCell>
-                  <TableCell className="text-right">৳ {netfundStats.loans.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">৳ {netfundStats.empFund.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">৳ {netfundStats.officeFund.toLocaleString()}</TableCell>
-                  <TableCell className="text-right text-base underline decoration-double">৳ {netfundStats.total.toLocaleString()}</TableCell>
+              <TableFooter className="bg-slate-100 font-black border-t-2 border-black text-black tabular-nums">
+                <TableRow className="h-20">
+                  <TableCell colSpan={2} className="text-right uppercase tracking-[0.3em] text-sm">Institutional Aggregates:</TableCell>
+                  <TableCell className="text-right border-l border-black">{netfundStats.loans.toLocaleString()}</TableCell>
+                  <TableCell className="text-right border-l border-black">{netfundStats.empFund.toLocaleString()}</TableCell>
+                  <TableCell className="text-right border-l border-black">{netfundStats.officeFund.toLocaleString()}</TableCell>
+                  <TableCell className="text-right text-2xl underline decoration-double bg-slate-200 border-l border-black"> {netfundStats.total.toLocaleString()}</TableCell>
                 </TableRow>
               </TableFooter>
             </Table>
@@ -365,38 +370,41 @@ export default function LedgerSummaryReportPage() {
       </Tabs>
 
       <div className="hidden print:block print-container font-ledger text-black">
-        <div className="text-center space-y-2 mb-8 border-b-4 border-black pb-6">
-          <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
-          <p className="text-sm font-black uppercase tracking-widest">Contributory Provident Fund</p>
-          <h2 className="text-lg font-black underline underline-offset-4 uppercase">
-            {activeTab === 'matrix' ? 'Ledger Summary Matrix' : 'Statement of Members Netfund Balances'}
+        <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
+          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
+          <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
+          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">
+            {activeTab === 'matrix' ? 'Ledger Summary Matrix Audit' : 'Statement of Members Netfund Balances'}
           </h2>
-          <div className="flex justify-between text-[10px] font-black pt-4">
-            <span>Period: {dateRange.start} to {dateRange.end}</span>
-            <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
+          <div className="flex justify-between text-[11px] font-black pt-8">
+            <span className="bg-black text-white px-4 py-1 rounded">Period Basis: {dateRange.start} to {dateRange.end}</span>
+            <span>Audit Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
 
-        <table className="w-full text-[8px] border-collapse border-2 border-black text-black font-black">
+        <table className="w-full text-[8px] border-collapse border-2 border-black text-black font-black tabular-nums">
           <thead>
-            <tr className="bg-slate-100 font-black">
-              <th className="border border-black p-1">ID No</th>
-              <th className="border border-black p-1 text-left">Member Name</th>
-              <th className="border border-black p-1 text-right">Col 1</th>
-              <th className="border border-black p-1 text-right">Col 2</th>
-              <th className="border border-black p-1 text-right">Col 3</th>
-              <th className="border border-black p-1 text-right">Col 5</th>
-              <th className="border border-black p-1 text-right">Col 6</th>
-              <th className="border border-black p-1 text-right">Col 8</th>
-              <th className="border border-black p-1 text-right">Col 9</th>
-              <th className="border border-black p-1 text-right">Col 11</th>
+            <tr className="bg-slate-100 font-black border-b-2 border-black">
+              <th className="border border-black p-2 uppercase tracking-widest">ID No</th>
+              <th className="border border-black p-2 text-left uppercase tracking-widest">Member Name & Designation</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 1</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 2</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 3</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 5</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 6</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 8</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 9</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest bg-slate-100">Col 11</th>
             </tr>
           </thead>
           <tbody>
             {matrixData.map((row, i) => (
-              <tr key={i}>
-                <td className="border border-black p-1 text-center">{row.memberIdNumber}</td>
-                <td className="border border-black p-1">{row.name}</td>
+              <tr key={i} className="border-b border-black">
+                <td className="border border-black p-1 text-center font-mono">{row.memberIdNumber}</td>
+                <td className="border border-black p-1 uppercase">
+                  <span className="block font-black">{row.name}</span>
+                  <span className="text-[6px] tracking-tight">{row.designation}</span>
+                </td>
                 <td className="border border-black p-1 text-right">{row.stats.c1.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c2.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c3.closing.toLocaleString()}</td>
@@ -404,16 +412,34 @@ export default function LedgerSummaryReportPage() {
                 <td className="border border-black p-1 text-right">{row.stats.c6.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c8.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c9.closing.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{row.total.closing.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right font-black bg-slate-50">{row.total.closing.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr className="bg-slate-100 font-black border-t-2 border-black h-12">
+              <td colSpan={2} className="border border-black p-2 text-right uppercase tracking-widest">Grand Totals:</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c1.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c2.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c3.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c5.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c6.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c8.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.stats.c9.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right underline decoration-double text-xs">{matrixTotals.total.closing.toLocaleString()}</td>
+            </tr>
+          </tfoot>
         </table>
 
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
-          <div className="border-t-2 border-black pt-2 uppercase">Prepared by</div>
-          <div className="border-t-2 border-black pt-2 uppercase">Checked by</div>
-          <div className="border-t-2 border-black pt-2 uppercase">Approved By Trustee</div>
+        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center">
+          <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
+          <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
+          <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
+        </div>
+        
+        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
+          <span>Institutional Trust Registry v1.0</span>
+          <span className="italic">Form Generated via PBS CPF Software</span>
         </div>
       </div>
     </div>
