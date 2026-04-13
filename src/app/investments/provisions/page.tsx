@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -93,6 +94,27 @@ export default function InvestmentProvisionsPage() {
     });
   };
 
+  const exportToExcel = () => {
+    if (accrualData.length === 0) return;
+    const data = accrualData.map(item => ({
+      "Bank Name": item.bankName,
+      "Reference Number": item.referenceNumber,
+      "Principal Amount": item.principalAmount,
+      "Interest Rate (%)": (Number(item.interestRate) * 100).toFixed(2),
+      "Period Start": item.periodStart,
+      "Period End": item.periodEnd,
+      "Days": item.days,
+      "Gross Accrual": item.grossInterest.toFixed(2),
+      "TDS (20%)": item.tdsAmount.toFixed(2),
+      "Net Provision": item.accruedInterest.toFixed(2)
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Provisions");
+    XLSX.writeFile(wb, `Interest_Provisions_${fyEndDate}.xlsx`);
+    toast({ title: "Exported", description: "Provisions data saved to Excel." });
+  };
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -101,8 +123,8 @@ export default function InvestmentProvisionsPage() {
           <div className="flex flex-col gap-1"><h1 className="text-4xl font-black text-primary tracking-tight">Interest Provisions</h1><p className="text-lg font-bold text-slate-600 uppercase tracking-widest">Year-end Accrual Audit • 20% TDS Deducted</p></div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => {}} className="gap-2 h-11 font-black border-emerald-200 text-emerald-700 hover:bg-emerald-50"><FileSpreadsheet className="size-5" /> Export Excel</Button>
-          <Button onClick={() => window.print()} className="gap-2 h-11 font-black shadow-lg shadow-primary/20"><Printer className="size-5" /> Print Statement</Button>
+          <Button variant="outline" onClick={exportToExcel} disabled={accrualData.length === 0} className="gap-2 h-11 font-black border-emerald-200 text-emerald-700 hover:bg-emerald-50"><FileSpreadsheet className="size-5" /> Export Excel</Button>
+          <Button onClick={() => window.print()} disabled={accrualData.length === 0} className="gap-2 h-11 font-black shadow-lg shadow-primary/20"><Printer className="size-5" /> Print Statement</Button>
         </div>
       </div>
 
@@ -126,8 +148,8 @@ export default function InvestmentProvisionsPage() {
             {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow> : accrualData.map((item) => (
               <TableRow key={item.id} className="hover:bg-slate-50 border-b">
                 <TableCell className="py-6 pl-6"><div className="flex flex-col"><span className="font-black text-slate-900 text-base">{item.bankName}</span><span className="font-mono text-[11px] text-muted-foreground font-bold uppercase">Ref: {item.referenceNumber}</span></div></TableCell>
-                <TableCell className="text-right font-bold">৳ {item.grossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
-                <TableCell className="text-right font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</TableCell>
+                <td className="text-right p-4 font-bold">৳ {item.grossInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                <td className="text-right p-4 font-bold text-rose-600">৳ {item.tdsAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                 <TableCell className="text-center"><Badge variant="secondary" className="font-black">{item.days}d</Badge></TableCell>
                 <TableCell className="text-right pr-6"><span className="font-black text-xl text-primary">৳ {item.accruedInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></TableCell>
               </TableRow>

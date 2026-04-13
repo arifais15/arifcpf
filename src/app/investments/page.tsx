@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -239,6 +240,27 @@ export default function InvestmentsPage() {
     reader.readAsBinaryString(file);
   };
 
+  const exportToExcel = () => {
+    if (filteredInvestments.length === 0) return;
+    const data = filteredInvestments.map(inv => ({
+      "Bank Name": inv.bankName,
+      "Reference Number": inv.referenceNumber,
+      "Instrument Type": inv.instrumentType,
+      "Principal Amount": inv.principalAmount,
+      "Initial Principal": inv.initialPrincipalAmount || inv.principalAmount,
+      "Interest Rate (%)": (Number(inv.interestRate) * 100).toFixed(2),
+      "First Opening Date": inv.firstOpeningDate || inv.issueDate,
+      "Issue/Renew Date": inv.issueDate,
+      "Maturity Date": inv.maturityDate || "N/A",
+      "Status": inv.status
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Investments");
+    XLSX.writeFile(wb, `Investment_Portfolio_${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast({ title: "Exported", description: "Portfolio data saved to Excel." });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Active': return <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 gap-1 font-black"><CheckCircle2 className="size-3" /> Active</Badge>;
@@ -269,6 +291,10 @@ export default function InvestmentsPage() {
               </Link>
             </Button>
           </div>
+
+          <Button variant="outline" onClick={exportToExcel} disabled={filteredInvestments.length === 0} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-black h-11 text-base">
+            <FileSpreadsheet className="size-5" /> Export Excel
+          </Button>
 
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild><Button variant="outline" className="gap-2 border-slate-300 font-black h-11 text-base"><Upload className="size-5" /> Bulk Upload</Button></DialogTrigger>
@@ -303,8 +329,16 @@ export default function InvestmentsPage() {
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2 space-y-2">
                     <Label className="text-sm font-black">Bank Name</Label>
-                    <Input name="bankName" list="bank-names" defaultValue={editingInvestment?.bankName} className="h-11 font-bold" required />
-                    <datalist id="bank-names">{uniqueBankNames.map(name => <option key={name} value={name} />)}</datalist>
+                    <Input 
+                      name="bankName" 
+                      list="bank-names" 
+                      defaultValue={editingInvestment?.bankName} 
+                      className="h-11 font-bold" 
+                      required 
+                    />
+                    <datalist id="bank-names">
+                      {uniqueBankNames.map(name => <option key={name} value={name} />)}
+                    </datalist>
                   </div>
                   <div className="space-y-2"><Label className="text-sm font-black">Ref No (Reference)</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} className="h-11 font-bold" required /></div>
                   <div className="space-y-2">
@@ -321,22 +355,57 @@ export default function InvestmentsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Current Principal (৳)</Label>
-                    <Input name="principalAmount" type="number" step="0.01" value={formPrincipal} onChange={(e) => { setFormPrincipal(e.target.value); if (!editingInvestment) setFormInitialPrincipal(e.target.value); }} className="h-11 font-bold" required />
+                    <Input 
+                      name="principalAmount" 
+                      type="number" 
+                      step="0.01" 
+                      value={formPrincipal} 
+                      onChange={(e) => { 
+                        setFormPrincipal(e.target.value); 
+                        if (!editingInvestment) setFormInitialPrincipal(e.target.value); 
+                      }} 
+                      className="h-11 font-bold" 
+                      required 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-black">Initial Principal (৳)</Label>
-                    <Input name="initialPrincipalAmount" type="number" step="0.01" value={formInitialPrincipal} onChange={(e) => setFormInitialPrincipal(e.target.value)} className="h-11 font-bold" />
+                    <Input 
+                      name="initialPrincipalAmount" 
+                      type="number" 
+                      step="0.01" 
+                      value={formInitialPrincipal} 
+                      onChange={(e) => setFormInitialPrincipal(e.target.value)} 
+                      className="h-11 font-bold" 
+                    />
                   </div>
                   <div className="space-y-2"><Label className="text-sm font-black">Interest Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} className="h-11 font-bold" required /></div>
                   
                   <div className="col-span-2 grid grid-cols-3 gap-4 p-6 bg-slate-50 rounded-2xl border border-slate-200">
                     <div className="space-y-2">
                       <Label className="text-[11px] uppercase font-black text-slate-500">First Opening</Label>
-                      <Input name="firstOpeningDate" type="date" value={formOpeningDate} onChange={(e) => { setFormOpeningDate(e.target.value); if (!editingInvestment) setFormIssueDate(e.target.value); }} className="font-bold" required />
+                      <Input 
+                        name="firstOpeningDate" 
+                        type="date" 
+                        value={formOpeningDate} 
+                        onChange={(e) => { 
+                          setFormOpeningDate(e.target.value); 
+                          if (!editingInvestment) setFormIssueDate(e.target.value); 
+                        }} 
+                        className="font-bold" 
+                        required 
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label className="text-[11px] uppercase font-black text-slate-500">Cycle Issue/Renew</Label>
-                      <Input name="issueDate" type="date" value={formIssueDate} onChange={(e) => setFormIssueDate(e.target.value)} className="font-bold" required />
+                      <Input 
+                        name="issueDate" 
+                        type="date" 
+                        value={formIssueDate} 
+                        onChange={(e) => setFormIssueDate(e.target.value)} 
+                        className="font-bold" 
+                        required 
+                      />
                     </div>
                     <div className="space-y-2"><Label className="text-[11px] uppercase font-black text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} className="font-bold" /></div>
                   </div>
@@ -404,7 +473,7 @@ export default function InvestmentsPage() {
                 <TableCell className="py-5">
                   <div className="flex flex-col gap-0.5">
                     <span className="font-black text-slate-900 text-base">{inv.bankName}</span>
-                    <span className="font-mono text-xs text-muted-foreground font-bold uppercase tracking-tight">Ref: {inv.referenceNumber}</span>
+                    <span className="font-mono text-[11px] text-muted-foreground font-bold uppercase tracking-tight">Ref: {inv.referenceNumber}</span>
                   </div>
                 </TableCell>
                 <TableCell><Badge variant="secondary" className="text-[11px] uppercase font-black tracking-wider px-2 py-1">{inv.instrumentType}</Badge></TableCell>
