@@ -8,7 +8,7 @@ import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -339,7 +339,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogContent className="max-w-md bg-white border-2 border-black">
               <DialogHeader>
                 <DialogTitle className="font-black text-black uppercase">Employee Final Settlement</DialogTitle>
-                <DialogDescription className="font-bold text-black opacity-70">This will post negative reversals for all column totals to bring every balance to exactly zero.</DialogDescription>
+                <DialogDescription className="font-black text-black">This will post negative reversals for all column totals to bring every balance to exactly zero.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleFinalSettlement} className="space-y-6 py-4">
                 <div className="bg-slate-50 p-4 rounded-xl border-2 border-black space-y-2">
@@ -381,7 +381,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <Calculator className="size-6 text-black" />
                   Profit Accrual Audit
                 </DialogTitle>
-                <DialogDescription className="font-black text-black opacity-70">Review monthly basis balances and tiered interest portions before posting to ledger.</DialogDescription>
+                <DialogDescription className="font-black text-black">Review monthly basis balances and tiered interest portions before posting to ledger.</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
@@ -412,11 +412,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <div className="space-y-6 animate-in fade-in duration-500">
                     <div className="p-6 bg-slate-50 border-2 border-black rounded-xl flex justify-between items-center shadow-md">
                       <div className="flex flex-col">
-                        <span className="text-[10px] uppercase font-black text-black tracking-widest mb-1 opacity-60">Total Computed Profit Share</span>
-                        <span className="text-3xl font-black text-black tabular-nums">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="text-[10px] uppercase font-black text-black tracking-widest mb-1">Total Computed Profit Share</span>
+                        <span className="text-3xl font-black text-black tabular-nums">{interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-black text-black block tracking-widest mb-1 opacity-60">Audit Basis</span>
+                        <span className="text-[10px] uppercase font-black text-black block tracking-widest mb-1">Audit Basis</span>
                         <span className="text-sm font-black text-black px-4 py-1.5 bg-black text-white rounded-full uppercase tracking-tighter">{interestCalculation.label}</span>
                       </div>
                     </div>
@@ -436,7 +436,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                           <thead className="bg-slate-100 border-b-2 border-black">
                             <tr>
                               <th className="p-3 text-left font-black uppercase text-black tracking-widest">Basis Snapshot</th>
-                              <th className="p-3 text-right font-black uppercase text-black tracking-widest">Balance (৳)</th>
+                              <th className="p-3 text-right font-black uppercase text-black tracking-widest">Balance</th>
                               <th className="p-3 text-right font-black uppercase text-black tracking-widest">1/12th Portion</th>
                             </tr>
                           </thead>
@@ -455,7 +455,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                           <tfoot className="bg-slate-100 font-black border-t-2 border-black text-black">
                             <tr>
                               <td className="p-4 uppercase text-xs tracking-[0.2em]">Aggregate Audit Profit:</td>
-                              <td colSpan={2} className="p-4 text-right text-lg font-black tabular-nums underline decoration-double">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td colSpan={2} className="p-4 text-right text-lg font-black tabular-nums underline-offset-4">{interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>
                           </tfoot>
                         </table>
@@ -501,7 +501,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             { label: "Status", value: member.status || "Active", sub: "uppercase text-xs bg-black text-white px-2 py-0.5 rounded ml-2" },
           ].map((item, idx) => (
             <div key={idx} className="flex gap-2 items-end">
-              <span className="font-black min-w-[100px] uppercase text-[9px] text-black mb-0.5 tracking-widest opacity-60">{item.label}</span>
+              <span className="font-black min-w-[100px] uppercase text-[9px] text-black mb-0.5 tracking-widest">{item.label}</span>
               <span className={cn("font-black border-b-2 border-black flex-1 pb-0.5 text-black truncate", item.sub)}>{item.value}</span>
             </div>
           ))}
@@ -569,7 +569,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c9.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.officeFund).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-300 font-black text-sm underline decoration-double">{(latestRunningTotals.total).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-300 font-black text-sm">{(latestRunningTotals.total).toLocaleString()}</td>
                 <td className="border border-black p-1 no-print"></td>
               </tr>
             </tfoot>
@@ -584,12 +584,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-2xl bg-white border-2 border-black p-0 overflow-hidden rounded-2xl shadow-2xl">
-          <div className="p-6 border-b-2 border-black bg-slate-50 flex items-center justify-between">
-            <h2 className="text-2xl font-black text-black tracking-tight uppercase">New Ledger Entry</h2>
-            <Button variant="ghost" size="icon" onClick={() => setIsEntryOpen(false)} className="rounded-full h-8 w-8 hover:bg-slate-200">
-              <UserX className="size-4" />
-            </Button>
-          </div>
+          <DialogHeader className="p-6 border-b-2 border-black bg-slate-50 flex flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-2xl font-black text-black tracking-tight uppercase">
+              {editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}
+            </DialogTitle>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-slate-200">
+                <UserX className="size-4" />
+              </Button>
+            </DialogClose>
+          </DialogHeader>
           <form onSubmit={handleSaveEntry} className="p-8 space-y-8">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -616,37 +620,37 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <div className="space-y-6">
               <div className="bg-blue-50/50 p-6 rounded-2xl border-2 border-blue-100 grid grid-cols-3 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-blue-900/60 uppercase tracking-widest ml-1">Emp Contrib (Col 1)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Emp Contrib (Col 1)</Label>
                   <Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} className="border-2 border-blue-200 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-blue-900/60 uppercase tracking-widest ml-1">Loan Withdraw (Col 2)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Withdraw (Col 2)</Label>
                   <Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || 0} className="border-2 border-blue-200 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-blue-900/60 uppercase tracking-widest ml-1">Loan Repay (Col 3)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Repay (Col 3)</Label>
                   <Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} className="border-2 border-blue-200 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
               </div>
 
               <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-slate-900/60 uppercase tracking-widest ml-1">Profit Emp. (Col 5)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Emp. (Col 5)</Label>
                   <Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || 0} className="border-2 border-slate-300 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-slate-900/60 uppercase tracking-widest ml-1">Profit Loan (Col 6)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Loan (Col 6)</Label>
                   <Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} className="border-2 border-slate-300 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
               </div>
 
               <div className="bg-emerald-50/50 p-6 rounded-2xl border-2 border-emerald-100 grid grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-emerald-900/60 uppercase tracking-widest ml-1">PBS Contrib (Col 8)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">PBS Contrib (Col 8)</Label>
                   <Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} className="border-2 border-emerald-200 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-emerald-900/60 uppercase tracking-widest ml-1">Profit PBS (Col 9)</Label>
+                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit PBS (Col 9)</Label>
                   <Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} className="border-2 border-emerald-200 font-black text-black h-11 tabular-nums rounded-lg bg-white" />
                 </div>
               </div>
