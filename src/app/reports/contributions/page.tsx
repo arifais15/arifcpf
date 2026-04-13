@@ -89,124 +89,99 @@ export default function ContributionAuditPage() {
       systemProfit: 0,
       manualEmp: 0,
       manualPbs: 0,
-      localPbs: 0,
-      otherPbs: 0,
       totalEntries: filteredData.length
     };
-
     filteredData.forEach(item => {
-      // System Profit
       if (item.isSystemGenerated || item.particulars?.includes("Annual Profit")) {
         s.systemProfit += (Number(item.profitEmployee) || 0) + (Number(item.profitPbs) || 0);
       }
-      
-      // Manual Entries
       if (item.isManual || (!item.isSystemGenerated && !item.isSettlement)) {
         s.manualEmp += (Number(item.employeeContribution) || 0);
         s.manualPbs += (Number(item.pbsContribution) || 0);
-        
-        // PBS Source Breakdown
-        if (item.contributionSource === 'Other') {
-          s.otherPbs += (Number(item.pbsContribution) || 0);
-        } else {
-          s.localPbs += (Number(item.pbsContribution) || 0);
-        }
       }
     });
-
     return s;
   }, [filteredData]);
 
-  const matchingRecords = useMemo(() => {
-    if (!cleanupParticulars) return [];
-    return filteredData.filter(item => 
-      item.particulars?.toLowerCase().includes(cleanupParticulars.toLowerCase())
-    );
-  }, [filteredData, cleanupParticulars]);
-
-  const handleBatchDelete = async () => {
-    if (matchingRecords.length === 0) return;
-    
-    setIsDeleting(true);
-    let deletedCount = 0;
-    
-    try {
-      for (const item of matchingRecords) {
-        if (item.memberId && item.id) {
-          const docRef = doc(firestore, "members", item.memberId, "fundSummaries", item.id);
-          deleteDocumentNonBlocking(docRef);
-          deletedCount++;
-        }
-      }
-      
-      toast({ 
-        title: "Batch Deletion Success", 
-        description: `Successfully removed ${deletedCount} records matching "${cleanupParticulars}" within the period.`,
-        variant: "default" 
-      });
-      setIsCleanupOpen(false);
-      setCleanupParticulars("");
-    } catch (error) {
-      toast({ title: "Error", description: "Batch deletion failed.", variant: "destructive" });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const exportToExcel = () => {
-    if (filteredData.length === 0) return;
-    const data = filteredData.map(item => ({
-      "Date": item.summaryDate,
-      "Particulars": item.particulars,
-      "Employee Contribution": item.employeeContribution || 0,
-      "PBS Contribution": item.pbsContribution || 0,
-      "Source": item.contributionSource || "Local",
-      "System Generated": item.isSystemGenerated ? "Yes" : "No",
-      "Profit Added": (Number(item.profitEmployee) || 0) + (Number(item.profitPbs) || 0)
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Audit");
-    XLSX.writeFile(wb, `CPF_Audit_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
-    toast({ title: "Exported", description: "Audit data saved to Excel." });
-  };
-
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
-      {/* Print View */}
-      <div className="hidden print:block print-container">
-        <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-black text-black tracking-tight">Audit & Tracking</h1>
+          <p className="text-black uppercase tracking-widest text-[10px] font-black">Comprehensive tracking of system profits and contributions</p>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="grid gap-1">
+              <Label className="text-[9px] uppercase font-black text-black">Start Date</Label>
+              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" />
+            </div>
+            <ArrowRightLeft className="size-3 text-black mt-3" />
+            <div className="grid gap-1">
+              <Label className="text-[9px] uppercase font-black text-black">End Date</Label>
+              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" />
+            </div>
+          </div>
+          <div className="h-6 w-px bg-black hidden sm:block" />
+          <Button onClick={() => window.print()} className="gap-2 h-9 font-black text-xs bg-black text-white shadow-lg">
+            <Printer className="size-4" /> Print Audit
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3 no-print">
+        <Card className="border-2 border-black shadow-sm bg-white"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">System Profit</CardTitle></CardHeader><CardContent><div className="text-xl font-black text-black">৳ {stats.systemProfit.toLocaleString()}</div></CardContent></Card>
+        <Card className="border-2 border-black shadow-sm bg-white"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Manual Emp. Contrib</CardTitle></CardHeader><CardContent><div className="text-xl font-black text-black">৳ {stats.manualEmp.toLocaleString()}</div></CardContent></Card>
+        <Card className="border-2 border-black shadow-sm bg-black text-white"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-white">Manual PBS Contrib</CardTitle></CardHeader><CardContent><div className="text-xl font-black text-white">৳ {stats.manualPbs.toLocaleString()}</div></CardContent></Card>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden no-print">
+        <div className="p-4 border-b-2 border-black bg-slate-100 flex items-center justify-between">
+          <h2 className="text-sm font-black flex items-center gap-2 text-black"><ShieldCheck className="size-4 text-black" /> Audit Ledger Trail</h2>
+          <Badge variant="outline" className="border-black text-black font-black">{filteredData.length} Postings</Badge>
+        </div>
+        <Table className="text-black font-black">
+          <TableHeader className="bg-slate-50 border-b-2 border-black">
+            <TableRow>
+              <TableHead className="font-black text-black">Date</TableHead>
+              <TableHead className="font-black text-black">Particulars</TableHead>
+              <TableHead className="text-right font-black text-black">Emp. Cont (৳)</TableHead>
+              <TableHead className="text-right font-black text-black">PBS Cont (৳)</TableHead>
+              <TableHead className="text-right font-black text-black">Total Profit (৳)</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredData.map((item, idx) => (
+              <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
+                <td className="font-mono text-xs p-4">{item.summaryDate}</td>
+                <td className="p-4">{item.particulars}</td>
+                <td className="text-right p-4">{Number(item.employeeContribution || 0).toLocaleString()}</td>
+                <td className="text-right p-4">{Number(item.pbsContribution || 0).toLocaleString()}</td>
+                <td className="text-right p-4 font-black">৳ {(Number(item.profitEmployee || 0) + Number(item.profitPbs || 0)).toLocaleString()}</td>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="hidden print:block print-container font-ledger text-black">
+        <div className="text-center space-y-2 mb-8 border-b-4 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
-          <h2 className="text-lg font-bold underline underline-offset-4 uppercase">Contribution & Profit Audit Report</h2>
-          <div className="flex justify-between text-[10px] font-bold pt-4">
-            <span>Period: {dateRange.start || "All Time"} to {dateRange.end || "Present"}</span>
+          <p className="text-sm font-black uppercase tracking-widest">Contributory Provident Fund</p>
+          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Contribution & Profit Audit Report</h2>
+          <div className="flex justify-between text-[10px] font-black pt-4">
+            <span>Period: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-8 mb-10 border p-4 bg-slate-50 text-xs">
-          <div className="space-y-2">
-            <p className="font-bold border-b border-black pb-1 uppercase">Fund Growth Summary</p>
-            <p className="flex justify-between"><span>System Accrued Profit:</span> <b>৳ {stats.systemProfit.toLocaleString()}</b></p>
-            <p className="flex justify-between"><span>Manual Emp. Contributions:</span> <b>৳ {stats.manualEmp.toLocaleString()}</b></p>
-            <p className="flex justify-between"><span>Manual PBS Contributions:</span> <b>৳ {stats.manualPbs.toLocaleString()}</b></p>
-          </div>
-          <div className="space-y-2">
-            <p className="font-bold border-b border-black pb-1 uppercase">PBS Source Distribution</p>
-            <p className="flex justify-between"><span>Local PBS (GPBS-2):</span> <b>৳ {stats.localPbs.toLocaleString()}</b></p>
-            <p className="flex justify-between"><span>Other PBS (Transfers):</span> <b>৳ {stats.otherPbs.toLocaleString()}</b></p>
-          </div>
-        </div>
-
-        <table className="w-full text-[9px] border-collapse border border-black">
+        <table className="w-full text-[9px] border-collapse border-2 border-black text-black font-black">
           <thead>
             <tr className="bg-slate-100">
-              <th className="border border-black p-1 text-center w-[70px]">Date</th>
+              <th className="border border-black p-1">Date</th>
               <th className="border border-black p-1 text-left">Particulars</th>
-              <th className="border border-black p-1 text-right">Emp. Cont (৳)</th>
-              <th className="border border-black p-1 text-right">PBS Cont (৳)</th>
-              <th className="border border-black p-1 text-center">Source</th>
-              <th className="border border-black p-1 text-right">Profit (৳)</th>
+              <th className="border border-black p-1 text-right">Emp. Cont</th>
+              <th className="border border-black p-1 text-right">PBS Cont</th>
+              <th className="border border-black p-1 text-right">Profit</th>
             </tr>
           </thead>
           <tbody>
@@ -216,208 +191,15 @@ export default function ContributionAuditPage() {
                 <td className="border border-black p-1">{item.particulars}</td>
                 <td className="border border-black p-1 text-right">{Number(item.employeeContribution || 0).toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{Number(item.pbsContribution || 0).toLocaleString()}</td>
-                <td className="border border-black p-1 text-center">{item.contributionSource || "Local"}</td>
                 <td className="border border-black p-1 text-right">{(Number(item.profitEmployee || 0) + Number(item.profitPbs || 0)).toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
         </table>
-
-        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-bold text-center">
-          <div className="border-t border-black pt-2 uppercase">Prepared by</div>
-          <div className="border-t border-black pt-2 uppercase">Checked by</div>
-          <div className="border-t border-black pt-2 uppercase">Approved By Trustee</div>
-        </div>
-      </div>
-
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Audit & Tracking</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Comprehensive tracking of system profits and manual PBS contributions</p>
-        </div>
-        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-bold text-slate-400">Start Date</Label>
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
-            </div>
-            <ArrowRightLeft className="size-3 text-slate-300 mt-3" />
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-bold text-slate-400">End Date</Label>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
-            </div>
-          </div>
-          <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-          <div className="flex gap-2">
-            <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 h-9 font-bold text-xs">
-                  <DatabaseZap className="size-4" /> Batch Cleanup
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-orange-700 flex items-center gap-2">
-                    <DatabaseZap className="size-5" /> Batch Ledger Cleanup
-                  </DialogTitle>
-                  <DialogDescription>
-                    Use this tool to remove wrongly posted entries (e.g., incorrect annual interest) across all members for the selected date range.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-6 py-4">
-                  <div className="p-3 bg-slate-50 rounded-lg border text-[11px] space-y-1">
-                    <p className="font-bold uppercase text-slate-400">Current Scope:</p>
-                    <p className="flex justify-between"><span>Date Range:</span> <b>{dateRange.start} to {dateRange.end}</b></p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold">Particulars to Match (Keyword)</Label>
-                    <Input 
-                      placeholder="e.g. Annual Profit FY 2023-24" 
-                      value={cleanupParticulars} 
-                      onChange={(e) => setCleanupParticulars(e.target.value)}
-                      className="font-bold"
-                    />
-                    <p className="text-[10px] text-muted-foreground italic">Records matching this text EXACTLY or PARTIALLY will be identified.</p>
-                  </div>
-
-                  {cleanupParticulars && (
-                    <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl text-center animate-in zoom-in duration-300">
-                      <p className="text-xs font-black text-orange-800 uppercase tracking-wider mb-1">Impact Analysis</p>
-                      <p className="text-2xl font-black text-orange-700">{matchingRecords.length} Records Found</p>
-                      <p className="text-[10px] text-orange-600 font-bold uppercase mt-1">Found in global subsidiary collection group</p>
-                    </div>
-                  )}
-
-                  <div className="bg-rose-50 p-3 rounded-lg border border-rose-100 flex gap-3">
-                    <AlertTriangle className="size-5 text-rose-600 shrink-0 mt-0.5" />
-                    <p className="text-[10px] text-rose-700 leading-tight"><b>Warning:</b> This action will permanently remove these records from every employee's ledger. It cannot be undone.</p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsCleanupOpen(false)}>Cancel</Button>
-                  <Button 
-                    variant="destructive" 
-                    onClick={handleBatchDelete} 
-                    disabled={matchingRecords.length === 0 || isDeleting}
-                    className="gap-2 font-bold"
-                  >
-                    {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
-                    Delete {matchingRecords.length} Records
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 h-9 font-bold text-xs">
-              <FileSpreadsheet className="size-4" /> Export Excel
-            </Button>
-            <Button onClick={() => window.print()} className="gap-2 h-9 font-bold text-xs shadow-lg shadow-primary/20">
-              <Printer className="size-4" /> Print Audit
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-4 no-print">
-        <Card className="border-none shadow-sm bg-blue-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-blue-600 tracking-widest">System Profit</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">৳ {stats.systemProfit.toLocaleString()}</div>
-            <p className="text-[9px] text-blue-500 mt-1 uppercase font-medium">Auto-Calculated Interest</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-emerald-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-emerald-600 tracking-widest">Manual Emp. Contrib</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">৳ {stats.manualEmp.toLocaleString()}</div>
-            <p className="text-[9px] text-emerald-500 mt-1 uppercase font-medium">New Entry System Postings</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-orange-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-orange-600 tracking-widest">Other PBS Source</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">৳ {stats.otherPbs.toLocaleString()}</div>
-            <p className="text-[9px] text-orange-500 mt-1 uppercase font-medium">External Transfers Tracked</p>
-          </CardContent>
-        </Card>
-        <Card className="border-none shadow-sm bg-slate-900 text-white">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">Total Manual PBS</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">৳ {stats.manualPbs.toLocaleString()}</div>
-            <p className="text-[9px] text-slate-400 mt-1 uppercase font-medium">Sum of Local + Other PBS</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="bg-card rounded-xl shadow-lg border overflow-hidden no-print">
-        <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-          <h2 className="text-sm font-bold flex items-center gap-2">
-            <ShieldCheck className="size-4 text-primary" />
-            Audit Ledger Trail
-          </h2>
-          <Badge variant="outline" className="bg-white border-slate-200">
-            {filteredData.length} Total Postings
-          </Badge>
-        </div>
-        <div className="max-h-[600px] overflow-y-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-white z-10 shadow-sm">
-              <TableRow className="bg-muted/30">
-                <TableHead className="py-4">Date</TableHead>
-                <TableHead className="py-4">Particulars</TableHead>
-                <TableHead className="text-right py-4">Emp. Contrib (৳)</TableHead>
-                <TableHead className="text-right py-4">PBS Contrib (৳)</TableHead>
-                <TableHead className="text-center py-4">Source</TableHead>
-                <TableHead className="text-right py-4">Total Profit (৳)</TableHead>
-                <TableHead className="text-center py-4">Entry Type</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-12"><Loader2 className="size-6 animate-spin mx-auto text-primary" /></TableCell></TableRow>
-              ) : filteredData.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-16 text-muted-foreground italic">No entries found for the selected period.</TableCell></TableRow>
-              ) : filteredData.map((item, idx) => (
-                <TableRow key={idx} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="font-mono text-xs font-bold text-slate-600 p-4">{item.summaryDate}</td>
-                  <td className="p-4">
-                    <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800">{item.particulars}</span>
-                      <span className="text-[10px] text-muted-foreground line-clamp-1">{item.memberId || "Global Sync"}</span>
-                    </div>
-                  </td>
-                  <td className="text-right font-medium p-4">৳ {Number(item.employeeContribution || 0).toLocaleString()}</td>
-                  <td className="text-right font-medium p-4">৳ {Number(item.pbsContribution || 0).toLocaleString()}</td>
-                  <td className="text-center p-4">
-                    {item.contributionSource === 'Other' ? (
-                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200 text-[10px]">Other PBS</Badge>
-                    ) : item.pbsContribution > 0 ? (
-                      <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Local</Badge>
-                    ) : null}
-                  </td>
-                  <td className="text-right font-black text-primary p-4">
-                    ৳ {(Number(item.profitEmployee || 0) + Number(item.profitPbs || 0)).toLocaleString(undefined, {minimumFractionDigits: 2})}
-                  </td>
-                  <td className="text-center p-4">
-                    {item.isSystemGenerated ? (
-                      <Badge variant="secondary" className="text-[9px] uppercase tracking-tighter">System Profit</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-[9px] uppercase tracking-tighter">Manual Entry</Badge>
-                    )}
-                  </td>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
+          <div className="border-t-2 border-black pt-2 uppercase">Prepared by</div>
+          <div className="border-t-2 border-black pt-2 uppercase">Checked by</div>
+          <div className="border-t-2 border-black pt-2 uppercase">Approved By Trustee</div>
         </div>
       </div>
     </div>

@@ -384,317 +384,263 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   return (
     <div className="p-6 md:p-10 flex flex-col gap-8 bg-slate-50 min-h-screen font-ledger text-[12px]">
       <div className="flex flex-col md:flex-row md:items-center justify-between no-print max-w-[1400px] mx-auto w-full gap-6">
-        <Link href="/members" className="flex items-center gap-2 text-[15px] text-slate-500 hover:text-primary font-bold transition-colors">
+        <Link href="/members" className="flex items-center gap-2 text-[15px] text-black hover:text-primary font-black transition-colors">
           <ArrowLeft className="size-5" /> Back to Registry
         </Link>
         <div className="flex flex-wrap gap-3">
           <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="lg" className="gap-2 border-orange-200 text-orange-700 hover:bg-orange-50 font-bold" disabled={latestRunningTotals.total === 0 && latestRunningTotals.loanBalance === 0}>
+              <Button variant="outline" size="lg" className="gap-2 border-black text-black hover:bg-slate-100 font-black" disabled={latestRunningTotals.total === 0 && latestRunningTotals.loanBalance === 0}>
                 <UserX className="size-5" /> Final Settlement
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md">
               <DialogHeader>
-                <DialogTitle>Employee Final Settlement</DialogTitle>
-                <DialogDescription>This will post negative reversals for all column totals to bring every balance to exactly zero.</DialogDescription>
+                <DialogTitle className="font-black text-black">Employee Final Settlement</DialogTitle>
+                <DialogDescription className="font-black text-black">This will post negative reversals for all column totals to bring every balance to exactly zero.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleFinalSettlement} className="space-y-6 py-4">
-                <div className="bg-slate-50 p-4 rounded-xl border space-y-2">
-                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Net Emp. Fund:</span> <span className="text-slate-900">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
+                <div className="bg-slate-50 p-4 rounded-xl border border-black space-y-2">
+                  <div className="flex justify-between text-xs font-black text-black"><span>Net Emp. Fund:</span> <span className="text-black">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
                   {latestRunningTotals.loanBalance > 0 && (
-                    <div className="flex justify-between text-xs font-bold text-rose-600"><span>Loan to Clear (Col 3):</span> <span className="text-rose-700">৳ {latestRunningTotals.loanBalance.toLocaleString()}</span></div>
+                    <div className="flex justify-between text-xs font-black text-rose-600"><span>Loan to Clear (Col 3):</span> <span className="text-rose-700">৳ {latestRunningTotals.loanBalance.toLocaleString()}</span></div>
                   )}
-                  <div className="flex justify-between text-xs font-bold text-slate-500"><span>Office Fund:</span> <span className="text-slate-900">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
-                  <div className="pt-2 border-t flex justify-between font-black text-sm text-primary uppercase"><span>Payable Amount:</span> <span>৳ {latestRunningTotals.total.toLocaleString()}</span></div>
+                  <div className="flex justify-between text-xs font-black text-black"><span>Office Fund:</span> <span className="text-black">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
+                  <div className="pt-2 border-t border-black flex justify-between font-black text-sm text-black uppercase"><span>Payable Amount:</span> <span>৳ {latestRunningTotals.total.toLocaleString()}</span></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Settlement Date</Label><Input name="date" type="date" required /></div>
+                  <div className="space-y-2"><Label className="font-black text-black">Settlement Date</Label><Input name="date" type="date" required className="border-black font-black text-black" /></div>
                   <div className="space-y-2">
-                    <Label>Settlement Type</Label>
+                    <Label className="font-black text-black">Settlement Type</Label>
                     <Select name="type" defaultValue="Retired">
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="border-black font-black text-black"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Retired">Retirement</SelectItem>
-                        <SelectItem value="Transferred">Transfer</SelectItem>
-                        <SelectItem value="InActive">InActive</SelectItem>
+                        <SelectItem value="Retired" className="font-black text-black">Retirement</SelectItem>
+                        <SelectItem value="Transferred" className="font-black text-black">Transfer</SelectItem>
+                        <SelectItem value="InActive" className="font-black text-black">InActive</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 flex gap-3">
-                  <AlertTriangle className="size-5 text-orange-600 shrink-0 mt-0.5" />
-                  <p className="text-[10px] text-orange-700 leading-tight"><b>Settlement Rule:</b> All individual column totals will be negated. Outstanding Loan Balance will be cleared by posting to Repayment column.</p>
-                </div>
-                <DialogFooter><Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700">Post Reversals & Close Account</Button></DialogFooter>
+                <DialogFooter><Button type="submit" className="w-full bg-black hover:bg-black/90 text-white font-black">Post Reversals & Close Account</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
 
           <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="lg" className="gap-2 border-primary/20 text-primary hover:bg-primary/5 font-bold">
+              <Button variant="outline" size="lg" className="gap-2 border-black text-black hover:bg-slate-100 font-black">
                 <Calculator className="size-5" /> Profit Calculator
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <Calculator className="size-5 text-primary" />
+                <DialogTitle className="flex items-center gap-2 font-black text-black">
+                  <Calculator className="size-5 text-black" />
                   Profit Accrual Audit
                 </DialogTitle>
-                <DialogDescription>Review monthly basis balances and tiered interest portions before posting to ledger.</DialogDescription>
+                <DialogDescription className="font-black text-black">Review monthly basis balances and tiered interest portions before posting to ledger.</DialogDescription>
               </DialogHeader>
               <div className="space-y-6 py-4">
                 <Tabs value={selectedInterestMode} onValueChange={(v: any) => setSelectedInterestMode(v)}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="fy">Fiscal Year</TabsTrigger>
-                    <TabsTrigger value="custom">Custom Range</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2 border-black border-2 bg-slate-100">
+                    <TabsTrigger value="fy" className="font-black data-[state=active]:bg-black data-[state=active]:text-white">Fiscal Year</TabsTrigger>
+                    <TabsTrigger value="custom" className="font-black data-[state=active]:bg-black data-[state=active]:text-white">Custom Range</TabsTrigger>
                   </TabsList>
                   <TabsContent value="fy" className="pt-4">
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <Label className="text-[10px] uppercase font-bold text-muted-foreground">Select Fiscal Year</Label>
+                        <Label className="text-[10px] uppercase font-black text-black">Select Fiscal Year</Label>
                         <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
-                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                          <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy}>FY {fy}</SelectItem>)}</SelectContent>
+                          <SelectTrigger className="w-full border-black font-black text-black"><SelectValue /></SelectTrigger>
+                          <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black">{fy}</SelectItem>)}</SelectContent>
                         </Select>
                       </div>
                     </div>
                   </TabsContent>
                   <TabsContent value="custom" className="pt-4">
                     <div className="flex gap-4">
-                      <div className="flex-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground">Start Date</Label><Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} /></div>
-                      <div className="flex-1"><Label className="text-[10px] uppercase font-bold text-muted-foreground">End Date</Label><Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} /></div>
+                      <div className="flex-1"><Label className="text-[10px] uppercase font-black text-black">Start Date</Label><Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="border-black font-black text-black" /></div>
+                      <div className="flex-1"><Label className="text-[10px] uppercase font-black text-black">End Date</Label><Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="border-black font-black text-black" /></div>
                     </div>
                   </TabsContent>
                 </Tabs>
 
                 {interestCalculation && (
                   <div className="space-y-6 animate-in fade-in duration-500">
-                    <div className="p-4 bg-primary/5 border rounded-xl flex justify-between items-center shadow-sm">
+                    <div className="p-4 bg-slate-50 border-2 border-black rounded-xl flex justify-between items-center shadow-sm">
                       <div className="flex flex-col">
-                        <span className="text-[10px] uppercase font-bold text-primary opacity-70">Total Computed Profit Share</span>
-                        <span className="text-2xl font-black text-primary">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                        <span className="text-[10px] uppercase font-black text-black">Total Computed Profit Share</span>
+                        <span className="text-2xl font-black text-black">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Calculation Basis</span>
-                        <span className="text-xs font-bold text-slate-600">{interestCalculation.label}</span>
+                        <span className="text-[10px] uppercase font-black text-black block">Calculation Basis</span>
+                        <span className="text-xs font-black text-black">{interestCalculation.label}</span>
                       </div>
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-[11px] font-black uppercase text-slate-500 tracking-wider flex items-center gap-2">
+                        <h4 className="text-[11px] font-black uppercase text-black tracking-wider flex items-center gap-2">
                           <Info className="size-3.5" /> Calculation Breakdown
                         </h4>
                         {interestCalculation.isDuplicate && (
-                          <Badge variant="destructive" className="h-5 text-[9px] uppercase">Duplicate Entry Detected</Badge>
+                          <Badge variant="destructive" className="h-5 text-[9px] uppercase font-black">Duplicate Entry Detected</Badge>
                         )}
                       </div>
                       
-                      <div className="border rounded-xl overflow-hidden shadow-sm">
+                      <div className="border-2 border-black rounded-xl overflow-hidden shadow-sm">
                         <table className="w-full text-[10px] border-collapse">
-                          <thead className="bg-slate-50 border-b">
+                          <thead className="bg-slate-50 border-b-2 border-black">
                             <tr>
-                              <th className="p-2.5 text-left font-bold uppercase text-slate-500">Basis Month</th>
-                              <th className="p-2.5 text-right font-bold uppercase text-slate-500">Snapshot Balance (৳)</th>
-                              <th className="p-2.5 text-right font-bold uppercase text-slate-500">1/12th Portion (৳)</th>
+                              <th className="p-2.5 text-left font-black uppercase text-black">Basis Month</th>
+                              <th className="p-2.5 text-right font-black uppercase text-black">Snapshot Balance (৳)</th>
+                              <th className="p-2.5 text-right font-black uppercase text-black">1/12th Portion (৳)</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y">
+                          <tbody className="divide-y divide-black">
                             {interestCalculation.monthlyDetails.map((m, i) => (
-                              <tr key={i} className={cn("hover:bg-slate-50/50", m.isOpening && "bg-blue-50/30")}>
-                                <td className="p-2.5 font-semibold flex items-center gap-2">
+                              <tr key={i} className={cn("hover:bg-slate-100", m.isOpening && "bg-slate-200")}>
+                                <td className="p-2.5 font-black text-black flex items-center gap-2">
                                   {m.label}
-                                  {m.isOpening && <Badge variant="secondary" className="text-[8px] h-4 uppercase px-1 font-black">Opening</Badge>}
+                                  {m.isOpening && <Badge variant="secondary" className="text-[8px] h-4 uppercase px-1 font-black bg-black text-white">Opening</Badge>}
                                 </td>
-                                <td className="p-2.5 text-right font-mono">{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                <td className="p-2.5 text-right font-bold text-emerald-700 font-mono">{m.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td className="p-2.5 text-right font-black text-black">{m.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                <td className="p-2.5 text-right font-black text-black">{m.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                               </tr>
                             ))}
                           </tbody>
-                          <tfoot className="bg-slate-50 font-black border-t-2">
+                          <tfoot className="bg-slate-50 font-black border-t-2 border-black">
                             <tr>
-                              <td className="p-2.5 uppercase text-slate-500">Total Audit Profit:</td>
-                              <td colSpan={2} className="p-2.5 text-right text-primary text-sm">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="p-2.5 uppercase text-black">Total Audit Profit:</td>
+                              <td colSpan={2} className="p-2.5 text-right text-black text-sm">৳ {interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>
                           </tfoot>
                         </table>
                       </div>
                     </div>
 
-                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                      <Label className="text-[10px] uppercase font-bold text-slate-500">Ledger Posting Date</Label>
-                      <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="font-bold border-slate-300 focus:bg-white" />
-                      <p className="text-[9px] text-muted-foreground italic">Note: The profit will be split between Employee and PBS fund columns proportionally based on the current ledger status.</p>
+                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl border-2 border-black">
+                      <Label className="text-[10px] uppercase font-black text-black">Ledger Posting Date</Label>
+                      <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="border-black font-black text-black" />
                     </div>
                   </div>
                 )}
               </div>
-              <DialogFooter className="bg-slate-50 p-4 -mx-6 -mb-6 border-t mt-4">
-                <Button variant="outline" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
-                <Button onClick={handlePostInterest} disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} className="gap-2 px-8 font-bold">
+              <DialogFooter className="bg-slate-50 p-4 -mx-6 -mb-6 border-t border-black mt-4">
+                <Button variant="outline" className="border-black font-black" onClick={() => setIsInterestOpen(false)}>Cancel</Button>
+                <Button onClick={handlePostInterest} disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} className="gap-2 px-8 font-black bg-black text-white">
                   <Plus className="size-4" /> Synchronize to Ledger
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
-          <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="lg" className="gap-2 border-slate-300 font-bold"><Upload className="size-5" /> Bulk Upload</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle>Import Ledger Records</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={handleDownloadTemplate} className="h-7 text-[10px] font-bold gap-1 uppercase hover:bg-primary/5">
-                    <Download className="size-3" /> Template
-                  </Button>
-                </div>
-                <DialogDescription>Select an Excel file containing historical ledger entries for this member.</DialogDescription>
-              </DialogHeader>
-              <div className="p-12 border-2 border-dashed border-muted rounded-xl text-center cursor-pointer hover:border-primary/50 transition-colors" onClick={() => fileInputRef.current?.click()}>
-                <FileSpreadsheet className="mx-auto size-12 text-primary opacity-50 mb-4" />
-                <p className="font-bold">Select XLSX Ledger File</p>
-                <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-widest font-bold">Max 5MB • .XLSX Only</p>
-                <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} disabled={isUploading} />
-                {isUploading && <Loader2 className="animate-spin size-4 mx-auto mt-4 text-primary" />}
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Button variant="secondary" size="lg" onClick={() => setIsEntryOpen(true)} className="gap-2 font-bold"><Plus className="size-5" /> New Entry</Button>
-          <Button variant="outline" size="lg" onClick={() => window.print()} className="gap-2 border-slate-300 font-bold"><Printer className="size-5" /> Print Ledger</Button>
+          <Button variant="secondary" size="lg" onClick={() => setIsEntryOpen(true)} className="gap-2 font-black border-black border text-black bg-white hover:bg-slate-100"><Plus className="size-5" /> New Entry</Button>
+          <Button variant="outline" size="lg" onClick={() => window.print()} className="gap-2 border-black font-black text-black hover:bg-slate-100"><Printer className="size-5" /> Print Ledger</Button>
         </div>
       </div>
 
-      <div className="bg-white p-10 md:p-12 shadow-2xl rounded-none border-2 border-slate-200 max-w-[1400px] mx-auto w-full font-ledger text-black print-container">
+      <div className="bg-white p-10 md:p-12 shadow-2xl rounded-none border-2 border-black max-w-[1400px] mx-auto w-full font-ledger text-black print-container">
         <div className="relative mb-8 text-center border-b-2 border-black pb-6">
-          <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] opacity-70">REB Form no: 224</p>
-          {member.status && member.status !== 'Active' && (
-            <Badge className={cn("absolute right-0 top-0 uppercase text-[11px] font-black px-3 py-1", member.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : member.status === 'Transferred' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-100 text-slate-600')}>
-              {member.status} ACCOUNT
-            </Badge>
-          )}
-          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-slate-900">{pbsName}</h1>
-          <h2 className="text-lg md:text-xl font-bold underline underline-offset-8 uppercase tracking-[0.25em] mt-3 text-slate-800">Provident Fund Subsidiary Ledger</h2>
+          <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
+          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
+          <h2 className="text-lg md:text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-3 text-black">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        {/* --- Optimized 2-Row Header --- */}
-        <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-10 text-[13px] border-b-2 border-black/10 pb-6">
-          {/* Row 1 */}
+        <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-10 text-[13px] border-b-2 border-black pb-6">
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Member Name</span>
-            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-[15px] truncate uppercase">{member.name}</span>
+            <span className="font-black min-w-[100px] uppercase text-[9px] text-black mb-0.5 tracking-wider">Member Name</span>
+            <span className="font-black border-b border-black flex-1 pb-0.5 text-[15px] truncate uppercase text-black">{member.name}</span>
           </div>
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Designation</span>
-            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-sm truncate">{member.designation}</span>
+            <span className="font-black min-w-[90px] uppercase text-[9px] text-black mb-0.5 tracking-wider">Designation</span>
+            <span className="font-black border-b border-black flex-1 pb-0.5 text-sm truncate text-black">{member.designation}</span>
           </div>
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[60px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">ID Number</span>
-            <span className="font-black border-b border-black/30 flex-1 pb-0.5 font-mono text-base">{member.memberIdNumber}</span>
-          </div>
-
-          {/* Row 2 */}
-          <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[100px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Permanent Address</span>
-            <span className="font-bold border-b border-black/30 flex-1 pb-0.5 text-xs truncate">{member.permanentAddress || "-"}</span>
+            <span className="font-black min-w-[60px] uppercase text-[9px] text-black mb-0.5 tracking-wider">ID Number</span>
+            <span className="font-black border-b border-black flex-1 pb-0.5 font-mono text-base text-black">{member.memberIdNumber}</span>
           </div>
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[90px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Joined Date</span>
-            <span className="font-black border-b border-black/30 flex-1 pb-0.5 text-sm">{member.dateJoined}</span>
+            <span className="font-black min-w-[100px] uppercase text-[9px] text-black mb-0.5 tracking-wider">Permanent Address</span>
+            <span className="font-black border-b border-black flex-1 pb-0.5 text-xs truncate text-black">{member.permanentAddress || "-"}</span>
           </div>
           <div className="flex gap-2 items-end">
-            <span className="font-black min-w-[60px] uppercase text-[9px] text-slate-500 mb-0.5 tracking-wider">Status</span>
-            <span className="font-black border-b border-black/30 flex-1 pb-0.5 uppercase text-xs text-primary">{member.status || "Active"}</span>
+            <span className="font-black min-w-[90px] uppercase text-[9px] text-black mb-0.5 tracking-wider">Joined Date</span>
+            <span className="font-black border-b border-black flex-1 pb-0.5 text-sm text-black">{member.dateJoined}</span>
+          </div>
+          <div className="flex gap-2 items-end">
+            <span className="font-black min-w-[60px] uppercase text-[9px] text-black mb-0.5 tracking-wider">Status</span>
+            <span className="font-black border-b border-black flex-1 pb-0.5 uppercase text-xs text-black">{member.status || "Active"}</span>
           </div>
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-[12px] border-collapse border border-black table-fixed">
-            <thead className="bg-slate-50/90 font-black">
+          <table className="w-full text-[12px] border-collapse border-2 border-black table-fixed">
+            <thead className="bg-slate-100 font-black">
               <tr>
-                <th className="border border-black p-1.5 text-center w-[75px] uppercase text-[10px]">Date</th>
-                <th className="border border-black p-1.5 text-center w-[180px] uppercase text-[10px] align-top">Particulars</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Emp. Contribution (Col 1)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight text-rose-900">Loan Disburse (Col 2)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight text-emerald-900">Loan Repay (Col 3)</th>
-                <th className="border border-black p-1.5 text-center w-[90px] uppercase text-[10px] leading-tight bg-slate-100">Loan Balance (Col 4)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Profit Emp (Col 5)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Profit Loan (Col 6)</th>
-                <th className="border border-black p-1.5 text-center w-[95px] uppercase text-[10px] leading-tight bg-primary/10">Net Emp Fund (Col 7)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">PBS Contrib (Col 8)</th>
-                <th className="border border-black p-1.5 text-center w-[85px] uppercase text-[10px] leading-tight">Profit PBS (Col 9)</th>
-                <th className="border border-black p-1.5 text-center w-[95px] uppercase text-[10px] leading-tight bg-primary/10">Net PBS Fund (Col 10)</th>
-                <th className="border border-black p-1.5 text-center w-[110px] uppercase text-[10px] leading-tight bg-slate-200">GRAND TOTAL (Col 11)</th>
-                <th className="border border-black p-1.5 text-center no-print w-[90px] uppercase text-[10px]">Action</th>
+                <th className="border border-black p-1.5 text-center w-[75px] uppercase text-[10px] text-black">Date</th>
+                <th className="border border-black p-1.5 text-center w-[180px] uppercase text-[10px] text-black">Particulars</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">Emp. Contrib (Col 1)</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">Loan Disb (Col 2)</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">Loan Repay (Col 3)</th>
+                <th className="border border-black p-1.5 text-right w-[90px] uppercase text-[10px] text-black bg-slate-200">Loan Bal (Col 4)</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">Profit Emp (Col 5)</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">Profit Loan (Col 6)</th>
+                <th className="border border-black p-1.5 text-right w-[95px] uppercase text-[10px] text-black bg-slate-100">Net Emp (Col 7)</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">PBS Contrib (Col 8)</th>
+                <th className="border border-black p-1.5 text-right w-[85px] uppercase text-[10px] text-black">Profit PBS (Col 9)</th>
+                <th className="border border-black p-1.5 text-right w-[95px] uppercase text-[10px] text-black bg-slate-100">Net PBS (Col 10)</th>
+                <th className="border border-black p-1.5 text-right w-[110px] uppercase text-[10px] text-black bg-slate-200">TOTAL (Col 11)</th>
+                <th className="border border-black p-1.5 text-center no-print w-[90px] uppercase text-[10px] text-black">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black/30">
-              {isSummariesLoading ? <tr><td colSpan={14} className="text-center p-12 italic text-lg">Loading ledger data...</td></tr> : calculatedRows.map((row: any, idx) => (
-                <tr key={idx} className={cn("bg-white hover:bg-slate-50/80 transition-colors", row.particulars?.includes("Settlement") && "bg-slate-50 italic")}>
-                  <td className="border border-black p-1.5 text-center font-mono font-bold">{row.summaryDate}</td>
-                  <td className="border border-black p-1.5 text-left break-words font-bold align-top">
-                    <div className="flex flex-col gap-1">
-                      <span className="flex items-center gap-1.5">
-                        {row.particulars || "-"}
-                        {row.journalEntryId && <Link href={`/transactions/new?edit=${row.journalEntryId}`} className="no-print"><Badge variant="outline" className="text-[8px] h-4 px-1.5 bg-primary/5 text-primary border-primary/20 font-black"><LinkIcon className="size-2 mr-1" /> JV</Badge></Link>}
-                      </span>
-                      {row.contributionSource === 'Other' && (
-                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-slate-400 w-fit font-black uppercase">Other PBS</Badge>
-                      )}
-                    </div>
-                  </td>
-                  <td className="border border-black p-1.5 text-right font-medium">{row.col1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-rose-800 font-bold">{row.col2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-emerald-800 font-bold">{row.col3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className={cn("border border-black p-1.5 text-right font-black bg-slate-100/50", row.col4 === 0 && "text-slate-300")}>{row.col4.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-accent font-bold">{row.col5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-accent font-bold">{row.col6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className={cn("border border-black p-1.5 text-right font-black bg-primary/5", row.col7 === 0 && "text-slate-300")}>{row.col7.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right font-medium">{row.col8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className="border border-black p-1.5 text-right text-accent font-bold">{row.col9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className={cn("border border-black p-1.5 text-right font-black bg-primary/5", row.col10 === 0 && "text-slate-300")}>{row.col10.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                  <td className={cn("border border-black p-1.5 text-right font-black bg-slate-200 text-[13px]", row.col11 === 0 && "text-slate-300")}>{row.col11.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+            <tbody className="divide-y divide-black">
+              {calculatedRows.map((row: any, idx) => (
+                <tr key={idx} className="bg-white hover:bg-slate-100 transition-colors">
+                  <td className="border border-black p-1.5 text-center font-mono font-black text-black">{row.summaryDate}</td>
+                  <td className="border border-black p-1.5 text-left font-black text-black uppercase leading-tight truncate">{row.particulars || "-"}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col1.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col2.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col3.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black bg-slate-50">{row.col4.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col5.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col6.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black bg-slate-50">{row.col7.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col8.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black">{row.col9.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black bg-slate-50">{row.col10.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right font-black text-black bg-slate-100">{row.col11.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-center no-print">
                     <div className="flex gap-1.5 justify-center">
-                      {!row.isSyncedFromJV ? (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-rose-500" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-4" /></Button>
-                        </>
-                      ) : (
-                        <span className="text-[9px] text-muted-foreground uppercase font-black tracking-tighter opacity-50">JV Sync</span>
-                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-black hover:bg-slate-200" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-4" /></Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-black hover:bg-slate-200" onClick={() => handleDeleteEntry(row.id)}><Trash2 className="size-4" /></Button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-100 font-black border-t-2 border-black sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+            <tfoot className="bg-slate-100 font-black border-t-2 border-black">
               <tr>
-                <td className="border border-black p-2 text-center uppercase text-[11px]" colSpan={2}>Grand Ledger Totals:</td>
-                <td className="border border-black p-2 text-right text-[13px]">{columnSums.c1.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right text-rose-800 text-[13px]">{columnSums.c2.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right text-emerald-800 text-[13px]">{columnSums.c3.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right bg-slate-200/50 text-[13px]">{latestRunningTotals.loanBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right text-accent text-[13px]">{columnSums.c5.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right text-accent text-[13px]">{columnSums.c6.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right bg-primary/10 text-[13px]">{latestRunningTotals.empFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right text-[13px]">{columnSums.c8.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right text-accent text-[13px]">{columnSums.c9.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right bg-primary/10 text-[13px]">{latestRunningTotals.officeFund.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td className="border border-black p-2 text-right bg-slate-300 text-[14px] underline decoration-double">৳ {latestRunningTotals.total.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td className="border border-black p-2 text-center uppercase text-[11px] text-black" colSpan={2}>Grand Totals:</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c1.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c2.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c3.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black bg-slate-200">{latestRunningTotals.loanBalance.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c5.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c6.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black bg-slate-200">{latestRunningTotals.empFund.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c8.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black">{columnSums.c9.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black bg-slate-200">{latestRunningTotals.officeFund.toLocaleString()}</td>
+                <td className="border border-black p-2 text-right text-black bg-slate-300 font-black text-sm">৳ {latestRunningTotals.total.toLocaleString()}</td>
                 <td className="border border-black p-2 no-print"></td>
               </tr>
             </tfoot>
           </table>
         </div>
         
-        <div className="mt-10 pt-6 border-t border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] opacity-60">
+        <div className="mt-10 pt-6 border-t border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-black">
           <span>CPF Management Software</span>
           <span className="italic">Developed by: Ariful Islam,AGMF,Gazipur PBS-2</span>
         </div>
@@ -702,43 +648,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader><DialogTitle>{editingEntry ? "Edit" : "New"} Ledger Entry</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-black text-black">{editingEntry ? "Edit" : "New"} Ledger Entry</DialogTitle></DialogHeader>
           <form onSubmit={handleSaveEntry} className="space-y-6 pt-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required /></div>
-              <div className="space-y-2"><Label>Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required /></div>
+              <div className="space-y-2"><Label className="font-black text-black">Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required className="border-black font-black text-black" /></div>
+              <div className="space-y-2"><Label className="font-black text-black">Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="border-black font-black text-black" /></div>
             </div>
-
             <div className="space-y-2">
-              <Label>Contribution Source</Label>
+              <Label className="font-black text-black">Contribution Source</Label>
               <Select name="contributionSource" defaultValue={editingEntry?.contributionSource || "Local"}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Local">Local PBS (GPBS-2)</SelectItem>
-                  <SelectItem value="Other">Other PBS (Transfer In)</SelectItem>
-                </SelectContent>
+                <SelectTrigger className="border-black font-black text-black"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="Local" className="font-black text-black">Local PBS (GPBS-2)</SelectItem><SelectItem value="Other" className="font-black text-black">Other PBS (Transfer In)</SelectItem></SelectContent>
               </Select>
             </div>
-            
-            <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg border">
-              <div className="space-y-2"><Label>Emp Contrib (Col 1)</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} /></div>
-              <div className="space-y-2"><Label>Loan Withdraw (Col 2)</Label><Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || 0} /></div>
-              <div className="space-y-2"><Label>Loan Repay (Col 3)</Label><Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} /></div>
+            <div className="grid grid-cols-3 gap-4 p-4 bg-slate-100 rounded-lg border border-black">
+              <div className="space-y-2"><Label className="font-black text-black">Emp Contrib</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} className="border-black font-black text-black" /></div>
+              <div className="space-y-2"><Label className="font-black text-black">Loan Disb</Label><Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || 0} className="border-black font-black text-black" /></div>
+              <div className="space-y-2"><Label className="font-black text-black">Loan Repay</Label><Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} className="border-black font-black text-black" /></div>
             </div>
-
-            <div className="grid grid-cols-2 gap-4 p-4 bg-accent/5 rounded-lg border border-accent/10">
-              <div className="space-y-2"><Label>Profit Emp. (Col 5)</Label><Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || 0} /></div>
-              <div className="space-y-2"><Label>Profit Loan (Col 6)</Label><Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} /></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
-              <div className="space-y-2"><Label>PBS Contrib (Col 8)</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} /></div>
-              <div className="space-y-2"><Label>Profit PBS (Col 9)</Label><Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} /></div>
-            </div>
-
-            <DialogFooter><Button type="submit" className="w-full">Save Record</Button></DialogFooter>
+            <DialogFooter><Button type="submit" className="w-full bg-black text-white font-black hover:bg-black/90">Save Record</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

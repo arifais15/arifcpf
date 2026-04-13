@@ -1,7 +1,7 @@
 # PBS CPF Management Software
 
 Management Accounting Software for Contributory Provident Fund (CPF). Developed for Gazipur Palli Bidyut Samity-2.
-
+#git push -u origin main
 ## Key Features
 - **Member Registry**: Manage personnel profiles and account statuses.
 - **Journal Entries**: Dual-accounting system with automatic subsidiary ledger synchronization.
