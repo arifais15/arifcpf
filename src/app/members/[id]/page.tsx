@@ -77,14 +77,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     ];
   }, [interestSettings]);
 
-  // Initial Date Setup (Default to current fiscal year)
+  // Initial Date Setup (Default to all time)
   useEffect(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const fyStart = month >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-    const today = now.toISOString().split('T')[0];
-    setDateRange({ start: "", end: "" }); // Default to all time
+    setDateRange({ start: "", end: "" }); 
   }, []);
 
   const sortedSummaries = useMemo(() => {
@@ -98,15 +93,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [summaries]);
 
-  // CALCULATION ENGINE WITH DATE RANGE SUPPORT
+  // CALCULATION ENGINE WITH DATE RANGE AND COLUMN-WISE OPENING SUPPORT
   const ledgerLogic = useMemo(() => {
-    if (!sortedSummaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 } };
+    if (!sortedSummaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 }, opening: null };
 
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
     let runningOfficeFund = 0;
 
-    let opLoan = 0, opEmp = 0, opOffice = 0, opTotal = 0;
+    let opC1 = 0, opC2 = 0, opC3 = 0, opC4 = 0, opC5 = 0, opC6 = 0, opC7 = 0, opC8 = 0, opC9 = 0, opC10 = 0, opC11 = 0;
     const startTime = dateRange.start ? new Date(dateRange.start).getTime() : 0;
     const endTime = dateRange.end ? new Date(dateRange.end).getTime() : Infinity;
 
@@ -131,15 +126,24 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       };
     });
 
-    // Extract Opening Balance if range is set
+    // Extract Opening Balance column-wise if range is set
     if (dateRange.start) {
       const preRecords = allCalculated.filter(r => r.timestamp < startTime);
+      preRecords.forEach(r => {
+        opC1 += r.col1;
+        opC2 += r.col2;
+        opC3 += r.col3;
+        opC5 += r.col5;
+        opC6 += r.col6;
+        opC8 += r.col8;
+        opC9 += r.col9;
+      });
       if (preRecords.length > 0) {
         const lastPre = preRecords[preRecords.length - 1];
-        opLoan = lastPre.col4;
-        opEmp = lastPre.col7;
-        opOffice = lastPre.col10;
-        opTotal = lastPre.col11;
+        opC4 = lastPre.col4;
+        opC7 = lastPre.col7;
+        opC10 = lastPre.col10;
+        opC11 = lastPre.col11;
       }
     }
 
@@ -151,11 +155,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       c1: acc.c1 + r.col1, c2: acc.c2 + r.col2, c3: acc.c3 + r.col3, c5: acc.c5 + r.col5, c6: acc.c6 + r.col6, c8: acc.c8 + r.col8, c9: acc.c9 + r.col9
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
-    const lastRow = filtered.length > 0 ? filtered[filtered.length - 1] : { col4: opLoan, col7: opEmp, col10: opOffice, col11: opTotal };
+    const lastRow = filtered.length > 0 ? filtered[filtered.length - 1] : { col4: opC4, col7: opC7, col10: opC10, col11: opC11 };
 
     return {
       rows: filtered,
-      opening: { date: dateRange.start, particulars: "Opening Balance B/F", col4: opLoan, col7: opEmp, col10: opOffice, col11: opTotal },
+      opening: { 
+        date: dateRange.start, 
+        particulars: "Opening Balance B/F", 
+        col1: opC1, col2: opC2, col3: opC3, col4: opC4, 
+        col5: opC5, col6: opC6, col7: opC7, 
+        col8: opC8, col9: opC9, col10: opC10, 
+        col11: opC11 
+      },
       totals: sums,
       latest: { col4: lastRow.col4, col7: lastRow.col7, col10: lastRow.col10, col11: lastRow.col11 },
       hasOpening: !!dateRange.start
@@ -246,7 +257,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     let totalInterest = 0;
 
     for (const targetDate of basisDates) {
-      // Find the last record before targetDate to get running balance
       const relevant = sortedSummaries.filter(s => new Date(s.summaryDate) <= targetDate);
       let cumulativeBalance = 0;
       relevant.forEach(r => {
@@ -277,8 +287,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const handlePostInterest = () => {
     if (!interestCalculation || !profitPostingDate) return;
-    
-    // We need current fund ratios for splitting profit
     const relevant = sortedSummaries.filter(s => new Date(s.summaryDate) <= new Date(profitPostingDate));
     let empFund = 0, officeFund = 0;
     relevant.forEach(r => {
@@ -362,29 +370,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-6 md:p-10 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      {/* Dynamic Header Actions */}
       <PageHeaderActions>
         <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2">
           <ArrowLeft className="size-5 text-black" />
         </Link>
-        
-        {/* Date Range Selector in Header */}
         <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3">
           <CalendarDays className="size-4 text-black/40" />
           <div className="flex items-center gap-2">
-            <Input 
-              type="date" 
-              value={dateRange.start} 
-              onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setCurrentPage(1); }}
-              className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase"
-            />
+            <Input type="date" value={dateRange.start} onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setCurrentPage(1); }} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase" />
             <ArrowRightLeft className="size-3 text-black/20" />
-            <Input 
-              type="date" 
-              value={dateRange.end} 
-              onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setCurrentPage(1); }}
-              className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase"
-            />
+            <Input type="date" value={dateRange.end} onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setCurrentPage(1); }} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase" />
           </div>
           {(dateRange.start || dateRange.end) && (
             <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => setDateRange({ start: "", end: "" })}>
@@ -392,19 +387,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </Button>
           )}
         </div>
-
         <div className="h-8 w-px bg-black/10 mx-1" />
-
         <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 overflow-hidden">
           <div className="flex items-center gap-2 px-3">
             <Label className="text-[9px] font-black uppercase text-black">View:</Label>
-            <Select 
-              value={pageSize.toString()} 
-              onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); }}
-            >
-              <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px] focus:ring-0">
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); }}>
+              <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px] focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="5" className="font-black text-[10px]">5 Rows</SelectItem>
                 <SelectItem value="10" className="font-black text-[10px]">10 Rows</SelectItem>
@@ -415,30 +403,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
           {pageSize !== -1 && totalPages > 1 && (
             <div className="flex items-center gap-1 border-l border-black/10 ml-1 pl-1">
-              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
-                <ChevronLeft className="size-3.5" />
-              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}><ChevronLeft className="size-3.5" /></Button>
               <span className="text-[10px] font-black tabular-nums">{currentPage}/{totalPages}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}>
-                <ChevronRight className="size-3.5" />
-              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}><ChevronRight className="size-3.5" /></Button>
             </div>
           )}
         </div>
         <div className="h-8 w-px bg-black/10 mx-1" />
         <div className="flex items-center gap-1">
-          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
-            <Plus className="size-3.5" /> Entry
-          </Button>
-          <Button variant="outline" onClick={() => setIsInterestOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
-            <Calculator className="size-3.5" /> Profit
-          </Button>
-          <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
-            <UserX className="size-3.5" /> Settle
-          </Button>
-          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1">
-            <Printer className="size-3.5" /> Print
-          </Button>
+          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> Entry</Button>
+          <Button variant="outline" onClick={() => setIsInterestOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Calculator className="size-3.5" /> Profit</Button>
+          <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><UserX className="size-3.5" /> Settle</Button>
+          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1"><Printer className="size-3.5" /> Print</Button>
         </div>
       </PageHeaderActions>
 
@@ -449,9 +425,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <p className="text-sm font-black uppercase tracking-widest text-black mt-1">Contributory Provident Fund</p>
           <h2 className="text-lg md:text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
           {(dateRange.start || dateRange.end) && (
-            <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">
-              Audit Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}
-            </p>
+            <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">Audit Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}</p>
           )}
         </div>
 
@@ -503,27 +477,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums text-black">
-              {/* Virtual Opening Balance Row */}
-              {ledgerLogic.hasOpening && (
+              {ledgerLogic.hasOpening && ledgerLogic.opening && (
                 <tr className="bg-slate-50 font-black italic border-b border-black">
                   <td className="border border-black p-1 text-center font-mono text-black">{ledgerLogic.opening.date}</td>
                   <td className="border border-black p-1 text-left uppercase text-black">{ledgerLogic.opening.particulars}</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{ledgerLogic.opening.col4.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{ledgerLogic.opening.col7.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right">-</td>
-                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{ledgerLogic.opening.col10.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-200 text-black">{ledgerLogic.opening.col11.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col1.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col2.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col3.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-100 text-black font-black">{ledgerLogic.opening.col4.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col5.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col6.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-100 text-black font-black">{ledgerLogic.opening.col7.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col8.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{ledgerLogic.opening.col9.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-100 text-black font-black">{ledgerLogic.opening.col10.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200 text-black font-black">{ledgerLogic.opening.col11.toLocaleString()}</td>
                   <td className="border border-black p-1 no-print"></td>
                 </tr>
               )}
 
-              {/* Paginated Rows (UI) / All Rows (Print) */}
               {(typeof window !== 'undefined' && window.matchMedia('print').matches ? ledgerLogic.rows : paginatedRows).map((row: any, idx) => (
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors border-b border-black">
                   <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
@@ -548,7 +520,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-100 font-black border-t-2 border-black text-black tabular-nums">
+            <tfoot className="bg-slate-100 font-black border-t-2 border-black tabular-nums text-black">
               <tr className="h-10 text-[10px]">
                 <td className="border border-black p-1.5 text-center uppercase" colSpan={2}>Aggregate Period Portions:</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
@@ -574,42 +546,24 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* DIALOGS (REMAINS SAME) */}
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-2xl bg-white border-2 border-black p-0 overflow-hidden rounded-2xl shadow-2xl">
           <DialogHeader className="p-6 border-b-2 border-black bg-slate-50 flex flex-row items-center justify-between space-y-0">
-            <DialogTitle className="text-2xl font-black text-black tracking-tight uppercase">
-              {editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}
-            </DialogTitle>
-            <DialogClose asChild>
-              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-slate-200 text-black">
-                <UserX className="size-4" />
-              </Button>
-            </DialogClose>
+            <DialogTitle className="text-2xl font-black text-black tracking-tight uppercase">{editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}</DialogTitle>
+            <DialogClose asChild><Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-slate-200 text-black"><UserX className="size-4" /></Button></DialogClose>
           </DialogHeader>
           <form onSubmit={handleSaveEntry} className="p-8 space-y-8">
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-sm font-black text-black ml-1 uppercase">Transaction Date</Label>
-                <Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black h-12 focus:ring-0 rounded-xl bg-slate-50" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-black text-black ml-1 uppercase">Voucher Particulars</Label>
-                <Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="Monthly Contribution..." className="border-2 border-black font-black text-black h-12 focus:ring-0 rounded-xl bg-slate-50" />
-              </div>
+              <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Transaction Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black h-12 focus:ring-0 rounded-xl bg-slate-50" /></div>
+              <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Voucher Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="Monthly Contribution..." className="border-2 border-black font-black text-black h-12 focus:ring-0 rounded-xl bg-slate-50" /></div>
             </div>
-
             <div className="space-y-2">
               <Label className="text-sm font-black text-black ml-1 uppercase">Contribution Source</Label>
               <Select name="contributionSource" defaultValue={editingEntry?.contributionSource || "Local"}>
                 <SelectTrigger className="border-2 border-black font-black text-black h-12 rounded-xl bg-slate-50"><SelectValue /></SelectTrigger>
-                <SelectContent className="border-2 border-black">
-                  <SelectItem value="Local" className="font-black uppercase">Local PBS (GPBS-2)</SelectItem>
-                  <SelectItem value="Other" className="font-black uppercase">Other PBS (Transfer)</SelectItem>
-                </SelectContent>
+                <SelectContent className="border-2 border-black"><SelectItem value="Local" className="font-black uppercase">Local PBS (GPBS-2)</SelectItem><SelectItem value="Other" className="font-black uppercase">Other PBS (Transfer)</SelectItem></SelectContent>
               </Select>
             </div>
-
             <div className="space-y-6">
               <div className="bg-blue-50/50 p-6 rounded-2xl border-2 border-black grid grid-cols-3 gap-6">
                 <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Emp Cont (Col 1)</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} className="border-2 border-black font-black text-black h-11 tabular-nums rounded-lg bg-white" /></div>
@@ -633,9 +587,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border-2 border-black">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-black text-black text-2xl uppercase tracking-tight">
-              <Calculator className="size-6 text-black" /> Profit Accrual Audit
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2 font-black text-black text-2xl uppercase tracking-tight"><Calculator className="size-6 text-black" /> Profit Accrual Audit</DialogTitle>
             <DialogDescription className="font-black text-black uppercase text-xs">Review monthly basis balances and tiered interest portions.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
@@ -680,17 +632,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </tbody>
                   </table>
                 </div>
-                <div className="space-y-2 bg-slate-50 p-5 rounded-xl border-2 border-black">
-                  <Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Ledger Posting Date</Label>
-                  <Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="border-2 border-black font-black text-black h-11" />
-                </div>
+                <div className="space-y-2 bg-slate-50 p-5 rounded-xl border-2 border-black"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Ledger Posting Date</Label><Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="border-2 border-black font-black text-black h-11" /></div>
               </div>
             )}
           </div>
-          <DialogFooter className="bg-slate-50 p-6 -mx-6 -mb-6 border-t-2 border-black mt-4">
-            <Button variant="outline" className="border-2 border-black font-black h-12 px-8 uppercase text-xs text-black" onClick={() => setIsInterestOpen(false)}>Cancel Audit</Button>
-            <Button onClick={handlePostInterest} disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} className="gap-2 px-10 font-black bg-black text-white h-12 uppercase tracking-widest shadow-xl">Confirm & Post</Button>
-          </DialogFooter>
+          <DialogFooter className="bg-slate-50 p-6 -mx-6 -mb-6 border-t-2 border-black mt-4"><Button variant="outline" className="border-2 border-black font-black h-12 px-8 uppercase text-xs text-black" onClick={() => setIsInterestOpen(false)}>Cancel Audit</Button><Button onClick={handlePostInterest} disabled={!interestCalculation || interestCalculation.isDuplicate || !profitPostingDate} className="gap-2 px-10 font-black bg-black text-white h-12 uppercase tracking-widest shadow-xl">Confirm & Post</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
