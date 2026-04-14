@@ -169,46 +169,46 @@ export default function ReportsPage() {
     const grandTotal = groups.reduce((sum, g) => sum + g.total, 0);
 
     return (
-      <div className={cn("space-y-6", className)}>
-        <h3 className="text-xs font-black border-b-4 border-black pb-1 uppercase tracking-[0.2em] text-black">{title}</h3>
-        <div className="space-y-6">
+      <div className={cn("space-y-8", className)}>
+        <h3 className="text-sm font-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em] text-black">{title}</h3>
+        <div className="space-y-8">
           {groups.map((group, idx) => (
-            <div key={idx} className="space-y-1.5">
-              <div className="flex justify-between font-black text-[10px] text-black bg-slate-50 p-1.5 rounded-sm border-l-4 border-black">
+            <div key={idx} className="space-y-2">
+              <div className="flex justify-between font-black text-xs text-black bg-slate-50 p-2 rounded-sm border-l-4 border-black shadow-sm">
                 <span className="uppercase tracking-widest">{group.header.name}</span>
               </div>
-              <div className="pl-4 space-y-0.5">
+              <div className="pl-6 space-y-1">
                 {group.items.map(item => (
-                  <div key={item.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/30 font-black text-black tabular-nums">
-                    <span className="flex gap-4">
-                       <span className="font-mono w-[80px] opacity-60">{item.code}</span>
+                  <div key={item.code} className="flex justify-between text-xs py-1.5 border-b border-dotted border-black/40 font-black text-black tabular-nums">
+                    <span className="flex gap-6">
+                       <span className="font-mono w-[90px] opacity-60">{item.code}</span>
                        <span>{item.name}</span>
                     </span>
                     <span>{formatCurrency(balancesMap[item.code])}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between font-black text-[11px] pt-2 border-t-2 border-black mt-2 pl-4 pr-1 italic text-black tabular-nums">
+              <div className="flex justify-between font-black text-xs pt-3 border-t-2 border-black mt-3 pl-6 pr-1 italic text-black tabular-nums">
                 <span className="uppercase tracking-tight">Total {group.header.name}</span>
-                <span className="underline decoration-black">{formatCurrency(group.total)}</span>
+                <span className="underline decoration-black decoration-2">{formatCurrency(group.total)}</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="flex justify-between font-black text-sm bg-black text-white p-3 rounded-lg mt-6 uppercase tracking-widest shadow-lg">
+        <div className="flex justify-between font-black text-base bg-black text-white p-4 rounded-xl mt-8 uppercase tracking-widest shadow-xl">
           <span>Total {title}</span>
-          <span className="tabular-nums underline decoration-double">৳ {formatCurrency(grandTotal)}</span>
+          <span className="tabular-nums underline decoration-double decoration-2">৳ {formatCurrency(grandTotal)}</span>
         </div>
       </div>
     );
   };
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="text-center mb-10 border-b-4 border-black pb-6">
-      <h1 className="text-2xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
-      <p className="text-sm font-black uppercase tracking-[0.25em] text-black mt-1">Contributory Provident Fund</p>
-      <h2 className="text-lg md:text-xl font-black text-black mt-4 uppercase underline decoration-2 underline-offset-8 decoration-black">{title}</h2>
-      <p className="text-[10px] text-black font-black uppercase tracking-[0.4em] mt-6 bg-black text-white py-1 px-4 inline-block rounded-md">{subtitle}</p>
+    <div className="text-center mb-12 border-b-4 border-black pb-8">
+      <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+      <p className="text-base font-black uppercase tracking-[0.25em] text-black mt-1">Contributory Provident Fund</p>
+      <h2 className="text-2xl font-black text-black mt-6 uppercase underline decoration-2 underline-offset-8 decoration-black">{title}</h2>
+      <p className="text-xs text-black font-black uppercase tracking-[0.4em] mt-8 bg-black text-white py-1.5 px-6 inline-block rounded-md shadow-md">{subtitle}</p>
     </div>
   );
 
@@ -315,45 +315,45 @@ export default function ReportsPage() {
               <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="space-y-12">
                 <div className="space-y-6">
-                  <h3 className="text-xs font-black border-b-4 border-black text-black pb-1 uppercase tracking-[0.2em]">Institutional Revenue</h3>
-                  <div className="space-y-2 pl-4">
+                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-1.5 uppercase tracking-[0.2em]">Institutional Revenue</h3>
+                  <div className="space-y-2 pl-6">
                     {incomeAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                        <div key={acc.code} className="flex justify-between text-xs py-1.5 border-b border-dotted border-black/40 font-black text-black tabular-nums">
                           <span className="uppercase tracking-tight">{acc.name}</span>
                           <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-black text-[12px] pt-3 border-t-2 border-black mt-4 text-black tabular-nums uppercase italic">
+                    <div className="flex justify-between font-black text-sm pt-4 border-t-2 border-black mt-6 text-black tabular-nums uppercase italic">
                        <span>Gross Consolidated Income</span>
-                       <span className="underline decoration-black">{formatCurrency(totalIncome)}</span>
+                       <span className="underline decoration-black decoration-2">{formatCurrency(totalIncome)}</span>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-6">
-                  <h3 className="text-xs font-black border-b-4 border-black text-black pb-1 uppercase tracking-[0.2em]">Operating Expenditures</h3>
-                  <div className="space-y-2 pl-4">
+                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-1.5 uppercase tracking-[0.2em]">Operating Expenditures</h3>
+                  <div className="space-y-2 pl-6">
                     {expenseAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                        <div key={acc.code} className="flex justify-between text-xs py-1.5 border-b border-dotted border-black/40 font-black text-black tabular-nums">
                           <span className="uppercase tracking-tight">{acc.name}</span>
                           <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-black text-[12px] pt-3 border-t-2 border-black mt-4 text-black tabular-nums uppercase italic">
+                    <div className="flex justify-between font-black text-sm pt-4 border-t-2 border-black mt-6 text-black tabular-nums uppercase italic">
                        <span>Total Trust Expenditures</span>
-                       <span className="underline decoration-black">{formatCurrency(totalExpense)}</span>
+                       <span className="underline decoration-black decoration-2">{formatCurrency(totalExpense)}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between font-black text-lg p-6 border-[4px] border-black mt-12 rounded-2xl bg-slate-50 text-black tabular-nums shadow-lg">
-                  <span className="uppercase text-xs tracking-[0.3em]">Net Trust Surplus / (Deficit)</span>
+                <div className="flex justify-between font-black text-xl p-8 border-[4px] border-black mt-16 rounded-2xl bg-slate-50 text-black tabular-nums shadow-xl">
+                  <span className="uppercase text-sm tracking-[0.3em]">Net Trust Surplus / (Deficit)</span>
                   <span className="underline decoration-double decoration-2">৳ {formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
               </div>
@@ -375,22 +375,22 @@ export default function ReportsPage() {
             <CardContent className="p-12 print:p-0">
               <ReportHeader title="Receipts and Payments Statement" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="grid grid-cols-1 gap-y-12 mt-8">
-                 <div className="space-y-6">
-                    <h4 className="font-black text-[11px] text-black border-b-4 border-black pb-1 uppercase tracking-[0.2em]">Institutional Receipts</h4>
+                 <div className="space-y-8">
+                    <h4 className="font-black text-sm text-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Receipts</h4>
                     <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
-                        <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                        <div key={c} className="flex justify-between text-xs py-2 border-b border-dotted border-black/40 font-black text-black tabular-nums">
                           <span className="uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
-                 <div className="space-y-6 border-t-4 border-black pt-8">
-                    <h4 className="font-black text-[11px] text-black border-b-4 border-black pb-1 uppercase tracking-[0.2em]">Institutional Payments</h4>
+                 <div className="space-y-8 border-t-4 border-black pt-10">
+                    <h4 className="font-black text-sm text-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Payments</h4>
                     <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Debit').map(c => (
-                        <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                        <div key={c} className="flex justify-between text-xs py-2 border-b border-dotted border-black/40 font-black text-black tabular-nums">
                           <span className="uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
