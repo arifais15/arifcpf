@@ -348,7 +348,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">Profits</th>
                 <th className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200">Net Fund</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">PBS Share</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">PBS Fund</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200">Total (11)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[60px] uppercase text-[8px]">Action</th>
               </tr>
@@ -358,16 +358,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 ))}
               </tr>
               <tr className="text-[7px] uppercase leading-none">
-                <th className="border border-black p-1 text-right">Contrib</th>
-                <th className="border border-black p-1 text-right">Draw</th>
-                <th className="border border-black p-1 text-right">Pay</th>
-                <th className="border border-black p-1 text-right bg-slate-200">Bal</th>
-                <th className="border border-black p-1 text-right">Emp</th>
+                <th className="border border-black p-1 text-right">Contribution</th>
+                <th className="border border-black p-1 text-right">Loandraw</th>
+                <th className="border border-black p-1 text-right">Repay</th>
+                <th className="border border-black p-1 text-right bg-slate-200">LoanBalance</th>
+                <th className="border border-black p-1 text-right">EmpCont</th>
                 <th className="border border-black p-1 text-right">Loan</th>
-                <th className="border border-black p-1 text-right bg-slate-200">Equity</th>
-                <th className="border border-black p-1 text-right">PBS</th>
-                <th className="border border-black p-1 text-right">Prof</th>
-                <th className="border border-black p-1 text-right bg-slate-100">Match</th>
+                <th className="border border-black p-1 text-right bg-slate-200">EmNetFund</th>
+                <th className="border border-black p-1 text-right">Contribution</th>
+                <th className="border border-black p-1 text-right">Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-100">NetFund</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums">
@@ -451,13 +451,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Net Employee Equity</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">NetEmployeeFund</p>
                   <p className={cn("text-lg font-black tabular-nums", entryNetFund.empNet >= 0 ? "text-white" : "text-rose-400")}>
                     ৳ {entryNetFund.empNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
                 <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
-                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Office Match Share</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">OfficeCotribution</p>
                   <p className="text-lg font-black text-white tabular-nums">
                     ৳ {entryNetFund.officeNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
@@ -531,7 +531,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
               <div className="bg-emerald-50/30 p-4 rounded-xl border-2 border-black space-y-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge className="bg-emerald-600 text-white rounded text-[8px] uppercase font-black">Office matching</Badge>
+                  <Badge className="bg-emerald-600 text-white rounded text-[8px] uppercase font-black">Office Contribution</Badge>
                 </div>
                 <div className="space-y-3">
                   <div className="space-y-1">

@@ -198,7 +198,7 @@ export default function MembersPage() {
           onConfirm: () => window.location.reload() 
         });
       } catch (err) {
-        toast({ title: "Upload Failed", description: "Ensure the Excel format matches the institutional requirement.", variant: "destructive" });
+        toast({ title: "Upload Failed", description: "Ensure the Excel format matches the requirement.", variant: "destructive" });
       } finally {
         setIsUploading(false);
         setIsBulkOpen(false);
@@ -281,7 +281,7 @@ export default function MembersPage() {
 
       <div className="flex flex-col gap-1 md:hidden">
         <h1 className="text-2xl font-black text-black tracking-tight uppercase">Members Registry</h1>
-        <p className="text-black font-black uppercase text-[9px] tracking-widest opacity-60">Audit Tools available in top header</p>
+        <p className="text-black font-black uppercase text-[9px] tracking-widest opacity-60">Audit Tools in top header</p>
       </div>
 
       <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden">
@@ -331,7 +331,7 @@ export default function MembersPage() {
               {editingMember ? "Modify Personnel Records" : "New Personnel Registration"}
             </DialogTitle>
             <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500">
-              All fields are mandatory for Institutional Ledger Consistency (Form 224)
+              All fields are mandatory fo Ledger Consistency (Form 224)
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-6">

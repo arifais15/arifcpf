@@ -150,10 +150,8 @@ export default function AllLedgersPrintPage() {
             <div className="relative mb-10 text-center border-b-4 border-black pb-8">
               <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
               <h1 className="text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
-              <p className="text-base font-black uppercase tracking-[0.3em] text-black mt-1">Contributory Provident Fund</p>
               <h2 className="text-xl font-black underline underline-offset-8 decoration-2 uppercase tracking-[0.3em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
             </div>
-
             <div className="grid grid-cols-3 gap-x-12 gap-y-6 mb-10 text-[13px] font-black border-b-4 border-black pb-6 text-black">
               {[
                 { l: "Member Name", v: ledger.member.name, u: "uppercase" },
@@ -178,7 +176,7 @@ export default function AllLedgersPrintPage() {
                   <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50 text-black">Contributions & Loans</th>
                   <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">Profits Received</th>
                   <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200 text-black">Net Fund</th>
-                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">PBS Share</th>
+                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">PBS Fund</th>
                   <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200 text-black">Total (11)</th>
                 </tr>
                 <tr className="bg-slate-50 text-[9px]">
@@ -188,15 +186,15 @@ export default function AllLedgersPrintPage() {
                 </tr>
                 <tr className="text-[7px] uppercase leading-none">
                   <th className="border border-black p-1 text-right">Contrib</th>
-                  <th className="border border-black p-1 text-right">Draw</th>
-                  <th className="border border-black p-1 text-right">Pay</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">Bal</th>
-                  <th className="border border-black p-1 text-right">Emp</th>
+                  <th className="border border-black p-1 text-right">LoanDraw</th>
+                  <th className="border border-black p-1 text-right">Repay</th>
+                  <th className="border border-black p-1 text-right bg-slate-200">LoanBalance</th>
+                  <th className="border border-black p-1 text-right">EmpCont</th>
                   <th className="border border-black p-1 text-right">Loan</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">Equity</th>
-                  <th className="border border-black p-1 text-right">PBS</th>
-                  <th className="border border-black p-1 text-right">Prof</th>
-                  <th className="border border-black p-1 text-right bg-slate-100">Match</th>
+                  <th className="border border-black p-1 text-right bg-slate-200">EmNetFund</th>
+                  <th className="border border-black p-1 text-right">Contribution</th>
+                  <th className="border border-black p-1 text-right">Profit</th>
+                  <th className="border border-black p-1 text-right bg-slate-100">NetFund</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black font-black tabular-nums text-black">
