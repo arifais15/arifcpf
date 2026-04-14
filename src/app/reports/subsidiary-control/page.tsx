@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -157,6 +156,28 @@ export default function SubsidiaryControlLedgerPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 landscape !important;
+            margin: 5mm !important;
+          }
+          .print-container {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          table {
+            table-layout: fixed !important;
+            width: 100% !important;
+          }
+          body {
+            background-color: white !important;
+          }
+        }
+      `}} />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
           <div className="bg-black p-3 rounded-2xl shadow-lg">
@@ -358,11 +379,11 @@ export default function SubsidiaryControlLedgerPage() {
         <table className="w-full text-[10px] border-collapse border-2 border-black text-black font-black tabular-nums">
           <thead>
             <tr className="bg-slate-100 font-black border-b-2 border-black">
-              <th className="border border-black p-2.5 uppercase tracking-widest text-center">Posting Date</th>
+              <th className="border border-black p-2.5 uppercase tracking-widest text-center w-[100px]">Posting Date</th>
               <th className="border border-black p-2.5 text-left uppercase tracking-widest">Consolidated Particulars & Audit Trail</th>
-              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Debit (৳)</th>
-              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Credit (৳)</th>
-              <th className="border border-black p-2.5 text-right uppercase tracking-widest bg-slate-50">Balance (৳)</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest w-[120px]">Debit (৳)</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest w-[120px]">Credit (৳)</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest bg-slate-50 w-[150px]">Balance (৳)</th>
             </tr>
           </thead>
           <tbody>
@@ -378,7 +399,7 @@ export default function SubsidiaryControlLedgerPage() {
           </tbody>
           <tfoot>
             <tr className="bg-slate-100 font-black h-16 border-t-2 border-black">
-              <td colSpan={2} className="border border-black p-2.5 text-right uppercase tracking-[0.2em]">Consolidated Grand Totals:</td>
+              <td colSpan={2} className="border border-black p-2.5 text-right uppercase tracking-widest">Consolidated Grand Totals:</td>
               <td className="border border-black p-2.5 text-right font-black">{institutionalLedger.reduce((s, r) => s + r.debit, 0).toLocaleString()}</td>
               <td className="border border-black p-2.5 text-right font-black">{institutionalLedger.reduce((s, r) => s + r.credit, 0).toLocaleString()}</td>
               <td className="border border-black p-2.5 text-right underline decoration-double text-lg font-black">৳ {institutionalLedger[institutionalLedger.length-1]?.balance.toLocaleString() || "0.00"}</td>

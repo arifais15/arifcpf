@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -151,8 +150,12 @@ export default function LedgerSummaryReportPage() {
             max-width: none !important;
             padding: 0 !important;
             display: block !important;
-            transform: scale(0.95);
+            transform: scale(0.92);
             transform-origin: top left;
+          }
+          table {
+            table-layout: fixed !important;
+            width: 100% !important;
           }
           body {
             background-color: white !important;
