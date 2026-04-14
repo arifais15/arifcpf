@@ -226,7 +226,7 @@ export default function CPFInterestPage() {
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
-      const entryData = { summaryDate: postingDate, particulars: `Annual Profit ${modeLabel} (Tiered)`, employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0, profitEmployee: Math.round(item.employeeProfit), profitLoan: 0, pbsContribution: 0, profitPbs: Math.round(item.pbsProfit), lastUpdateDate: new Date().toISOString(), createdAt: new Date().toISOString(), memberId: item.memberId };
+      const entryData = { summaryDate: postingDate, particulars: `Annual Profit ${modeLabel} (Tiered)`, employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0, profitEmployee: Math.round(item.employeeProfit), profitLoan: 0, pbsContribution: 0, profitPbs: Math.round(item.profitPbs), lastUpdateDate: new Date().toISOString(), createdAt: new Date().toISOString(), memberId: item.memberId };
       addDocumentNonBlocking(collection(firestore, "members", item.memberId, "fundSummaries"), entryData);
     }
     setIsPosting(false);
@@ -275,9 +275,9 @@ export default function CPFInterestPage() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="h-9 text-xs border-2 border-black font-black" />
+              <Input type="date" value={customRange.start} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="h-9 text-xs border-2 border-black font-black" />
               <ArrowRightLeft className="size-3 text-black" />
-              <Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="h-9 text-xs border-2 border-black font-black" />
+              <Input type="date" value={customRange.end} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="h-9 text-xs border-2 border-black font-black" />
             </div>
           )}
 
@@ -324,7 +324,7 @@ export default function CPFInterestPage() {
             <div className="flex items-center gap-4 bg-white p-3 border-2 border-black shadow-lg">
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-black text-black">Ledger Posting Date</Label>
-                <Input type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} className="h-8 text-[10px] border-black border-2 font-black" />
+                <Input type="date" value={postingDate} max="9999-12-31" onChange={(e) => setPostingDate(e.target.value)} className="h-8 text-[10px] border-black border-2 font-black" />
               </div>
               <div className="h-8 w-0.5 bg-black" />
               <Button 
@@ -374,6 +374,87 @@ export default function CPFInterestPage() {
           </div>
         </div>
       )}
+
+      {/* Audit Detail Breakdown Dialog */}
+      <Dialog open={!!viewingDetails} onOpenChange={(open) => !open && setViewingDetails(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto font-ledger text-black border-4 border-black p-0 rounded-none shadow-2xl">
+          <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
+            <DialogTitle className="flex items-center gap-4 text-2xl font-black uppercase tracking-tight">
+              <Calculator className="size-8 text-black" />
+              Profit Audit Matrix Breakdown
+            </DialogTitle>
+            <DialogDescription className="font-black text-slate-500 text-[11px] uppercase tracking-[0.25em] mt-2">
+              {viewingDetails?.name} ({viewingDetails?.memberIdNumber}) • {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Audit Range`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-8 space-y-10">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-white p-6 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Aggregate Profit</p>
+                <p className="text-2xl font-black text-black">৳ {viewingDetails?.calculatedInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="bg-white p-6 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Equity Split (Emp)</p>
+                <p className="text-xl font-black text-black">৳ {viewingDetails?.employeeProfit?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="bg-white p-6 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Matching Share (PBS)</p>
+                <p className="text-xl font-black text-black">৳ {viewingDetails?.pbsProfit?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+              </div>
+            </div>
+
+            <div className="border-2 border-black overflow-hidden shadow-xl">
+              <Table className="font-black text-black tabular-nums">
+                <TableHeader className="bg-slate-100 border-b-2 border-black">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6">Audit Basis Point</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4">Basis Balance (৳)</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 pr-6">Monthly Portion (৳)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {viewingDetails?.monthlyDetails?.map((month: any, idx: number) => (
+                    <TableRow key={idx} className={cn("hover:bg-slate-50 transition-colors border-b border-black", month.isOpening && "bg-blue-50/30")}>
+                      <TableCell className="text-xs font-black py-4 pl-6 flex items-center gap-3">
+                        {month.label}
+                        {month.isOpening && <Badge className="text-[8px] h-4 uppercase px-2 bg-black text-white rounded-none">Opening Anchor</Badge>}
+                      </TableCell>
+                      <td className="p-4 text-right text-xs">
+                        {month.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-4 text-right font-black text-black text-xs pr-6">
+                        {month.interest.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <tfoot className="bg-slate-50 border-t-2 border-black font-black">
+                  <tr className="h-14">
+                    <td className="p-4 text-right text-[10px] uppercase tracking-widest pl-6">Computed Audit Profit:</td>
+                    <td colSpan={2} className="p-4 text-right text-black text-xl pr-6 underline decoration-double">
+                      ৳ {viewingDetails?.calculatedInterest?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tfoot>
+              </Table>
+            </div>
+
+            <div className="bg-slate-900 p-6 border-2 border-black flex gap-4 items-start shadow-xl">
+              <ShieldCheck className="size-6 text-emerald-400 mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Institutional Audit Logic Verification</p>
+                <p className="text-[11px] leading-relaxed text-slate-400 font-bold uppercase italic">
+                  Profit is computed by aggregating 12 audit snapshots. Each snapshot captures the total cumulative fund value at the end of the basis month (Opening Balance + 11 monthly closings). The final amount represents the weighted annual profit share of the member based on real-time ledger contributions.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-100 p-6 border-t-4 border-black text-right">
+            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white">Close Terminal</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="hidden print:block print-container text-black font-black">
         <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
