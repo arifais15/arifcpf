@@ -7,6 +7,7 @@ import { FirebaseClientProvider } from '@/firebase';
 import { SweetAlertProvider } from '@/components/sweet-alert-provider';
 import AuthWrapper from '@/components/auth-wrapper';
 import { Separator } from '@/components/ui/separator';
+import { HeaderActionsProvider, HeaderActionsDisplay } from '@/components/header-actions';
 
 export const metadata: Metadata = {
   title: 'PBS CPF Management',
@@ -29,24 +30,28 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <SweetAlertProvider>
             <AuthWrapper>
-              <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                  <header className="flex h-16 shrink-0 items-center gap-2 border-b px-6 no-print sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                    <SidebarTrigger className="-ml-1" />
-                    <Separator orientation="vertical" className="mr-2 h-4" />
-                    <div className="flex-1" />
-                    <div className="flex items-center gap-2">
-                      <p className="text-[11px] text-muted-foreground uppercase font-black tracking-[0.25em] opacity-60 hidden sm:block">
-                        CPF Management Software
-                      </p>
-                    </div>
-                  </header>
-                  <main className="flex-1 min-h-screen">
-                    {children}
-                  </main>
-                </SidebarInset>
-              </SidebarProvider>
+              <HeaderActionsProvider>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset>
+                    <header className="flex h-16 shrink-0 items-center gap-2 border-b px-6 no-print sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                      <SidebarTrigger className="-ml-1" />
+                      <Separator orientation="vertical" className="mr-2 h-4" />
+                      <div className="flex-1 flex items-center overflow-hidden">
+                        <HeaderActionsDisplay />
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-auto">
+                        <p className="text-[10px] text-black uppercase font-black tracking-[0.2em] opacity-40 hidden xl:block">
+                          Institutional Trust Terminal
+                        </p>
+                      </div>
+                    </header>
+                    <main className="flex-1 min-h-screen">
+                      {children}
+                    </main>
+                  </SidebarInset>
+                </SidebarProvider>
+              </HeaderActionsProvider>
             </AuthWrapper>
             <Toaster />
           </SweetAlertProvider>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -30,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { PageHeaderActions } from "@/components/header-actions";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -317,79 +317,57 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-6 md:p-10 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      <div className="flex flex-col md:flex-row md:items-center justify-between no-print max-w-[1400px] mx-auto w-full gap-6">
-        <Link href="/members" className="flex items-center gap-2 text-sm text-black hover:text-black/70 font-black transition-colors uppercase">
-          <ArrowLeft className="size-5" /> Back
+      {/* Dynamic Header Actions */}
+      <PageHeaderActions>
+        <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2">
+          <ArrowLeft className="size-5 text-black" />
         </Link>
-        
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center bg-white p-1 rounded-xl border-2 border-black shadow-sm h-10 text-black">
-            <div className="flex items-center gap-2 px-3">
-              <ListFilter className="size-3.5 text-black" />
-              <Label className="text-[10px] font-black uppercase tracking-widest text-black">View Rows:</Label>
-              <Select 
-                value={pageSize.toString()} 
-                onValueChange={(v) => { 
-                  setPageSize(parseInt(v)); 
-                  setCurrentPage(1); 
-                }}
-              >
-                <SelectTrigger className="h-7 w-[80px] border-black border-2 font-black text-[10px] focus:ring-0 text-black">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-2 border-black">
-                  <SelectItem value="5" className="font-black text-xs uppercase">5 Items</SelectItem>
-                  <SelectItem value="10" className="font-black text-xs uppercase">10 Items</SelectItem>
-                  <SelectItem value="25" className="font-black text-xs uppercase">25 Items</SelectItem>
-                  <SelectItem value="-1" className="font-black text-xs uppercase">View All</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {pageSize !== -1 && totalPages > 1 && (
-              <div className="flex items-center gap-1 border-l-2 border-black ml-2 pl-2 pr-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 rounded-lg hover:bg-slate-100 text-black" 
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                >
-                  <ChevronLeft className="size-4" />
-                </Button>
-                <span className="text-[10px] font-black tabular-nums text-black">{currentPage} / {totalPages}</span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-7 w-7 rounded-lg hover:bg-slate-100 text-black" 
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                >
-                  <ChevronRight className="size-4" />
-                </Button>
-              </div>
-            )}
+        <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 overflow-hidden">
+          <div className="flex items-center gap-2 px-3">
+            <Label className="text-[9px] font-black uppercase text-black">View:</Label>
+            <Select 
+              value={pageSize.toString()} 
+              onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); }}
+            >
+              <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px] focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5" className="font-black text-[10px]">5 Rows</SelectItem>
+                <SelectItem value="10" className="font-black text-[10px]">10 Rows</SelectItem>
+                <SelectItem value="25" className="font-black text-[10px]">25 Rows</SelectItem>
+                <SelectItem value="-1" className="font-black text-[10px]">View All</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-
-          <div className="h-8 w-px bg-black mx-1" />
-
-          <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="gap-2 border-2 border-black text-black hover:bg-slate-100 font-black h-10 uppercase text-xs">
-            <UserX className="size-4" /> Final Settlement
+          {pageSize !== -1 && totalPages > 1 && (
+            <div className="flex items-center gap-1 border-l border-black/10 ml-1 pl-1">
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
+                <ChevronLeft className="size-3.5" />
+              </Button>
+              <span className="text-[10px] font-black tabular-nums">{currentPage}/{totalPages}</span>
+              <Button variant="ghost" size="icon" className="h-7 w-7" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}>
+                <ChevronRight className="size-3.5" />
+              </Button>
+            </div>
+          )}
+        </div>
+        <div className="h-8 w-px bg-black/10 mx-1" />
+        <div className="flex items-center gap-1">
+          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
+            <Plus className="size-3.5" /> Entry
           </Button>
-
-          <Button variant="outline" onClick={() => setIsInterestOpen(true)} className="gap-2 border-2 border-black text-black hover:bg-slate-100 font-black h-10 uppercase text-xs">
-            <Calculator className="size-4" /> Profit Calculator
+          <Button variant="outline" onClick={() => setIsInterestOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
+            <Calculator className="size-3.5" /> Profit
           </Button>
-
-          <Button variant="secondary" onClick={() => setIsEntryOpen(true)} className="gap-2 font-black border-2 border-black text-black bg-white hover:bg-slate-100 h-10 uppercase tracking-widest shadow-sm text-xs">
-            <Plus className="size-4" /> New Entry
+          <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
+            <UserX className="size-3.5" /> Settle
           </Button>
-          
-          <Button variant="outline" onClick={() => window.print()} className="gap-2 border-2 border-black font-black text-black hover:bg-slate-100 h-10 uppercase tracking-widest shadow-sm text-xs">
-            <Printer className="size-4" /> Print Ledger
+          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1">
+            <Printer className="size-3.5" /> Print
           </Button>
         </div>
-      </div>
+      </PageHeaderActions>
 
       <div className="bg-white p-8 md:p-12 shadow-2xl rounded-none border-2 border-black max-w-[1400px] mx-auto w-full font-ledger text-black print-container">
         <div className="relative mb-8 text-center border-b-2 border-black pb-6">
@@ -417,15 +395,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="overflow-x-auto w-full">
           <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black no-print">
-            <thead className="bg-slate-100 font-black border-b-2 border-black">
+            <thead className="bg-slate-100 font-black border-b-2 border-black text-black">
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter text-black">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund<br/>7=(Pre+1-2+3+5+6)</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit<br/>10=(8+9)</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund 7=(Pre+1-2+3+5+6)</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit (10=8+9)</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total (Col 11=7+10)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px] text-black">Action</th>
               </tr>
               <tr className="bg-slate-50 text-[10px]">
@@ -497,26 +475,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund<br/>7=(Pre+1-2+3+5+6)</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit<br/>10=(8+9)</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund 7=(Pre+1-2+3+5+6)</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit (10=8+9)</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total (Col 11=7+10)</th>
               </tr>
               <tr className="bg-slate-50 text-[10px]">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                   <th key={i} className="border border-black p-0.5 text-center font-mono text-black">{i}</th>
                 ))}
               </tr>
-              <tr className="text-[8px] uppercase leading-none text-black">
-                <th className="border border-black p-1 text-right">Contrib</th>
-                <th className="border border-black p-1 text-right">Draw</th>
-                <th className="border border-black p-1 text-right">Payment</th>
-                <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
-                <th className="border border-black p-1 text-right">Emp Profit</th>
-                <th className="border border-black p-1 text-right">Loan Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-200">Net Emp</th>
-                <th className="border border-black p-1 text-right">PBS Cont</th>
-                <th className="border border-black p-1 text-right">PBS Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-100">Net Office</th>
+              <tr className="text-[8px] uppercase leading-none">
+                <th className="border border-black p-1 text-right text-black">Contrib</th>
+                <th className="border border-black p-1 text-right text-black">Draw</th>
+                <th className="border border-black p-1 text-right text-black">Payment</th>
+                <th className="border border-black p-1 text-right bg-slate-200 text-black">Balance</th>
+                <th className="border border-black p-1 text-right text-black">Emp Profit</th>
+                <th className="border border-black p-1 text-right text-black">Loan Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-200 text-black">Net Emp</th>
+                <th className="border border-black p-1 text-right text-black">PBS Cont</th>
+                <th className="border border-black p-1 text-right text-black">PBS Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-100 text-black">Net Office</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums text-black">
