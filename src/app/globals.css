@@ -4,12 +4,12 @@
 
 @layer base {
   :root {
-    --background: 210 20% 95%;
-    --foreground: 222 47% 11%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 0%;
     --primary: 211 60% 35%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
@@ -25,7 +25,7 @@
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
     --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 222 47% 11%;
+    --sidebar-foreground: 0 0% 0%;
     --sidebar-primary: 211 60% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 40% 96.1%;
@@ -91,10 +91,10 @@
 
   *, *::before, *::after {
     background-color: transparent !important;
-    color: black !important;
+    color: #000000 !important;
     box-shadow: none !important;
     text-shadow: none !important;
-    border-color: black !important;
+    border-color: #000000 !important;
   }
 
   .print-container {
@@ -123,7 +123,7 @@
 
   th, td {
     border: 0.5pt solid black !important;
-    color: black !important;
+    color: #000000 !important;
     background-color: transparent !important;
     padding: 3pt 2pt !important;
     word-wrap: break-word !important;

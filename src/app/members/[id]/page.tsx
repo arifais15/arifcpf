@@ -62,6 +62,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   useEffect(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -183,12 +189,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [ledgerLogic.rows, currentPage, pageSize]);
 
   const totalPages = pageSize === -1 ? 1 : Math.ceil(ledgerLogic.rows.length / pageSize);
-
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      e.preventDefault();
-    }
-  };
 
   const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

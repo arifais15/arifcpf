@@ -29,7 +29,7 @@ export default function ReportsPage() {
     const mergedMap = new Map<string, any>();
     INITIAL_COA.forEach(acc => mergedMap.set(acc.code, acc));
     coaData.forEach(acc => mergedMap.set(acc.code, acc));
-    return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
+    return Array.from(mergedMap.values()).sort((a, b) => a.code.compare(b.code));
   }, [coaData]);
 
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
