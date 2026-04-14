@@ -41,9 +41,7 @@ export default function RootLayout({
                         <HeaderActionsDisplay />
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-auto">
-                        <p className="text-[10px] text-black uppercase font-black tracking-[0.2em] opacity-40 hidden xl:block">
-                          Institutional Trust Terminal
-                        </p>
+                        {/* Institutional Trust Terminal label removed as requested */}
                       </div>
                     </header>
                     <main className="flex-1 min-h-screen">
