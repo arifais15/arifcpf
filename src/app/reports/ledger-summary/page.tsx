@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -19,10 +20,6 @@ import {
   ArrowRightLeft,
   ClipboardCheck,
   FileStack,
-  Activity,
-  ArrowRight,
-  TrendingUp,
-  ShieldCheck
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
@@ -92,21 +89,35 @@ export default function LedgerSummaryReportPage() {
       });
 
       colKeys.forEach(k => stats[k].closing = stats[k].opening + stats[k].period);
-      const openingCol11 = stats.c1.opening - stats.c2.opening + stats.c3.opening + stats.c5.opening + stats.c6.opening + stats.c8.opening + stats.c9.opening;
-      const periodCol11 = stats.c1.period - stats.c2.period + stats.c3.period + stats.c5.period + stats.c6.period + stats.c8.period + stats.c9.period;
+      
+      const openingCol7 = stats.c1.opening - stats.c2.opening + stats.c3.opening + stats.c5.opening + stats.c6.opening;
+      const periodCol7 = stats.c1.period - stats.c2.period + stats.c3.period + stats.c5.period + stats.c6.period;
+      const closingCol7 = openingCol7 + periodCol7;
+
+      const openingCol11 = openingCol7 + stats.c8.opening + stats.c9.opening;
+      const periodCol11 = periodCol7 + stats.c8.period + stats.c9.period;
       const closingCol11 = openingCol11 + periodCol11;
 
-      return { memberId: member.id, memberIdNumber: member.memberIdNumber, name: member.name, designation: member.designation, stats, total: { opening: openingCol11, period: periodCol11, closing: closingCol11 } };
+      return { 
+        memberId: member.id, 
+        memberIdNumber: member.memberIdNumber, 
+        name: member.name, 
+        designation: member.designation, 
+        stats, 
+        col7: { opening: openingCol7, period: periodCol7, closing: closingCol7 },
+        total: { opening: openingCol11, period: periodCol11, closing: closingCol11 } 
+      };
     })
     .filter(row => row.name.toLowerCase().includes(search.toLowerCase()) || row.memberIdNumber?.includes(search))
     .sort((a, b) => (a.memberIdNumber || "").localeCompare(b.memberIdNumber || ""));
   }, [members, allSummaries, dateRange, search]);
 
   const matrixTotals = useMemo(() => {
-    const res: any = { stats: {}, total: { opening: 0, period: 0, closing: 0 } };
+    const res: any = { stats: {}, col7: { opening: 0, period: 0, closing: 0 }, total: { opening: 0, period: 0, closing: 0 } };
     ['c1', 'c2', 'c3', 'c5', 'c6', 'c8', 'c9'].forEach(k => res.stats[k] = { opening: 0, period: 0, closing: 0 });
     matrixData.forEach(row => {
       Object.keys(row.stats).forEach(k => { res.stats[k].opening += row.stats[k].opening; res.stats[k].period += row.stats[k].period; res.stats[k].closing += row.stats[k].closing; });
+      res.col7.opening += row.col7.opening; res.col7.period += row.col7.period; res.col7.closing += row.col7.closing;
       res.total.opening += row.total.opening; res.total.period += row.total.period; res.total.closing += row.total.closing;
     });
     return res;
@@ -244,7 +255,7 @@ export default function LedgerSummaryReportPage() {
 
           <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print">
             <div className="overflow-x-auto">
-              <Table className="min-w-[2200px] border-collapse text-black font-black">
+              <Table className="min-w-[2500px] border-collapse text-black font-black">
                 <TableHeader className="sticky top-0 bg-white z-30 shadow-md border-b-2 border-black">
                   <TableRow className="bg-slate-100">
                     <TableHead rowSpan={2} className="w-[80px] sticky left-0 bg-white border-r-2 border-black z-40 text-black font-black uppercase tracking-widest p-4">ID No</TableHead>
@@ -254,12 +265,13 @@ export default function LedgerSummaryReportPage() {
                     <ColumnGroupHead title="Loan Repayment (Col 3)" />
                     <ColumnGroupHead title="Profit Emp (Col 5)" />
                     <ColumnGroupHead title="Profit Loan (Col 6)" />
+                    <ColumnGroupHead title="Net Emp (Col 7=Pre+1-2+3+5+6)" />
                     <ColumnGroupHead title="PBS Contrib (Col 8)" />
                     <ColumnGroupHead title="Profit PBS (Col 9)" />
-                    <ColumnGroupHead title="Total Fund (Col 11)" />
+                    <ColumnGroupHead title="Total Fund (Col 11=7+10)" />
                   </TableRow>
                   <TableRow className="bg-slate-50 text-[8px] uppercase font-black border-b-2 border-black">
-                    {[1,2,3,5,6,8,9,11].map(i => (
+                    {[1,2,3,5,6,7,8,9,11].map(i => (
                       <React.Fragment key={i}>
                         <TableHead className="text-right px-2 border-l border-black text-black">Opening</TableHead>
                         <TableHead className="text-right px-2 text-black border-l border-black">Period</TableHead>
@@ -273,7 +285,19 @@ export default function LedgerSummaryReportPage() {
                     <TableRow key={idx} className="hover:bg-slate-100 border-b border-black text-[11px]">
                       <td className="font-mono font-black p-3 sticky left-0 bg-white border-r-2 border-black z-10 text-black">{row.memberIdNumber}</td>
                       <td className="p-3 font-black sticky left-[80px] bg-white border-r-2 border-black z-10 truncate text-black uppercase">{row.name}</td>
-                      {['c1', 'c2', 'c3', 'c5', 'c6', 'c8', 'c9'].map(k => (
+                      {['c1', 'c2', 'c3', 'c5', 'c6'].map(k => (
+                        <React.Fragment key={k}>
+                          <td className="text-right p-3 border-l border-black text-black">{row.stats[k].opening.toLocaleString()}</td>
+                          <td className="text-right p-3 border-l border-black text-black">{row.stats[k].period.toLocaleString()}</td>
+                          <td className="text-right p-3 border-l border-black font-black bg-slate-50 text-black">{row.stats[k].closing.toLocaleString()}</td>
+                        </React.Fragment>
+                      ))}
+                      <React.Fragment>
+                        <td className="text-right p-3 border-l border-black text-black bg-slate-100">{row.col7.opening.toLocaleString()}</td>
+                        <td className="text-right p-3 border-l border-black font-black bg-slate-100 text-black">{row.col7.period.toLocaleString()}</td>
+                        <td className="text-right p-3 border-l border-black font-black bg-slate-200 text-black">{row.col7.closing.toLocaleString()}</td>
+                      </React.Fragment>
+                      {['c8', 'c9'].map(k => (
                         <React.Fragment key={k}>
                           <td className="text-right p-3 border-l border-black text-black">{row.stats[k].opening.toLocaleString()}</td>
                           <td className="text-right p-3 border-l border-black text-black">{row.stats[k].period.toLocaleString()}</td>
@@ -288,8 +312,20 @@ export default function LedgerSummaryReportPage() {
                 </TableBody>
                 <TableFooter className="sticky bottom-0 bg-slate-100 z-30 font-black border-t-4 border-black text-black">
                   <TableRow className="h-16">
-                    <TableCell colSpan={2} className="sticky left-0 bg-slate-100 z-40 border-r-2 border-black text-right uppercase tracking-widest text-[10px] text-black pr-4">Consolidated Institutional Portions:</TableCell>
-                    {['c1', 'c2', 'c3', 'c5', 'c6', 'c8', 'c9'].map(k => (
+                    <TableCell colSpan={2} className="sticky left-0 bg-slate-100 z-40 border-r-2 border-black text-right uppercase tracking-widest text-[10px] text-black pr-4">Institutional Summary:</TableCell>
+                    {['c1', 'c2', 'c3', 'c5', 'c6'].map(k => (
+                      <React.Fragment key={k}>
+                        <TableCell className="text-right p-3 text-[10px] border-l border-black text-black">{matrixTotals.stats[k].opening.toLocaleString()}</TableCell>
+                        <TableCell className="text-right p-3 text-[10px] border-l border-black text-black">{matrixTotals.stats[k].period.toLocaleString()}</TableCell>
+                        <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-200 text-black">{matrixTotals.stats[k].closing.toLocaleString()}</TableCell>
+                      </React.Fragment>
+                    ))}
+                    <React.Fragment>
+                      <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-100 text-black">{matrixTotals.col7.opening.toLocaleString()}</TableCell>
+                      <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-100 text-black">{matrixTotals.col7.period.toLocaleString()}</TableCell>
+                      <TableCell className="text-right p-3 text-[10px] border-l border-black bg-slate-200 text-black">{matrixTotals.col7.closing.toLocaleString()}</TableCell>
+                    </React.Fragment>
+                    {['c8', 'c9'].map(k => (
                       <React.Fragment key={k}>
                         <TableCell className="text-right p-3 text-[10px] border-l border-black text-black">{matrixTotals.stats[k].opening.toLocaleString()}</TableCell>
                         <TableCell className="text-right p-3 text-[10px] border-l border-black text-black">{matrixTotals.stats[k].period.toLocaleString()}</TableCell>
@@ -331,11 +367,11 @@ export default function LedgerSummaryReportPage() {
               <TableHeader className="bg-slate-100 border-b-2 border-black">
                 <TableRow>
                   <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
-                  <TableHead className="font-black text-black uppercase tracking-widest py-5">Member Name & Designation</TableHead>
+                  <TableHead className="font-black text-black uppercase tracking-widest py-5">Personnel Metadata</TableHead>
                   <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
-                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7=Pre+1-2+3+5+6)</TableHead>
                   <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
-                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11=7+10)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="tabular-nums">
@@ -392,6 +428,7 @@ export default function LedgerSummaryReportPage() {
               <th className="border border-black p-2 text-right uppercase tracking-widest">Col 3</th>
               <th className="border border-black p-2 text-right uppercase tracking-widest">Col 5</th>
               <th className="border border-black p-2 text-right uppercase tracking-widest">Col 6</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest">Col 7</th>
               <th className="border border-black p-2 text-right uppercase tracking-widest">Col 8</th>
               <th className="border border-black p-2 text-right uppercase tracking-widest">Col 9</th>
               <th className="border border-black p-2 text-right uppercase tracking-widest bg-slate-100">Col 11</th>
@@ -410,6 +447,7 @@ export default function LedgerSummaryReportPage() {
                 <td className="border border-black p-1 text-right">{row.stats.c3.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c5.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c6.closing.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{row.col7.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c8.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.stats.c9.closing.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right font-black bg-slate-50">{row.total.closing.toLocaleString()}</td>
@@ -424,6 +462,7 @@ export default function LedgerSummaryReportPage() {
               <td className="border border-black p-2 text-right">{matrixTotals.stats.c3.closing.toLocaleString()}</td>
               <td className="border border-black p-2 text-right">{matrixTotals.stats.c5.closing.toLocaleString()}</td>
               <td className="border border-black p-2 text-right">{matrixTotals.stats.c6.closing.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right">{matrixTotals.col7.closing.toLocaleString()}</td>
               <td className="border border-black p-2 text-right">{matrixTotals.stats.c8.closing.toLocaleString()}</td>
               <td className="border border-black p-2 text-right">{matrixTotals.stats.c9.closing.toLocaleString()}</td>
               <td className="border border-black p-2 text-right underline decoration-double text-xs">{matrixTotals.total.closing.toLocaleString()}</td>

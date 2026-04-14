@@ -27,6 +27,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 
 export default function NetfundStatementPage() {
   const firestore = useFirestore();
@@ -188,9 +189,9 @@ export default function NetfundStatementPage() {
                 <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
                 <TableHead className="font-black text-black uppercase tracking-widest py-5">Personnel Metadata</TableHead>
                 <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
-                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7=Pre+1-2+3+5+6)</TableHead>
                 <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
-                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11=7+10)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="font-black tabular-nums">
