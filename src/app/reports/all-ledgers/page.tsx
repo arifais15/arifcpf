@@ -90,19 +90,12 @@ export default function AllLedgersPrintPage() {
     );
   }
 
-  const StandardFooter = () => (
-    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-      <span>CPF Management Software</span>
-      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-    </div>
-  );
-
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: A4 portrait !important;
+            size: A4 landscape !important;
             margin: 10mm !important;
           }
           .print-container {
@@ -175,7 +168,7 @@ export default function AllLedgersPrintPage() {
                   <th rowSpan={3} className="border-2 border-black p-1 text-center w-[120px] uppercase text-[8px] tracking-tighter text-black">Particulars</th>
                   <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50 text-black">Contributions & Loans</th>
                   <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">Profits Received</th>
-                  <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200 text-black">Net Fund</th>
+                  <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200 text-black">Net Fund (7)</th>
                   <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">PBS Fund</th>
                   <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200 text-black">Total (11)</th>
                 </tr>
@@ -186,13 +179,13 @@ export default function AllLedgersPrintPage() {
                 </tr>
                 <tr className="text-[7px] uppercase leading-none">
                   <th className="border border-black p-1 text-right">Contrib</th>
-                  <th className="border border-black p-1 text-right">LoanDraw</th>
+                  <th className="border border-black p-1 text-right">Drawal</th>
                   <th className="border border-black p-1 text-right">Repay</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">LoanBalance</th>
-                  <th className="border border-black p-1 text-right">EmpCont</th>
-                  <th className="border border-black p-1 text-right">Loan</th>
+                  <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
+                  <th className="border border-black p-1 text-right">Emp.Cont</th>
+                  <th className="border border-black p-1 text-right">Loan.Int</th>
                   <th className="border border-black p-1 text-right bg-slate-200">EmNetFund</th>
-                  <th className="border border-black p-1 text-right">Contribution</th>
+                  <th className="border border-black p-1 text-right">Contrib</th>
                   <th className="border border-black p-1 text-right">Profit</th>
                   <th className="border border-black p-1 text-right bg-slate-100">NetFund</th>
                 </tr>
@@ -239,7 +232,10 @@ export default function AllLedgersPrintPage() {
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
             </div>
-            <StandardFooter />
+            <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+              <span>CPF Management Software</span>
+              <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+            </div>
           </div>
         ))}
       </div>

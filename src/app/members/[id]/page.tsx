@@ -41,8 +41,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const { showAlert } = useSweetAlert();
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
-  const [isInterestOpen, setIsInterestOpen] = useState(false);
-  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   
   const [pageSize, setPageSize] = useState<number>(10);
@@ -54,11 +52,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
-  const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
-  const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
-  const [customRange, setCustomRange] = useState({ start: "", end: "" });
-  const [profitPostingDate, setProfitPostingDate] = useState("");
-  
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
@@ -68,18 +61,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
-
-  const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
-  const { data: interestSettings } = useDoc(interestSettingsRef);
-
-  const interestTiers = useMemo(() => {
-    if (interestSettings?.tiers) return interestSettings.tiers;
-    return [
-      { limit: 1500000, rate: 0.13 },
-      { limit: 3000000, rate: 0.12 },
-      { limit: null, rate: 0.11 }
-    ];
-  }, [interestSettings]);
 
   useEffect(() => {
     const now = new Date();
@@ -203,12 +184,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const totalPages = pageSize === -1 ? 1 : Math.ceil(ledgerLogic.rows.length / pageSize);
 
-  const StandardFooter = () => (
-    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-      <span>CPF Management Software</span>
-      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-    </div>
-  );
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
 
   const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -240,12 +220,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return { empNet, officeNet, total: empNet + officeNet };
   }, [tempEntry]);
 
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      e.preventDefault();
-    }
-  };
-
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
   if (!member) return <div className="p-8 text-center bg-white"><h1 className="text-2xl font-black text-black uppercase">Member not found</h1></div>;
 
@@ -254,7 +228,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: A4 portrait !important;
+            size: A4 landscape !important;
             margin: 10mm !important;
           }
           .print-container {
@@ -317,8 +291,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <div className="bg-white p-8 md:p-12 shadow-2xl rounded-none border-2 border-black max-w-[1400px] mx-auto w-full font-ledger text-black print-container">
         <div className="relative mb-8 text-center border-b-2 border-black pb-6">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
-          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
-          <h2 className="text-lg md:text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
+          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
           {(dateRange.start || dateRange.end) && (
             <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">Ledger Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}</p>
           )}
@@ -347,7 +321,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[120px] uppercase text-[8px] tracking-tighter">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50">Employees'Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">Profits</th>
-                <th className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200">Net Fund <b> 7=(Pre+1-2+3+4+5+6) </b></th>
+                <th className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200">Net Fund (7)</th>
                 <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">PBS Contributions</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200">Total (11=7+10)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[60px] uppercase text-[8px]">Action</th>
@@ -358,14 +332,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 ))}
               </tr>
               <tr className="text-[7px] uppercase leading-none">
-                <th className="border border-black p-1 text-right">Contribution</th>
-                <th className="border border-black p-1 text-right">Loandraw</th>
+                <th className="border border-black p-1 text-right">Contrib</th>
+                <th className="border border-black p-1 text-right">Drawal</th>
                 <th className="border border-black p-1 text-right">Repay</th>
-                <th className="border border-black p-1 text-right bg-slate-200">LoanBalance</th>
-                <th className="border border-black p-1 text-right">EmpCont</th>
-                <th className="border border-black p-1 text-right">Loan</th>
+                <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
+                <th className="border border-black p-1 text-right">Emp.Cont</th>
+                <th className="border border-black p-1 text-right">Loan.Int</th>
                 <th className="border border-black p-1 text-right bg-slate-200">EmNetFund</th>
-                <th className="border border-black p-1 text-right">Contribution</th>
+                <th className="border border-black p-1 text-right">Contrib</th>
                 <th className="border border-black p-1 text-right">Profit</th>
                 <th className="border border-black p-1 text-right bg-slate-100">NetFund</th>
               </tr>
@@ -434,7 +408,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
         
-        <StandardFooter />
+        <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+          <span>CPF Management Software</span>
+          <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+        </div>
       </div>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>

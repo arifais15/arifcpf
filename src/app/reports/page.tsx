@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -169,11 +168,11 @@ export default function ReportsPage() {
 
     return (
       <div className={cn("space-y-8", className)}>
-        <h3 className="text-sm font-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em] text-black">{title}</h3>
+        <h3 className="text-base font-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em] text-black">{title}</h3>
         <div className="space-y-8">
           {groups.map((group, idx) => (
             <div key={idx} className="space-y-2">
-              <div className="flex justify-between font-black text-xs text-black bg-slate-50 p-2 rounded-sm border-l-4 border-black shadow-sm">
+              <div className="flex justify-between font-black text-sm text-black bg-slate-50 p-2 rounded-sm border-l-4 border-black shadow-sm">
                 <span className="uppercase tracking-widest">{group.header.name}</span>
               </div>
               <div className="pl-6 space-y-1">
@@ -187,7 +186,7 @@ export default function ReportsPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between font-black text-xs pt-3 border-t-2 border-black mt-3 pl-6 pr-1 italic text-black tabular-nums">
+              <div className="flex justify-between font-black text-sm pt-3 border-t-2 border-black mt-3 pl-6 pr-1 italic text-black tabular-nums">
                 <span className="uppercase tracking-tight">Total {group.header.name}</span>
                 <span className="underline decoration-black decoration-2">{formatCurrency(group.total)}</span>
               </div>
@@ -230,7 +229,7 @@ export default function ReportsPage() {
     return (
       <div className="space-y-8">
         <div className="border-4 border-black overflow-hidden shadow-2xl">
-          <table className="w-full text-[11px] border-collapse font-black text-black tabular-nums">
+          <table className="w-full text-xs border-collapse font-black text-black tabular-nums">
             <thead className="bg-slate-100 border-b-4 border-black">
               <tr>
                 <th className="p-4 text-left uppercase tracking-widest border-r-2 border-black w-[120px]">Account Code</th>
@@ -279,29 +278,10 @@ export default function ReportsPage() {
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
     <div className="text-center mb-12 border-b-4 border-black pb-8">
-      <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+      <h1 className="text-4xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
       <p className="text-base font-black uppercase tracking-[0.25em] text-black mt-1">Contributory Provident Fund</p>
       <h2 className="text-2xl font-black text-black mt-6 uppercase underline decoration-2 underline-offset-8 decoration-black">{title}</h2>
       <p className="text-xs text-black font-black uppercase tracking-[0.4em] mt-8 bg-black text-white py-1.5 px-6 inline-block rounded-md shadow-md">{subtitle}</p>
-    </div>
-  );
-
-  if (isCoaLoading || isEntriesLoading) {
-    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
-  }
-
-  const assetAccounts = activeCOA.filter(a => a.type === 'Asset' || a.type === 'Contra-Asset' || (a.isHeader && a.code.startsWith('1')));
-  const liabilityEquityAccounts = activeCOA.filter(a => a.type === 'Liability' || a.type === 'Equity' || (a.isHeader && a.code.startsWith('2')));
-  const incomeAccounts = activeCOA.filter(a => a.type === 'Income');
-  const expenseAccounts = activeCOA.filter(a => a.type === 'Expense');
-
-  const totalIncome = incomeAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
-  const totalExpense = expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
-
-  const StandardFooter = () => (
-    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-      <span>CPF Management Software</span>
-      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
     </div>
   );
 
@@ -377,12 +357,10 @@ export default function ReportsPage() {
                 <ClassifiedSection title="Institutional Assets & Portfolio" accounts={assetAccounts} balancesMap={balances} />
                 <ClassifiedSection title="Member Equity & Trust Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
               </div>
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
-              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -393,7 +371,7 @@ export default function ReportsPage() {
               <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="space-y-12">
                 <div className="space-y-6">
-                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-1.5 uppercase tracking-[0.2em]">Institutional Revenue</h3>
+                  <h3 className="text-base font-black border-b-4 border-black text-black pb-1.5 uppercase tracking-[0.2em]">Institutional Revenue</h3>
                   <div className="space-y-2 pl-6">
                     {incomeAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
@@ -412,7 +390,7 @@ export default function ReportsPage() {
                   </div>
                 </div>
                 <div className="space-y-6">
-                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-1.5 uppercase tracking-[0.2em]">Operating Expenditures</h3>
+                  <h3 className="text-base font-black border-b-4 border-black text-black pb-1.5 uppercase tracking-[0.2em]">Operating Expenditures</h3>
                   <div className="space-y-2 pl-6">
                     {expenseAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
@@ -435,12 +413,10 @@ export default function ReportsPage() {
                   <span className="underline decoration-double decoration-2">৳ {formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
               </div>
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
-              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -450,12 +426,10 @@ export default function ReportsPage() {
             <CardContent className="p-12 print:p-0">
               <ReportHeader title="Institutional Trial Balance" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
               <TrialBalanceView />
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
-              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -466,7 +440,7 @@ export default function ReportsPage() {
               <ReportHeader title="Receipts and Payments Statement" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
               <div className="grid grid-cols-1 gap-y-12 mt-8">
                  <div className="space-y-8">
-                    <h4 className="font-black text-sm text-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Receipts</h4>
+                    <h4 className="font-black text-base text-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Receipts</h4>
                     <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
                         <div key={c} className="flex justify-between text-xs py-2 border-b border-dotted border-black/40 font-black text-black tabular-nums">
@@ -477,7 +451,7 @@ export default function ReportsPage() {
                     </div>
                  </div>
                  <div className="space-y-8 border-t-4 border-black pt-10">
-                    <h4 className="font-black text-sm text-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Payments</h4>
+                    <h4 className="font-black text-base text-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Payments</h4>
                     <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Debit').map(c => (
                         <div key={c} className="flex justify-between text-xs py-2 border-b border-dotted border-black/40 font-black text-black tabular-nums">
@@ -488,12 +462,10 @@ export default function ReportsPage() {
                     </div>
                  </div>
               </div>
-              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+                <span>CPF Management Software</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
-              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
