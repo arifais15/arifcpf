@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -7,18 +8,11 @@ import {
   ArrowLeft, 
   Loader2, 
   Plus, 
-  Upload, 
-  FileSpreadsheet, 
   Edit2, 
   Trash2, 
   Calculator, 
   ArrowRightLeft, 
-  Calendar, 
   UserX, 
-  AlertTriangle, 
-  Info, 
-  Link as LinkIcon, 
-  Download,
   ChevronLeft,
   ChevronRight,
   ListFilter
@@ -36,7 +30,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import * as XLSX from "xlsx";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
@@ -320,12 +313,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   };
 
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
-  if (!member) return <div className="p-8 text-center bg-white"><h1 className="text-2xl font-black text-black">Member not found</h1></div>;
+  if (!member) return <div className="p-8 text-center bg-white"><h1 className="text-2xl font-black text-black uppercase">Member not found</h1></div>;
 
   return (
     <div className="p-6 md:p-10 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between no-print max-w-[1400px] mx-auto w-full gap-6">
-        <Link href="/members" className="flex items-center gap-2 text-sm text-black hover:text-black/70 font-black transition-colors">
+        <Link href="/members" className="flex items-center gap-2 text-sm text-black hover:text-black/70 font-black transition-colors uppercase">
           <ArrowLeft className="size-5" /> Back to Registry
         </Link>
         
@@ -345,10 +338,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-2 border-black">
-                  <SelectItem value="5" className="font-black text-xs">5 Items</SelectItem>
-                  <SelectItem value="10" className="font-black text-xs">10 Items</SelectItem>
-                  <SelectItem value="25" className="font-black text-xs">25 Items</SelectItem>
-                  <SelectItem value="-1" className="font-black text-xs">View All</SelectItem>
+                  <SelectItem value="5" className="font-black text-xs uppercase">5 Items</SelectItem>
+                  <SelectItem value="10" className="font-black text-xs uppercase">10 Items</SelectItem>
+                  <SelectItem value="25" className="font-black text-xs uppercase">25 Items</SelectItem>
+                  <SelectItem value="-1" className="font-black text-xs uppercase">View All</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -406,7 +399,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h2 className="text-lg md:text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-8 text-[13px] border-b-2 border-black pb-6 font-black">
+        <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-8 text-[13px] border-b-2 border-black pb-6 font-black text-black">
           {[
             { label: "Member Name", value: member.name, sub: "uppercase text-[15px]" },
             { label: "Designation", value: member.designation, sub: "text-sm uppercase" },
@@ -431,7 +424,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
                 <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px]">Action</th>
               </tr>
@@ -505,7 +498,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
                 <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
               </tr>
               <tr className="bg-slate-50 text-[10px]">
@@ -564,7 +557,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
         
-        <div className="mt-10 pt-6 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em]">
+        <div className="mt-10 pt-6 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-black">
           <span>Institutional Trust Audit • Form 224 Generated Output</span>
           <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
         </div>
@@ -599,8 +592,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <Select name="contributionSource" defaultValue={editingEntry?.contributionSource || "Local"}>
                 <SelectTrigger className="border-2 border-black font-black text-black h-12 rounded-xl bg-slate-50"><SelectValue /></SelectTrigger>
                 <SelectContent className="border-2 border-black">
-                  <SelectItem value="Local" className="font-black">Local PBS (GPBS-2)</SelectItem>
-                  <SelectItem value="Other" className="font-black">Other PBS (Transfer)</SelectItem>
+                  <SelectItem value="Local" className="font-black uppercase">Local PBS (GPBS-2)</SelectItem>
+                  <SelectItem value="Other" className="font-black uppercase">Other PBS (Transfer)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -644,7 +637,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Fiscal Year Selection</Label>
                   <Select value={selectedInterestFY} onValueChange={setSelectedInterestFY}>
                     <SelectTrigger className="w-full border-2 border-black font-black text-black h-11"><SelectValue /></SelectTrigger>
-                    <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-black">{fy}</SelectItem>)}</SelectContent>
+                    <SelectContent className="border-2 border-black">{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-black uppercase">{fy}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </TabsContent>
@@ -702,7 +695,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <div className="space-y-2"><Label className="font-black text-black text-[10px] uppercase tracking-widest">Settlement Date</Label><Input name="date" type="date" required className="border-2 border-black font-black text-black" /></div>
               <div className="space-y-2"><Label className="font-black text-black text-[10px] uppercase tracking-widest">New Status</Label>
                 <Select name="type" defaultValue="Retired"><SelectTrigger className="border-2 border-black font-black text-black"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="Retired" className="font-black">Retired</SelectItem><SelectItem value="Transferred" className="font-black">Transferred</SelectItem></SelectContent>
+                  <SelectContent className="border-2 border-black"><SelectItem value="Retired" className="font-black uppercase">Retired</SelectItem><SelectItem value="Transferred" className="font-black uppercase">Transferred</SelectItem></SelectContent>
                 </Select>
               </div>
             </div>

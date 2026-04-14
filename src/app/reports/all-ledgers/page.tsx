@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -144,70 +145,70 @@ export default function AllLedgersPrintPage() {
             <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
               <thead className="bg-slate-100 font-black border-b-2 border-black">
                 <tr>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
-                  <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
-                  <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
-                  <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
-                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter text-black">Date</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
+                  <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
+                  <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
+                  <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Equity</th>
+                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">TOTAL<br/>(Col 11)</th>
                 </tr>
                 <tr className="bg-slate-50 text-[10px]">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                    <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
+                    <th key={i} className="border border-black p-0.5 text-center font-mono text-black">{i}</th>
                   ))}
                 </tr>
                 <tr className="text-[8px] uppercase leading-none">
-                  <th className="border border-black p-1 text-right">Contrib</th>
-                  <th className="border border-black p-1 text-right">Draw</th>
-                  <th className="border border-black p-1 text-right">Payment</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
-                  <th className="border border-black p-1 text-right">Emp Profit</th>
-                  <th className="border border-black p-1 text-right">Loan Profit</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">Net Emp</th>
-                  <th className="border border-black p-1 text-right">PBS Cont</th>
-                  <th className="border border-black p-1 text-right">PBS Profit</th>
-                  <th className="border border-black p-1 text-right bg-slate-100">Net Office</th>
+                  <th className="border border-black p-1 text-right text-black">Contrib</th>
+                  <th className="border border-black p-1 text-right text-black">Draw</th>
+                  <th className="border border-black p-1 text-right text-black">Payment</th>
+                  <th className="border border-black p-1 text-right bg-slate-200 text-black">Balance</th>
+                  <th className="border border-black p-1 text-right text-black">Emp Profit</th>
+                  <th className="border border-black p-1 text-right text-black">Loan Profit</th>
+                  <th className="border border-black p-1 text-right bg-slate-200 text-black">Net Emp</th>
+                  <th className="border border-black p-1 text-right text-black">PBS Cont</th>
+                  <th className="border border-black p-1 text-right text-black">PBS Profit</th>
+                  <th className="border border-black p-1 text-right bg-slate-100 text-black">Net Office</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-black font-black tabular-nums">
+              <tbody className="divide-y divide-black font-black tabular-nums text-black">
                 {ledger.rows.map((row, rIdx) => (
                   <tr key={rIdx}>
-                    <td className="border border-black p-1 text-center font-mono text-[10px] font-black">{row.summaryDate}</td>
-                    <td className="border border-black p-1 truncate text-[10px] font-black uppercase">{row.particulars}</td>
-                    <td className="border border-black p-1 text-right">{row.col1.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col2.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col3.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col4.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col5.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col6.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col7.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col8.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col9.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col10.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-100">{row.col11.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-center font-mono text-[10px] font-black text-black">{row.summaryDate}</td>
+                    <td className="border border-black p-1 truncate text-[10px] font-black uppercase text-black">{row.particulars}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col1.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col2.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col3.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col4.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col5.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col6.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col7.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col8.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right text-black">{row.col9.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col10.toLocaleString()}</td>
+                    <td className="border border-black p-1 text-right bg-slate-100 text-black">{row.col11.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-100 font-black border-t-2 border-black tabular-nums">
+              <tfoot className="bg-slate-100 font-black border-t-2 border-black tabular-nums text-black">
                 <tr>
-                  <td className="border border-black p-1.5 text-center uppercase text-[10px]" colSpan={2}>Aggregate Portions:</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c1.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c2.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c3.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col4 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c5.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c6.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col7 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c8.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c9.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col10 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-300 font-black text-xs underline decoration-double">{(ledger.last?.col11 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-center uppercase text-[10px] text-black" colSpan={2}>Aggregate Portions:</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c1.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c2.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c3.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right bg-slate-200 text-black">{(ledger.last?.col4 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c5.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c6.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right bg-slate-200 text-black">{(ledger.last?.col7 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c8.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right text-black">{ledger.sums.c9.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right bg-slate-200 text-black">{(ledger.last?.col10 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right bg-slate-300 font-black text-xs text-black">{(ledger.last?.col11 || 0).toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>
 
-            <div className="mt-16 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
+            <div className="mt-16 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-black">
               <span>Institutional Trust Record • CPF Audit Copy</span>
               <span className="italic px-4 py-1 bg-black text-white rounded">Ledger {idx + 1} of {memberLedgers.length}</span>
             </div>
