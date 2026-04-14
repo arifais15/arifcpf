@@ -26,11 +26,7 @@ import {
   HandCoins,
   CalendarClock,
   ChevronLeft,
-  ChevronRight,
-  ListFilter,
-  Percent,
-  Calculator,
-  Activity
+  ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -306,27 +302,6 @@ export default function InvestmentsPage() {
           <p className="text-sm font-black uppercase tracking-widest text-slate-500">Capital Assets & Institutional Yield Terminal</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {/* Movement & Interest Sub-Navigation */}
-          <div className="flex items-center bg-white p-1 rounded-xl border-2 border-black shadow-sm">
-            <Button variant="ghost" asChild className="gap-2 text-black hover:bg-slate-100 font-black h-9 text-[10px] uppercase tracking-tighter">
-              <Link href="/investments/member-interest">
-                <Percent className="size-3.5" /> Member Interest
-              </Link>
-            </Button>
-            <div className="w-px h-4 bg-slate-300 mx-1" />
-            <Button variant="ghost" asChild className="gap-2 text-black hover:bg-slate-100 font-black h-9 text-[10px] uppercase tracking-tighter">
-              <Link href="/investments/special-interest">
-                <Calculator className="size-3.5" /> Special Interest
-              </Link>
-            </Button>
-            <div className="w-px h-4 bg-slate-300 mx-1" />
-            <Button variant="ghost" asChild className="gap-2 text-black hover:bg-slate-100 font-black h-9 text-[10px] uppercase tracking-tighter">
-              <Link href="/investments/movements">
-                <Activity className="size-3.5" /> Movement
-              </Link>
-            </Button>
-          </div>
-
           <div className="flex items-center bg-white p-1 rounded-xl border-2 border-black shadow-sm">
             <Button variant="ghost" asChild className="gap-2 text-black hover:bg-slate-100 font-black h-9 text-[10px] uppercase tracking-tighter">
               <Link href="/reports/maturity-summary">
