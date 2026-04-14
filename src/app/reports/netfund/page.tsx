@@ -110,9 +110,9 @@ export default function NetfundStatementPage() {
       "Name": item.name,
       "Designation": item.designation,
       "Loan Bal": item.col4,
-      "Net Emp Fund": item.col7,
+      "Net Fund": item.col7,
       "Net Office Fund": item.col10,
-      "Total Netfund": item.col11
+      "Total Fund": item.col11
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -158,10 +158,10 @@ export default function NetfundStatementPage() {
 
       <div className="grid gap-8 md:grid-cols-4 no-print">
         {[
-          { l: "Aggregate Emp Fund", v: stats.empFund, c: "bg-white" },
+          { l: "Aggregate Net Fund", v: stats.empFund, c: "bg-white" },
           { l: "Aggregate Office Fund", v: stats.officeFund, c: "bg-white" },
           { l: "Total Outstanding Loans", v: stats.loans, c: "bg-white" },
-          { l: "Total Institutional Netfund", v: stats.total, c: "bg-black text-white" },
+          { l: "Total Institutional Fund", v: stats.total, c: "bg-black text-white" },
         ].map((s, i) => (
           <Card key={i} className={cn("border-2 border-black shadow-lg", s.c)}>
             <CardHeader className="pb-2">
@@ -189,9 +189,9 @@ export default function NetfundStatementPage() {
                 <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
                 <TableHead className="font-black text-black uppercase tracking-widest py-5">Personnel Metadata</TableHead>
                 <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
-                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7=Pre+1-2+3+5+6)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Fund (7=Pre+1-2+3+5+6)</TableHead>
                 <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
-                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11=7+10)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Fund (Col 11=7+10)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="font-black tabular-nums">
@@ -241,9 +241,9 @@ export default function NetfundStatementPage() {
               <th className="border border-black p-2.5 uppercase tracking-widest">ID No</th>
               <th className="border border-black p-2.5 text-left uppercase tracking-widest">Member Name & Designation</th>
               <th className="border border-black p-2.5 text-right uppercase tracking-widest">Loan Bal</th>
-              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Net Emp Fund</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest">Net Fund</th>
               <th className="border border-black p-2.5 text-right uppercase tracking-widest">Net Office Fund</th>
-              <th className="border border-black p-2.5 text-right uppercase tracking-widest bg-slate-100">Total Netfund</th>
+              <th className="border border-black p-2.5 text-right uppercase tracking-widest bg-slate-100">Total Fund</th>
             </tr>
           </thead>
           <tbody>

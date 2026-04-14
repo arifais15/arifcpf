@@ -265,7 +265,7 @@ export default function LedgerSummaryReportPage() {
                     <ColumnGroupHead title="Loan Repayment (Col 3)" />
                     <ColumnGroupHead title="Profit Emp (Col 5)" />
                     <ColumnGroupHead title="Profit Loan (Col 6)" />
-                    <ColumnGroupHead title="Net Emp (Col 7=Pre+1-2+3+5+6)" />
+                    <ColumnGroupHead title="Net Fund (7=Pre+1-2+3+5+6)" />
                     <ColumnGroupHead title="PBS Contrib (Col 8)" />
                     <ColumnGroupHead title="Profit PBS (Col 9)" />
                     <ColumnGroupHead title="Total Fund (Col 11=7+10)" />
@@ -369,9 +369,9 @@ export default function LedgerSummaryReportPage() {
                   <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
                   <TableHead className="font-black text-black uppercase tracking-widest py-5">Personnel Metadata</TableHead>
                   <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
-                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Emp (Col 7=Pre+1-2+3+5+6)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Fund (7=Pre+1-2+3+5+6)</TableHead>
                   <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
-                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Netfund (Col 11=7+10)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Fund (Col 11=7+10)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="tabular-nums">
@@ -410,7 +410,7 @@ export default function LedgerSummaryReportPage() {
           <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
           <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
           <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">
-            {activeTab === 'matrix' ? 'Ledger Summary Matrix Audit' : 'Statement of Members Netfund Balances'}
+            {activeTab === 'matrix' ? 'Ledger Summary Matrix Audit' : 'Statement of Members Net Fund Balances'}
           </h2>
           <div className="flex justify-between text-[11px] font-black pt-8">
             <span className="bg-black text-white px-4 py-1 rounded">Period Basis: {dateRange.start} to {dateRange.end}</span>

@@ -423,7 +423,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Equity<br/>(Col 7=Pre+1-2+3+5+6)</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund<br/>(7=Pre+1-2+3+5+6)</th>
                 <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px] text-black">Action</th>
@@ -497,7 +497,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Equity<br/>(Col 7=Pre+1-2+3+5+6)</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund<br/>(7=Pre+1-2+3+5+6)</th>
                 <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
               </tr>
