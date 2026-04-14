@@ -243,12 +243,12 @@ export default function LedgerSummaryReportPage() {
             <div className="flex items-center gap-3">
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-black text-black">Date From</Label>
-                <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
+                <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
               </div>
               <ArrowRightLeft className="size-3 text-black mt-3" />
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-black text-black">Date To</Label>
-                <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
+                <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
               </div>
             </div>
           </div>

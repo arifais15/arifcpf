@@ -598,7 +598,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
         <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto bg-white border-2 border-black">
           <DialogHeader className="sticky top-0 z-10 bg-white pb-4">
-            <DialogTitle className="flex items-center gap-2 font-black text-black text-2xl uppercase tracking-tight"><Calculator className="size-6 text-black" /> Profit Accrual Audit</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 font-black text-black text-2xl uppercase tracking-tight"><Calculator className="size-6 text-black" /> Profit Calculation</DialogTitle>
             <DialogDescription className="font-black text-black uppercase text-xs">Review monthly basis balances and tiered interest portions.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">

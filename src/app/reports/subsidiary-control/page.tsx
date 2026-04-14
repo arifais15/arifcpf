@@ -1,7 +1,7 @@
 
 "use client"
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { 
   Table, 
   TableBody, 
@@ -53,16 +53,20 @@ export default function SubsidiaryControlLedgerPage() {
   const { data: generalSettings } = useDoc(generalSettingsRef);
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
-  const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-  const today = now.toISOString().split('T')[0];
-
-  const [dateRange, setDateRange] = useState({ start: fyStart, end: today });
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [selectedColumn, setSelectedColumn] = useState<string>("employeeContribution");
   const [selectedMember, setSelectedMember] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"ledger" | "institutional" | "daily">("institutional");
+
+  // Defer date initialization to avoid hydration errors
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+    const today = now.toISOString().split('T')[0];
+    setDateRange({ start: fyStart, end: today });
+  }, []);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members } = useCollection(membersRef);
@@ -71,7 +75,7 @@ export default function SubsidiaryControlLedgerPage() {
   const { data: allSummaries, isLoading } = useCollection(summariesRef);
 
   const institutionalLedger = useMemo(() => {
-    if (!allSummaries) return [];
+    if (!allSummaries || !dateRange.start) return [];
     const grouped: Record<string, any> = {};
     allSummaries.forEach(s => {
       const c1 = Number(s.employeeContribution) || 0;
@@ -116,9 +120,15 @@ export default function SubsidiaryControlLedgerPage() {
           </TabsList>
         </Tabs>
         <div className="flex items-center gap-3">
-          <div className="grid gap-1"><Label className="text-[9px] uppercase font-black text-black">From</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-9 text-xs border-black font-black text-black" /></div>
+          <div className="grid gap-1">
+            <Label className="text-[9px] uppercase font-black text-black">From</Label>
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-9 text-xs border-black font-black text-black" />
+          </div>
           <ArrowRightLeft className="size-3 text-black mt-4" />
-          <div className="grid gap-1"><Label className="text-[9px] uppercase font-black text-black">To</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 text-xs border-black font-black text-black" /></div>
+          <div className="grid gap-1">
+            <Label className="text-[9px] uppercase font-black text-black">To</Label>
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 text-xs border-black font-black text-black" />
+          </div>
         </div>
       </div>
 
