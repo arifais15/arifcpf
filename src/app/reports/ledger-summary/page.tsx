@@ -16,7 +16,6 @@ import {
   Printer, 
   Loader2, 
   Search,
-  ArrowRightLeft,
   ClipboardCheck,
   ShieldCheck
 } from "lucide-react";
@@ -125,6 +124,13 @@ export default function LedgerSummaryReportPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Matrix");
     XLSX.writeFile(wb, `Consolidated_Ledger_${dateRange.end}.xlsx`);
   };
+
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
 
   if (isMembersLoading || isSummariesLoading) {
     return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
@@ -264,10 +270,7 @@ export default function LedgerSummaryReportPage() {
             </TableFooter>
           </Table>
         </div>
-        <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest p-6">
-          <span>CPF Management Software</span>
-          <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-        </div>
+        <StandardFooter />
       </div>
 
       <div className="hidden print:block print-container font-ledger text-black">
@@ -341,10 +344,7 @@ export default function LedgerSummaryReportPage() {
           <div className="border-t-4 border-black pt-4">Checked by</div>
           <div className="border-t-4 border-black pt-4">Approved By Trustee</div>
         </div>
-        <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-          <span>CPF Management Software</span>
-          <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-        </div>
+        <StandardFooter />
       </div>
     </div>
   );

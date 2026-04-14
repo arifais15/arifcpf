@@ -81,6 +81,13 @@ export default function AllLedgersPrintPage() {
       });
   }, [members, allSummaries]);
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   if (!isReady) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-white">
@@ -232,10 +239,7 @@ export default function AllLedgersPrintPage() {
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
             </div>
-            <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-              <span>CPF Management Software</span>
-              <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-            </div>
+            <StandardFooter />
           </div>
         ))}
       </div>

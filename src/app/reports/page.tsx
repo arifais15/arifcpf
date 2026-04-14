@@ -136,6 +136,14 @@ export default function ReportsPage() {
     return map;
   }, [entries, activeCOA, fyDates.start, fyDates.end, selectedFiscalYear]);
 
+  const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
+  const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
+  const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4') && !a.isHeader), [activeCOA]);
+  const expenseAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('5') && !a.isHeader), [activeCOA]);
+
+  const totalIncome = useMemo(() => incomeAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [incomeAccounts, periodBalances]);
+  const totalExpense = useMemo(() => expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [expenseAccounts, periodBalances]);
+
   const formatCurrency = (val: number) => {
     const absVal = Math.abs(val);
     const formatted = new Intl.NumberFormat('en-BD', {

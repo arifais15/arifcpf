@@ -220,6 +220,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return { empNet, officeNet, total: empNet + officeNet };
   }, [tempEntry]);
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
   if (!member) return <div className="p-8 text-center bg-white"><h1 className="text-2xl font-black text-black uppercase">Member not found</h1></div>;
 
@@ -408,10 +415,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
         
-        <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-          <span>CPF Management Software</span>
-          <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-        </div>
+        <StandardFooter />
       </div>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
