@@ -265,7 +265,7 @@ export default function LedgerSummaryReportPage() {
                     <ColumnGroupHead title="Loan Repayment (Col 3)" />
                     <ColumnGroupHead title="Profit Emp (Col 5)" />
                     <ColumnGroupHead title="Profit Loan (Col 6)" />
-                    <ColumnGroupHead title="Net Fund (7=Pre+1-2+3+5+6)" />
+                    <ColumnGroupHead title="Net Fund 7=(Pre+1-2+3+5+6)" />
                     <ColumnGroupHead title="PBS Contrib (Col 8)" />
                     <ColumnGroupHead title="Profit PBS (Col 9)" />
                     <ColumnGroupHead title="Total Fund (Col 11=7+10)" />
@@ -369,8 +369,8 @@ export default function LedgerSummaryReportPage() {
                   <TableHead className="font-black text-black uppercase tracking-widest py-5">ID Number</TableHead>
                   <TableHead className="font-black text-black uppercase tracking-widest py-5">Personnel Metadata</TableHead>
                   <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Loan Bal (Col 4)</TableHead>
-                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Fund (7=Pre+1-2+3+5+6)</TableHead>
-                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (Col 10)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Fund 7=(Pre+1-2+3+5+6)</TableHead>
+                  <TableHead className="text-right font-black text-black uppercase tracking-widest py-5">Net Office (10=8+9)</TableHead>
                   <TableHead className="text-right font-black text-black uppercase tracking-widest py-5 bg-slate-200">Total Fund (Col 11=7+10)</TableHead>
                 </TableRow>
               </TableHeader>
