@@ -346,7 +346,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   setCurrentPage(1); 
                 }}
               >
-                <SelectTrigger className="h-7 w-[80px] border-black border-2 font-black text-[10px] uppercase focus:ring-0 text-black">
+                <SelectTrigger className="h-7 w-[80px] border-black border-2 font-black text-[10px] focus:ring-0 text-black">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="border-2 border-black">
@@ -430,11 +430,34 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="overflow-x-auto w-full">
           <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black no-print">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
+              {/* Row 1: Broad Groups */}
               <tr>
-                {[{l:"Date",w:"75px"},{l:"Particulars",w:"180px"},{l:"Col 1",w:"85px"},{l:"Col 2",w:"85px"},{l:"Col 3",w:"85px"},{l:"Bal 4",w:"90px",bg:"bg-slate-200"},{l:"Col 5",w:"85px"},{l:"Col 6",w:"85px"},{l:"Net 7",w:"95px",bg:"bg-slate-100"},{l:"Col 8",w:"85px"},{l:"Col 9",w:"85px"},{l:"Net 10",w:"95px",bg:"bg-slate-100"},{l:"Total 11",w:"110px",bg:"bg-slate-200"}].map((h, i) => (
-                  <th key={i} className={cn("border border-black p-1 text-center uppercase text-[9px] leading-tight text-black", h.bg)}>{h.l}</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[180px] uppercase text-[9px] tracking-tighter">Particulars</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Loan & Individual Contribution</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Employee Fund Audit</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Office Matching Share</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px]">Action</th>
+              </tr>
+              {/* Row 2: Column Indices */}
+              <tr className="bg-slate-50 text-[10px]">
+                {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                  <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
                 ))}
-                <th className="border border-black p-1 text-center no-print w-[80px] uppercase text-[9px] text-black">Action</th>
+              </tr>
+              {/* Row 3: Detail Labels */}
+              <tr className="text-[8px] uppercase leading-none">
+                <th className="border border-black p-1 text-right">Contrib</th>
+                <th className="border border-black p-1 text-right">Disb</th>
+                <th className="border border-black p-1 text-right">Repay</th>
+                <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
+                <th className="border border-black p-1 text-right">Profit</th>
+                <th className="border border-black p-1 text-right">P.Loan</th>
+                <th className="border border-black p-1 text-right bg-slate-100">Net</th>
+                <th className="border border-black p-1 text-right">Contrib</th>
+                <th className="border border-black p-1 text-right">Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-100">Net</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums">
@@ -481,12 +504,33 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </tfoot>
           </table>
 
+          {/* PRINT VERSION (FULL HISTORY) */}
           <table className="hidden print:table w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
               <tr>
-                {[{l:"Date",w:"75px"},{l:"Particulars",w:"180px"},{l:"Col 1",w:"85px"},{l:"Col 2",w:"85px"},{l:"Col 3",w:"85px"},{l:"Bal 4",w:"90px",bg:"bg-slate-200"},{l:"Col 5",w:"85px"},{l:"Col 6",w:"85px"},{l:"Net 7",w:"95px",bg:"bg-slate-100"},{l:"Col 8",w:"85px"},{l:"Col 9",w:"85px"},{l:"Net 10",w:"95px",bg:"bg-slate-100"},{l:"Total 11",w:"110px",bg:"bg-slate-200"}].map((h, i) => (
-                  <th key={i} className={cn("border border-black p-1 text-center uppercase text-[9px] leading-tight text-black", h.bg)}>{h.l}</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[180px] uppercase text-[9px] tracking-tighter">Particulars</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Loan & Individual Contribution</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Employee Fund Audit</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Office Matching Share</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
+              </tr>
+              <tr className="bg-slate-50 text-[10px]">
+                {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                  <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
                 ))}
+              </tr>
+              <tr className="text-[8px] uppercase leading-none">
+                <th className="border border-black p-1 text-right">Contrib</th>
+                <th className="border border-black p-1 text-right">Disb</th>
+                <th className="border border-black p-1 text-right">Repay</th>
+                <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
+                <th className="border border-black p-1 text-right">Profit</th>
+                <th className="border border-black p-1 text-right">P.Loan</th>
+                <th className="border border-black p-1 text-right bg-slate-100">Net</th>
+                <th className="border border-black p-1 text-right">Contrib</th>
+                <th className="border border-black p-1 text-right">Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-100">Net</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums">

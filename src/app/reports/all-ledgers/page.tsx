@@ -144,22 +144,33 @@ export default function AllLedgersPrintPage() {
 
             <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
               <thead className="bg-slate-100 font-black border-b-2 border-black">
+                {/* Row 1: Broad Groups */}
                 <tr>
-                  <th className="border border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tight">Date</th>
-                  <th className="border border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tight">Particulars</th>
-                  {["Emp. Cont (Col 1)", "Loan Disb (Col 2)", "Loan Repay (Col 3)"].map(h => (
-                    <th key={h} className="border border-black p-1 text-right w-[85px] uppercase text-[9px] leading-tight">{h}</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
+                  <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Loan & Individual Contribution</th>
+                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Employee Fund Audit</th>
+                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Office Matching Share</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
+                </tr>
+                {/* Row 2: Column Indices */}
+                <tr className="bg-slate-50 text-[10px]">
+                  {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                    <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
                   ))}
-                  <th className="border border-black p-1 text-right w-[90px] uppercase text-[9px] leading-tight bg-slate-200">Loan Bal (Col 4)</th>
-                  {["Profit Emp (Col 5)", "Profit Loan (Col 6)"].map(h => (
-                    <th key={h} className="border border-black p-1 text-right w-[85px] uppercase text-[9px] leading-tight">{h}</th>
-                  ))}
-                  <th className="border border-black p-1 text-right w-[95px] uppercase text-[9px] leading-tight bg-slate-100">Net Emp (Col 7)</th>
-                  {["PBS Cont (Col 8)", "Profit PBS (Col 9)"].map(h => (
-                    <th key={h} className="border border-black p-1 text-right w-[85px] uppercase text-[9px] leading-tight">{h}</th>
-                  ))}
-                  <th className="border border-black p-1 text-right w-[95px] uppercase text-[9px] leading-tight bg-slate-100">Net PBS (Col 10)</th>
-                  <th className="border border-black p-1 text-right w-[110px] uppercase text-[9px] leading-tight bg-slate-200">TOTAL (Col 11)</th>
+                </tr>
+                {/* Row 3: Detail Labels */}
+                <tr className="text-[8px] uppercase leading-none">
+                  <th className="border border-black p-1 text-right">Contrib</th>
+                  <th className="border border-black p-1 text-right">Disb</th>
+                  <th className="border border-black p-1 text-right">Repay</th>
+                  <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
+                  <th className="border border-black p-1 text-right">Profit</th>
+                  <th className="border border-black p-1 text-right">P.Loan</th>
+                  <th className="border border-black p-1 text-right bg-slate-100">Net</th>
+                  <th className="border border-black p-1 text-right">Contrib</th>
+                  <th className="border border-black p-1 text-right">Profit</th>
+                  <th className="border border-black p-1 text-right bg-slate-100">Net</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black font-black tabular-nums">
@@ -194,7 +205,7 @@ export default function AllLedgersPrintPage() {
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c8.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c9.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col10 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-300 font-black text-xs underline decoration-double">৳ {(ledger.last?.col11 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right bg-slate-300 font-black text-xs underline decoration-double">{(ledger.last?.col11 || 0).toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>
