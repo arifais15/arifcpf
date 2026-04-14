@@ -138,15 +138,9 @@ export default function NewTransactionPage() {
   };
 
   const getSubValues = (code: string, debit: number, credit: number) => {
-    // 1. Get current mappings from settings or fallback to default
     const mapping = ledgerSettings?.mapping || {};
     const debits = ledgerSettings?.debitAccounts || NORMAL_DEBIT_ACCOUNTS;
-    
-    // Find which column this code belongs to
-    // Setting store mapping as { columnKey: accountCode }
     const columnKey = Object.keys(mapping).find(key => mapping[key] === code) as LedgerColumnKey | undefined;
-    
-    // If not in firestore settings, try the hardcoded default mapping
     const finalColumnKey = columnKey || (Object.keys(LEDGER_COLUMN_MAPPING).find(key => key === code) ? LEDGER_COLUMN_MAPPING[code] : undefined);
 
     if (!finalColumnKey) return null;
@@ -288,128 +282,128 @@ export default function NewTransactionPage() {
   }
 
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">
-            {editId ? "Edit Transaction" : "New Journal Entry"}
+          <h1 className="text-4xl font-black text-black tracking-tight uppercase">
+            {editId ? "Edit Journal Entry" : "New Journal Entry"}
           </h1>
           {editId && (
-            <Button variant="destructive" size="sm" onClick={handleDeleteTransaction} className="gap-2">
-              <Trash2 className="size-4" /> Delete Transaction
+            <Button variant="destructive" size="sm" onClick={handleDeleteTransaction} className="gap-2 font-black uppercase text-xs">
+              <Trash2 className="size-4" /> Delete Entry
             </Button>
           )}
         </div>
-        <p className="text-muted-foreground">General Ledger synchronization with Member Subsidiary Ledgers</p>
+        <p className="text-slate-500 font-black uppercase tracking-widest text-xs">General Ledger Synchronization Terminal</p>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-12">
-        <Card className="lg:col-span-9 border-none shadow-sm overflow-hidden">
-          <CardHeader className="border-b bg-slate-50/50">
+        <Card className="lg:col-span-9 border-2 border-black shadow-lg overflow-hidden rounded-none">
+          <CardHeader className="border-b-2 border-black bg-slate-100">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Accounting Journal</CardTitle>
-                <CardDescription>Lines tagged with a Member will auto-post to their subsidiary ledger.</CardDescription>
+                <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Bookkeeping</CardTitle>
+                <CardDescription className="font-black text-slate-500 text-[10px] uppercase">Tagging a Member ensures auto-posting to Subsidiary Ledger (Form 224)</CardDescription>
               </div>
               <Button 
                 type="button" 
                 size="sm" 
                 variant="outline"
-                className="gap-2 border-primary/20 text-primary"
+                className="gap-2 border-2 border-black text-black font-black uppercase text-[10px] hover:bg-black hover:text-white"
                 onClick={handleAIClassify}
                 disabled={isClassifying}
               >
-                {isClassifying ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-accent" />}
-                {isClassifying ? "Analyzing..." : "AI Assistant"}
+                {isClassifying ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-amber-500" />}
+                {isClassifying ? "Analysing Trxn..." : "AI Account Suggest"}
               </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="p-6 grid grid-cols-3 gap-6 border-b">
+            <div className="p-6 grid grid-cols-3 gap-6 border-b-2 border-black bg-slate-50/50">
               <div className="space-y-2">
-                <Label>Posting Date</Label>
-                <Input type="date" value={entryDate} max="9999-12-31" onChange={(e) => setEntryDate(e.target.value)} />
+                <Label className="text-[10px] font-black uppercase text-black ml-1">Posting Date</Label>
+                <Input type="date" value={entryDate} max="9999-12-31" onChange={(e) => setEntryDate(e.target.value)} className="h-11 border-2 border-black font-black uppercase text-xs focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label>Voucher / Reference No.</Label>
-                <Input placeholder="V-2024-001" value={refNo} onChange={(e) => setRefNo(e.target.value)} />
+                <Label className="text-[10px] font-black uppercase text-black ml-1">Voucher / Ref No.</Label>
+                <Input placeholder="V-2024-XXX" value={refNo} onChange={(e) => setRefNo(e.target.value)} className="h-11 border-2 border-black font-black uppercase text-xs focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label>General Description</Label>
-                <Input placeholder="Purpose of transaction..." value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Label className="text-[10px] font-black uppercase text-black ml-1">General Particulars</Label>
+                <Input placeholder="Description of fund activity..." value={description} onChange={(e) => setDescription(e.target.value)} className="h-11 border-2 border-black font-black text-xs focus:ring-0" />
               </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 border-b">
+              <table className="w-full text-sm font-black tabular-nums">
+                <thead className="bg-slate-100 border-b-2 border-black">
                   <tr>
-                    <th className="p-3 text-left font-semibold w-[250px]">Account (COA)</th>
-                    <th className="p-3 text-left font-semibold w-[200px]">Member (Subsidiary)</th>
-                    <th className="p-3 text-right font-semibold w-[120px]">Debit (৳)</th>
-                    <th className="p-3 text-right font-semibold w-[120px]">Credit (৳)</th>
-                    <th className="p-3 text-left font-semibold">Memo</th>
-                    <th className="p-3 text-center w-[40px]"></th>
+                    <th className="p-4 text-left font-black uppercase text-[10px] tracking-widest w-[250px] border-r-2 border-black">GL Account (COA)</th>
+                    <th className="p-4 text-left font-black uppercase text-[10px] tracking-widest w-[200px] border-r-2 border-black">Member (Sub-Ledger)</th>
+                    <th className="p-4 text-right font-black uppercase text-[10px] tracking-widest w-[130px] border-r-2 border-black">Debit (৳)</th>
+                    <th className="p-4 text-right font-black uppercase text-[10px] tracking-widest w-[130px] border-r-2 border-black">Credit (৳)</th>
+                    <th className="p-4 text-left font-black uppercase text-[10px] tracking-widest">Memo</th>
+                    <th className="p-4 text-center w-[50px]"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y-2 divide-black">
                   {lines.map((line) => (
-                    <tr key={line.id} className="group">
-                      <td className="p-2">
+                    <tr key={line.id} className="group hover:bg-slate-50 transition-colors">
+                      <td className="p-2 border-r-2 border-black">
                         <Select value={line.accountCode} onValueChange={(val) => updateLine(line.id, { accountCode: val })}>
-                          <SelectTrigger className="h-9 border-none focus:ring-0 shadow-none hover:bg-slate-50">
-                            <SelectValue placeholder="Select account..." />
+                          <SelectTrigger className="h-10 border-none font-black text-xs focus:ring-0 shadow-none">
+                            <SelectValue placeholder="Account..." />
                           </SelectTrigger>
                           <SelectContent className="max-h-[300px]">
                             {activeCOA.filter((a: any) => !a.isHeader).map((a: any) => (
-                              <SelectItem key={a.code} value={a.code}>{a.code} - {a.name}</SelectItem>
+                              <SelectItem key={a.code} value={a.code} className="font-black text-xs">{a.code} - {a.name}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
                       </td>
-                      <td className="p-2">
+                      <td className="p-2 border-r-2 border-black">
                         <div className="relative">
-                          <User className="absolute left-2 top-1/2 -translate-y-1/2 size-3 text-slate-300" />
+                          <User className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-black opacity-30" />
                           <Select value={line.memberId || "none"} onValueChange={(val) => updateLine(line.id, { memberId: val === "none" ? "" : val })}>
-                            <SelectTrigger className="h-9 pl-7 border-none focus:ring-0 shadow-none hover:bg-slate-50 text-[11px]">
-                              <SelectValue placeholder="General Ledger Only" />
+                            <SelectTrigger className="h-10 pl-8 border-none font-black text-[10px] focus:ring-0 shadow-none uppercase">
+                              <SelectValue placeholder="NO MEMBER" />
                             </SelectTrigger>
                             <SelectContent className="max-h-[300px]">
-                              <SelectItem value="none">No Member (General Ledger)</SelectItem>
+                              <SelectItem value="none" className="font-black text-[10px]">NO MEMBER (GL ONLY)</SelectItem>
                               {members?.map(m => (
-                                <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name}</SelectItem>
+                                <SelectItem key={m.id} value={m.id} className="font-black text-[10px]">{m.memberIdNumber} - {m.name}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
                         </div>
                       </td>
-                      <td className="p-2">
-                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.debit || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} />
+                      <td className="p-2 border-r-2 border-black">
+                        <Input type="number" className="h-10 text-right border-none font-black text-sm focus-visible:ring-0 tabular-nums" value={line.debit || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} />
+                      </td>
+                      <td className="p-2 border-r-2 border-black">
+                        <Input type="number" className="h-10 text-right border-none font-black text-sm focus-visible:ring-0 tabular-nums" value={line.credit || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} />
                       </td>
                       <td className="p-2">
-                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.credit || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} />
-                      </td>
-                      <td className="p-2">
-                        <Input className="h-9 border-none focus-visible:ring-1 text-xs" placeholder="..." value={line.memo} onChange={(e) => updateLine(line.id, { memo: e.target.value })} />
+                        <Input className="h-10 border-none font-black text-xs focus-visible:ring-0" placeholder="..." value={line.memo} onChange={(e) => updateLine(line.id, { memo: e.target.value })} />
                       </td>
                       <td className="p-2 text-center">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => handleRemoveLine(line.id)}>
-                          <Trash2 className="size-3" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-black hover:bg-rose-100 hover:text-rose-600 transition-colors" onClick={() => handleRemoveLine(line.id)}>
+                          <Trash2 className="size-4" />
                         </Button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot className="bg-slate-50/50 font-bold border-t">
-                  <tr>
-                    <td colSpan={2} className="p-3 text-right">Journal Totals:</td>
-                    <td className="p-3 text-right text-primary">{totals.debit.toFixed(2)}</td>
-                    <td className="p-3 text-right text-primary">{totals.credit.toFixed(2)}</td>
-                    <td colSpan={2} className="p-3">
+                <tfoot className="bg-slate-100 font-black border-t-4 border-black">
+                  <tr className="h-16">
+                    <td colSpan={2} className="p-4 text-right uppercase tracking-[0.2em] text-xs">Voucher Consolidated Totals:</td>
+                    <td className="p-4 text-right text-lg border-l-2 border-black">৳ {totals.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="p-4 text-right text-lg border-l-2 border-black">৳ {totals.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td colSpan={2} className="p-4 text-center border-l-2 border-black">
                       {isBalanced ? (
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Balanced</Badge>
+                        <Badge className="bg-black text-white font-black uppercase text-[9px] px-4 py-1 tracking-widest border-2 border-black">Balanced Ledger</Badge>
                       ) : (
-                        (totals.debit > 0 || totals.credit > 0) && <Badge variant="destructive" className="animate-pulse">Out of Balance</Badge>
+                        (totals.debit > 0 || totals.credit > 0) && <Badge variant="destructive" className="animate-pulse font-black uppercase text-[9px] px-4 py-1 tracking-widest">Unbalanced</Badge>
                       )}
                     </td>
                   </tr>
@@ -417,53 +411,53 @@ export default function NewTransactionPage() {
               </table>
             </div>
 
-            <div className="p-4 bg-slate-50/30 flex justify-between items-center border-t">
-              <Button variant="outline" size="sm" onClick={handleAddLine} className="gap-2">
-                <Plus className="size-3.5" /> Add Voucher Row
+            <div className="p-6 bg-slate-50 border-t-4 border-black flex justify-between items-center">
+              <Button variant="outline" size="sm" onClick={handleAddLine} className="gap-2 border-2 border-black font-black uppercase text-[10px] h-10 px-6 hover:bg-slate-100">
+                <Plus className="size-4" /> Add Voucher Line
               </Button>
-              <div className="flex gap-3">
-                <Button variant="ghost" onClick={() => router.back()}>Cancel</Button>
-                <Button className="gap-2 px-8" onClick={handleSave} disabled={isSaving || !isBalanced}>
-                  {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  {editId ? "Update & Sync" : "Post & Synchronize"}
+              <div className="flex gap-4">
+                <Button variant="ghost" className="font-black uppercase text-xs tracking-widest h-12 px-8 hover:bg-slate-200" onClick={() => router.back()}>Exit Voucher</Button>
+                <Button className="gap-3 px-12 h-12 bg-black text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl hover:bg-black/90" onClick={handleSave} disabled={isSaving || !isBalanced}>
+                  {isSaving ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />}
+                  {editId ? "Update & Sync" : "Commit & Post"}
                 </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3 border-none shadow-sm bg-accent/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-accent text-lg">
-              <ArrowRightLeft className="size-5" />
+        <Card className="lg:col-span-3 border-2 border-black shadow-lg bg-black text-white rounded-none">
+          <CardHeader className="border-b border-white/20 pb-4">
+            <CardTitle className="flex items-center gap-3 text-white text-base uppercase tracking-widest">
+              <ArrowRightLeft className="size-5 text-amber-400" />
               Accounting Audit
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6 pt-6">
             {!aiSuggestion ? (
-              <div className="text-center py-12 px-4 text-muted-foreground border-2 border-dashed rounded-xl">
-                <Info className="size-8 mx-auto mb-3 opacity-20" />
-                <p className="text-xs leading-relaxed">Describe the transaction and use the <b>AI Assistant</b> for automated account suggestions.</p>
+              <div className="text-center py-16 px-6 border-2 border-dashed border-white/20 rounded-none bg-white/5">
+                <Info className="size-10 mx-auto mb-4 opacity-20 text-white" />
+                <p className="text-[10px] leading-relaxed uppercase font-black tracking-widest text-slate-400">Provide description and engage <b>AI Assistant</b> for specialized trust account mapping.</p>
               </div>
             ) : (
-              <div className="space-y-4 animate-in slide-in-from-right duration-500">
-                <div className="p-4 bg-white rounded-lg border border-accent/20 shadow-sm">
-                  <p className="text-xs font-bold text-accent uppercase mb-3">AI Recommendation</p>
-                  <div className="space-y-3">
+              <div className="space-y-6 animate-in slide-in-from-right duration-500">
+                <div className="p-5 bg-white text-black border-2 border-amber-400 shadow-[4px_4px_0px_0px_rgba(251,191,36,1)]">
+                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-4 border-b border-amber-100 pb-2">AI Expert Verification</p>
+                  <div className="space-y-4">
                     {aiSuggestion.suggestedEntries.map((entry: any, i: number) => (
-                      <div key={i} className="flex justify-between items-start text-[11px] pb-2 border-b last:border-0">
+                      <div key={i} className="flex justify-between items-start text-[11px] pb-3 border-b border-slate-100 last:border-0 last:pb-0">
                         <div>
-                          <p className="font-bold text-slate-800">{entry.accountName}</p>
-                          <p className="font-mono text-slate-400">{entry.accountCode}</p>
+                          <p className="font-black text-black uppercase leading-tight">{entry.accountName}</p>
+                          <p className="font-mono text-slate-400 mt-1">{entry.accountCode}</p>
                         </div>
-                        <Badge variant="outline" className={cn("text-[9px] px-1 h-4", entry.type === 'Debit' ? "text-blue-600 border-blue-200" : "text-orange-600 border-orange-200")}>{entry.type}</Badge>
+                        <Badge variant="outline" className={cn("text-[8px] font-black uppercase px-1.5 h-5 rounded-none border-2", entry.type === 'Debit' ? "text-blue-600 border-blue-600" : "text-amber-600 border-amber-600")}>{entry.type}</Badge>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div className="p-3 bg-slate-100/50 rounded-lg border border-slate-200">
-                  <p className="text-xs font-bold text-slate-500 uppercase mb-2">Rationale</p>
-                  <p className="text-[11px] leading-relaxed text-slate-600 italic">"{aiSuggestion.rationale}"</p>
+                <div className="p-5 bg-white/10 border-l-4 border-amber-400">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Audit Rationale</p>
+                  <p className="text-[11px] leading-relaxed text-slate-200 font-black italic">"{aiSuggestion.rationale}"</p>
                 </div>
               </div>
             )}
