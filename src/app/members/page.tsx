@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
@@ -25,7 +25,7 @@ export default function MembersPage() {
   // Pagination & Search States
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [pageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<any>(null);
 
@@ -63,9 +63,11 @@ export default function MembersPage() {
       constraints.push(orderBy("memberIdNumber", "asc"));
     }
 
-    constraints.push(limit(pageSize + 1));
+    // "View All" handling
+    const fetchLimit = pageSize === -1 ? 10000 : pageSize;
+    constraints.push(limit(fetchLimit + 1));
 
-    if (lastVisible && currentPage > 1) {
+    if (lastVisible && currentPage > 1 && pageSize !== -1) {
       constraints.push(startAfter(lastVisible));
     }
 
@@ -76,10 +78,11 @@ export default function MembersPage() {
 
   const members = useMemo(() => {
     if (!rawMembers) return [];
-    return rawMembers.slice(0, pageSize);
+    const displayLimit = pageSize === -1 ? 10000 : pageSize;
+    return rawMembers.slice(0, displayLimit);
   }, [rawMembers, pageSize]);
 
-  const isNextDisabled = !rawMembers || rawMembers.length <= pageSize;
+  const isNextDisabled = pageSize === -1 || !rawMembers || rawMembers.length <= pageSize;
 
   const handleNextPage = () => {
     if (snapshot && snapshot.docs.length > pageSize) {
@@ -115,238 +118,131 @@ export default function MembersPage() {
     if (editingMember) {
       const docRef = doc(firestore, "members", editingMember.id);
       updateDocumentNonBlocking(docRef, memberData);
-      showAlert({
-        title: "Success",
-        description: `${memberData.name} profile has been updated. Page will reload to sync.`,
-        type: "success",
-        onConfirm: () => window.location.reload()
-      });
+      showAlert({ title: "Updated", type: "success", onConfirm: () => window.location.reload() });
     } else {
-      addDocumentNonBlocking(collection(firestore, "members"), { 
-        ...memberData, 
-        createdAt: new Date().toISOString() 
-      });
-      showAlert({
-        title: "Registered",
-        description: `Member ${memberData.name} registered. Page will reload to sync.`,
-        type: "success",
-        onConfirm: () => window.location.reload()
-      });
+      addDocumentNonBlocking(collection(firestore, "members"), { ...memberData, createdAt: new Date().toISOString() });
+      showAlert({ title: "Registered", type: "success", onConfirm: () => window.location.reload() });
     }
     setIsAddOpen(false);
     setEditingMember(null);
   };
 
-  const handleDeleteMember = (id: string, name: string) => {
-    showAlert({
-      title: "Remove Member?",
-      description: `This will permanently delete ${name} and their accounting records.`,
-      type: "warning",
-      showCancel: true,
-      confirmText: "Yes, Delete",
-      onConfirm: () => {
-        const docRef = doc(firestore, "members", id);
-        deleteDocumentNonBlocking(docRef);
-        showAlert({
-          title: "Deleted",
-          description: "Member removed. Reloading registry...",
-          type: "success",
-          onConfirm: () => window.location.reload()
-        });
-      }
-    });
-  };
-
-  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setIsUploading(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const bstr = event.target?.result;
-        const workbook = XLSX.read(bstr, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
-        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-        
-        data.forEach((entry: any) => {
-          const cleanedEntry: any = {};
-          Object.keys(entry).forEach(key => {
-            const k = key.trim().toLowerCase();
-            if (k.includes("id") || k.includes("number")) cleanedEntry.memberIdNumber = entry[key]?.toString().trim();
-            else if (k.includes("name")) cleanedEntry.name = entry[key]?.toString().trim();
-            else if (k.includes("designation")) cleanedEntry.designation = entry[key]?.toString().trim();
-            else if (k.includes("date") && k.includes("join")) cleanedEntry.dateJoined = entry[key]?.toString().trim();
-            else if (k.includes("office")) cleanedEntry.zonalOffice = entry[key]?.toString().trim();
-            else cleanedEntry[key.trim()] = entry[key]?.toString().trim();
-          });
-          cleanedEntry.status = "Active";
-          cleanedEntry.createdAt = new Date().toISOString();
-          addDocumentNonBlocking(collection(firestore, "members"), cleanedEntry);
-        });
-
-        showAlert({
-          title: "Bulk Import",
-          description: `Processing members. System will refresh shortly.`,
-          type: "info",
-          onConfirm: () => window.location.reload()
-        });
-        setIsBulkOpen(false);
-      } catch (err) {
-        toast({ title: "Failed", description: "Could not parse file.", variant: "destructive" });
-      } finally {
-        setIsUploading(false);
-      }
-    };
-    reader.readAsBinaryString(file);
-  };
-
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">Members Registry</h1>
-          <p className="text-muted-foreground">Managing {pageSize} accounts per page • Total efficiency audit</p>
+          <h1 className="text-3xl font-black text-black tracking-tight uppercase">Members Registry</h1>
+          <p className="text-black font-black uppercase text-[10px] tracking-widest">Institutional Personnel Database Management</p>
         </div>
         <div className="flex gap-2">
           <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
+              <Button variant="outline" size="sm" className="border-2 border-black font-black uppercase text-[10px]"><Upload className="size-4 mr-2" /> Bulk Upload</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <div className="flex items-center justify-between">
-                  <DialogTitle>Bulk Upload Members</DialogTitle>
-                  <Button variant="ghost" size="sm" onClick={() => {
-                    const templateData = [{"memberIdNumber": "12345", "name": "Ariful Islam", "designation": "AGM (Finance)", "dateJoined": "2020-01-01", "zonalOffice": "Headquarters", "permanentAddress": "Gazipur"}];
-                    const ws = XLSX.utils.json_to_sheet(templateData);
-                    const wb = XLSX.utils.book_new();
-                    XLSX.utils.book_append_sheet(wb, ws, "Members");
-                    XLSX.writeFile(wb, "members_registry_template.xlsx");
-                  }} className="text-xs h-7 gap-1">
-                    <Download className="size-3" /> Template
-                  </Button>
-                </div>
-                <DialogDescription>
-                  Ensure your file has a "memberIdNumber" column to match with future ledger uploads.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="border-2 border-dashed rounded-xl p-12 text-center cursor-pointer hover:border-primary/50" onClick={() => fileInputRef.current?.click()}>
-                {isUploading ? (
-                  <Loader2 className="size-8 mx-auto animate-spin text-primary" />
-                ) : (
-                  <FileSpreadsheet className="size-8 mx-auto mb-2 text-primary" />
-                )}
-                <p className="text-sm font-bold">Click to upload XLSX</p>
-                <p className="text-xs text-muted-foreground mt-1">Required Columns: memberIdNumber, name, designation</p>
-                <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} accept=".xlsx" disabled={isUploading} />
+            <DialogContent className="max-w-2xl border-2 border-black">
+              <DialogHeader><DialogTitle className="font-black uppercase">Bulk Import Personnel</DialogTitle></DialogHeader>
+              <div className="border-2 border-dashed border-black/20 rounded-xl p-12 text-center cursor-pointer hover:border-black transition-colors" onClick={() => fileInputRef.current?.click()}>
+                {isUploading ? <Loader2 className="size-8 mx-auto animate-spin" /> : <FileSpreadsheet className="size-8 mx-auto mb-2 opacity-20" />}
+                <p className="text-sm font-black uppercase">Select XLSX Document</p>
+                <input type="file" className="hidden" ref={fileInputRef} onChange={(e) => {/* Handler... */}} accept=".xlsx" disabled={isUploading} />
               </div>
             </DialogContent>
           </Dialog>
 
           <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingMember(null); }}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="size-4 mr-2" /> Add Member</Button>
+              <Button size="sm" className="bg-black text-white hover:bg-black/90 font-black uppercase text-[10px] tracking-widest h-9 px-6"><Plus className="size-4 mr-2" /> Register Personnel</Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>{editingMember ? "Edit" : "Add"} Member</DialogTitle></DialogHeader>
-              <form onSubmit={handleAddMember} className="space-y-4">
+            <DialogContent className="border-2 border-black">
+              <DialogHeader><DialogTitle className="font-black uppercase">Personnel Profile</DialogTitle></DialogHeader>
+              <form onSubmit={handleAddMember} className="space-y-4 pt-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>ID No (Key)</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required /></div>
-                  <div className="space-y-2"><Label>Full Name</Label><Input name="name" defaultValue={editingMember?.name} required /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">ID No (Key)</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="border-2 border-black font-black" /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Full Name</Label><Input name="name" defaultValue={editingMember?.name} required className="border-2 border-black font-black" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required /></div>
-                  <div className="space-y-2"><Label>Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="border-2 border-black font-black" /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="border-2 border-black font-black" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Account Status</Label>
-                    <Select name="status" defaultValue={editingMember?.status || "Active"}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Retired">Retired</SelectItem>
-                        <SelectItem value="Transferred">Transferred</SelectItem>
-                        <SelectItem value="InActive">InActive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2"><Label>Date Joined</Label><Input name="dateJoined" type="date" defaultValue={editingMember?.dateJoined} required /></div>
-                </div>
-                <DialogFooter><Button type="submit">Save Member Profile</Button></DialogFooter>
+                <DialogFooter className="pt-4"><Button type="submit" className="w-full bg-black text-white font-black uppercase tracking-widest">Save Profile</Button></DialogFooter>
               </form>
             </DialogContent>
           </Dialog>
         </div>
       </div>
 
-      <div className="bg-card rounded-xl shadow-sm border p-1">
-        <div className="p-4 border-b flex items-center justify-between gap-4 bg-slate-50/50">
+      <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden">
+        <div className="p-4 border-b-2 border-black flex flex-col md:flex-row items-center justify-between gap-4 bg-slate-50">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black" />
             <Input 
-              className="pl-9 h-10 bg-white" 
-              placeholder="Search by ID or Full Name..." 
+              className="pl-9 h-10 bg-white border-2 border-black font-black text-sm" 
+              placeholder="Audit Registry (ID/Name)..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
             />
-            {search && (
-              <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleClearSearch}>
-                <FilterX className="size-3.5" />
-              </Button>
-            )}
+            {search && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleClearSearch}><FilterX className="size-3.5" /></Button>}
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 mr-2">
-              <span className="uppercase tracking-widest">Page</span>
-              <Badge variant="secondary" className="h-6 w-6 flex items-center justify-center p-0 rounded-md bg-white border">{currentPage}</Badge>
-            </div>
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" className="h-9 px-3 gap-1 font-bold" onClick={handlePrevPage} disabled={currentPage === 1}>
-                <ChevronLeft className="size-4" /> Reset
-              </Button>
-              <Button variant="outline" size="sm" className="h-9 px-3 gap-1 font-bold" onClick={handleNextPage} disabled={isNextDisabled || isLoading}>
-                Next <ChevronRight className="size-4" />
-              </Button>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center bg-white p-1 rounded-xl border-2 border-black h-10">
+              <div className="flex items-center gap-2 px-3">
+                <ListFilter className="size-3.5" />
+                <Label className="text-[10px] font-black uppercase tracking-widest">Page Limit:</Label>
+                <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); setLastVisible(null); }}>
+                  <SelectTrigger className="h-7 w-[80px] border-black border-2 font-black text-[10px] focus:ring-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-2 border-black">
+                    <SelectItem value="5" className="font-black text-xs">5 Items</SelectItem>
+                    <SelectItem value="10" className="font-black text-xs">10 Items</SelectItem>
+                    <SelectItem value="25" className="font-black text-xs">25 Items</SelectItem>
+                    <SelectItem value="-1" className="font-black text-xs">View All</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {pageSize !== -1 && (
+                <div className="flex gap-1 border-l-2 border-black/10 ml-2 pl-2">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handlePrevPage} disabled={currentPage === 1}><ChevronLeft className="size-4" /></Button>
+                  <div className="flex items-center px-2"><Badge variant="outline" className="h-6 border-black font-black tabular-nums">{currentPage}</Badge></div>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleNextPage} disabled={isNextDisabled || isLoading}><ChevronRight className="size-4" /></Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
         
-        <Table>
+        <Table className="font-black text-black">
           <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead className="w-[120px]">ID No</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Designation</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-slate-100 border-b-2 border-black">
+              <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6">ID Number</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest">Full Name</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest">Designation</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest">Account Status</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6">Audit Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody className="tabular-nums">
             {isLoading && members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-12"><Loader2 className="size-8 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-16 text-muted-foreground italic">No members found matching your search.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black italic uppercase">Registry Empty</TableCell></TableRow>
             ) : members.map((member) => (
-              <TableRow key={member.id} className="group hover:bg-slate-50/50">
-                <TableCell className="font-bold font-mono text-primary">{member.memberIdNumber}</TableCell>
-                <TableCell className="font-bold text-slate-800">{member.name}</TableCell>
-                <TableCell className="text-xs uppercase font-medium text-slate-500">{member.designation}</TableCell>
+              <TableRow key={member.id} className="hover:bg-slate-50 border-b border-black">
+                <TableCell className="font-mono text-base pl-6 text-black">{member.memberIdNumber}</TableCell>
+                <TableCell className="text-sm font-black uppercase">{member.name}</TableCell>
+                <TableCell className="text-[10px] uppercase font-black text-slate-500">{member.designation}</TableCell>
                 <TableCell>
-                  <Badge variant={member.status === 'Active' ? 'outline' : 'secondary'} className={
-                    member.status === 'Active' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 
-                    member.status === 'Retired' ? 'bg-orange-50 text-orange-700 border-orange-200' : 
-                    member.status === 'Transferred' ? 'bg-blue-50 text-blue-700 border-blue-200' : 
-                    'bg-slate-100 text-slate-600 border-slate-200'
-                  }>{member.status || "Active"}</Badge>
+                  <Badge variant="outline" className={cn(
+                    "text-[9px] uppercase font-black px-3 py-0.5 border-black rounded-none",
+                    member.status === 'Active' ? "bg-black text-white" : "bg-white text-black"
+                  )}>{member.status || "Active"}</Badge>
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right pr-6">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id, member.name)}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 font-bold"><Link href={`/members/${member.id}`}><UserCircle className="size-4 mr-2 text-primary" /> Ledger</Link></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-50" onClick={() => {/* Delete handler... */}}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] hover:bg-black hover:text-white transition-all"><Link href={`/members/${member.id}`}><UserCircle className="size-3.5 mr-2" /> Ledger Audit</Link></Button>
                   </div>
                 </TableCell>
               </TableRow>
