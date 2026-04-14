@@ -172,17 +172,17 @@ export default function MembersPage() {
           if (memberData.memberIdNumber && memberData.name) {
             const memberRef = await addDoc(collection(firestore, "members"), memberData);
             
-            // Inject Opening Balance Entry
+            // Inject Opening Balance Entry using descriptive headers
             const openingEntry = {
               summaryDate: joinedDate || new Date().toISOString().split('T')[0],
               particulars: "Opening Balance (Imported)",
-              employeeContribution: Number(entry["Col1"] || 0),
-              loanWithdrawal: Number(entry["Col2"] || 0),
-              loanRepayment: Number(entry["Col3"] || 0),
-              profitEmployee: Number(entry["Col5"] || 0),
-              profitLoan: Number(entry["Col6"] || 0),
-              pbsContribution: Number(entry["Col8"] || 0),
-              profitPbs: Number(entry["Col9"] || 0),
+              employeeContribution: Number(entry["Employee_Contribution"] || 0),
+              loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
+              loanRepayment: Number(entry["Loan_Repaid"] || 0),
+              profitEmployee: Number(entry["Employee_Profit"] || 0),
+              profitLoan: Number(entry["Loan_Profit"] || 0),
+              pbsContribution: Number(entry["PBS_Contribution"] || 0),
+              profitPbs: Number(entry["PBS_Profit"] || 0),
               isSystemGenerated: true,
               memberId: memberRef.id,
               createdAt: new Date().toISOString()
@@ -216,13 +216,13 @@ export default function MembersPage() {
       "Address": "GAZIPUR",
       "Office": "HEAD OFFICE",
       "Status": "Active",
-      "Col1": 150000,
-      "Col2": 0,
-      "Col3": 0,
-      "Col5": 45000,
-      "Col6": 0,
-      "Col8": 150000,
-      "Col9": 45000
+      "Employee_Contribution": 150000,
+      "Loan_Disbursed": 0,
+      "Loan_Repaid": 0,
+      "Employee_Profit": 45000,
+      "Loan_Profit": 0,
+      "PBS_Contribution": 150000,
+      "PBS_Profit": 45000
     }];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
@@ -411,7 +411,7 @@ export default function MembersPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
+      <Dialog open={isBulkOpen} onOpenChange={(open) => { setIsBulkOpen(open); if (!open) setEditingMember(null); }}>
         <DialogContent className="max-w-2xl border-4 border-black bg-white rounded-none p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <div className="flex items-center justify-between">
@@ -435,7 +435,7 @@ export default function MembersPage() {
                 <>
                   <FileSpreadsheet className="size-16 mx-auto mb-4 opacity-20 group-hover:opacity-100 transition-opacity text-black" />
                   <p className="text-xl font-black uppercase tracking-widest group-hover:text-black">Select Import Spreadsheet</p>
-                  <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Single file for profiles + Cols 1, 2, 3, 5, 6, 8, 9</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Single file for profiles + Descriptive Financial Headers</p>
                 </>
               )}
               <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} accept=".xlsx" disabled={isUploading} />
@@ -446,7 +446,7 @@ export default function MembersPage() {
                 <Info className="size-3.5" /> Mapping Instructions
               </p>
               <p className="text-[9px] text-blue-600 leading-relaxed font-bold">
-                Ensure headers match: ID, Name, Designation, JoinedDate, Address, Office, Col1, Col2, Col3, Col5, Col6, Col8, Col9. The system will auto-calculate Col 4, 7, 10, and 11.
+                Ensure headers match: ID, Name, Designation, JoinedDate, Address, Office, Employee_Contribution, Loan_Disbursed, Loan_Repaid, Employee_Profit, Loan_Profit, PBS_Contribution, PBS_Profit.
               </p>
             </div>
           </div>
