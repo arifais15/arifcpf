@@ -16,15 +16,15 @@ import {
   Loader2, 
   CalendarDays, 
   ArrowRightLeft,
-  FileSpreadsheet,
-  Printer,
-  Info,
-  ShieldCheck,
-  History,
-  TrendingUp,
-  UserSearch,
-  ListOrdered,
-  ArrowLeft
+  FileSpreadsheet, 
+  Printer, 
+  Info, 
+  ShieldCheck, 
+  History, 
+  TrendingUp, 
+  UserSearch, 
+  ListOrdered, 
+  ArrowLeft 
 } from "lucide-react";
 import { 
   useCollection, 
@@ -210,7 +210,7 @@ export default function SpecialInterestDPPage() {
               <SelectTrigger className="h-11 font-black border-black border-2"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 <SelectItem value="all">All Institutional Personnel</SelectItem>
-                {members?.map(m => <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name}</SelectItem>)}
+                {members?.map(m => <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name} ({m.designation})</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

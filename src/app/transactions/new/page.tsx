@@ -371,7 +371,9 @@ export default function NewTransactionPage() {
                             <SelectContent className="max-h-[300px]">
                               <SelectItem value="none" className="font-black text-[10px]">NO MEMBER (GL ONLY)</SelectItem>
                               {members?.map(m => (
-                                <SelectItem key={m.id} value={m.id} className="font-black text-[10px]">{m.memberIdNumber} - {m.name}</SelectItem>
+                                <SelectItem key={m.id} value={m.id} className="font-black text-[10px]">
+                                  {m.memberIdNumber} - {m.name} ({m.designation})
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
