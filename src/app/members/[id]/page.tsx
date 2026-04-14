@@ -77,9 +77,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     ];
   }, [interestSettings]);
 
-  // Initial Date Setup (Default to all time)
+  // Initial Date Setup: Current FY Start (July 1st) to Today
   useEffect(() => {
-    setDateRange({ start: "", end: "" }); 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const fyStartYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    const fyStartDate = `${fyStartYear}-07-01`;
+    const todayStr = now.toISOString().split('T')[0];
+    
+    setDateRange({ start: fyStartDate, end: todayStr });
   }, []);
 
   const sortedSummaries = useMemo(() => {
