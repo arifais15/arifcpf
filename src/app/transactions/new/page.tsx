@@ -278,6 +278,12 @@ export default function NewTransactionPage() {
     });
   };
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   if (isEditLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>;
   }
@@ -379,10 +385,10 @@ export default function NewTransactionPage() {
                         </div>
                       </td>
                       <td className="p-2">
-                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.debit || ''} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} />
+                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.debit || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => updateLine(line.id, { debit: Number(e.target.value), credit: 0 })} />
                       </td>
                       <td className="p-2">
-                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.credit || ''} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} />
+                        <Input type="number" className="h-9 text-right border-none focus-visible:ring-1" value={line.credit || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => updateLine(line.id, { credit: Number(e.target.value), debit: 0 })} />
                       </td>
                       <td className="p-2">
                         <Input className="h-9 border-none focus-visible:ring-1 text-xs" placeholder="..." value={line.memo} onChange={(e) => updateLine(line.id, { memo: e.target.value })} />

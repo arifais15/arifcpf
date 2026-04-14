@@ -372,6 +372,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     showAlert({ title: "Settled", description: "Account zeroed out successfully.", type: "success" });
   };
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
   if (!member) return <div className="p-8 text-center bg-white"><h1 className="text-2xl font-black text-black uppercase">Member not found</h1></div>;
 
@@ -572,17 +578,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </div>
             <div className="space-y-5">
               <div className="bg-blue-50/50 p-5 rounded-2xl border-2 border-black grid grid-cols-3 gap-5">
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Emp Cont (Col 1)</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Disb (Col 2)</Label><Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Repay (Col 3)</Label><Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Emp Cont (Col 1)</Label><Input name="employeeContribution" type="number" step="0.01" defaultValue={editingEntry?.employeeContribution || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Disb (Col 2)</Label><Input name="loanWithdrawal" type="number" step="0.01" defaultValue={editingEntry?.loanWithdrawal || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Repay (Col 3)</Label><Input name="loanRepayment" type="number" step="0.01" defaultValue={editingEntry?.loanRepayment || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
               </div>
               <div className="bg-slate-50 p-5 rounded-2xl border-2 border-black grid grid-cols-2 gap-5">
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Emp (Col 5)</Label><Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Loan (Col 6)</Label><Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Emp (Col 5)</Label><Input name="profitEmployee" type="number" step="0.01" defaultValue={editingEntry?.profitEmployee || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Loan (Col 6)</Label><Input name="profitLoan" type="number" step="0.01" defaultValue={editingEntry?.profitLoan || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
               </div>
               <div className="bg-emerald-50/50 p-5 rounded-2xl border-2 border-black grid grid-cols-2 gap-5">
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">PBS Cont (Col 8)</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit PBS (Col 9)</Label><Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">PBS Cont (Col 8)</Label><Input name="pbsContribution" type="number" step="0.01" defaultValue={editingEntry?.pbsContribution || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit PBS (Col 9)</Label><Input name="profitPbs" type="number" step="0.01" defaultValue={editingEntry?.profitPbs || 0} onKeyDown={handleNumericKeyDown} className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" /></div>
               </div>
             </div>
             <Button type="submit" className="w-full bg-black text-white font-black h-12 rounded-2xl uppercase tracking-[0.2em] shadow-xl text-sm mb-4">Save Record</Button>

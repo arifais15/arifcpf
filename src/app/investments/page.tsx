@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -292,6 +293,12 @@ export default function InvestmentsPage() {
     }
   };
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -403,6 +410,7 @@ export default function InvestmentsPage() {
                       type="number" 
                       step="0.01" 
                       value={formPrincipal} 
+                      onKeyDown={handleNumericKeyDown}
                       onChange={(e) => { 
                         setFormPrincipal(e.target.value); 
                         if (!editingInvestment) setFormInitialPrincipal(e.target.value); 
@@ -418,11 +426,12 @@ export default function InvestmentsPage() {
                       type="number" 
                       step="0.01" 
                       value={formInitialPrincipal} 
+                      onKeyDown={handleNumericKeyDown}
                       onChange={(e) => setFormInitialPrincipal(e.target.value)} 
                       className="h-11 border-2 border-black font-black tabular-nums" 
                     />
                   </div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
                   
                   <div className="col-span-2 grid grid-cols-3 gap-4 p-6 bg-slate-50 rounded-2xl border-2 border-black">
                     <div className="space-y-2">
@@ -618,8 +627,8 @@ export default function InvestmentsPage() {
           </DialogHeader>
           <form onSubmit={handleRenewInvestment} className="space-y-6 pt-4">
             <div className="grid gap-6">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Cycle Principal (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={renewingInvestment ? (renewingInvestment.interestRate * 100).toFixed(2) : ""} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Cycle Principal (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={renewingInvestment ? (renewingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Renew Date</Label><Input name="renewDate" type="date" required value={renewDate} onChange={(e) => handleRenewDateChange(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
                 <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Maturity Date</Label><Input name="maturityDate" type="date" required value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className="h-11 border-2 border-black font-black" /></div>

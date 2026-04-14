@@ -251,6 +251,12 @@ export default function SettingsPage() {
     });
   };
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   if (isLedgerLoading || isInterestLoading || isCoaLoading || isGeneralLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>
   }
@@ -332,7 +338,7 @@ export default function SettingsPage() {
             <div className="relative flex-1 max-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input 
-                className="pl-9 h-10 max-w-sm" 
+                className="pl-9 h-10 max-sm" 
                 placeholder="Search accounts..." 
                 value={coaSearch}
                 onChange={(e) => setCoaSearch(e.target.value)}
@@ -558,11 +564,11 @@ export default function SettingsPage() {
                           {tier.limit === null ? (
                             <div className="h-10 flex items-center px-3 bg-slate-200/50 rounded-md text-slate-500 text-sm font-bold italic">Above previous limit</div>
                           ) : (
-                            <Input type="number" className="font-mono" value={tier.limit} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
+                            <Input type="number" className="font-mono" value={tier.limit} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
                           )}
                         </div>
                         <div className="col-span-5 relative">
-                          <Input type="number" step="0.01" className="pr-8 font-mono" value={tier.rate} disabled={!isUnlocked} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
+                          <Input type="number" step="0.01" className="pr-8 font-mono" value={tier.rate} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
                         </div>
                         <div className="col-span-2 text-right">
@@ -591,6 +597,7 @@ export default function SettingsPage() {
                         type="number" 
                         step="0.01" 
                         value={tdsRate} 
+                        onKeyDown={handleNumericKeyDown}
                         onChange={(e) => setTdsRate(Number(e.target.value))}
                         disabled={!isUnlocked}
                         className="h-12 font-black text-xl text-center pr-10 border-indigo-200"
