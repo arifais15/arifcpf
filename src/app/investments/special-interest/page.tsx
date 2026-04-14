@@ -167,6 +167,24 @@ export default function SpecialInterestDPPage() {
     toast({ title: "Posted", description: "Special interest distribution synchronized." });
   };
 
+  const monthlyBreakdown = useMemo(() => {
+    if (!viewingDetails?.dailyLog) return [];
+    
+    const groups: Record<string, number> = {};
+    viewingDetails.dailyLog.forEach((day: any) => {
+      const monthKey = day.date.substring(0, 7); // YYYY-MM
+      groups[monthKey] = (groups[monthKey] || 0) + day.interest;
+    });
+
+    return Object.entries(groups).map(([key, amount]) => {
+      const date = new Date(key + "-01");
+      return {
+        label: date.toLocaleDateString('default', { month: 'long', year: 'numeric' }),
+        amount
+      };
+    });
+  }, [viewingDetails]);
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -190,15 +208,18 @@ export default function SpecialInterestDPPage() {
             <Label className="text-[10px] uppercase font-black text-black ml-1">Member Focus</Label>
             <Select value={selectedMember} onValueChange={setSelectedMember}>
               <SelectTrigger className="h-11 font-black border-black border-2"><SelectValue /></SelectTrigger>
-              <SelectContent>{members?.map(m => <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name}</SelectItem>)}</SelectContent>
+              <SelectContent className="max-h-[300px]">
+                <SelectItem value="all">All Institutional Personnel</SelectItem>
+                {members?.map(m => <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name}</SelectItem>)}
+              </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-[10px] uppercase font-black text-black ml-1">Audit Range</Label>
             <div className="flex items-center gap-3 border-2 border-black p-1.5 rounded-lg">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none font-black" />
-              <ArrowRightLeft className="size-3" />
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none font-black" />
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none font-black" />
+              <ArrowRightLeft className="size-3 text-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none font-black" />
             </div>
           </div>
           <Button onClick={handleCalculate} disabled={isCalculating || isMembersLoading} className="h-11 font-black bg-black text-white uppercase tracking-widest shadow-xl">
@@ -218,7 +239,7 @@ export default function SpecialInterestDPPage() {
             <div className="bg-white p-4 rounded-xl border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between no-print h-full">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-black text-black">Ledger Post Date</Label>
-                <Input type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs border-black border-2" />
+                <Input type="date" value={postingDate} max="9999-12-31" onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs border-black border-2" />
               </div>
               <Button onClick={handlePostAll} disabled={!postingDate} className="bg-black text-white h-10 font-black uppercase text-[10px] tracking-widest">
                 <ShieldCheck className="size-4" /> Sync All
@@ -253,6 +274,119 @@ export default function SpecialInterestDPPage() {
         </div>
       )}
 
+      {/* DETAIL BREAKDOWN DIALOG */}
+      <Dialog open={!!viewingDetails} onOpenChange={(o) => !o && setViewingDetails(null)}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto font-ledger text-black border-4 border-black p-0 rounded-none shadow-2xl">
+          <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
+            <DialogTitle className="flex items-center gap-4 text-2xl font-black uppercase">
+              <History className="size-8 text-black" /> 
+              Detailed Profit Audit: {viewingDetails?.name}
+            </DialogTitle>
+            <DialogDescription className="uppercase font-black text-[10px] tracking-widest text-slate-500 mt-2">
+              Audit Period: {dateRange.start} to {dateRange.end} • Member ID: {viewingDetails?.memberIdNumber}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="p-8 space-y-10">
+            <div className="grid grid-cols-3 gap-6">
+              <div className="bg-white p-6 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
+                <span className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Total DP Profit</span>
+                <span className="text-2xl font-black text-black">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="bg-white p-6 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
+                <span className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Emp Portion (Col 5)</span>
+                <span className="text-xl font-black text-black">৳ {viewingDetails?.empProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="bg-white p-6 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex flex-col items-center justify-center">
+                <span className="text-[10px] uppercase font-black text-slate-400 mb-2 tracking-widest">Office Portion (Col 9)</span>
+                <span className="text-xl font-black text-black">৳ {viewingDetails?.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-base font-black flex items-center gap-3 uppercase tracking-widest border-b-2 border-black pb-2">
+                <ListOrdered className="size-5" />
+                Monthly Interest Summary
+              </h3>
+              <div className="border-2 border-black overflow-hidden shadow-lg">
+                <Table className="font-black text-black tabular-nums">
+                  <TableHeader className="bg-slate-100 border-b-2 border-black">
+                    <TableRow>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6">Calendar Month</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 pr-6">Portion Accrual (৳)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {monthlyBreakdown.map((month, i) => (
+                      <TableRow key={i} className="hover:bg-slate-50 border-b border-black">
+                        <td className="font-black text-sm p-4 pl-6 uppercase">{month.label}</td>
+                        <td className="text-right p-4 pr-6 font-black text-black">৳ {month.amount.toLocaleString(undefined, { minimumFractionDigits: 4 })}</td>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter className="bg-slate-50 font-black border-t-2 border-black">
+                    <TableRow className="h-14">
+                      <TableCell className="text-right uppercase tracking-widest text-[10px] pl-6">Sum of Monthly Portions:</TableCell>
+                      <TableCell className="text-right text-lg text-black underline decoration-double pr-6 font-black">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="text-base font-black flex items-center gap-3 uppercase tracking-widest border-b-2 border-black pb-2">
+                <CalendarDays className="size-5" />
+                Granular Daily Ledger Log
+              </h3>
+              <div className="border-2 border-black overflow-hidden shadow-lg">
+                <Table className="font-black text-black tabular-nums">
+                  <TableHeader className="bg-slate-100 border-b-2 border-black">
+                    <TableRow>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6">Audit Date</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4">Day-End Balance (৳)</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4">Interest (৳)</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 pr-6">Activity</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {viewingDetails?.dailyLog.map((day: any, i: number) => (
+                      <TableRow key={i} className={cn("hover:bg-slate-50 border-b border-black", day.hasActivity && "bg-amber-50/20")}>
+                        <td className="font-mono text-xs p-3 pl-6 text-black">{day.date}</td>
+                        <td className="text-right p-3 font-black text-black">৳ {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="text-right p-3 font-black text-black">৳ {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
+                        <td className="text-center p-3 pr-6">
+                          {day.hasActivity ? <Badge className="bg-black text-white text-[8px] h-4 uppercase font-black rounded-none">Trxn</Badge> : <span className="text-[8px] text-slate-300 font-black">—</span>}
+                        </td>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                  <TableFooter className="bg-slate-50 font-black border-t-2 border-black">
+                    <TableRow className="h-14">
+                      <TableCell colSpan={2} className="text-right uppercase tracking-widest text-[10px] pl-6">Sum of Daily Portions:</TableCell>
+                      <TableCell className="text-right text-black font-mono text-xs pr-6" colSpan={2}>৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                </Table>
+              </div>
+            </div>
+
+            <div className="bg-black p-6 border-2 border-black flex gap-4 items-start shadow-xl">
+              <ShieldCheck className="size-6 text-white mt-0.5 shrink-0" />
+              <div className="space-y-2">
+                <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Day-Product Logic Verification</p>
+                <p className="text-[11px] leading-relaxed text-slate-400 font-black italic uppercase">
+                  This calculation captures exact fund utilization. Interest is computed daily using the formula: (Daily Balance * Annual Tiered Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual. The monthly summary above is the sum of these daily portions.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-slate-100 p-6 border-t-4 border-black text-right">
+            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-8">Close Matrix</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="hidden print:block print-container text-black font-black">
         <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
           <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
@@ -264,14 +398,18 @@ export default function SpecialInterestDPPage() {
           </div>
         </div>
         <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums">
-          <thead><tr className="bg-slate-100 font-black"><th className="border border-black p-2">ID No</th><th className="border border-black p-2 text-left">Name & Designation</th><th className="border border-black p-2 text-right">Days</th><th className="border border-black p-2 text-right">Opening Bal</th><th className="border border-black p-2 text-right">Total Interest</th></tr></thead>
+          <thead><tr className="bg-slate-100 font-black"><th className="border border-black p-2 uppercase">ID No</th><th className="border border-black p-2 text-left uppercase">Name & Designation</th><th className="border border-black p-2 text-right uppercase">Days</th><th className="border border-black p-2 text-right uppercase">Opening Bal</th><th className="border border-black p-2 text-right uppercase">Total Interest</th></tr></thead>
           <tbody>{results.map((r, i) => (<tr key={i} className="border-b border-black"><td className="border border-black p-2 text-center font-mono">{r.memberIdNumber}</td><td className="border border-black p-2 uppercase"><b>{r.name}</b><br/>{r.designation}</td><td className="border border-black p-2 text-right">{r.days}</td><td className="border border-black p-2 text-right">{r.openingBalance.toLocaleString()}</td><td className="border border-black p-2 text-right font-black">{r.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>))}</tbody>
-          <tfoot><tr className="bg-slate-50 font-black h-12"><td colSpan={4} className="border border-black p-2 text-right uppercase tracking-widest">Grand Total:</td><td className="border border-black p-2 text-right text-lg underline decoration-double">৳ {results.reduce((s, r) => s + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr></tfoot>
+          <tfoot><tr className="bg-slate-50 font-black h-12"><td colSpan={4} className="border border-black p-2 text-right uppercase tracking-widest">Grand Total Special Interest:</td><td className="border border-black p-2 text-right text-lg underline decoration-double">৳ {results.reduce((s, r) => s + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr></tfoot>
         </table>
         <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest">
           <div className="border-t-2 border-black pt-4">Prepared by</div>
           <div className="border-t-2 border-black pt-4">Checked by</div>
           <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
+        </div>
+        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
+          <span>Institutional Trust Registry v1.0</span>
+          <span className="italic">Form Generated via PBS CPF Software</span>
         </div>
       </div>
     </div>
