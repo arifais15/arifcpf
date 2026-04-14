@@ -60,7 +60,7 @@
 
 @media print {
   @page {
-    size: A4 landscape;
+    size: auto;
     margin: 8mm;
   }
 
@@ -72,7 +72,8 @@
   footer,
   aside,
   button,
-  .TabsList {
+  .TabsList,
+  .no-print * {
     display: none !important;
   }
 
@@ -84,19 +85,18 @@
     overflow: visible !important;
     background-color: white !important;
     color: black !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
+    -webkit-print-color-adjust: economy !important;
+    print-color-adjust: economy !important;
     text-rendering: optimizeLegibility;
   }
 
-  [data-sidebar="inset"],
-  main,
-  .flex.flex-col.min-h-screen {
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    background-color: white !important;
-    min-height: auto !important;
+  /* RESET ALL BACKGROUNDS AND FORCE BLACK TEXT FOR INK ECONOMY */
+  *, *::before, *::after {
+    background-color: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-color: black !important;
   }
 
   .print-container {
@@ -115,6 +115,7 @@
     width: 100% !important;
     page-break-inside: auto;
     table-layout: fixed !important;
+    border: 0.5pt solid black !important;
   }
 
   tr {
@@ -123,7 +124,7 @@
   }
 
   th, td {
-    border: 0.3pt solid black !important;
+    border: 0.5pt solid black !important;
     color: black !important;
     background-color: transparent !important;
     padding: 3pt 2pt !important;
@@ -133,6 +134,12 @@
 
   .font-ledger {
     font-family: 'Calibri', 'Segoe UI', 'Arial', sans-serif !important;
+  }
+
+  /* Force solid lines for print where dotted might disappear */
+  .border-dotted, .border-dashed {
+    border-style: solid !important;
+    border-width: 0.5pt !important;
   }
 
   .print-portrait-fix {
