@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter, CalendarDays, MapPin, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
+import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from "xlsx";
 
 export default function MembersPage() {
@@ -113,16 +114,29 @@ export default function MembersPage() {
       zonalOffice: formData.get("zonalOffice") as string,
       permanentAddress: formData.get("permanentAddress") as string,
       status: (formData.get("status") as string) || "Active",
-      settlementDate: (formData.get("settlementDate") as string) || ""
+      updatedAt: new Date().toISOString()
     };
 
     if (editingMember) {
       const docRef = doc(firestore, "members", editingMember.id);
       updateDocumentNonBlocking(docRef, memberData);
-      showAlert({ title: "Updated", type: "success", onConfirm: () => window.location.reload() });
+      showAlert({ 
+        title: "Profile Updated", 
+        description: `Records for ${memberData.name} have been synchronized.`,
+        type: "success", 
+        onConfirm: () => window.location.reload() 
+      });
     } else {
-      addDocumentNonBlocking(collection(firestore, "members"), { ...memberData, createdAt: new Date().toISOString() });
-      showAlert({ title: "Registered", type: "success", onConfirm: () => window.location.reload() });
+      addDocumentNonBlocking(collection(firestore, "members"), { 
+        ...memberData, 
+        createdAt: new Date().toISOString() 
+      });
+      showAlert({ 
+        title: "Personnel Registered", 
+        description: `${memberData.name} added to trust registry.`,
+        type: "success", 
+        onConfirm: () => window.location.reload() 
+      });
     }
     setIsAddOpen(false);
     setEditingMember(null);
@@ -168,11 +182,11 @@ export default function MembersPage() {
 
         <div className="h-8 w-px bg-black/10 mx-1" />
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3">
+          <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="h-9 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-3">
             <Upload className="size-3.5" /> Bulk
           </Button>
-          <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4">
-            <Plus className="size-3.5" /> Register
+          <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 shadow-lg shadow-black/20">
+            <Plus className="size-3.5" /> Register Personnel
           </Button>
         </div>
       </PageHeaderActions>
@@ -186,11 +200,11 @@ export default function MembersPage() {
         <Table className="font-black text-black">
           <TableHeader>
             <TableRow className="bg-slate-100 border-b-2 border-black">
-              <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6 text-black">ID Number</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black">Full Name</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black">Designation</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black">Account Status</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 text-black">Audit Actions</TableHead>
+              <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6 text-black py-5">ID Number</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Full Name</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Designation</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Account Status</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 text-black py-5">Audit Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="tabular-nums">
@@ -200,16 +214,16 @@ export default function MembersPage() {
               <TableRow><TableCell colSpan={5} className="text-center py-32 text-black font-black italic uppercase">Registry Empty</TableCell></TableRow>
             ) : members.map((member) => (
               <TableRow key={member.id} className="hover:bg-slate-50 border-b border-black">
-                <TableCell className="font-mono text-base pl-6 text-black font-black">{member.memberIdNumber}</TableCell>
-                <TableCell className="text-sm font-black uppercase text-black">{member.name}</TableCell>
-                <TableCell className="text-[10px] uppercase font-black text-black">{member.designation}</TableCell>
-                <TableCell>
+                <TableCell className="font-mono text-base pl-6 text-black font-black py-4">{member.memberIdNumber}</TableCell>
+                <TableCell className="text-sm font-black uppercase text-black py-4">{member.name}</TableCell>
+                <TableCell className="text-[10px] uppercase font-black text-black py-4">{member.designation}</TableCell>
+                <TableCell className="py-4">
                   <Badge variant="outline" className={cn(
                     "text-[9px] uppercase font-black px-3 py-0.5 border-black rounded-none",
                     member.status === 'Active' ? "bg-black text-white" : "bg-white text-black"
                   )}>{member.status || "Active"}</Badge>
                 </TableCell>
-                <TableCell className="text-right pr-6">
+                <TableCell className="text-right pr-6 py-4">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-black hover:bg-slate-100" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
                     <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] bg-white text-black hover:bg-black hover:text-white transition-all"><Link href={`/members/${member.id}`}><UserCircle className="size-3.5 mr-2" /> Ledger Audit</Link></Button>
@@ -222,29 +236,112 @@ export default function MembersPage() {
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingMember(null); }}>
-        <DialogContent className="border-2 border-black">
-          <DialogHeader><DialogTitle className="font-black uppercase">Personnel Profile</DialogTitle></DialogHeader>
-          <form onSubmit={handleAddMember} className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">ID No (Key)</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="border-2 border-black font-black" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Full Name</Label><Input name="name" defaultValue={editingMember?.name} required className="border-2 border-black font-black" /></div>
+        <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 overflow-hidden rounded-none shadow-2xl">
+          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
+            <DialogTitle className="font-black uppercase text-2xl tracking-tighter flex items-center gap-3">
+              <UserCircle className="size-7" />
+              {editingMember ? "Modify Personnel Records" : "New Personnel Registration"}
+            </DialogTitle>
+            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500">
+              All fields are mandatory for Institutional Ledger Consistency (Form 224)
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddMember} className="p-8 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Member ID No (Key)</Label>
+                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="e.g. 5001" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Full Legal Name</Label>
+                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="AS PER SERVICE BOOK" />
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="border-2 border-black font-black" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="border-2 border-black font-black" /></div>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Official Designation</Label>
+                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="e.g. AGMF" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Zonal/Office Location</Label>
+                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="Head Office / Zonal" />
+              </div>
             </div>
-            <DialogFooter className="pt-4"><Button type="submit" className="w-full bg-black text-white font-black uppercase tracking-widest">Save Profile</Button></DialogFooter>
+
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <CalendarDays className="size-3" /> Fund Joined Date
+                </Label>
+                <Input 
+                  name="dateJoined" 
+                  type="date" 
+                  max="9999-12-31"
+                  defaultValue={editingMember?.dateJoined} 
+                  required 
+                  className="h-11 border-2 border-black font-black rounded-none focus:ring-0 uppercase" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                  <ShieldCheck className="size-3" /> Account Status
+                </Label>
+                <Select name="status" defaultValue={editingMember?.status || "Active"} required>
+                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none focus:ring-0">
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent className="border-2 border-black font-black">
+                    <SelectItem value="Active" className="font-black uppercase">Active Personnel</SelectItem>
+                    <SelectItem value="Retired" className="font-black uppercase">Retired Member</SelectItem>
+                    <SelectItem value="Transferred" className="font-black uppercase">Transferred Out</SelectItem>
+                    <SelectItem value="InActive" className="font-black uppercase">InActive Account</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <MapPin className="size-3" /> Permanent Mailing Address
+              </Label>
+              <Textarea 
+                name="permanentAddress" 
+                defaultValue={editingMember?.permanentAddress} 
+                required 
+                className="min-h-[80px] border-2 border-black font-black rounded-none focus:ring-0 resize-none" 
+                placeholder="Required for final settlement and audit records..."
+              />
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.3em] rounded-none shadow-xl hover:bg-black/90 text-base">
+                {editingMember ? "Synchronize Profile" : "Register Personnel Profile"}
+              </Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
-        <DialogContent className="max-w-2xl border-2 border-black">
-          <DialogHeader><DialogTitle className="font-black uppercase">Bulk Import Personnel</DialogTitle></DialogHeader>
-          <div className="border-2 border-dashed border-black/20 rounded-xl p-12 text-center cursor-pointer hover:border-black transition-colors" onClick={() => fileInputRef.current?.click()}>
-            {isUploading ? <Loader2 className="size-8 mx-auto animate-spin" /> : <FileSpreadsheet className="size-8 mx-auto mb-2 opacity-20" />}
-            <p className="text-sm font-black uppercase">Select XLSX Document</p>
-            <input type="file" className="hidden" ref={fileInputRef} onChange={() => {}} accept=".xlsx" disabled={isUploading} />
+        <DialogContent className="max-w-2xl border-4 border-black bg-white rounded-none p-0 overflow-hidden shadow-2xl">
+          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
+            <DialogTitle className="font-black uppercase text-2xl tracking-tighter">Bulk Registry Import</DialogTitle>
+            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500">
+              Import personnel data via Institutional XLSX Document
+            </DialogDescription>
+          </DialogHeader>
+          <div className="p-12">
+            <div className="border-4 border-dashed border-black/20 rounded-none p-16 text-center cursor-pointer hover:border-black transition-colors bg-slate-50 group" onClick={() => fileInputRef.current?.click()}>
+              {isUploading ? (
+                <Loader2 className="size-16 mx-auto animate-spin text-black" />
+              ) : (
+                <FileSpreadsheet className="size-16 mx-auto mb-4 opacity-20 group-hover:opacity-100 transition-opacity text-black" />
+              )}
+              <p className="text-xl font-black uppercase tracking-widest group-hover:text-black">Select Registry Spreadsheet</p>
+              <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Required Columns: ID, Name, Designation, DateJoined, Address</p>
+              <input type="file" className="hidden" ref={fileInputRef} onChange={() => {}} accept=".xlsx" disabled={isUploading} />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
