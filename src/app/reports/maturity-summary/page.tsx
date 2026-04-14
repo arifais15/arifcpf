@@ -99,6 +99,25 @@ export default function InvestmentMaturityReportPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
+      {/* Dynamic Style for Portrait Printing Override */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 portrait !important;
+            margin: 12mm !important;
+          }
+          .print-container {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            display: block !important;
+          }
+          body {
+            background-color: white !important;
+          }
+        }
+      `}} />
+
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
@@ -139,12 +158,12 @@ export default function InvestmentMaturityReportPage() {
           <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border-2 border-black">
             <div className="flex-1 flex items-center gap-3 pl-4">
               <span className="text-[9px] font-black uppercase text-slate-400">Maturity From</span>
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-9 font-black border-none bg-transparent focus-visible:ring-0 text-black" />
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-9 font-black border-none bg-transparent focus-visible:ring-0 text-black" />
             </div>
             <ArrowRightLeft className="size-4 text-black opacity-30" />
             <div className="flex-1 flex items-center gap-3 pr-4">
               <span className="text-[9px] font-black uppercase text-slate-400">Maturity To</span>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 font-black border-none bg-transparent focus-visible:ring-0 text-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 font-black border-none bg-transparent focus-visible:ring-0 text-black" />
             </div>
           </div>
         </div>
@@ -201,9 +220,9 @@ export default function InvestmentMaturityReportPage() {
         </div>
       )}
 
-      {/* OFFICE NOTE VIEW (Screenshot Match) */}
+      {/* OFFICE NOTE VIEW (Optimized for Portrait) */}
       {viewMode === 'officenote' && (
-        <div className="bg-white p-12 shadow-2xl border-2 border-black max-w-[1000px] mx-auto w-full no-print animate-in zoom-in-95 duration-500 print-container">
+        <div className="bg-white p-12 shadow-2xl border-2 border-black max-w-[850px] mx-auto w-full no-print animate-in zoom-in-95 duration-500">
           <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
             <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
             <p className="text-base font-black uppercase tracking-[0.3em] text-black">Contributory Provident Fund</p>
@@ -244,7 +263,7 @@ export default function InvestmentMaturityReportPage() {
                   <th className="border border-black p-2 text-center uppercase">Rate (%)</th>
                   <th className="border border-black p-2 text-center uppercase">Maturity Date</th>
                   <th className="border border-black p-2 text-right uppercase">Net Interest (৳)</th>
-                  <th className="border border-black p-2 text-center uppercase w-[15%]">Decision (Initial)</th>
+                  <th className="border border-black p-2 text-center uppercase w-[15%]">Decision</th>
                 </tr>
               </thead>
               <tbody>
@@ -299,11 +318,11 @@ export default function InvestmentMaturityReportPage() {
         </div>
       )}
 
-      {/* PRINT VIEW (FORCING FORMAT) */}
-      <div className="hidden print:block font-ledger text-black">
+      {/* PRINT VIEW (FORCING PORTRAIT FORMAT) */}
+      <div className="hidden print:block print-container font-ledger text-black">
         {/* OFFICE NOTE PRINT */}
         {viewMode === 'officenote' && (
-          <div className="p-0">
+          <div className="p-0 w-full">
             <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
               <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
               <p className="text-base font-black uppercase tracking-[0.3em] text-black">Contributory Provident Fund</p>
@@ -396,9 +415,9 @@ export default function InvestmentMaturityReportPage() {
           </div>
         )}
 
-        {/* AUDIT MATRIX PRINT */}
+        {/* AUDIT MATRIX PRINT (Also Portraits for this report) */}
         {viewMode === 'audit' && (
-          <div className="p-0">
+          <div className="p-0 w-full">
             <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
               <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
               <p className="text-base font-black uppercase tracking-[0.3em] text-black">Contributory Provident Fund</p>
