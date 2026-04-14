@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -14,7 +15,8 @@ import {
   UserX, 
   ChevronLeft,
   ChevronRight,
-  ListFilter
+  ListFilter,
+  CalendarDays
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -42,8 +44,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   
-  const [pageSize, setPageSize] = useState<number>(5);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Date Range Filtering
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
   const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
@@ -72,6 +77,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     ];
   }, [interestSettings]);
 
+  // Initial Date Setup (Default to current fiscal year)
+  useEffect(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const fyStart = month >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
+    const today = now.toISOString().split('T')[0];
+    setDateRange({ start: "", end: "" }); // Default to all time
+  }, []);
+
   const sortedSummaries = useMemo(() => {
     return [...(summaries || [])].sort((a, b) => {
       const dateA = new Date(a.summaryDate).getTime();
@@ -83,24 +98,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [summaries]);
 
-  const columnSums = useMemo(() => {
-    return sortedSummaries.reduce((acc, row) => ({
-      c1: acc.c1 + (Number(row.employeeContribution) || 0),
-      c2: acc.c2 + (Number(row.loanWithdrawal) || 0),
-      c3: acc.c3 + (Number(row.loanRepayment) || 0),
-      c5: acc.c5 + (Number(row.profitEmployee) || 0),
-      c6: acc.c6 + (Number(row.profitLoan) || 0),
-      c8: acc.c8 + (Number(row.pbsContribution) || 0),
-      c9: acc.c9 + (Number(row.profitPbs) || 0),
-    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
-  }, [sortedSummaries]);
+  // CALCULATION ENGINE WITH DATE RANGE SUPPORT
+  const ledgerLogic = useMemo(() => {
+    if (!sortedSummaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 } };
 
-  const calculatedRows = useMemo(() => {
     let runningLoanBalance = 0;
     let runningEmployeeFund = 0;
     let runningOfficeFund = 0;
 
-    return sortedSummaries.map((row: any) => {
+    let opLoan = 0, opEmp = 0, opOffice = 0, opTotal = 0;
+    const startTime = dateRange.start ? new Date(dateRange.start).getTime() : 0;
+    const endTime = dateRange.end ? new Date(dateRange.end).getTime() : Infinity;
+
+    const allCalculated = sortedSummaries.map((row: any) => {
       const col1 = Number(row.employeeContribution) || 0;
       const col2 = Number(row.loanWithdrawal) || 0;
       const col3 = Number(row.loanRepayment) || 0;
@@ -116,29 +126,49 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
       return {
         ...row,
-        col1, col2, col3, col4: runningLoanBalance, col5, col6, col7: runningEmployeeFund, col8, col9, col10: runningOfficeFund, col11
+        col1, col2, col3, col4: runningLoanBalance, col5, col6, col7: runningEmployeeFund, col8, col9, col10: runningOfficeFund, col11,
+        timestamp: new Date(row.summaryDate).getTime()
       };
     });
-  }, [sortedSummaries]);
+
+    // Extract Opening Balance if range is set
+    if (dateRange.start) {
+      const preRecords = allCalculated.filter(r => r.timestamp < startTime);
+      if (preRecords.length > 0) {
+        const lastPre = preRecords[preRecords.length - 1];
+        opLoan = lastPre.col4;
+        opEmp = lastPre.col7;
+        opOffice = lastPre.col10;
+        opTotal = lastPre.col11;
+      }
+    }
+
+    // Filter for current view
+    const filtered = allCalculated.filter(r => r.timestamp >= startTime && r.timestamp <= endTime);
+
+    // Sum of period (excluding opening)
+    const sums = filtered.reduce((acc, r) => ({
+      c1: acc.c1 + r.col1, c2: acc.c2 + r.col2, c3: acc.c3 + r.col3, c5: acc.c5 + r.col5, c6: acc.c6 + r.col6, c8: acc.c8 + r.col8, c9: acc.c9 + r.col9
+    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
+    const lastRow = filtered.length > 0 ? filtered[filtered.length - 1] : { col4: opLoan, col7: opEmp, col10: opOffice, col11: opTotal };
+
+    return {
+      rows: filtered,
+      opening: { date: dateRange.start, particulars: "Opening Balance B/F", col4: opLoan, col7: opEmp, col10: opOffice, col11: opTotal },
+      totals: sums,
+      latest: { col4: lastRow.col4, col7: lastRow.col7, col10: lastRow.col10, col11: lastRow.col11 },
+      hasOpening: !!dateRange.start
+    };
+  }, [sortedSummaries, dateRange]);
 
   const paginatedRows = useMemo(() => {
-    if (pageSize === -1) return calculatedRows;
+    if (pageSize === -1) return ledgerLogic.rows;
     const start = (currentPage - 1) * pageSize;
-    return calculatedRows.slice(start, start + pageSize);
-  }, [calculatedRows, currentPage, pageSize]);
+    return ledgerLogic.rows.slice(start, start + pageSize);
+  }, [ledgerLogic.rows, currentPage, pageSize]);
 
-  const totalPages = pageSize === -1 ? 1 : Math.ceil(calculatedRows.length / pageSize);
-
-  const latestRunningTotals = useMemo(() => {
-    if (calculatedRows.length === 0) return { empFund: 0, officeFund: 0, total: 0, loanBalance: 0 };
-    const last = calculatedRows[calculatedRows.length - 1];
-    return {
-      empFund: last.col7,
-      officeFund: last.col10,
-      total: last.col11,
-      loanBalance: last.col4
-    };
-  }, [calculatedRows]);
+  const totalPages = pageSize === -1 ? 1 : Math.ceil(ledgerLogic.rows.length / pageSize);
 
   const availableFYs = useMemo(() => {
     const fys = [];
@@ -216,19 +246,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     let totalInterest = 0;
 
     for (const targetDate of basisDates) {
-      const lastEntry = [...calculatedRows].filter(r => new Date(r.summaryDate) <= targetDate).pop();
-      const balance = lastEntry ? lastEntry.col11 : 0;
-      const interest = calculateTieredAnnual(balance) / 12;
+      // Find the last record before targetDate to get running balance
+      const relevant = sortedSummaries.filter(s => new Date(s.summaryDate) <= targetDate);
+      let cumulativeBalance = 0;
+      relevant.forEach(r => {
+        const v = { c1: Number(r.employeeContribution)||0, c2: Number(r.loanWithdrawal)||0, c3: Number(r.loanRepayment)||0, c5: Number(r.profitEmployee)||0, c6: Number(r.profitLoan)||0, c8: Number(r.pbsContribution)||0, c9: Number(r.profitPbs)||0 };
+        cumulativeBalance += (v.c1 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9) - v.c2;
+      });
+
+      const interest = calculateTieredAnnual(cumulativeBalance) / 12;
       totalInterest += interest;
       monthlyDetails.push({
         label: targetDate.toLocaleString('default', { month: 'short', year: 'numeric' }),
         isOpening: targetDate.getDate() !== 31 && targetDate.getMonth() === 5 && selectedInterestMode === 'fy',
-        balance,
+        balance: cumulativeBalance,
         interest
       });
     }
     return { totalInterest, monthlyDetails, label, isDuplicate };
-  }, [selectedInterestMode, selectedInterestFY, customRange, calculatedRows, summaries, interestTiers]);
+  }, [selectedInterestMode, selectedInterestFY, customRange, sortedSummaries, summaries, interestTiers]);
 
   useEffect(() => {
     if (selectedInterestMode === "fy" && selectedInterestFY) {
@@ -241,17 +277,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const handlePostInterest = () => {
     if (!interestCalculation || !profitPostingDate) return;
-    const empFund = latestRunningTotals.empFund;
-    const pbsFund = latestRunningTotals.officeFund;
-    const totalFund = empFund + pbsFund;
+    
+    // We need current fund ratios for splitting profit
+    const relevant = sortedSummaries.filter(s => new Date(s.summaryDate) <= new Date(profitPostingDate));
+    let empFund = 0, officeFund = 0;
+    relevant.forEach(r => {
+      const v = { c1: Number(r.employeeContribution)||0, c2: Number(r.loanWithdrawal)||0, c3: Number(r.loanRepayment)||0, c5: Number(r.profitEmployee)||0, c6: Number(r.profitLoan)||0, c8: Number(r.pbsContribution)||0, c9: Number(r.profitPbs)||0 };
+      empFund += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6);
+      officeFund += (v.c8 + v.c9);
+    });
+
+    const totalFund = empFund + officeFund;
     let rawProfitEmp = 0, rawProfitPbs = 0;
     if (totalFund > 0) {
       rawProfitEmp = (interestCalculation.totalInterest * empFund) / totalFund;
-      rawProfitPbs = (interestCalculation.totalInterest * pbsFund) / totalFund;
+      rawProfitPbs = (interestCalculation.totalInterest * officeFund) / totalFund;
     } else {
       rawProfitEmp = interestCalculation.totalInterest / 2;
       rawProfitPbs = interestCalculation.totalInterest / 2;
     }
+
     addDocumentNonBlocking(summariesRef, {
       summaryDate: profitPostingDate,
       particulars: `Annual Profit ${interestCalculation.label} (Tiered)`,
@@ -295,13 +340,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const settlementEntry = {
       summaryDate: formData.get("date") as string,
       particulars: `Final Settlement (${formData.get("type")})`,
-      employeeContribution: -columnSums.c1,
+      employeeContribution: -ledgerLogic.latest.col7,
       loanWithdrawal: 0, 
-      loanRepayment: latestRunningTotals.loanBalance, 
-      profitEmployee: -columnSums.c5,
-      profitLoan: -columnSums.c6,
-      pbsContribution: -columnSums.c8,
-      profitPbs: -columnSums.c9,
+      loanRepayment: ledgerLogic.latest.col4, 
+      profitEmployee: 0,
+      profitLoan: 0,
+      pbsContribution: -ledgerLogic.latest.col10,
+      profitPbs: 0,
       lastUpdateDate: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       memberId: resolvedParams.id
@@ -322,6 +367,34 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2">
           <ArrowLeft className="size-5 text-black" />
         </Link>
+        
+        {/* Date Range Selector in Header */}
+        <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3">
+          <CalendarDays className="size-4 text-black/40" />
+          <div className="flex items-center gap-2">
+            <Input 
+              type="date" 
+              value={dateRange.start} 
+              onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setCurrentPage(1); }}
+              className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase"
+            />
+            <ArrowRightLeft className="size-3 text-black/20" />
+            <Input 
+              type="date" 
+              value={dateRange.end} 
+              onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setCurrentPage(1); }}
+              className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase"
+            />
+          </div>
+          {(dateRange.start || dateRange.end) && (
+            <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => setDateRange({ start: "", end: "" })}>
+              <Trash2 className="size-3" />
+            </Button>
+          )}
+        </div>
+
+        <div className="h-8 w-px bg-black/10 mx-1" />
+
         <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 overflow-hidden">
           <div className="flex items-center gap-2 px-3">
             <Label className="text-[9px] font-black uppercase text-black">View:</Label>
@@ -375,6 +448,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
           <p className="text-sm font-black uppercase tracking-widest text-black mt-1">Contributory Provident Fund</p>
           <h2 className="text-lg md:text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
+          {(dateRange.start || dateRange.end) && (
+            <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">
+              Audit Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-8 text-[13px] border-b-2 border-black pb-6 font-black text-black">
@@ -394,7 +472,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black no-print">
+          <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
             <thead className="bg-slate-100 font-black border-b-2 border-black text-black">
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter text-black">Date</th>
@@ -425,7 +503,28 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums text-black">
-              {paginatedRows.map((row: any, idx) => (
+              {/* Virtual Opening Balance Row */}
+              {ledgerLogic.hasOpening && (
+                <tr className="bg-slate-50 font-black italic border-b border-black">
+                  <td className="border border-black p-1 text-center font-mono text-black">{ledgerLogic.opening.date}</td>
+                  <td className="border border-black p-1 text-left uppercase text-black">{ledgerLogic.opening.particulars}</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{ledgerLogic.opening.col4.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{ledgerLogic.opening.col7.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right">-</td>
+                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{ledgerLogic.opening.col10.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200 text-black">{ledgerLogic.opening.col11.toLocaleString()}</td>
+                  <td className="border border-black p-1 no-print"></td>
+                </tr>
+              )}
+
+              {/* Paginated Rows (UI) / All Rows (Print) */}
+              {(typeof window !== 'undefined' && window.matchMedia('print').matches ? ledgerLogic.rows : paginatedRows).map((row: any, idx) => (
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors border-b border-black">
                   <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
                   <td className="border border-black p-1 text-left font-black uppercase leading-tight truncate text-black">{row.particulars || "-"}</td>
@@ -451,85 +550,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </tbody>
             <tfoot className="bg-slate-100 font-black border-t-2 border-black text-black tabular-nums">
               <tr className="h-10 text-[10px]">
-                <td className="border border-black p-1.5 text-center uppercase" colSpan={2}>Grand Totals:</td>
-                <td className="border border-black p-1 text-right">{columnSums.c1.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c2.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c3.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.loanBalance).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c5.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c6.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.empFund).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c9.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.officeFund).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-300 font-black text-sm">{(latestRunningTotals.total).toLocaleString()}</td>
+                <td className="border border-black p-1.5 text-center uppercase" colSpan={2}>Aggregate Period Portions:</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.latest.col4).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c5.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c6.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.latest.col7).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.latest.col10).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-300 font-black text-sm">{(ledgerLogic.latest.col11).toLocaleString()}</td>
                 <td className="border border-black p-1 no-print"></td>
-              </tr>
-            </tfoot>
-          </table>
-
-          <table className="hidden print:table w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
-            <thead className="bg-slate-100 font-black border-b-2 border-black">
-              <tr>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter text-black">Date</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
-                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Fund 7=(Pre+1-2+3+5+6)</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit (10=8+9)</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total (Col 11=7+10)</th>
-              </tr>
-              <tr className="bg-slate-50 text-[10px]">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                  <th key={i} className="border border-black p-0.5 text-center font-mono text-black">{i}</th>
-                ))}
-              </tr>
-              <tr className="text-[8px] uppercase leading-none">
-                <th className="border border-black p-1 text-right text-black">Contrib</th>
-                <th className="border border-black p-1 text-right text-black">Draw</th>
-                <th className="border border-black p-1 text-right text-black">Payment</th>
-                <th className="border border-black p-1 text-right bg-slate-200 text-black">Balance</th>
-                <th className="border border-black p-1 text-right text-black">Emp Profit</th>
-                <th className="border border-black p-1 text-right text-black">Loan Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-200 text-black">Net Emp</th>
-                <th className="border border-black p-1 text-right text-black">PBS Cont</th>
-                <th className="border border-black p-1 text-right text-black">PBS Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-100 text-black">Net Office</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black font-black tabular-nums text-black">
-              {calculatedRows.map((row: any, idx) => (
-                <tr key={idx} className="bg-white border-b border-black">
-                  <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
-                  <td className="border border-black p-1 text-left font-black uppercase leading-tight truncate text-black">{row.particulars || "-"}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col1.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col2.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col3.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col4.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col5.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col6.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col7.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col8.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col9.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col10.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-100 text-black">{row.col11.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-slate-100 font-black border-t-2 border-black text-black tabular-nums">
-              <tr className="h-10 text-[10px]">
-                <td className="border border-black p-1.5 text-center uppercase" colSpan={2}>Grand Totals:</td>
-                <td className="border border-black p-1 text-right">{columnSums.c1.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c2.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c3.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.loanBalance).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c5.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c6.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.empFund).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c9.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.officeFund).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-300 font-black text-sm">{(latestRunningTotals.total).toLocaleString()}</td>
               </tr>
             </tfoot>
           </table>
@@ -541,6 +574,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      {/* DIALOGS (REMAINS SAME) */}
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-2xl bg-white border-2 border-black p-0 overflow-hidden rounded-2xl shadow-2xl">
           <DialogHeader className="p-6 border-b-2 border-black bg-slate-50 flex flex-row items-center justify-between space-y-0">
@@ -665,9 +699,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <DialogHeader><DialogTitle className="font-black text-black uppercase">Institutional Final Settlement</DialogTitle></DialogHeader>
           <form onSubmit={handleFinalSettlement} className="space-y-6 py-4">
             <div className="bg-slate-50 p-4 rounded-xl border-2 border-black space-y-2">
-              <div className="flex justify-between text-[11px] font-black text-black"><span>Net Employee Equity:</span> <span className="text-black tabular-nums">৳ {latestRunningTotals.empFund.toLocaleString()}</span></div>
-              <div className="flex justify-between text-[11px] font-black text-black"><span>Office matching share:</span> <span className="text-black tabular-nums">৳ {latestRunningTotals.officeFund.toLocaleString()}</span></div>
-              <div className="pt-2 border-t-2 border-black flex justify-between font-black text-sm text-black uppercase"><span>Settlement Payable:</span> <span className="tabular-nums">৳ {latestRunningTotals.total.toLocaleString()}</span></div>
+              <div className="flex justify-between text-[11px] font-black text-black"><span>Net Employee Equity:</span> <span className="text-black tabular-nums">৳ {ledgerLogic.latest.col7.toLocaleString()}</span></div>
+              <div className="flex justify-between text-[11px] font-black text-black"><span>Office matching share:</span> <span className="text-black tabular-nums">৳ {ledgerLogic.latest.col10.toLocaleString()}</span></div>
+              <div className="pt-2 border-t-2 border-black flex justify-between font-black text-sm text-black uppercase"><span>Settlement Payable:</span> <span className="tabular-nums">৳ {ledgerLogic.latest.col11.toLocaleString()}</span></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label className="font-black text-black text-[10px] uppercase tracking-widest">Settlement Date</Label><Input name="date" type="date" required className="border-2 border-black font-black text-black" /></div>
