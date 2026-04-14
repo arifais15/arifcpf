@@ -29,7 +29,7 @@ export default function ReportsPage() {
     const mergedMap = new Map<string, any>();
     INITIAL_COA.forEach(acc => mergedMap.set(acc.code, acc));
     coaData.forEach(acc => mergedMap.set(acc.code, acc));
-    return Array.from(mergedMap.values()).sort((a, b) => a.code.compare(b.code));
+    return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
   }, [coaData]);
 
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
@@ -292,6 +292,8 @@ export default function ReportsPage() {
       <p className="text-xs text-black font-black uppercase tracking-[0.4em] mt-8 bg-black text-white py-1.5 px-6 inline-block rounded-md shadow-md">{subtitle}</p>
     </div>
   );
+
+  if (isCoaLoading || isEntriesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
