@@ -430,34 +430,32 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="overflow-x-auto w-full">
           <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black no-print">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
-              {/* Row 1: Logical Groupings */}
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Employees Contribution & Profit</th>
-                <th colSpan={5} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Loan Draw & Payment</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
+                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Accrued Profits</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px]">Action</th>
               </tr>
-              {/* Row 2: Reordered Column Indices */}
               <tr className="bg-slate-50 text-[10px]">
-                {[1, 5, 2, 3, 4, 6, 7, 8, 9, 10].map(i => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                   <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
                 ))}
               </tr>
-              {/* Row 3: Detail Labels */}
               <tr className="text-[8px] uppercase leading-none">
                 <th className="border border-black p-1 text-right">Contrib</th>
-                <th className="border border-black p-1 text-right">Profit</th>
                 <th className="border border-black p-1 text-right">Draw</th>
                 <th className="border border-black p-1 text-right">Payment</th>
                 <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
-                <th className="border border-black p-1 text-right">Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-200">Net</th>
-                <th className="border border-black p-1 text-right">Contrib</th>
-                <th className="border border-black p-1 text-right">Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-100">Net</th>
+                <th className="border border-black p-1 text-right">Emp Profit</th>
+                <th className="border border-black p-1 text-right">Loan Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-200">Net Emp</th>
+                <th className="border border-black p-1 text-right">PBS Cont</th>
+                <th className="border border-black p-1 text-right">PBS Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-100">Net Office</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums">
@@ -465,12 +463,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors border-b border-black">
                   <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
                   <td className="border border-black p-1 text-left font-black uppercase leading-tight truncate text-black">{row.particulars || "-"}</td>
-                  {/* Sequence: 1, 5, 2, 3, 4, 6, 7, 8, 9, 10 */}
                   <td className="border border-black p-1 text-right text-black">{row.col1.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col5.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col2.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col3.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right bg-slate-100 text-black">{row.col4.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{row.col5.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col6.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right bg-slate-100 text-black">{row.col7.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col8.toLocaleString()}</td>
@@ -489,51 +486,50 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <tfoot className="bg-slate-100 font-black border-t-2 border-black text-black tabular-nums">
               <tr className="h-10 text-[10px]">
                 <td className="border border-black p-1.5 text-center uppercase" colSpan={2}>Grand Totals:</td>
-                {/* Footer sequence matches 1, 5, 2, 3, 4, 6, 7, 8, 9, 10 */}
                 <td className="border border-black p-1 text-right">{columnSums.c1.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c5.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c2.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c3.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.loanBalance).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{columnSums.c5.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c6.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.empFund).toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c9.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.officeFund).toLocaleString()}</td>
-                {/* Total: 11 */}
                 <td className="border border-black p-1 text-right bg-slate-300 font-black text-sm">{(latestRunningTotals.total).toLocaleString()}</td>
                 <td className="border border-black p-1 no-print"></td>
               </tr>
             </tfoot>
           </table>
 
-          {/* PRINT VERSION (FULL HISTORY + SEQUENCED) */}
+          {/* PRINT VERSION */}
           <table className="hidden print:table w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Employees Contribution & Profit</th>
-                <th colSpan={5} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Loan Draw & Payment</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
+                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Accrued Profits</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
               </tr>
               <tr className="bg-slate-50 text-[10px]">
-                {[1, 5, 2, 3, 4, 6, 7, 8, 9, 10].map(i => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
                   <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
                 ))}
               </tr>
               <tr className="text-[8px] uppercase leading-none">
                 <th className="border border-black p-1 text-right">Contrib</th>
-                <th className="border border-black p-1 text-right">Profit</th>
                 <th className="border border-black p-1 text-right">Draw</th>
                 <th className="border border-black p-1 text-right">Payment</th>
                 <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
-                <th className="border border-black p-1 text-right">Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-200">Net</th>
-                <th className="border border-black p-1 text-right">Contrib</th>
-                <th className="border border-black p-1 text-right">Profit</th>
-                <th className="border border-black p-1 text-right bg-slate-100">Net</th>
+                <th className="border border-black p-1 text-right">Emp Profit</th>
+                <th className="border border-black p-1 text-right">Loan Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-200">Net Emp</th>
+                <th className="border border-black p-1 text-right">PBS Cont</th>
+                <th className="border border-black p-1 text-right">PBS Profit</th>
+                <th className="border border-black p-1 text-right bg-slate-100">Net Office</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black font-black tabular-nums">
@@ -542,10 +538,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
                   <td className="border border-black p-1 text-left font-black uppercase leading-tight truncate text-black">{row.particulars || "-"}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col1.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right text-black">{row.col5.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col2.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col3.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col4.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right text-black">{row.col5.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col6.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right bg-slate-50 text-black">{row.col7.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right text-black">{row.col8.toLocaleString()}</td>
@@ -559,10 +555,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <tr className="h-10 text-[10px]">
                 <td className="border border-black p-1.5 text-center uppercase" colSpan={2}>Grand Totals:</td>
                 <td className="border border-black p-1 text-right">{columnSums.c1.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{columnSums.c5.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c2.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c3.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.loanBalance).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{columnSums.c5.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c6.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200">{(latestRunningTotals.empFund).toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{columnSums.c8.toLocaleString()}</td>
