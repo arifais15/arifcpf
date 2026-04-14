@@ -589,32 +589,32 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
-        <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto bg-white border-2 border-black p-0 rounded-2xl shadow-2xl">
+        <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto bg-white border-2 border-black p-0 rounded-2xl shadow-2xl">
           <DialogHeader className="p-6 border-b-2 border-black bg-slate-50 flex flex-row items-center justify-between space-y-0 sticky top-0 z-10">
             <DialogTitle className="text-2xl font-black text-black tracking-tight uppercase">{editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}</DialogTitle>
             <DialogClose asChild><Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-slate-200 text-black"><UserX className="size-4" /></Button></DialogClose>
           </DialogHeader>
-          <form onSubmit={handleSaveEntry} className="p-6 space-y-6">
-            {/* Real-time Calculation Summary Terminal */}
-            <div className="bg-black p-6 rounded-2xl border-2 border-slate-800 shadow-xl space-y-4">
+          <form onSubmit={handleSaveEntry} className="p-6 space-y-4">
+            {/* Real-time Calculation Summary Terminal - Horizontal Optimized */}
+            <div className="bg-black p-4 rounded-xl border-2 border-slate-800 shadow-xl space-y-2">
               <div className="flex items-center gap-2 text-white">
-                <TrendingUp className="size-4 text-emerald-400" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Financial Impact Terminal</span>
+                <TrendingUp className="size-3.5 text-emerald-400" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Financial Impact Terminal</span>
               </div>
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-1">
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Net Employee Equity</p>
                   <p className={cn("text-lg font-black tabular-nums", entryNetFund.empNet >= 0 ? "text-white" : "text-rose-400")}>
                     ৳ {entryNetFund.empNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="space-y-1 border-l border-white/10 pl-6">
+                <div className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
                   <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Office Match Share</p>
                   <p className="text-lg font-black text-white tabular-nums">
                     ৳ {entryNetFund.officeNet.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="space-y-1 border-l border-white/10 pl-6 bg-white/5 rounded-xl p-2 -m-2">
+                <div className="flex items-center justify-between bg-emerald-500/10 p-3 rounded-lg border border-emerald-500/30">
                   <p className="text-[9px] font-black uppercase text-emerald-400 tracking-widest">Net Fund Sum</p>
                   <p className="text-xl font-black text-emerald-400 tabular-nums">
                     ৳ {entryNetFund.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -623,110 +623,90 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Transaction Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black h-11 focus:ring-0 rounded-xl bg-slate-50" /></div>
-              <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Voucher Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="Monthly Contribution..." className="border-2 border-black font-black text-black h-11 focus:ring-0 rounded-xl bg-slate-50" /></div>
+            {/* Metadata Row: Horizontal Optimized */}
+            <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50/50 rounded-xl border-2 border-black">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-black uppercase ml-1">Posting Date</Label>
+                <Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black h-9 focus:ring-0 rounded-lg bg-white uppercase text-xs" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-black uppercase ml-1">Voucher Particulars</Label>
+                <Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="Monthly Contribution..." className="border-2 border-black font-black text-black h-9 focus:ring-0 rounded-lg bg-white text-xs" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-black uppercase ml-1">Contribution Source</Label>
+                <Select name="contributionSource" defaultValue={editingEntry?.contributionSource || "Local"}>
+                  <SelectTrigger className="border-2 border-black font-black text-black h-9 rounded-lg bg-white text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent className="border-2 border-black"><SelectItem value="Local" className="font-black uppercase text-xs">Local PBS (GPBS-2)</SelectItem><SelectItem value="Other" className="font-black uppercase text-xs">Other PBS (Transfer)</SelectItem></SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-black text-black ml-1 uppercase">Contribution Source</Label>
-              <Select name="contributionSource" defaultValue={editingEntry?.contributionSource || "Local"}>
-                <SelectTrigger className="border-2 border-black font-black text-black h-11 rounded-xl bg-slate-50"><SelectValue /></SelectTrigger>
-                <SelectContent className="border-2 border-black"><SelectItem value="Local" className="font-black uppercase">Local PBS (GPBS-2)</SelectItem><SelectItem value="Other" className="font-black uppercase">Other PBS (Transfer)</SelectItem></SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-5">
-              <div className="bg-blue-50/50 p-5 rounded-2xl border-2 border-black grid grid-cols-3 gap-5">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Emp Cont (Col 1)</Label>
-                  <Input 
-                    name="employeeContribution" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c1 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c1: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
+
+            {/* Financial Input Grid: Triple Column Horizontal Layout */}
+            <div className="grid grid-cols-3 gap-4">
+              {/* Column 1: Employee/Loan (Col 1, 2, 3) */}
+              <div className="bg-blue-50/30 p-4 rounded-xl border-2 border-black space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-blue-600 text-white rounded text-[8px] uppercase font-black">Employee & Loans</Badge>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Disb (Col 2)</Label>
-                  <Input 
-                    name="loanWithdrawal" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c2 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c2: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Loan Repay (Col 3)</Label>
-                  <Input 
-                    name="loanRepayment" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c3 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c3: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Emp Cont (Col 1)</Label>
+                    <Input name="employeeContribution" type="number" step="0.01" value={tempEntry.c1 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c1: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Loan Disb (Col 2)</Label>
+                    <Input name="loanWithdrawal" type="number" step="0.01" value={tempEntry.c2 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c2: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Loan Repay (Col 3)</Label>
+                    <Input name="loanRepayment" type="number" step="0.01" value={tempEntry.c3 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c3: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-slate-50 p-5 rounded-2xl border-2 border-black grid grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Emp (Col 5)</Label>
-                  <Input 
-                    name="profitEmployee" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c5 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c5: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
+
+              {/* Column 2: Profits (Col 5, 6) */}
+              <div className="bg-orange-50/30 p-4 rounded-xl border-2 border-black space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-orange-600 text-white rounded text-[8px] uppercase font-black">Period Profits</Badge>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit Loan (Col 6)</Label>
-                  <Input 
-                    name="profitLoan" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c6 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c6: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Profit Emp (Col 5)</Label>
+                    <Input name="profitEmployee" type="number" step="0.01" value={tempEntry.c5 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c5: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Profit Loan (Col 6)</Label>
+                    <Input name="profitLoan" type="number" step="0.01" value={tempEntry.c6 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c6: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
+                  <div className="h-[52px] flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                    <span className="text-[8px] uppercase font-black text-slate-300">Unused Buffer</span>
+                  </div>
                 </div>
               </div>
-              <div className="bg-emerald-50/50 p-5 rounded-2xl border-2 border-black grid grid-cols-2 gap-5">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">PBS Cont (Col 8)</Label>
-                  <Input 
-                    name="pbsContribution" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c8 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c8: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
+
+              {/* Column 3: PBS Share (Col 8, 9) */}
+              <div className="bg-emerald-50/30 p-4 rounded-xl border-2 border-black space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-emerald-600 text-white rounded text-[8px] uppercase font-black">Office matching</Badge>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-black uppercase tracking-widest ml-1">Profit PBS (Col 9)</Label>
-                  <Input 
-                    name="profitPbs" 
-                    type="number" 
-                    step="0.01" 
-                    value={tempEntry.c9 || ''} 
-                    onKeyDown={handleNumericKeyDown} 
-                    onChange={(e) => setTempEntry({...tempEntry, c9: Number(e.target.value)})}
-                    className="border-2 border-black font-black text-black h-10 tabular-nums rounded-lg bg-white" 
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">PBS Cont (Col 8)</Label>
+                    <Input name="pbsContribution" type="number" step="0.01" value={tempEntry.c8 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c8: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Profit PBS (Col 9)</Label>
+                    <Input name="profitPbs" type="number" step="0.01" value={tempEntry.c9 || ''} onKeyDown={handleNumericKeyDown} onChange={(e) => setTempEntry({...tempEntry, c9: Number(e.target.value)})} className="border-2 border-black font-black text-black h-9 tabular-nums rounded-lg bg-white text-xs" />
+                  </div>
+                  <div className="h-[52px] flex items-center justify-center border-2 border-dashed border-slate-200 rounded-lg bg-slate-50/50">
+                    <span className="text-[8px] uppercase font-black text-slate-300">Office Side</span>
+                  </div>
                 </div>
               </div>
             </div>
-            <Button type="submit" className="w-full bg-black text-white font-black h-12 rounded-2xl uppercase tracking-[0.2em] shadow-xl text-sm mb-4">Save Record</Button>
+
+            <Button type="submit" className="w-full bg-black text-white font-black h-12 rounded-xl uppercase tracking-[0.2em] shadow-xl text-sm mb-2 mt-4">Save Ledger Record</Button>
           </form>
         </DialogContent>
       </Dialog>
