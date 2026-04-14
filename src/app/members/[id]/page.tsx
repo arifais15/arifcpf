@@ -345,11 +345,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[65px] uppercase text-[8px] tracking-tighter">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[120px] uppercase text-[8px] tracking-tighter">Particulars</th>
-                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50">Contributions & Loans</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50">Employees'Contributions & Loans</th>
                 <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">Profits</th>
-                <th className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200">Net Fund</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">PBS Fund</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200">Total (11)</th>
+                <th className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200">Net Fund <b> 7=(Pre+1-2+3+4+5+6) </b></th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100">PBS Contributions</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200">Total (11=7+10)</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[60px] uppercase text-[8px]">Action</th>
               </tr>
               <tr className="bg-slate-50 text-[9px]">
