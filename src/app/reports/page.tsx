@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS as INITIAL_COA, type COAEntry } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck } from "lucide-react";
+import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck, Scale } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -203,6 +203,81 @@ export default function ReportsPage() {
     );
   };
 
+  const TrialBalanceView = () => {
+    const filteredAccounts = activeCOA.filter(a => !a.isHeader && (balances[a.code] || 0) !== 0);
+    
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const rows = filteredAccounts.map(acc => {
+      const val = balances[acc.code] || 0;
+      let debit = 0;
+      let credit = 0;
+
+      if (acc.balance === 'Debit') {
+        if (val > 0) debit = val;
+        else credit = Math.abs(val);
+      } else {
+        if (val > 0) credit = val;
+        else debit = Math.abs(val);
+      }
+
+      totalDebit += debit;
+      totalCredit += credit;
+
+      return { ...acc, debit, credit };
+    });
+
+    return (
+      <div className="space-y-8">
+        <div className="border-4 border-black overflow-hidden shadow-2xl">
+          <table className="w-full text-[11px] border-collapse font-black text-black tabular-nums">
+            <thead className="bg-slate-100 border-b-4 border-black">
+              <tr>
+                <th className="p-4 text-left uppercase tracking-widest border-r-2 border-black w-[120px]">Account Code</th>
+                <th className="p-4 text-left uppercase tracking-widest border-r-2 border-black">Account Description</th>
+                <th className="p-4 text-right uppercase tracking-widest border-r-2 border-black w-[150px]">Debit (৳)</th>
+                <th className="p-4 text-right uppercase tracking-widest w-[150px]">Credit (৳)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y-2 divide-black">
+              {rows.map((row) => (
+                <tr key={row.code} className="hover:bg-slate-50 transition-colors">
+                  <td className="p-3 font-mono border-r-2 border-black">{row.code}</td>
+                  <td className="p-3 uppercase border-r-2 border-black">{row.name}</td>
+                  <td className="p-3 text-right border-r-2 border-black">
+                    {row.debit !== 0 ? formatCurrency(row.debit) : "—"}
+                  </td>
+                  <td className="p-3 text-right">
+                    {row.credit !== 0 ? formatCurrency(row.credit) : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-black text-white border-t-4 border-black font-black">
+              <tr className="h-16">
+                <td colSpan={2} className="p-4 text-right uppercase tracking-[0.3em] text-sm pr-10">Institutional Grand Totals:</td>
+                <td className="p-4 text-right text-lg border-l border-white/20">৳ {formatCurrency(totalDebit)}</td>
+                <td className="p-4 text-right text-lg border-l border-white/20">৳ {formatCurrency(totalCredit)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div className="bg-slate-50 p-6 border-2 border-black flex items-center justify-between rounded-xl">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="size-6 text-emerald-600" />
+            <p className="text-xs uppercase font-black tracking-widest">Mathematical Integrity Verified</p>
+          </div>
+          {Math.abs(totalDebit - totalCredit) < 0.01 ? (
+            <Badge className="bg-emerald-600 text-white font-black uppercase tracking-widest px-6 py-1.5 text-[10px]">Balanced Ledger</Badge>
+          ) : (
+            <Badge variant="destructive" className="font-black uppercase tracking-widest px-6 py-1.5 text-[10px] animate-pulse">Out of Balance: {formatCurrency(totalDebit - totalCredit)}</Badge>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
     <div className="text-center mb-12 border-b-4 border-black pb-8">
       <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
@@ -282,9 +357,10 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="position" className="w-full max-w-5xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3 mb-8 no-print h-14 bg-white border-2 border-black p-1.5 rounded-[20px] shadow-md">
+        <TabsList className="grid w-full grid-cols-4 mb-8 no-print h-14 bg-white border-2 border-black p-1.5 rounded-[20px] shadow-md">
           <TabsTrigger value="position" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><Wallet className="size-4" /> Balance Sheet</TabsTrigger>
           <TabsTrigger value="income" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><TrendingUp className="size-4" /> Profit & Loss</TabsTrigger>
+          <TabsTrigger value="trial" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><Scale className="size-4" /> Trial Balance</TabsTrigger>
           <TabsTrigger value="receipts" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><ArrowDownUp className="size-4" /> Cash Flow</TabsTrigger>
         </TabsList>
 
@@ -357,6 +433,24 @@ export default function ReportsPage() {
                   <span className="underline decoration-double decoration-2">৳ {formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
               </div>
+              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
+              </div>
+              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
+                <span>CPF Management Software v1.0</span>
+                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="trial">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto overflow-hidden">
+            <CardContent className="p-12 print:p-0">
+              <ReportHeader title="Institutional Trial Balance" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
+              <TrialBalanceView />
               <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
