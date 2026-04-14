@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter, CalendarDays, MapPin, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
+import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, addDoc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -140,6 +140,94 @@ export default function MembersPage() {
     }
     setIsAddOpen(false);
     setEditingMember(null);
+  };
+
+  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const bstr = event.target?.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+        
+        let count = 0;
+        for (const entry of data as any[]) {
+          const joinedDate = String(entry["JoinedDate"] || entry.dateJoined || "");
+          const memberData = {
+            memberIdNumber: String(entry["ID"] || entry.memberIdNumber || ""),
+            name: String(entry["Name"] || ""),
+            designation: String(entry["Designation"] || ""),
+            dateJoined: joinedDate,
+            permanentAddress: String(entry["Address"] || entry.permanentAddress || ""),
+            zonalOffice: String(entry["Office"] || entry.zonalOffice || ""),
+            status: String(entry["Status"] || "Active"),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+
+          if (memberData.memberIdNumber && memberData.name) {
+            const memberRef = await addDoc(collection(firestore, "members"), memberData);
+            
+            // Inject Opening Balance Entry
+            const openingEntry = {
+              summaryDate: joinedDate || new Date().toISOString().split('T')[0],
+              particulars: "Opening Balance (Imported)",
+              employeeContribution: Number(entry["Col1"] || 0),
+              loanWithdrawal: Number(entry["Col2"] || 0),
+              loanRepayment: Number(entry["Col3"] || 0),
+              profitEmployee: Number(entry["Col5"] || 0),
+              profitLoan: Number(entry["Col6"] || 0),
+              pbsContribution: Number(entry["Col8"] || 0),
+              profitPbs: Number(entry["Col9"] || 0),
+              isSystemGenerated: true,
+              memberId: memberRef.id,
+              createdAt: new Date().toISOString()
+            };
+            await addDoc(collection(firestore, "members", memberRef.id, "fundSummaries"), openingEntry);
+            count++;
+          }
+        }
+        showAlert({ 
+          title: "Import Success", 
+          description: `Successfully registered ${count} personnel with opening ledger balances.`, 
+          type: "success", 
+          onConfirm: () => window.location.reload() 
+        });
+      } catch (err) {
+        toast({ title: "Upload Failed", description: "Ensure the Excel format matches the institutional requirement.", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
+        setIsBulkOpen(false);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const downloadTemplate = () => {
+    const templateData = [{
+      "ID": "5001",
+      "Name": "MD. ARIFUL ISLAM",
+      "Designation": "AGMF",
+      "JoinedDate": "2020-01-01",
+      "Address": "GAZIPUR",
+      "Office": "HEAD OFFICE",
+      "Status": "Active",
+      "Col1": 150000,
+      "Col2": 0,
+      "Col3": 0,
+      "Col5": 45000,
+      "Col6": 0,
+      "Col8": 150000,
+      "Col9": 45000
+    }];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "RegistryTemplate");
+    XLSX.writeFile(wb, "PBS_CPF_Import_Template.xlsx");
   };
 
   return (
@@ -326,21 +414,40 @@ export default function MembersPage() {
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="max-w-2xl border-4 border-black bg-white rounded-none p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
-            <DialogTitle className="font-black uppercase text-2xl tracking-tighter">Bulk Registry Import</DialogTitle>
-            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500">
-              Import personnel data via Institutional XLSX Document
+            <div className="flex items-center justify-between">
+              <DialogTitle className="font-black uppercase text-2xl tracking-tighter">Bulk Registry & Ledger Import</DialogTitle>
+              <Button variant="ghost" size="sm" onClick={downloadTemplate} className="h-8 text-[10px] font-black gap-1.5 uppercase hover:bg-black hover:text-white border-2 border-black transition-all">
+                <Download className="size-3.5" /> Download Template
+              </Button>
+            </div>
+            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500 mt-2">
+              Import personnel and historical opening balances via single XLSX document
             </DialogDescription>
           </DialogHeader>
           <div className="p-12">
             <div className="border-4 border-dashed border-black/20 rounded-none p-16 text-center cursor-pointer hover:border-black transition-colors bg-slate-50 group" onClick={() => fileInputRef.current?.click()}>
               {isUploading ? (
-                <Loader2 className="size-16 mx-auto animate-spin text-black" />
+                <div className="space-y-4">
+                  <Loader2 className="size-16 mx-auto animate-spin text-black" />
+                  <p className="text-sm font-black uppercase tracking-widest">Processing Trust Data...</p>
+                </div>
               ) : (
-                <FileSpreadsheet className="size-16 mx-auto mb-4 opacity-20 group-hover:opacity-100 transition-opacity text-black" />
+                <>
+                  <FileSpreadsheet className="size-16 mx-auto mb-4 opacity-20 group-hover:opacity-100 transition-opacity text-black" />
+                  <p className="text-xl font-black uppercase tracking-widest group-hover:text-black">Select Import Spreadsheet</p>
+                  <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Single file for profiles + Cols 1, 2, 3, 5, 6, 8, 9</p>
+                </>
               )}
-              <p className="text-xl font-black uppercase tracking-widest group-hover:text-black">Select Registry Spreadsheet</p>
-              <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Required Columns: ID, Name, Designation, DateJoined, Address</p>
-              <input type="file" className="hidden" ref={fileInputRef} onChange={() => {}} accept=".xlsx" disabled={isUploading} />
+              <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} accept=".xlsx" disabled={isUploading} />
+            </div>
+            
+            <div className="mt-8 p-4 bg-blue-50 border-2 border-blue-100 rounded-none space-y-2">
+              <p className="text-[10px] font-black uppercase text-blue-700 flex items-center gap-2">
+                <Info className="size-3.5" /> Mapping Instructions
+              </p>
+              <p className="text-[9px] text-blue-600 leading-relaxed font-bold">
+                Ensure headers match: ID, Name, Designation, JoinedDate, Address, Office, Col1, Col2, Col3, Col5, Col6, Col8, Col9. The system will auto-calculate Col 4, 7, 10, and 11.
+              </p>
             </div>
           </div>
         </DialogContent>
