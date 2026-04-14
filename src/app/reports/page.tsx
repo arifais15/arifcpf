@@ -169,34 +169,34 @@ export default function ReportsPage() {
     const grandTotal = groups.reduce((sum, g) => sum + g.total, 0);
 
     return (
-      <div className={cn("space-y-8", className)}>
-        <h3 className="text-sm font-black border-b-4 border-black pb-2 uppercase tracking-[0.2em] text-black">{title}</h3>
-        <div className="space-y-8">
+      <div className={cn("space-y-6", className)}>
+        <h3 className="text-xs font-black border-b-4 border-black pb-1 uppercase tracking-[0.2em] text-black">{title}</h3>
+        <div className="space-y-6">
           {groups.map((group, idx) => (
-            <div key={idx} className="space-y-2">
-              <div className="flex justify-between font-black text-xs text-black bg-slate-100 p-2 rounded-md border-l-4 border-black">
+            <div key={idx} className="space-y-1.5">
+              <div className="flex justify-between font-black text-[10px] text-black bg-slate-50 p-1.5 rounded-sm border-l-4 border-black">
                 <span className="uppercase tracking-widest">{group.header.name}</span>
               </div>
-              <div className="pl-6 space-y-1">
+              <div className="pl-4 space-y-0.5">
                 {group.items.map(item => (
-                  <div key={item.code} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black hover:bg-slate-50 transition-colors tabular-nums font-black text-black">
-                    <span className="flex gap-8">
-                       <span className="font-mono w-[100px]">{item.code}</span>
+                  <div key={item.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                    <span className="flex gap-4">
+                       <span className="font-mono w-[80px] opacity-60">{item.code}</span>
                        <span>{item.name}</span>
                     </span>
                     <span>{formatCurrency(balancesMap[item.code])}</span>
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between font-black text-[12px] pt-3 border-t-2 border-black mt-3 pl-6 pr-2 italic text-black tabular-nums">
+              <div className="flex justify-between font-black text-[11px] pt-2 border-t-2 border-black mt-2 pl-4 pr-1 italic text-black tabular-nums">
                 <span className="uppercase tracking-tight">Total {group.header.name}</span>
                 <span className="underline decoration-black">{formatCurrency(group.total)}</span>
               </div>
             </div>
           ))}
         </div>
-        <div className="flex justify-between font-black text-base bg-black text-white p-4 rounded-xl mt-10 uppercase tracking-widest shadow-lg">
-          <span>Total Consolidated {title}</span>
+        <div className="flex justify-between font-black text-sm bg-black text-white p-3 rounded-lg mt-6 uppercase tracking-widest shadow-lg">
+          <span>Total {title}</span>
           <span className="tabular-nums underline decoration-double">৳ {formatCurrency(grandTotal)}</span>
         </div>
       </div>
@@ -204,11 +204,11 @@ export default function ReportsPage() {
   };
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="text-center mb-12 border-b-4 border-black pb-8">
-      <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
-      <p className="text-base font-black uppercase tracking-[0.25em] text-black mt-1">Contributory Provident Fund</p>
-      <h2 className="text-xl md:text-2xl font-black text-black mt-4 uppercase underline decoration-2 underline-offset-8 decoration-black">{title}</h2>
-      <p className="text-[12px] text-black font-black uppercase tracking-[0.4em] mt-6 bg-black text-white py-1.5 px-4 inline-block rounded-md">{subtitle}</p>
+    <div className="text-center mb-10 border-b-4 border-black pb-6">
+      <h1 className="text-2xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+      <p className="text-sm font-black uppercase tracking-[0.25em] text-black mt-1">Contributory Provident Fund</p>
+      <h2 className="text-lg md:text-xl font-black text-black mt-4 uppercase underline decoration-2 underline-offset-8 decoration-black">{title}</h2>
+      <p className="text-[10px] text-black font-black uppercase tracking-[0.4em] mt-6 bg-black text-white py-1 px-4 inline-block rounded-md">{subtitle}</p>
     </div>
   );
 
@@ -225,22 +225,48 @@ export default function ReportsPage() {
   const totalExpense = expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
 
   return (
-    <div className="p-10 flex flex-col gap-10 bg-white min-h-screen font-ledger text-black">
-      <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-8 rounded-3xl border-2 border-black shadow-2xl">
-        <div className="flex items-center gap-6">
-          <div className="bg-black p-4 rounded-2xl">
-             <ShieldCheck className="size-10 text-white" />
+    <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
+      {/* Dynamic Style for Portrait Printing Override */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 portrait !important;
+            margin: 10mm !important;
+          }
+          .print-container {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            display: block !important;
+            box-shadow: none !important;
+            border: none !important;
+          }
+          .print-portrait-fix {
+            width: 190mm !important;
+            margin: 0 auto !important;
+            padding: 0 !important;
+          }
+          body {
+            background-color: white !important;
+          }
+        }
+      `}} />
+
+      <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-6 rounded-3xl border-2 border-black shadow-2xl">
+        <div className="flex items-center gap-5">
+          <div className="bg-black p-3.5 rounded-2xl">
+             <ShieldCheck className="size-8 text-white" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-3xl font-black tracking-tighter text-black uppercase">Institutional Financials</h1>
-            <p className="text-sm text-black uppercase tracking-[0.2em] font-black">{fyDates.display}</p>
+            <h1 className="text-2xl font-black tracking-tighter text-black uppercase">Institutional Financials</h1>
+            <p className="text-xs text-black uppercase tracking-[0.2em] font-black">{fyDates.display}</p>
           </div>
         </div>
-        <div className="flex items-center gap-8">
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-[11px] uppercase font-black text-black tracking-widest">Target Fiscal Period</Label>
+        <div className="flex items-center gap-6">
+          <div className="flex flex-col gap-1">
+            <Label className="text-[10px] uppercase font-black text-black tracking-widest">Target Fiscal Period</Label>
             <Select value={selectedFiscalYear} onValueChange={setSelectedFY}>
-              <SelectTrigger className="w-[200px] h-12 text-sm font-black border-2 border-black bg-white">
+              <SelectTrigger className="w-[180px] h-10 text-xs font-black border-2 border-black bg-white">
                 <SelectValue placeholder="Select FY" />
               </SelectTrigger>
               <SelectContent>
@@ -248,34 +274,34 @@ export default function ReportsPage() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={() => window.print()} className="h-12 gap-3 font-black px-10 shadow-xl bg-black text-white rounded-xl uppercase tracking-widest hover:bg-black/90">
-            <Printer className="size-5" />
-            Generate Statement
+          <Button onClick={() => window.print()} className="h-10 gap-2 font-black px-8 shadow-xl bg-black text-white rounded-xl uppercase tracking-widest text-xs hover:bg-black/90">
+            <Printer className="size-4" />
+            Commit to Print
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="position" className="w-full max-w-5xl mx-auto">
-        <TabsList className="grid w-full grid-cols-3 mb-12 no-print h-16 bg-white border-2 border-black p-1.5 rounded-[24px] shadow-md">
-          <TabsTrigger value="position" className="gap-3 rounded-2xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><Wallet className="size-5" /> Balance Sheet</TabsTrigger>
-          <TabsTrigger value="income" className="gap-3 rounded-2xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><TrendingUp className="size-5" /> Profit & Loss</TabsTrigger>
-          <TabsTrigger value="receipts" className="gap-3 rounded-2xl text-[15px] font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><ArrowDownUp className="size-5" /> Cash Flow</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-8 no-print h-14 bg-white border-2 border-black p-1.5 rounded-[20px] shadow-md">
+          <TabsTrigger value="position" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><Wallet className="size-4" /> Balance Sheet</TabsTrigger>
+          <TabsTrigger value="income" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><TrendingUp className="size-4" /> Profit & Loss</TabsTrigger>
+          <TabsTrigger value="receipts" className="gap-2 rounded-xl text-sm font-black transition-all data-[state=active]:bg-black data-[state=active]:text-white uppercase"><ArrowDownUp className="size-4" /> Cash Flow</TabsTrigger>
         </TabsList>
 
         <TabsContent value="position">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto">
-            <CardContent className="p-16 print:p-0">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto overflow-hidden">
+            <CardContent className="p-12 print:p-0">
               <ReportHeader title="Statement of Financial Position" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="space-y-20">
+              <div className="space-y-12">
                 <ClassifiedSection title="Institutional Assets & Portfolio" accounts={assetAccounts} balancesMap={balances} />
                 <ClassifiedSection title="Member Equity & Trust Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
               </div>
-              <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[11px] text-black font-black uppercase tracking-[0.3em]">
+              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
                 <span>CPF Management Software v1.0</span>
                 <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
@@ -284,59 +310,59 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="income">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto">
-            <CardContent className="p-16 print:p-0">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto overflow-hidden">
+            <CardContent className="p-12 print:p-0">
               <ReportHeader title="Statement of Comprehensive Income" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="space-y-16">
-                <div className="space-y-8">
-                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-2 uppercase tracking-[0.2em]">Institutional Revenue</h3>
-                  <div className="space-y-3 pl-6">
+              <div className="space-y-12">
+                <div className="space-y-6">
+                  <h3 className="text-xs font-black border-b-4 border-black text-black pb-1 uppercase tracking-[0.2em]">Institutional Revenue</h3>
+                  <div className="space-y-2 pl-4">
                     {incomeAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
+                        <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/30 font-black text-black tabular-nums">
                           <span className="uppercase tracking-tight">{acc.name}</span>
                           <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-black text-[13px] pt-4 border-t-2 border-black mt-6 text-black tabular-nums uppercase">
+                    <div className="flex justify-between font-black text-[12px] pt-3 border-t-2 border-black mt-4 text-black tabular-nums uppercase italic">
                        <span>Gross Consolidated Income</span>
                        <span className="underline decoration-black">{formatCurrency(totalIncome)}</span>
                     </div>
                   </div>
                 </div>
-                <div className="space-y-8">
-                  <h3 className="text-sm font-black border-b-4 border-black text-black pb-2 uppercase tracking-[0.2em]">Operating Expenditures</h3>
-                  <div className="space-y-3 pl-6">
+                <div className="space-y-6">
+                  <h3 className="text-xs font-black border-b-4 border-black text-black pb-1 uppercase tracking-[0.2em]">Operating Expenditures</h3>
+                  <div className="space-y-2 pl-4">
                     {expenseAccounts.map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       if (val === 0) return null;
                       return (
-                        <div key={acc.code} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
+                        <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/30 font-black text-black tabular-nums">
                           <span className="uppercase tracking-tight">{acc.name}</span>
                           <span>{formatCurrency(val)}</span>
                         </div>
                       )
                     })}
-                    <div className="flex justify-between font-black text-[13px] pt-4 border-t-2 border-black mt-6 text-black tabular-nums uppercase">
+                    <div className="flex justify-between font-black text-[12px] pt-3 border-t-2 border-black mt-4 text-black tabular-nums uppercase italic">
                        <span>Total Trust Expenditures</span>
                        <span className="underline decoration-black">{formatCurrency(totalExpense)}</span>
                     </div>
                   </div>
                 </div>
-                <div className="flex justify-between font-black text-xl p-8 border-[4px] border-black mt-20 rounded-2xl bg-slate-50 text-black tabular-nums">
-                  <span className="uppercase text-sm tracking-[0.3em]">Net Trust Surplus / (Deficit)</span>
-                  <span className="underline decoration-double decoration-4">৳ {formatCurrency(totalIncome - totalExpense)}</span>
+                <div className="flex justify-between font-black text-lg p-6 border-[4px] border-black mt-12 rounded-2xl bg-slate-50 text-black tabular-nums shadow-lg">
+                  <span className="uppercase text-xs tracking-[0.3em]">Net Trust Surplus / (Deficit)</span>
+                  <span className="underline decoration-double decoration-2">৳ {formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
               </div>
-              <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[11px] text-black font-black uppercase tracking-[0.3em]">
+              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
                 <span>CPF Management Software v1.0</span>
                 <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
@@ -345,39 +371,39 @@ export default function ReportsPage() {
         </TabsContent>
 
         <TabsContent value="receipts">
-           <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto">
-            <CardContent className="p-16 print:p-0">
+           <Card className="border-2 border-black shadow-2xl rounded-none bg-white print-container print-portrait-fix mx-auto overflow-hidden">
+            <CardContent className="p-12 print:p-0">
               <ReportHeader title="Receipts and Payments Statement" subtitle={`For the Year Ended June 30, ${fyDates.end.split('-')[0]}`} />
-              <div className="grid grid-cols-2 gap-x-24 mt-12">
-                 <div className="space-y-10">
-                    <h4 className="font-black text-[13px] text-black border-b-4 border-black pb-2 uppercase tracking-[0.2em]">Institutional Receipts</h4>
-                    <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-y-12 mt-8">
+                 <div className="space-y-6">
+                    <h4 className="font-black text-[11px] text-black border-b-4 border-black pb-1 uppercase tracking-[0.2em]">Institutional Receipts</h4>
+                    <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
-                        <div key={c} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
-                          <span className="max-w-[200px] uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
+                        <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                          <span className="uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
-                 <div className="space-y-10 border-l-4 border-black pl-24">
-                    <h4 className="font-black text-[13px] text-black border-b-4 border-black pb-2 uppercase tracking-[0.2em]">Institutional Payments</h4>
-                    <div className="space-y-4">
+                 <div className="space-y-6 border-t-4 border-black pt-8">
+                    <h4 className="font-black text-[11px] text-black border-b-4 border-black pb-1 uppercase tracking-[0.2em]">Institutional Payments</h4>
+                    <div className="space-y-2">
                       {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Debit').map(c => (
-                        <div key={c} className="flex justify-between text-[12px] py-2 border-b border-dotted border-black font-black text-black tabular-nums">
-                          <span className="max-w-[200px] uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
+                        <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/30 font-black text-black tabular-nums">
+                          <span className="uppercase tracking-tighter leading-tight">{activeCOA.find(a => a.code === c)?.name}</span>
                           <span>{formatCurrency(periodBalances[c])}</span>
                         </div>
                       ))}
                     </div>
                  </div>
               </div>
-              <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center text-black">
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Prepared by</div>
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
-                 <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
+              <div className="mt-24 grid grid-cols-3 gap-12 text-[11px] font-black text-center text-black">
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Prepared by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
+                 <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[11px] text-black font-black uppercase tracking-[0.3em]">
+              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
                 <span>CPF Management Software v1.0</span>
                 <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
               </div>
