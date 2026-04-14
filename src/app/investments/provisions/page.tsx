@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -133,7 +132,7 @@ export default function InvestmentProvisionsPage() {
       </div>
 
       <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col md:flex-row items-end gap-6 no-print">
-        <div className="flex-1 space-y-2"><Label className="text-xs font-black uppercase text-slate-400 ml-1">FY End Target</Label><div className="relative"><CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" /><Input type="date" value={fyEndDate} onChange={(e) => setFyEndDate(e.target.value)} className="h-12 pl-10 text-lg font-black border-slate-200" /></div></div>
+        <div className="flex-1 space-y-2"><Label className="text-xs font-black uppercase text-slate-400 ml-1">FY End Target</Label><div className="relative"><CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" /><Input type="date" value={fyEndDate} max="9999-12-31" onChange={(e) => setFyEndDate(e.target.value)} className="h-12 pl-10 text-lg font-black border-slate-200" /></div></div>
         <div className="bg-slate-50 p-4 rounded-2xl border flex items-center gap-3"><AlertCircle className="size-5 text-amber-600" /><p className="text-xs font-bold text-slate-600 leading-tight">Formula: (Gross - {(TDS_RATE * 100).toFixed(0)}% TDS). Accrual from Renew Date to June 30th.</p></div>
         <Button onClick={handlePostProvisions} disabled={isPosting || accrualData.length === 0} className="h-12 px-8 gap-2 font-black uppercase tracking-widest shadow-xl shadow-primary/30">{isPosting ? <Loader2 className="size-5 animate-spin" /> : <Save className="size-5" />} Post to Logs</Button>
       </div>

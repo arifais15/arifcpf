@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -329,7 +328,7 @@ export default function NewTransactionPage() {
             <div className="p-6 grid grid-cols-3 gap-6 border-b">
               <div className="space-y-2">
                 <Label>Posting Date</Label>
-                <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} />
+                <Input type="date" value={entryDate} max="9999-12-31" onChange={(e) => setEntryDate(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Voucher / Reference No.</Label>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -344,9 +343,9 @@ export default function SpecialInterestDPPage() {
           <div className="space-y-1.5">
             <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Audit Period Range</Label>
             <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-lg border">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
               <ArrowRightLeft className="size-3 text-slate-300" />
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
             </div>
           </div>
 
@@ -382,7 +381,7 @@ export default function SpecialInterestDPPage() {
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print h-full">
               <div className="space-y-1">
                 <Label className="text-[10px] uppercase font-black text-slate-400">Sync Ledger Date</Label>
-                <Input type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs" />
+                <Input type="date" value={postingDate} max="9999-12-31" onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs" />
               </div>
               <Button onClick={handlePostAll} disabled={!postingDate} className="bg-emerald-600 hover:bg-emerald-700 h-10 font-black gap-2">
                 <ShieldCheck className="size-4" /> Synchronize All

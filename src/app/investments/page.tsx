@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -439,6 +438,7 @@ export default function InvestmentsPage() {
                       <Input 
                         name="firstOpeningDate" 
                         type="date" 
+                        max="9999-12-31"
                         value={formOpeningDate} 
                         onChange={(e) => { 
                           setFormOpeningDate(e.target.value); 
@@ -453,13 +453,14 @@ export default function InvestmentsPage() {
                       <Input 
                         name="issueDate" 
                         type="date" 
+                        max="9999-12-31"
                         value={formIssueDate} 
                         onChange={(e) => setFormIssueDate(e.target.value)} 
                         className="font-black text-xs border-2 border-slate-300" 
                         required 
                       />
                     </div>
-                    <div className="space-y-2"><Label className="text-[9px] uppercase font-black text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" defaultValue={editingInvestment?.maturityDate} className="font-black text-xs border-2 border-slate-300" /></div>
+                    <div className="space-y-2"><Label className="text-[9px] uppercase font-black text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" max="9999-12-31" defaultValue={editingInvestment?.maturityDate} className="font-black text-xs border-2 border-slate-300" /></div>
                   </div>
 
                   <div className="space-y-2">
@@ -630,8 +631,8 @@ export default function InvestmentsPage() {
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Cycle Principal (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={renewingInvestment ? (renewingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Renew Date</Label><Input name="renewDate" type="date" required value={renewDate} onChange={(e) => handleRenewDateChange(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Maturity Date</Label><Input name="maturityDate" type="date" required value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Renew Date</Label><Input name="renewDate" type="date" max="9999-12-31" required value={renewDate} onChange={(e) => handleRenewDateChange(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
+                <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Maturity Date</Label><Input name="maturityDate" type="date" max="9999-12-31" required value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
               </div>
             </div>
             <DialogFooter className="gap-3 pt-4"><Button type="button" variant="outline" className="h-12 border-2 border-black font-black px-8 uppercase" onClick={() => setIsRenewOpen(false)}>Cancel</Button><Button type="submit" className="h-12 bg-black text-white font-black px-10 uppercase tracking-widest shadow-xl">Confirm Cycle</Button></DialogFooter>

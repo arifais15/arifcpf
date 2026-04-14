@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -453,12 +452,12 @@ export default function CPFInterestPage() {
             <div className="flex items-center gap-3">
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-bold text-slate-400">Start</Label>
-                <Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
+                <Input type="date" value={customRange.start} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
               </div>
               <ArrowRightLeft className="size-3 text-slate-300 mt-3" />
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-bold text-slate-400">End</Label>
-                <Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
+                <Input type="date" value={customRange.end} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="h-8 text-xs border-none shadow-none p-0 focus-visible:ring-0" />
               </div>
             </div>
           )}
@@ -549,6 +548,7 @@ export default function CPFInterestPage() {
                 <Input 
                   type="date" 
                   value={postingDate} 
+                  max="9999-12-31"
                   onChange={(e) => setPostingDate(e.target.value)} 
                   className="h-7 text-[10px] border-none shadow-none p-0 focus-visible:ring-0 font-bold" 
                 />

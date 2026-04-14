@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -390,9 +389,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3">
           <CalendarDays className="size-4 text-black/40" />
           <div className="flex items-center gap-2">
-            <Input type="date" value={dateRange.start} onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setCurrentPage(1); }} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase" />
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setCurrentPage(1); }} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase" />
             <ArrowRightLeft className="size-3 text-black/20" />
-            <Input type="date" value={dateRange.end} onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setCurrentPage(1); }} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setCurrentPage(1); }} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black focus:ring-0 uppercase" />
           </div>
           {(dateRange.start || dateRange.end) && (
             <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => setDateRange({ start: "", end: "" })}>
@@ -566,7 +565,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </DialogHeader>
           <form onSubmit={handleSaveEntry} className="p-6 space-y-6">
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Transaction Date</Label><Input name="summaryDate" type="date" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black h-11 focus:ring-0 rounded-xl bg-slate-50" /></div>
+              <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Transaction Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black h-11 focus:ring-0 rounded-xl bg-slate-50" /></div>
               <div className="space-y-2"><Label className="text-sm font-black text-black ml-1 uppercase">Voucher Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="Monthly Contribution..." className="border-2 border-black font-black text-black h-11 focus:ring-0 rounded-xl bg-slate-50" /></div>
             </div>
             <div className="space-y-2">
@@ -619,8 +618,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </TabsContent>
               <TabsContent value="custom" className="pt-4">
                 <div className="flex gap-4">
-                  <div className="flex-1"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Period Start</Label><Input type="date" value={customRange.start} onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="border-2 border-black font-black text-black h-11" /></div>
-                  <div className="flex-1"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Period End</Label><Input type="date" value={customRange.end} onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="border-2 border-black font-black text-black h-11" /></div>
+                  <div className="flex-1"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Period Start</Label><Input type="date" value={customRange.start} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="border-2 border-black font-black text-black h-11" /></div>
+                  <div className="flex-1"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Period End</Label><Input type="date" value={customRange.end} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, end: e.target.value})} className="border-2 border-black font-black text-black h-11" /></div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -644,7 +643,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </tbody>
                   </table>
                 </div>
-                <div className="space-y-2 bg-slate-50 p-5 rounded-xl border-2 border-black"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Ledger Posting Date</Label><Input type="date" value={profitPostingDate} onChange={(e) => setProfitPostingDate(e.target.value)} required className="border-2 border-black font-black text-black h-11" /></div>
+                <div className="space-y-2 bg-slate-50 p-5 rounded-xl border-2 border-black"><Label className="text-[10px] uppercase font-black text-black tracking-widest ml-1">Ledger Posting Date</Label><Input type="date" value={profitPostingDate} max="9999-12-31" onChange={(e) => setProfitPostingDate(e.target.value)} required className="border-2 border-black font-black text-black h-11" /></div>
               </div>
             )}
           </div>
@@ -662,7 +661,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <div className="pt-2 border-t-2 border-black flex justify-between font-black text-sm text-black uppercase"><span>Settlement Payable:</span> <span className="tabular-nums">৳ {ledgerLogic.latest.col11.toLocaleString()}</span></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="font-black text-black text-[10px] uppercase tracking-widest">Settlement Date</Label><Input name="date" type="date" required className="border-2 border-black font-black text-black h-10" /></div>
+              <div className="space-y-2"><Label className="font-black text-black text-[10px] uppercase tracking-widest">Settlement Date</Label><Input name="date" type="date" max="9999-12-31" required className="border-2 border-black font-black text-black h-10" /></div>
               <div className="space-y-2"><Label className="font-black text-black text-[10px] uppercase tracking-widest">New Status</Label>
                 <Select name="type" defaultValue="Retired"><SelectTrigger className="border-2 border-black font-black text-black h-10"><SelectValue /></SelectTrigger>
                   <SelectContent className="border-2 border-black"><SelectItem value="Retired" className="font-black uppercase">Retired</SelectItem><SelectItem value="Transferred" className="font-black uppercase">Transferred</SelectItem></SelectContent>
