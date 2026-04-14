@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -125,12 +126,12 @@ export default function LoanReportPage() {
           <div className="flex items-center gap-3">
             <div className="grid gap-1">
               <Label className="text-[9px] uppercase font-black text-black">Start Date</Label>
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black text-black" />
+              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
             </div>
             <ArrowRightLeft className="size-3 text-black mt-3" />
             <div className="grid gap-1">
               <Label className="text-[9px] uppercase font-black text-black">End Date</Label>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black text-black" />
+              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" />
             </div>
           </div>
           <div className="h-6 w-px bg-black hidden sm:block" />
@@ -197,27 +198,27 @@ export default function LoanReportPage() {
           <TableBody className="tabular-nums">
             {reportData.map((row, idx) => (
               <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
-                <td className="font-mono text-base p-4 border-r border-black">{row.memberIdNumber}</td>
+                <td className="font-mono text-base p-4 border-r border-black font-black">{row.memberIdNumber}</td>
                 <td className="p-4 border-r border-black">
                   <div className="flex flex-col">
-                    <span className="uppercase text-sm">{row.name}</span>
-                    <span className="text-[10px] uppercase italic tracking-widest">{row.designation}</span>
+                    <span className="uppercase text-sm font-black">{row.name}</span>
+                    <span className="text-[10px] uppercase italic tracking-widest font-black">{row.designation}</span>
                   </div>
                 </td>
-                <td className="text-right p-4 border-r border-black">{row.openingBalance.toLocaleString()}</td>
-                <td className="text-right p-4 border-r border-black">{row.loansDuring.toLocaleString()}</td>
-                <td className="text-right p-4 border-r border-black">{row.repaymentsDuring.toLocaleString()}</td>
+                <td className="text-right p-4 border-r border-black font-black">{row.openingBalance.toLocaleString()}</td>
+                <td className="text-right p-4 border-r border-black font-black">{row.loansDuring.toLocaleString()}</td>
+                <td className="text-right p-4 border-r border-black font-black">{row.repaymentsDuring.toLocaleString()}</td>
                 <td className="text-right p-4 font-black bg-slate-50 underline decoration-black"> {row.closingBalance.toLocaleString()}</td>
               </TableRow>
             ))}
           </TableBody>
           <TableFooter className="bg-slate-100 font-black border-t-2 border-black text-black">
             <TableRow className="h-16">
-              <TableCell colSpan={2} className="text-right uppercase tracking-[0.2em] text-sm">Institutional Grand Totals:</TableCell>
-              <TableCell className="text-right border-l border-black">{stats.totalOpening.toLocaleString()}</TableCell>
-              <TableCell className="text-right border-l border-black">{stats.totalNew.toLocaleString()}</TableCell>
-              <TableCell className="text-right border-l border-black">{stats.totalRepaid.toLocaleString()}</TableCell>
-              <TableCell className="text-right text-xl underline decoration-double bg-slate-200 border-l border-black">{stats.totalClosing.toLocaleString()}</TableCell>
+              <TableCell colSpan={2} className="text-right uppercase tracking-[0.2em] text-sm pr-10">Institutional Grand Totals:</TableCell>
+              <TableCell className="text-right border-l border-black font-black">{stats.totalOpening.toLocaleString()}</TableCell>
+              <TableCell className="text-right border-l border-black font-black">{stats.totalNew.toLocaleString()}</TableCell>
+              <TableCell className="text-right border-l border-black font-black">{stats.totalRepaid.toLocaleString()}</TableCell>
+              <TableCell className="text-right text-xl underline decoration-double bg-slate-200 border-l border-black font-black">{stats.totalClosing.toLocaleString()}</TableCell>
             </TableRow>
           </TableFooter>
         </Table>
@@ -247,14 +248,14 @@ export default function LoanReportPage() {
           <tbody>
             {reportData.map((row, i) => (
               <tr key={i} className="border-b border-black">
-                <td className="border border-black p-2.5 text-center font-mono text-base">{row.memberIdNumber}</td>
+                <td className="border border-black p-2.5 text-center font-mono text-base font-black">{row.memberIdNumber}</td>
                 <td className="border border-black p-2.5">
                   <span className="font-black uppercase text-sm block">{row.name}</span>
-                  <span className="text-[8px] uppercase tracking-widest italic">{row.designation}</span>
+                  <span className="text-[8px] uppercase tracking-widest italic font-black">{row.designation}</span>
                 </td>
-                <td className="border border-black p-2.5 text-right">{row.openingBalance.toLocaleString()}</td>
-                <td className="border border-black p-2.5 text-right">{row.loansDuring.toLocaleString()}</td>
-                <td className="border border-black p-2.5 text-right">{row.repaymentsDuring.toLocaleString()}</td>
+                <td className="border border-black p-2.5 text-right font-black">{row.openingBalance.toLocaleString()}</td>
+                <td className="border border-black p-2.5 text-right font-black">{row.loansDuring.toLocaleString()}</td>
+                <td className="border border-black p-2.5 text-right font-black">{row.repaymentsDuring.toLocaleString()}</td>
                 <td className="border border-black p-2.5 text-right font-black text-base underline decoration-black">{row.closingBalance.toLocaleString()}</td>
               </tr>
             ))}
@@ -262,10 +263,10 @@ export default function LoanReportPage() {
           <tfoot>
             <tr className="bg-slate-100 font-black border-t-2 border-black h-16">
               <td colSpan={2} className="border border-black p-2.5 text-right uppercase tracking-[0.2em]">Consolidated Totals:</td>
-              <td className="border border-black p-2.5 text-right">{stats.totalOpening.toLocaleString()}</td>
-              <td className="border border-black p-2.5 text-right">{stats.totalNew.toLocaleString()}</td>
-              <td className="border border-black p-2.5 text-right">{stats.totalRepaid.toLocaleString()}</td>
-              <td className="border border-black p-2.5 text-right underline decoration-double text-lg"> {stats.totalClosing.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right font-black">{stats.totalOpening.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right font-black">{stats.totalNew.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right font-black">{stats.totalRepaid.toLocaleString()}</td>
+              <td className="border border-black p-2.5 text-right underline decoration-double text-lg font-black"> {stats.totalClosing.toLocaleString()}</td>
             </tr>
           </tfoot>
         </table>

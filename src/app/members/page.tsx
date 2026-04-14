@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 
 export default function MembersPage() {
@@ -215,23 +216,23 @@ export default function MembersPage() {
         <Table className="font-black text-black">
           <TableHeader>
             <TableRow className="bg-slate-100 border-b-2 border-black">
-              <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6">ID Number</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest">Full Name</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest">Designation</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest">Account Status</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6">Audit Actions</TableHead>
+              <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6 text-black">ID Number</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black">Full Name</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black">Designation</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black">Account Status</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 text-black">Audit Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="tabular-nums">
             {isLoading && members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black italic uppercase">Registry Empty</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-32 text-black font-black italic uppercase">Registry Empty</TableCell></TableRow>
             ) : members.map((member) => (
               <TableRow key={member.id} className="hover:bg-slate-50 border-b border-black">
-                <TableCell className="font-mono text-base pl-6 text-black">{member.memberIdNumber}</TableCell>
-                <TableCell className="text-sm font-black uppercase">{member.name}</TableCell>
-                <TableCell className="text-[10px] uppercase font-black text-slate-500">{member.designation}</TableCell>
+                <TableCell className="font-mono text-base pl-6 text-black font-black">{member.memberIdNumber}</TableCell>
+                <TableCell className="text-sm font-black uppercase text-black">{member.name}</TableCell>
+                <TableCell className="text-[10px] uppercase font-black text-black">{member.designation}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className={cn(
                     "text-[9px] uppercase font-black px-3 py-0.5 border-black rounded-none",
@@ -240,9 +241,9 @@ export default function MembersPage() {
                 </TableCell>
                 <TableCell className="text-right pr-6">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-50" onClick={() => {/* Delete handler... */}}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] hover:bg-black hover:text-white transition-all"><Link href={`/members/${member.id}`}><UserCircle className="size-3.5 mr-2" /> Ledger Audit</Link></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-black hover:bg-slate-100" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-black hover:bg-slate-100" onClick={() => {/* Delete handler... */}}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] bg-white text-black hover:bg-black hover:text-white transition-all"><Link href={`/members/${member.id}`}><UserCircle className="size-3.5 mr-2" /> Ledger Audit</Link></Button>
                   </div>
                 </TableCell>
               </TableRow>
