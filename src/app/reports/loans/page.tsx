@@ -178,7 +178,7 @@ export default function LoanReportPage() {
 
       <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print">
         <div className="p-4 border-b-2 border-black bg-slate-50 flex items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
+          <div className="relative flex-1 max-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black" />
             <Input className="pl-9 h-10 border-2 border-black font-black text-black" placeholder="Filter by ID or Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
@@ -230,7 +230,7 @@ export default function LoanReportPage() {
           <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
           <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Employee Loan Audit Registry Statement</h2>
           <div className="flex justify-between text-[11px] font-black pt-8">
-            <span className="bg-black text-white px-4 py-1 rounded">Audit Period: {dateRange.start} to {dateRange.end}</span>
+            <span className="bg-black text-white px-4 py-1 rounded">Ledger Period: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>

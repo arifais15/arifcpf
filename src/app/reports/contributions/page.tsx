@@ -170,7 +170,7 @@ export default function ContributionAuditPage() {
           <p className="text-sm font-black uppercase tracking-widest">Contributory Provident Fund</p>
           <h2 className="text-lg font-black underline underline-offset-4 uppercase">Contribution & Profit Report</h2>
           <div className="flex justify-between text-[10px] font-black pt-4">
-            <span>Period: {dateRange.start} to {dateRange.end}</span>
+            <span>Ledger Period: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>

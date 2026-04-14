@@ -432,7 +432,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <p className="text-sm font-black uppercase tracking-widest text-black mt-1">Contributory Provident Fund</p>
           <h2 className="text-lg md:text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
           {(dateRange.start || dateRange.end) && (
-            <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">Audit Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}</p>
+            <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">Ledger Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}</p>
           )}
         </div>
 
@@ -623,7 +623,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <div className="space-y-6">
                 <div className="p-6 bg-slate-50 border-2 border-black rounded-xl flex justify-between items-center shadow-md">
                   <div className="flex flex-col"><span className="text-[10px] uppercase font-black text-black tracking-widest mb-1">Total Audit Profit</span><span className="text-3xl font-black text-black tabular-nums">{interestCalculation.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></div>
-                  <div className="text-right"><span className="text-[10px] uppercase font-black text-black block tracking-widest mb-1">Audit Period</span><span className="text-sm font-black text-white bg-black px-4 py-1.5 rounded-full uppercase">{interestCalculation.label}</span></div>
+                  <div className="text-right"><span className="text-[10px] uppercase font-black text-black block tracking-widest mb-1">Ledger Period</span><span className="text-sm font-black text-white bg-black px-4 py-1.5 rounded-full uppercase">{interestCalculation.label}</span></div>
                 </div>
                 <div className="border-2 border-black rounded-xl overflow-hidden shadow-md">
                   <table className="w-full text-[11px] border-collapse">
