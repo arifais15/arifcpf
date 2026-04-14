@@ -151,7 +151,7 @@ export default function AllLedgersPrintPage() {
                   <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
                   <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Equity</th>
                   <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit</th>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">TOTAL<br/>(Col 11)</th>
+                  <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
                 </tr>
                 <tr className="bg-slate-50 text-[10px]">
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (

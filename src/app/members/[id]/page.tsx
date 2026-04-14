@@ -323,7 +323,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </Link>
         
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center bg-white p-1 rounded-xl border-2 border-black shadow-sm h-10">
+          <div className="flex items-center bg-white p-1 rounded-xl border-2 border-black shadow-sm h-10 text-black">
             <div className="flex items-center gap-2 px-3">
               <ListFilter className="size-3.5 text-black" />
               <Label className="text-[10px] font-black uppercase tracking-widest text-black">View Rows:</Label>
@@ -419,21 +419,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black no-print">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
               <tr>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
-                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px]">Action</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter text-black">Date</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
+                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Equity</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center no-print w-[80px] uppercase text-[9px] text-black">Action</th>
               </tr>
               <tr className="bg-slate-50 text-[10px]">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                  <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
+                  <th key={i} className="border border-black p-0.5 text-center font-mono text-black">{i}</th>
                 ))}
               </tr>
-              <tr className="text-[8px] uppercase leading-none">
+              <tr className="text-[8px] uppercase leading-none text-black">
                 <th className="border border-black p-1 text-right">Contrib</th>
                 <th className="border border-black p-1 text-right">Draw</th>
                 <th className="border border-black p-1 text-right">Payment</th>
@@ -446,7 +446,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-1 text-right bg-slate-100">Net Office</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black font-black tabular-nums">
+            <tbody className="divide-y divide-black font-black tabular-nums text-black">
               {paginatedRows.map((row: any, idx) => (
                 <tr key={idx} className="bg-white hover:bg-slate-50 transition-colors border-b border-black">
                   <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
@@ -493,20 +493,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <table className="hidden print:table w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
               <tr>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
-                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
-                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
-                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
-                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter text-black">Date</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter text-black">Particulars</th>
+                <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50 text-black">Contributions & Loans</th>
+                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">Profits Received</th>
+                <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200 text-black">Net Equity</th>
+                <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100 text-black">PBS Contribution & Profit</th>
+                <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200 text-black">Cumulative Total<br/>(Col 11=7+10)</th>
               </tr>
               <tr className="bg-slate-50 text-[10px]">
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                  <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
+                  <th key={i} className="border border-black p-0.5 text-center font-mono text-black">{i}</th>
                 ))}
               </tr>
-              <tr className="text-[8px] uppercase leading-none">
+              <tr className="text-[8px] uppercase leading-none text-black">
                 <th className="border border-black p-1 text-right">Contrib</th>
                 <th className="border border-black p-1 text-right">Draw</th>
                 <th className="border border-black p-1 text-right">Payment</th>
@@ -519,7 +519,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-1 text-right bg-slate-100">Net Office</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-black font-black tabular-nums">
+            <tbody className="divide-y divide-black font-black tabular-nums text-black">
               {calculatedRows.map((row: any, idx) => (
                 <tr key={idx} className="bg-white border-b border-black">
                   <td className="border border-black p-1 text-center font-mono font-black text-black">{row.summaryDate}</td>
