@@ -36,26 +36,32 @@ export default function ReportsPage() {
   const { data: entries, isLoading: isEntriesLoading } = useCollection(entriesRef);
 
   const availableFYs = useMemo(() => {
-    if (!entries || entries.length === 0) {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-      const currentFY = month >= 7 
-        ? `${year}-${(year + 1).toString().slice(-2)}` 
-        : `${year - 1}-${year.toString().slice(-2)}`;
-      return [currentFY];
-    }
     const fys = new Set<string>();
-    entries.forEach(entry => {
-      const date = new Date(entry.entryDate);
-      if (isNaN(date.getTime())) return;
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      const fy = month >= 7 
-        ? `${year}-${(year + 1).toString().slice(-2)}` 
-        : `${year - 1}-${year.toString().slice(-2)}`;
-      fys.add(fy);
-    });
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const month = now.getMonth() + 1;
+    const activeStartYear = month >= 7 ? currentYear : currentYear - 1;
+
+    // 1. Add standard historical range (last 15 years)
+    for (let i = 0; i < 15; i++) {
+      const start = activeStartYear - i;
+      fys.add(`${start}-${(start + 1).toString().slice(-2)}`);
+    }
+
+    // 2. Add years found in journal entries
+    if (entries) {
+      entries.forEach(entry => {
+        const date = new Date(entry.entryDate);
+        if (isNaN(date.getTime())) return;
+        const year = date.getFullYear();
+        const m = date.getMonth() + 1;
+        const fy = m >= 7 
+          ? `${year}-${(year + 1).toString().slice(-2)}` 
+          : `${year - 1}-${year.toString().slice(-2)}`;
+        fys.add(fy);
+      });
+    }
+    
     return Array.from(fys).sort((a, b) => b.localeCompare(a));
   }, [entries]);
 
@@ -80,7 +86,7 @@ export default function ReportsPage() {
   const balances = useMemo(() => {
     const map: Record<string, number> = {};
     if (!entries || !selectedFiscalYear) return map;
-    const endDate = new Date(fyDates.end).getTime();
+    const endDate = new Date(`${fyDates.end}T23:59:59`).getTime();
     entries.forEach(entry => {
       const entryDate = new Date(entry.entryDate).getTime();
       if (entryDate > endDate) return;
@@ -107,8 +113,8 @@ export default function ReportsPage() {
   const periodBalances = useMemo(() => {
     const map: Record<string, number> = {};
     if (!entries || !selectedFiscalYear) return map;
-    const startDate = new Date(fyDates.start).getTime();
-    const endDate = new Date(fyDates.end).getTime();
+    const startDate = new Date(`${fyDates.start}T00:00:00`).getTime();
+    const endDate = new Date(`${fyDates.end}T23:59:59`).getTime();
     entries.forEach(entry => {
       const entryDate = new Date(entry.entryDate).getTime();
       if (entryDate < startDate || entryDate > endDate) return;
