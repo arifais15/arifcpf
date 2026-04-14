@@ -319,7 +319,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     <div className="p-6 md:p-10 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between no-print max-w-[1400px] mx-auto w-full gap-6">
         <Link href="/members" className="flex items-center gap-2 text-sm text-black hover:text-black/70 font-black transition-colors uppercase">
-          <ArrowLeft className="size-5" /> Back to Registry
+          <ArrowLeft className="size-5" /> Back
         </Link>
         
         <div className="flex flex-wrap items-center gap-3">

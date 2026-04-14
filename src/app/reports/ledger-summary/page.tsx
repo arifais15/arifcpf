@@ -202,7 +202,7 @@ export default function LedgerSummaryReportPage() {
             <ClipboardCheck className="size-8 text-white" />
           </div>
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-black text-black tracking-tight uppercase">Ledger Summary Matrix</h1>
+            <h1 className="text-3xl font-black text-black tracking-tight uppercase">Ledger Summary</h1>
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Balances Audit Trail</p>
           </div>
         </div>
@@ -231,7 +231,7 @@ export default function LedgerSummaryReportPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="bg-white p-1 rounded-xl border-2 border-black mb-8 no-print h-14 shadow-md">
           <TabsTrigger value="matrix" className="px-8 h-full gap-2 rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-xs">
-            <ClipboardCheck className="size-4" /> Ledger Matrix
+            <ClipboardCheck className="size-4" /> Ledger
           </TabsTrigger>
           <TabsTrigger value="netfund" className="px-8 h-full gap-2 rounded-lg data-[state=active]:bg-black data-[state=active]:text-white font-black uppercase text-xs">
             <FileStack className="size-4" /> Netfund Statement

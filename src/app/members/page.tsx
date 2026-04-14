@@ -178,7 +178,7 @@ export default function MembersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black" />
             <Input 
               className="pl-9 h-10 bg-white border-2 border-black font-black text-sm" 
-              placeholder="Audit Registry (ID/Name)..." 
+              placeholder="Registry (ID/Name)..." 
               value={search} 
               onChange={(e) => setSearch(e.target.value)} 
             />

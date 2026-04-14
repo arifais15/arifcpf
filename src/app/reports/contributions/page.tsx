@@ -124,7 +124,7 @@ export default function ContributionAuditPage() {
           </div>
           <div className="h-6 w-px bg-black hidden sm:block" />
           <Button onClick={() => window.print()} className="gap-2 h-9 font-black text-xs bg-black text-white shadow-lg">
-            <Printer className="size-4" /> Print Audit
+            <Printer className="size-4" /> Print
           </Button>
         </div>
       </div>
@@ -168,7 +168,7 @@ export default function ContributionAuditPage() {
         <div className="text-center space-y-2 mb-8 border-b-4 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
           <p className="text-sm font-black uppercase tracking-widest">Contributory Provident Fund</p>
-          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Contribution & Profit Audit Report</h2>
+          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Contribution & Profit Report</h2>
           <div className="flex justify-between text-[10px] font-black pt-4">
             <span>Period: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
