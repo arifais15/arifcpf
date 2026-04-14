@@ -208,9 +208,9 @@ export default function AllLedgersPrintPage() {
               </tfoot>
             </table>
 
-            <div className="mt-16 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em] text-black">
-              <span>Cpf Management Software</span>
-              <span className="italic px-4 py-1 bg-black text-white rounded">Ledger {idx + 1} of {memberLedgers.length}</span>
+            <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+              <span>CPF Management Software</span>
+              <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
             </div>
           </div>
         ))}

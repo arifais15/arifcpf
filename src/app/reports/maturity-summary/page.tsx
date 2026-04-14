@@ -41,7 +41,6 @@ export default function InvestmentMaturityReportPage() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [viewMode, setViewMode] = useState<"audit" | "officenote">("audit");
 
-  // Fetch Interest Settings for TDS rate
   const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
   const { data: interestSettings } = useDoc(interestSettingsRef);
   const TDS_RATE = useMemo(() => interestSettings?.tdsRate !== undefined ? interestSettings.tdsRate : 0.20, [interestSettings]);
@@ -97,9 +96,15 @@ export default function InvestmentMaturityReportPage() {
 
   const currentYearStr = new Date().getFullYear().toString();
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      {/* Dynamic Style for Portrait Printing Override */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
@@ -118,7 +123,6 @@ export default function InvestmentMaturityReportPage() {
         }
       `}} />
 
-      {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black text-black tracking-tight uppercase">Provision Report</h1>
@@ -151,7 +155,6 @@ export default function InvestmentMaturityReportPage() {
         </div>
       </div>
 
-      {/* FILTER BAR */}
       <div className="bg-white p-6 rounded-2xl border-2 border-black shadow-sm flex flex-col md:flex-row items-center gap-6 no-print">
         <div className="flex-1 w-full space-y-2">
           <Label className="text-[10px] font-black uppercase text-black tracking-widest ml-1">Analysis Period Filter</Label>
@@ -169,14 +172,13 @@ export default function InvestmentMaturityReportPage() {
         </div>
       </div>
 
-      {/* AUDIT MATRIX VIEW */}
       {viewMode === 'audit' && (
         <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden no-print animate-in fade-in duration-500">
           <div className="p-4 border-b-4 border-black bg-slate-100 flex items-center justify-between">
             <h2 className="text-sm font-black flex items-center gap-3 uppercase tracking-widest">
               <TrendingUp className="size-5" /> Investment Maturity Yield Matrix
             </h2>
-            <Badge className="bg-black text-white font-black px-4 py-1.5 uppercase tracking-widest">Basis: {dateRange.start} to {dateRange.end}</Badge>
+            <Badge className="bg-black text-white font-black px-4 py-1 uppercase tracking-widest">Basis: {dateRange.start} to {dateRange.end}</Badge>
           </div>
           <Table className="text-black font-black tabular-nums">
             <TableHeader>
@@ -220,7 +222,6 @@ export default function InvestmentMaturityReportPage() {
         </div>
       )}
 
-      {/* OFFICE NOTE VIEW (Optimized for Portrait) */}
       {viewMode === 'officenote' && (
         <div className="bg-white p-12 shadow-2xl border-2 border-black max-w-[850px] mx-auto w-full no-print animate-in zoom-in-95 duration-500">
           <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
@@ -301,7 +302,7 @@ export default function InvestmentMaturityReportPage() {
                   <span className="font-black">৳ {totals.principal.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between border-b border-black/20 pb-1">
-                  <span className="opacity-70">Estimated Net Interest (Post {(TDS_RATE*100).toFixed(0)}% TDS):</span>
+                  <span className="opacity-70">Estimated Net Interest:</span>
                   <span className="font-black">৳ {totals.net.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
               </div>
@@ -314,13 +315,12 @@ export default function InvestmentMaturityReportPage() {
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
             </div>
+            <StandardFooter />
           </div>
         </div>
       )}
 
-      {/* PRINT VIEW (FORCING PORTRAIT FORMAT) */}
       <div className="hidden print:block print-container font-ledger text-black">
-        {/* OFFICE NOTE PRINT */}
         {viewMode === 'officenote' && (
           <div className="p-0 w-full">
             <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
@@ -411,11 +411,11 @@ export default function InvestmentMaturityReportPage() {
                 <div className="border-t-2 border-black pt-4">Checked by</div>
                 <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
               </div>
+              <StandardFooter />
             </div>
           </div>
         )}
 
-        {/* AUDIT MATRIX PRINT (Also Portraits for this report) */}
         {viewMode === 'audit' && (
           <div className="p-0 w-full">
             <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
@@ -465,6 +465,7 @@ export default function InvestmentMaturityReportPage() {
               <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
               <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
             </div>
+            <StandardFooter />
           </div>
         )}
       </div>

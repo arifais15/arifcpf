@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -40,7 +41,6 @@ export default function ControlLedgerPage() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [selectedAccount, setSelectedAccount] = useState<string>("");
 
-  // Defer date initialization to avoid hydration errors
   useEffect(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -78,6 +78,13 @@ export default function ControlLedgerPage() {
       return { ...item, balance: currentBalance };
     });
   }, [allEntries, selectedAccount, activeCOA, dateRange]);
+
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
@@ -169,6 +176,7 @@ export default function ControlLedgerPage() {
           <div className="border-t-2 border-black pt-2 uppercase">Checked by</div>
           <div className="border-t-2 border-black pt-2 uppercase">Approved By Trustee</div>
         </div>
+        <StandardFooter />
       </div>
     </div>
   );

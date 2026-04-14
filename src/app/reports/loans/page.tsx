@@ -115,6 +115,13 @@ export default function LoanReportPage() {
     return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
   }
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -275,10 +282,7 @@ export default function LoanReportPage() {
           <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
           <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
         </div>
-        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
-          <span>Institutional Trust Registry v1.0</span>
-          <span className="italic">Form Generated via PBS CPF Software</span>
-        </div>
+        <StandardFooter />
       </div>
     </div>
   );

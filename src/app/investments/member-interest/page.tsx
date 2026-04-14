@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -246,6 +247,13 @@ export default function CPFInterestPage() {
   const totalCPFProfit = useMemo(() => previewData.reduce((sum, item) => sum + item.calculatedInterest, 0), [previewData]);
   const hasUnpostedEntries = useMemo(() => previewData.some(item => !item.isPosted && item.calculatedInterest > 0), [previewData]);
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -375,7 +383,6 @@ export default function CPFInterestPage() {
         </div>
       )}
 
-      {/* Audit Detail Breakdown Dialog */}
       <Dialog open={!!viewingDetails} onOpenChange={(open) => !open && setViewingDetails(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto font-ledger text-black border-4 border-black p-0 rounded-none shadow-2xl">
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
@@ -501,6 +508,7 @@ export default function CPFInterestPage() {
           <div className="border-t-2 border-black pt-4">Checked by</div>
           <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
         </div>
+        <StandardFooter />
       </div>
     </div>
   );

@@ -49,12 +49,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Real-time calculation state for the entry form
   const [tempEntry, setTempEntry] = useState({
     c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0
   });
 
-  // Date Range Filtering
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
@@ -84,7 +82,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     ];
   }, [interestSettings]);
 
-  // Initial Date Setup: Current FY Start (July 1st) to Today
   useEffect(() => {
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -96,7 +93,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setDateRange({ start: fyStartDate, end: todayStr });
   }, []);
 
-  // Update tempEntry when editing entry changes
   useEffect(() => {
     if (editingEntry) {
       setTempEntry({
@@ -124,7 +120,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [summaries]);
 
-  // CALCULATION ENGINE WITH DATE RANGE AND COLUMN-WISE OPENING SUPPORT
   const ledgerLogic = useMemo(() => {
     if (!sortedSummaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 }, opening: null };
 
@@ -157,7 +152,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       };
     });
 
-    // Extract Opening Balance column-wise if range is set
     if (dateRange.start) {
       const preRecords = allCalculated.filter(r => r.timestamp < startTime);
       preRecords.forEach(r => {
@@ -178,10 +172,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       }
     }
 
-    // Filter for current view
     const filtered = allCalculated.filter(r => r.timestamp >= startTime && r.timestamp <= endTime);
 
-    // Sum of period (excluding opening)
     const sums = filtered.reduce((acc, r) => ({
       c1: acc.c1 + r.col1, c2: acc.c2 + r.col2, c3: acc.c3 + r.col3, c5: acc.c5 + r.col5, c6: acc.c6 + r.col6, c8: acc.c8 + r.col8, c9: acc.c9 + r.col9
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
@@ -582,8 +574,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </table>
         </div>
         
-        <div className="mt-10 pt-6 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-black">
-          <span>Institutional Trust Audit • Form 224 Generated Output</span>
+        <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+          <span>CPF Management Software</span>
           <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
         </div>
       </div>
@@ -595,7 +587,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <DialogClose asChild><Button variant="ghost" size="icon" className="rounded-full h-8 w-8 hover:bg-slate-200 text-black"><UserX className="size-4" /></Button></DialogClose>
           </DialogHeader>
           <form onSubmit={handleSaveEntry} className="p-6 space-y-4">
-            {/* Real-time Calculation Summary Terminal - Horizontal Optimized */}
             <div className="bg-black p-4 rounded-xl border-2 border-slate-800 shadow-xl space-y-2">
               <div className="flex items-center gap-2 text-white">
                 <TrendingUp className="size-3.5 text-emerald-400" />
@@ -623,7 +614,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            {/* Metadata Row: Horizontal Optimized */}
             <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50/50 rounded-xl border-2 border-black">
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black text-black uppercase ml-1">Posting Date</Label>
@@ -642,9 +632,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            {/* Financial Input Grid: Triple Column Horizontal Layout */}
             <div className="grid grid-cols-3 gap-4">
-              {/* Column 1: Employee/Loan (Col 1, 2, 3) */}
               <div className="bg-blue-50/30 p-4 rounded-xl border-2 border-black space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className="bg-blue-600 text-white rounded text-[8px] uppercase font-black">Employee & Loans</Badge>
@@ -665,7 +653,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
 
-              {/* Column 2: Profits (Col 5, 6) */}
               <div className="bg-orange-50/30 p-4 rounded-xl border-2 border-black space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className="bg-orange-600 text-white rounded text-[8px] uppercase font-black">Period Profits</Badge>
@@ -685,7 +672,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
 
-              {/* Column 3: PBS Share (Col 8, 9) */}
               <div className="bg-emerald-50/30 p-4 rounded-xl border-2 border-black space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <Badge className="bg-emerald-600 text-white rounded text-[8px] uppercase font-black">Office matching</Badge>

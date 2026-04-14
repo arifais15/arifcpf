@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -42,13 +43,11 @@ export default function ReportsPage() {
     const month = now.getMonth() + 1;
     const activeStartYear = month >= 7 ? currentYear : currentYear - 1;
 
-    // 1. Add standard historical range (last 15 years)
     for (let i = 0; i < 15; i++) {
       const start = activeStartYear - i;
       fys.add(`${start}-${(start + 1).toString().slice(-2)}`);
     }
 
-    // 2. Add years found in journal entries
     if (entries) {
       entries.forEach(entry => {
         const date = new Date(entry.entryDate);
@@ -299,9 +298,15 @@ export default function ReportsPage() {
   const totalIncome = incomeAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
   const totalExpense = expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0);
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      {/* Dynamic Style for Portrait Printing Override */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
@@ -377,10 +382,7 @@ export default function ReportsPage() {
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
-                <span>CPF Management Software v1.0</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -438,10 +440,7 @@ export default function ReportsPage() {
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
-                <span>CPF Management Software v1.0</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -456,10 +455,7 @@ export default function ReportsPage() {
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
-                <span>CPF Management Software v1.0</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -497,10 +493,7 @@ export default function ReportsPage() {
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Checked by</div>
                  <div className="border-t-2 border-black pt-2 uppercase tracking-widest">Approved By Trustee</div>
               </div>
-              <div className="mt-16 pt-6 border-t-2 border-black flex justify-between items-center text-[9px] text-black font-black uppercase tracking-[0.3em]">
-                <span>CPF Management Software v1.0</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>

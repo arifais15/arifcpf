@@ -124,6 +124,13 @@ export default function NetfundStatementPage() {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-black" /></div>;
   }
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -176,7 +183,7 @@ export default function NetfundStatementPage() {
 
       <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print">
         <div className="p-6 border-b-2 border-black bg-slate-50 flex items-center justify-between">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-black" />
             <Input className="pl-10 h-11 border-2 border-black font-black text-base" placeholder="Audit Registry Search (ID/Name)..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
@@ -277,11 +284,7 @@ export default function NetfundStatementPage() {
           <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Checked by</div>
           <div className="border-t-2 border-black pt-4 uppercase tracking-widest">Approved By Trustee</div>
         </div>
-        
-        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
-          <span>Institutional Trust Registry v1.0</span>
-          <span className="italic">Form Generated via PBS CPF Software</span>
-        </div>
+        <StandardFooter />
       </div>
     </div>
   );
