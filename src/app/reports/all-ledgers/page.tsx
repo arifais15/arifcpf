@@ -144,18 +144,18 @@ export default function AllLedgersPrintPage() {
 
             <table className="w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
               <thead className="bg-slate-100 font-black border-b-2 border-black">
-                {/* Row 1: Requested Logical Groupings */}
+                {/* Row 1: Logical Groupings */}
                 <tr>
                   <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
                   <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
-                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Employees Contribution & Profit</th>
-                  <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Loan Draw & Payment</th>
+                  <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Employees Contribution & Profit</th>
+                  <th colSpan={5} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Loan Draw & Payment</th>
                   <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Contribution & Profit</th>
                   <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
                 </tr>
-                {/* Row 2: Reordered Column Indices */}
+                {/* Row 2: Reordered Column Indices: 1, 5, 2, 3, 4, 6, 7, 8, 9, 10 */}
                 <tr className="bg-slate-50 text-[10px]">
-                  {[1, 5, 7, 2, 3, 4, 6, 8, 9, 10].map(i => (
+                  {[1, 5, 2, 3, 4, 6, 7, 8, 9, 10].map(i => (
                     <th key={i} className="border border-black p-0.5 text-center font-mono">{i}</th>
                   ))}
                 </tr>
@@ -163,11 +163,11 @@ export default function AllLedgersPrintPage() {
                 <tr className="text-[8px] uppercase leading-none">
                   <th className="border border-black p-1 text-right">Contrib</th>
                   <th className="border border-black p-1 text-right">Profit</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">Net</th>
                   <th className="border border-black p-1 text-right">Draw</th>
                   <th className="border border-black p-1 text-right">Payment</th>
                   <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
                   <th className="border border-black p-1 text-right">Profit</th>
+                  <th className="border border-black p-1 text-right bg-slate-200">Net</th>
                   <th className="border border-black p-1 text-right">Contrib</th>
                   <th className="border border-black p-1 text-right">Profit</th>
                   <th className="border border-black p-1 text-right bg-slate-100">Net</th>
@@ -178,16 +178,14 @@ export default function AllLedgersPrintPage() {
                   <tr key={rIdx}>
                     <td className="border border-black p-1 text-center font-mono text-[10px] font-black">{row.summaryDate}</td>
                     <td className="border border-black p-1 truncate text-[10px] font-black uppercase">{row.particulars}</td>
-                    {/* Group 1: 1, 5, 7 */}
+                    {/* Data sequence matches 1, 5, 2, 3, 4, 6, 7, 8, 9, 10 */}
                     <td className="border border-black p-1 text-right">{row.col1.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right">{row.col5.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col7.toLocaleString()}</td>
-                    {/* Group 2: 2, 3, 4, 6 */}
                     <td className="border border-black p-1 text-right">{row.col2.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right">{row.col3.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right bg-slate-50">{row.col4.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right">{row.col6.toLocaleString()}</td>
-                    {/* Group 3: 8, 9, 10 */}
+                    <td className="border border-black p-1 text-right bg-slate-50">{row.col7.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right">{row.col8.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right">{row.col9.toLocaleString()}</td>
                     <td className="border border-black p-1 text-right bg-slate-50">{row.col10.toLocaleString()}</td>
@@ -199,16 +197,18 @@ export default function AllLedgersPrintPage() {
               <tfoot className="bg-slate-100 font-black border-t-2 border-black tabular-nums">
                 <tr>
                   <td className="border border-black p-1.5 text-center uppercase text-[10px]" colSpan={2}>Aggregate Portions:</td>
+                  {/* Footer sequence matches 1, 5, 2, 3, 4, 6, 7, 8, 9, 10 */}
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c1.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c5.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col7 || 0).toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c2.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c3.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col4 || 0).toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c6.toLocaleString()}</td>
+                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col7 || 0).toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c8.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right">{ledger.sums.c9.toLocaleString()}</td>
                   <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col10 || 0).toLocaleString()}</td>
+                  {/* Total: 11 */}
                   <td className="border border-black p-1.5 text-right bg-slate-300 font-black text-xs underline decoration-double">{(ledger.last?.col11 || 0).toLocaleString()}</td>
                 </tr>
               </tfoot>
