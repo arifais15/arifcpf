@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -148,7 +147,7 @@ export default function AllLedgersPrintPage() {
                   <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
                   <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
                   <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
-                  <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Accrued Profits</th>
+                  <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
                   <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
                   <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
                   <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -45,17 +44,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const { toast } = useToast();
   const { showAlert } = useSweetAlert();
   
-  // UI Control States
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isInterestOpen, setIsInterestOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   
-  // Pagination States
   const [pageSize, setPageSize] = useState<number>(5);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Profit Audit States
   const [selectedInterestMode, setSelectedInterestMode] = useState<"fy" | "custom">("fy");
   const [selectedInterestFY, setSelectedInterestFY] = useState<string>("");
   const [customRange, setCustomRange] = useState({ start: "", end: "" });
@@ -132,7 +128,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     });
   }, [sortedSummaries]);
 
-  // PAGINATION LOGIC
   const paginatedRows = useMemo(() => {
     if (pageSize === -1) return calculatedRows;
     const start = (currentPage - 1) * pageSize;
@@ -434,7 +429,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Accrued Profits</th>
+                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
                 <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
                 <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
@@ -502,14 +497,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </tfoot>
           </table>
 
-          {/* PRINT VERSION */}
           <table className="hidden print:table w-full text-[11px] border-collapse border-2 border-black table-fixed text-black font-black">
             <thead className="bg-slate-100 font-black border-b-2 border-black">
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[75px] uppercase text-[9px] tracking-tighter">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[170px] uppercase text-[9px] tracking-tighter">Particulars</th>
                 <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200/50">Contributions & Loans</th>
-                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Accrued Profits</th>
+                <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">Profits Received</th>
                 <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-200">Net Equity</th>
                 <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[9px] bg-slate-100">PBS Matching Share</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-right w-[110px] uppercase text-[10px] bg-slate-200">TOTAL<br/>(Col 11)</th>
@@ -576,7 +570,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* Manual Entry Dialog */}
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-2xl bg-white border-2 border-black p-0 overflow-hidden rounded-2xl shadow-2xl">
           <DialogHeader className="p-6 border-b-2 border-black bg-slate-50 flex flex-row items-center justify-between space-y-0">
@@ -632,7 +625,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </DialogContent>
       </Dialog>
 
-      {/* Profit Audit Dialog */}
       <Dialog open={isInterestOpen} onOpenChange={setIsInterestOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white border-2 border-black">
           <DialogHeader>
@@ -697,7 +689,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </DialogContent>
       </Dialog>
 
-      {/* Final Settlement Dialog */}
       <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
         <DialogContent className="max-w-md bg-white border-2 border-black">
           <DialogHeader><DialogTitle className="font-black text-black uppercase">Institutional Final Settlement</DialogTitle></DialogHeader>
