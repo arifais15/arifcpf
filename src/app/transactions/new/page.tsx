@@ -48,7 +48,6 @@ export default function NewTransactionPage() {
     { id: '2', accountCode: '', debit: 0, credit: 0, memo: '' }
   ]);
 
-  // Defer date initialization to avoid hydration errors
   useEffect(() => {
     if (!editId) {
       setEntryDate(new Date().toISOString().split('T')[0]);

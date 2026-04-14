@@ -20,7 +20,7 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
+    --border: 0 0% 0%;
     --input: 214.3 31.8% 91.4%;
     --ring: 0 0% 0%;
     --radius: 0.5rem;
@@ -42,9 +42,7 @@
   body {
     @apply bg-background text-foreground font-body text-[15px] antialiased;
   }
-  h1 { @apply text-4xl font-extrabold; }
-  h2 { @apply text-2xl font-bold; }
-  h3 { @apply text-xl font-semibold; }
+  h1, h2, h3, h4, h5, h6 { @apply font-black text-black; }
 
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {

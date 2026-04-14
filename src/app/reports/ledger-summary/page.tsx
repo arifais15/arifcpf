@@ -149,7 +149,7 @@ export default function LedgerSummaryReportPage() {
             max-width: none !important;
             padding: 0 !important;
             display: block !important;
-            transform: scale(0.92);
+            transform: scale(0.95);
             transform-origin: top left;
           }
           table {
@@ -168,15 +168,15 @@ export default function LedgerSummaryReportPage() {
             <ClipboardCheck className="size-8 text-white" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-3xl font-black text-black tracking-tighter uppercase">Consolidated Ledger Matrix</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Institutional Aggregation of Member Fund Sums (REB Form 224)</p>
+            <h1 className="text-3xl font-black text-black tracking-tighter uppercase">Ledger Summary Matrix</h1>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Balances Audit (Institutional Sum)</p>
           </div>
         </div>
         
         <div className="flex flex-col sm:flex-row items-center gap-6 bg-white p-4 rounded-2xl border-4 border-black shadow-2xl">
           <div className="flex items-center gap-3">
             <div className="grid gap-1.5">
-              <Label className="text-[10px] uppercase font-black text-black tracking-widest">Balance Cut-off</Label>
+              <Label className="text-[10px] uppercase font-black text-black tracking-widest">Cut-off Date</Label>
               <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-10 text-sm border-2 border-black font-black" />
             </div>
           </div>
@@ -198,7 +198,7 @@ export default function LedgerSummaryReportPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-black" />
             <Input className="pl-10 h-11 border-2 border-black font-black text-base" placeholder="Search Personnel (ID/Name)..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge className="bg-black text-white font-black px-6 py-2 text-sm uppercase tracking-[0.2em]">{reportData.length} Members Audited</Badge>
+          <Badge className="bg-black text-white font-black px-6 py-2 text-sm uppercase tracking-[0.2em]">{reportData.length} Personnel Registered</Badge>
         </div>
         
         <div className="overflow-x-auto">
@@ -277,36 +277,36 @@ export default function LedgerSummaryReportPage() {
         <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
           <h1 className="text-4xl font-black uppercase tracking-tighter">{pbsName}</h1>
           <p className="text-lg font-black uppercase tracking-[0.4em] text-slate-700">Contributory Provident Fund</p>
-          <h2 className="text-2xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.3em] mt-6">Institutional Ledger Matrix Statement</h2>
+          <h2 className="text-2xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.3em] mt-6">Ledger Summary Matrix Statement</h2>
           <div className="flex justify-between text-[12px] font-black pt-10">
             <span className="bg-black text-white px-6 py-2 rounded-none uppercase tracking-widest">Balances As Of: {dateRange.end}</span>
             <span className="pt-2 uppercase tracking-widest">Audit Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
 
-        <table className="w-full text-[8.5px] border-collapse border-2 border-black text-black font-black tabular-nums">
+        <table className="w-full text-[8px] border-collapse border-2 border-black text-black font-black tabular-nums">
           <thead>
             <tr className="bg-slate-100 border-b-4 border-black">
               <th className="border-2 border-black p-2 uppercase w-[60px]">ID No</th>
-              <th className="border-2 border-black p-2 text-left uppercase">Name & Designation</th>
-              <th className="border-2 border-black p-1 text-right uppercase">Emp Cont</th>
-              <th className="border-2 border-black p-1 text-right uppercase">Loan Draw</th>
-              <th className="border-2 border-black p-1 text-right uppercase">Loan Pay</th>
-              <th className="border-2 border-black p-1 text-right uppercase bg-slate-50">Loan Bal</th>
-              <th className="border-2 border-black p-1 text-right uppercase">Emp Prof</th>
-              <th className="border-2 border-black p-1 text-right uppercase">Loan Prof</th>
-              <th className="border-2 border-black p-1 text-right uppercase bg-slate-100">Net Emp</th>
-              <th className="border-2 border-black p-1 text-right uppercase">PBS Cont</th>
-              <th className="border-2 border-black p-1 text-right uppercase">PBS Prof</th>
-              <th className="border-2 border-black p-1 text-right uppercase bg-slate-100">Net Off</th>
-              <th className="border-2 border-black p-1 text-right uppercase bg-slate-200 text-[10px]">TOTAL FUND</th>
+              <th className="border-2 border-black p-2 text-left uppercase w-[150px]">Name & Designation</th>
+              <th className="border-2 border-black p-1 text-right uppercase">Emp Cont (1)</th>
+              <th className="border-2 border-black p-1 text-right uppercase">Loan Disb (2)</th>
+              <th className="border-2 border-black p-1 text-right uppercase">Loan Repay (3)</th>
+              <th className="border-2 border-black p-1 text-right uppercase bg-slate-50">Loan Bal (4)</th>
+              <th className="border-2 border-black p-1 text-right uppercase">Emp Prof (5)</th>
+              <th className="border-2 border-black p-1 text-right uppercase">Loan Prof (6)</th>
+              <th className="border-2 border-black p-1 text-right uppercase bg-slate-100">Net Emp (7)</th>
+              <th className="border-2 border-black p-1 text-right uppercase">PBS Cont (8)</th>
+              <th className="border-2 border-black p-1 text-right uppercase">PBS Prof (9)</th>
+              <th className="border-2 border-black p-1 text-right uppercase bg-slate-100">Net Off (10)</th>
+              <th className="border-2 border-black p-1 text-right uppercase bg-slate-200 text-[9px]">TOTAL FUND (11)</th>
             </tr>
           </thead>
           <tbody>
             {reportData.map((row, idx) => (
               <tr key={idx} className="border-b border-black">
                 <td className="border border-black p-1.5 text-center font-mono font-black">{row.memberIdNumber}</td>
-                <td className="border border-black p-1.5 uppercase leading-tight"><b>{row.name}</b><br/>{row.designation}</td>
+                <td className="border border-black p-1.5 uppercase leading-tight truncate"><b>{row.name}</b><br/>{row.designation}</td>
                 <td className="border border-black p-1 text-right">{row.c1.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.c2.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.c3.toLocaleString()}</td>
@@ -317,23 +317,23 @@ export default function LedgerSummaryReportPage() {
                 <td className="border border-black p-1 text-right">{row.c8.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{row.c9.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right font-black">{row.c10.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right font-black bg-slate-100 text-[10px]">৳ {row.c11.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right font-black bg-slate-100 text-[9px]">৳ {row.c11.toLocaleString()}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="bg-slate-100 font-black border-t-4 border-black h-16">
-              <td colSpan={2} className="border-2 border-black p-3 text-right uppercase tracking-widest text-[11px]">Institutional Grand Totals:</td>
+              <td colSpan={2} className="border-2 border-black p-3 text-right uppercase tracking-widest text-[10px]">Institutional Grand Totals:</td>
               <td className="border-2 border-black p-1 text-right">{stats.c1.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c2.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c3.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c4.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c5.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c6.toLocaleString()}</td>
-              <td className="border-2 border-black p-1 text-right text-[10px]">{stats.c7.toLocaleString()}</td>
+              <td className="border-2 border-black p-1 text-right text-[9px]">{stats.c7.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c8.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right">{stats.c9.toLocaleString()}</td>
-              <td className="border-2 border-black p-1 text-right text-[10px]">{stats.c10.toLocaleString()}</td>
+              <td className="border-2 border-black p-1 text-right text-[9px]">{stats.c10.toLocaleString()}</td>
               <td className="border-2 border-black p-1 text-right text-lg underline decoration-double underline-offset-4">৳ {stats.c11.toLocaleString()}</td>
             </tr>
           </tfoot>

@@ -25,10 +25,11 @@ export default function ReportsPage() {
   const { data: coaData, isLoading: isCoaLoading } = useCollection(coaRef);
 
   const activeCOA = useMemo(() => {
-    if (!coaData || coaData.length === 0) return INITIAL_COA;
     const mergedMap = new Map<string, any>();
     INITIAL_COA.forEach(acc => mergedMap.set(acc.code, acc));
-    coaData.forEach(acc => mergedMap.set(acc.code, acc));
+    if (coaData) {
+      coaData.forEach(acc => mergedMap.set(acc.code, acc));
+    }
     return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
   }, [coaData]);
 
@@ -293,6 +294,13 @@ export default function ReportsPage() {
     </div>
   );
 
+  const StandardFooter = () => (
+    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+      <span>CPF Management Software</span>
+      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+    </div>
+  );
+
   if (isCoaLoading || isEntriesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
@@ -367,10 +375,7 @@ export default function ReportsPage() {
                 <ClassifiedSection title="Institutional Assets & Portfolio" accounts={assetAccounts} balancesMap={balances} />
                 <ClassifiedSection title="Member Equity & Trust Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
               </div>
-              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -423,10 +428,7 @@ export default function ReportsPage() {
                   <span className="underline decoration-double decoration-2">৳ {formatCurrency(totalIncome - totalExpense)}</span>
                 </div>
               </div>
-              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -436,10 +438,7 @@ export default function ReportsPage() {
             <CardContent className="p-12 print:p-0">
               <ReportHeader title="Institutional Trial Balance" subtitle={`As of June 30, ${fyDates.end.split('-')[0]}`} />
               <TrialBalanceView />
-              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>
@@ -472,10 +471,7 @@ export default function ReportsPage() {
                     </div>
                  </div>
               </div>
-              <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-                <span>CPF Management Software</span>
-                <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-              </div>
+              <StandardFooter />
             </CardContent>
           </Card>
         </TabsContent>

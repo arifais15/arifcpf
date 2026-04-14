@@ -269,7 +269,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="h-8 w-px bg-black/10 mx-1" />
         <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 overflow-hidden">
           <div className="flex items-center gap-2 px-3">
-            <Label className="text-[9px] font-black uppercase text-black">View:</Label>
+            <Label className="text-[9px] font-black uppercase text-black">Limit:</Label>
             <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); }}>
               <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px] focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>
