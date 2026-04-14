@@ -45,6 +45,17 @@
   h1 { @apply text-4xl font-extrabold; }
   h2 { @apply text-2xl font-bold; }
   h3 { @apply text-xl font-semibold; }
+
+  /* Hide spin buttons for numeric inputs */
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type=number] {
+    -moz-appearance: textfield;
+  }
 }
 
 @media print {
