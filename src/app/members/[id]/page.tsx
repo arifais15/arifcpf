@@ -16,7 +16,8 @@ import {
   ChevronRight,
   CalendarDays,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  Info
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -68,27 +69,102 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const ledgerLogic = useMemo(() => {
     if (!summaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 } };
-    const sorted = [...summaries].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
+    
+    // Sort all summaries chronologically
+    const sorted = [...summaries].sort((a, b) => {
+      const dateA = new Date(a.summaryDate).getTime();
+      const dateB = new Date(b.summaryDate).getTime();
+      if (dateA !== dateB) return dateA - dateB;
+      const createA = new Date(a.createdAt || 0).getTime();
+      const createB = new Date(b.createdAt || 0).getTime();
+      return createA - createB;
+    });
+
     let rLoan = 0, rEmp = 0, rOff = 0;
-    const all = sorted.map(row => {
-      const v = { c1: Number(row.employeeContribution)||0, c2: Number(row.loanWithdrawal)||0, c3: Number(row.loanRepayment)||0, c5: Number(row.profitEmployee)||0, c6: Number(row.profitLoan)||0, c8: Number(row.pbsContribution)||0, c9: Number(row.profitPbs)||0 };
+    const allCalculated = sorted.map(row => {
+      const v = { 
+        c1: Number(row.employeeContribution)||0, 
+        c2: Number(row.loanWithdrawal)||0, 
+        c3: Number(row.loanRepayment)||0, 
+        c5: Number(row.profitEmployee)||0, 
+        c6: Number(row.profitLoan)||0, 
+        c8: Number(row.pbsContribution)||0, 
+        c9: Number(row.profitPbs)||0 
+      };
       rLoan += v.c2 - v.c3;
       rEmp += v.c1 - v.c2 + v.c3 + v.c5 + v.c6;
       rOff += v.c8 + v.c9;
       return { ...row, ...v, col4: rLoan, col7: rEmp, col10: rOff, col11: rEmp + rOff };
     });
-    const filtered = all.filter(r => (!dateRange.start || new Date(r.summaryDate) >= new Date(dateRange.start)) && (!dateRange.end || new Date(r.summaryDate) <= new Date(dateRange.end)));
-    const sums = filtered.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
-    const last = filtered[filtered.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
-    return { rows: filtered, totals: sums, latest: { col4: last.col4, col7: last.col7, col10: last.col10, col11: last.col11 } };
+
+    // Split into Pre-Range and In-Range
+    const startDate = dateRange.start ? new Date(dateRange.start).getTime() : 0;
+    const endDate = dateRange.end ? new Date(dateRange.end).getTime() : Infinity;
+
+    const preRows = allCalculated.filter(r => new Date(r.summaryDate).getTime() < startDate);
+    const inRangeRows = allCalculated.filter(r => {
+      const time = new Date(r.summaryDate).getTime();
+      return time >= startDate && time <= endDate;
+    });
+
+    // Calculate Opening Row if date filter is active
+    let displayRows = inRangeRows;
+    if (dateRange.start && preRows.length > 0) {
+      const preSums = preRows.reduce((acc, r) => ({
+        c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
+        c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
+      }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
+      const lastPre = preRows[preRows.length - 1];
+      const openingRow = {
+        summaryDate: dateRange.start,
+        particulars: "Opening Balance (Brought Forward)",
+        ...preSums,
+        col4: lastPre.col4,
+        col7: lastPre.col7,
+        col10: lastPre.col10,
+        col11: lastPre.col11,
+        isOpening: true,
+        id: "opening-row"
+      };
+      displayRows = [openingRow, ...inRangeRows];
+    }
+
+    const totals = inRangeRows.reduce((acc, r) => ({ 
+      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, 
+      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
+    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
+    const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
+
+    return { 
+      rows: displayRows, 
+      totals, 
+      latest: { col4: last.col4, col7: last.col7, col10: last.col10, col11: last.col11 } 
+    };
   }, [summaries, dateRange]);
 
-  const paginatedRows = useMemo(() => pageSize === -1 ? ledgerLogic.rows : ledgerLogic.rows.slice((currentPage - 1) * pageSize, currentPage * pageSize), [ledgerLogic.rows, currentPage, pageSize]);
+  const paginatedRows = useMemo(() => 
+    pageSize === -1 ? ledgerLogic.rows : ledgerLogic.rows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  , [ledgerLogic.rows, currentPage, pageSize]);
 
   const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = { summaryDate: formData.get("summaryDate"), particulars: formData.get("particulars"), employeeContribution: Number(formData.get("employeeContribution")), loanWithdrawal: Number(formData.get("loanWithdrawal")), loanRepayment: Number(formData.get("loanRepayment")), profitEmployee: Number(formData.get("profitEmployee")), profitLoan: Number(formData.get("profitLoan")), pbsContribution: Number(formData.get("pbsContribution")), profitPbs: Number(formData.get("profitPbs")), lastUpdateDate: new Date().toISOString(), createdAt: editingEntry?.createdAt || new Date().toISOString(), memberId: resolvedParams.id };
+    const data = { 
+      summaryDate: formData.get("summaryDate"), 
+      particulars: formData.get("particulars"), 
+      employeeContribution: Number(formData.get("employeeContribution")), 
+      loanWithdrawal: Number(formData.get("loanWithdrawal")), 
+      loanRepayment: Number(formData.get("loanRepayment")), 
+      profitEmployee: Number(formData.get("profitEmployee")), 
+      profitLoan: Number(formData.get("profitLoan")), 
+      pbsContribution: Number(formData.get("pbsContribution")), 
+      profitPbs: Number(formData.get("profitPbs")), 
+      lastUpdateDate: new Date().toISOString(), 
+      createdAt: editingEntry?.createdAt || new Date().toISOString(), 
+      memberId: resolvedParams.id 
+    };
     if (editingEntry?.id) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), data);
     else addDocumentNonBlocking(summariesRef, data);
     setIsEntryOpen(false); setEditingEntry(null);
@@ -116,6 +192,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <ArrowRightLeft className="size-3 text-black/20" />
             <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
           </div>
+        </div>
+        <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 ml-2">
+          <Label className="text-[9px] font-black uppercase px-2">Page Size:</Label>
+          <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); }}>
+            <SelectTrigger className="h-7 w-20 border-none bg-white text-[10px] font-black">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10" className="font-black text-xs">10 Rows</SelectItem>
+              <SelectItem value="25" className="font-black text-xs">25 Rows</SelectItem>
+              <SelectItem value="50" className="font-black text-xs">50 Rows</SelectItem>
+              <SelectItem value="-1" className="font-black text-xs">All</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center gap-1 ml-auto">
           <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> Entry</Button>
@@ -168,9 +258,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </thead>
             <tbody>
               {paginatedRows.map((row: any, idx) => (
-                <tr key={idx} className="hover:bg-slate-50 border-b border-black">
+                <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black", row.isOpening && "bg-slate-50 italic")}>
                   <td className="border border-black p-1 text-center font-mono">{row.summaryDate}</td>
-                  <td className="border border-black p-1 truncate uppercase">{row.particulars}</td>
+                  <td className="border border-black p-1 truncate uppercase">
+                    {row.particulars}
+                    {row.isOpening && <Badge variant="outline" className="ml-2 text-[7px] h-3 px-1 border-black bg-white rounded-none">Consolidated</Badge>}
+                  </td>
                   <td className="border border-black p-1 text-right">{row.c1.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right">{row.c2.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right">{row.c3.toLocaleString()}</td>
@@ -182,17 +275,32 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-1 text-right">{row.c9.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right bg-slate-50">{row.col10.toLocaleString()}</td>
                   <td className="border border-black p-1 text-right bg-slate-100">{row.col11.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-center no-print"><div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3"/></Button><Button variant="ghost" size="icon" onClick={() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", row.id))}><Trash2 className="size-3"/></Button></div></td>
+                  <td className="border border-black p-1 text-center no-print">
+                    {!row.isOpening && (
+                      <div className="flex gap-1 justify-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3"/></Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", row.id))}><Trash2 className="size-3"/></Button>
+                      </div>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
             <tfoot className="bg-slate-100 border-t-2 border-black text-[9px]">
               <tr>
-                <td colSpan={2} className="border border-black p-1.5 text-right uppercase">Totals:</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.latest.col4.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c5.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.totals.c6.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.latest.col7.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.latest.col10.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-300 text-base underline decoration-double">{ledgerLogic.latest.col11.toLocaleString()}</td><td className="border border-black p-1 no-print"></td>
+                <td colSpan={2} className="border border-black p-1.5 text-right uppercase">Period Totals:</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.latest.col4).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c5.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c6.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.latest.col7).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.latest.col10).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-300 text-base underline decoration-double">{(ledgerLogic.latest.col11).toLocaleString()}</td>
+                <td className="border border-black p-1 no-print"></td>
               </tr>
             </tfoot>
           </table>
