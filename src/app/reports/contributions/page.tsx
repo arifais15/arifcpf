@@ -23,7 +23,8 @@ import {
   Trash2,
   AlertTriangle,
   DatabaseZap,
-  FilterX
+  FilterX,
+  Info
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { collectionGroup, query, where, doc } from "firebase/firestore";
@@ -57,10 +58,8 @@ export default function ContributionAuditPage() {
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [particularsSearch, setParticularsSearch] = useState("");
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
-  const [cleanupParticulars, setCleanupParticulars] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Defer date initialization to avoid hydration errors
   useEffect(() => {
     const now = new Date();
     const currentYear = now.getFullYear();

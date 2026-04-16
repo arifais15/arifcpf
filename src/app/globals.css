@@ -13,25 +13,17 @@
     --primary: 0 0% 0%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222 47% 11.2%;
+    --secondary-foreground: 0 0% 0%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 0 0% 20%;
     --accent: 240 70% 60%;
-    --accent-foreground: 210 40% 98%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
     --border: 0 0% 0%;
-    --input: 214.3 31.8% 91.4%;
+    --input: 0 0% 0%;
     --ring: 0 0% 0%;
     --radius: 0.5rem;
-    --sidebar-background: 210 20% 98%;
-    --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 0 0% 0%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 40% 96.1%;
-    --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 214.3 31.8% 91.4%;
-    --sidebar-ring: 0 0% 0%;
   }
 }
 
@@ -111,7 +103,7 @@
     width: 100% !important;
     page-break-inside: auto;
     table-layout: fixed !important;
-    border: 0.5pt solid black !important;
+    border: 0.75pt solid black !important;
   }
 
   tr {
@@ -130,11 +122,6 @@
 
   .font-ledger {
     font-family: 'Times New Roman', 'Segoe UI', 'Arial', Times New Roman !important;
-  }
-
-  .border-dotted, .border-dashed {
-    border-style: solid !important;
-    border-width: 0.5pt !important;
   }
 
   .print-portrait-fix {
