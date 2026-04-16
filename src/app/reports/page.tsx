@@ -33,13 +33,13 @@ export default function ReportsPage() {
     return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
   }, [coaData]);
 
-  const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
-  const { data: entries, isLoading: isEntriesLoading } = useCollection(entriesRef);
-
   const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
   const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
   const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4') && !a.isHeader), [activeCOA]);
   const expenseAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('5') && !a.isHeader), [activeCOA]);
+
+  const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
+  const { data: entries, isLoading: isEntriesLoading } = useCollection(entriesRef);
 
   const availableFYs = useMemo(() => {
     const fys = new Set<string>();
@@ -181,7 +181,7 @@ export default function ReportsPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 portrait !important; margin: 10mm !important; } .print-container { width: 100% !important; display: block !important; border: none !important; } .print-portrait-fix { width: 190mm !important; margin: 0 auto !important; } body { background-color: white !important; } }` }} />
+      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 portrait !important; margin: 10mm !important; } .print-container { width: 100% !important; display: block !important; border: none !important; } .print-portrait-fix { width: 190mm !important; margin: 0 auto !important; } body { background-color: white !important; color: #000000 !important; } }` }} />
 
       <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-6 rounded-3xl border-2 border-black shadow-2xl">
         <div className="flex items-center gap-5">

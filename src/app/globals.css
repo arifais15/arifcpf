@@ -78,8 +78,8 @@
     overflow: visible !important;
     background-color: white !important;
     color: #000000 !important;
-    -webkit-print-color-adjust: economy !important;
-    print-color-adjust: economy !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
     text-rendering: optimizeLegibility;
   }
 
@@ -119,12 +119,12 @@
     border: 0.5pt solid black !important;
     color: #000000 !important;
     background-color: transparent !important;
-    padding: 3pt 2pt !important;
+    padding: 1pt 1pt !important;
     word-wrap: break-word !important;
     overflow: visible !important;
   }
 
   .font-ledger {
-    font-family: 'Times New Roman', 'Segoe UI', 'Arial', sans-serif !important;
+    font-family: 'Calibri', 'Times New Roman', 'Segoe UI', 'Arial', sans-serif !important;
   }
 }
