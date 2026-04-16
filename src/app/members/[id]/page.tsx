@@ -42,7 +42,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [pageSize, setPageSize] = useState<number>(10);
   const [currentPage, setCurrentPage] = useState(1);
-  const [tempEntry, setTempEntry] = useState({ c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
@@ -106,7 +105,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-6 md:p-10 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 landscape !important; margin: 10mm !important; } .print-container { width: 100% !important; display: block !important; } table { table-layout: fixed !important; width: 100% !important; } body { background-color: white !important; } }` }} />
+      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 landscape !important; margin: 8mm !important; } .print-container { width: 100% !important; display: block !important; } table { table-layout: fixed !important; width: 100% !important; } body { background-color: white !important; } }` }} />
       
       <PageHeaderActions>
         <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2"><ArrowLeft className="size-5 text-black" /></Link>
@@ -128,7 +127,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="relative mb-10 text-center border-b-4 border-black pb-8">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em]">REB Form no: 224</p>
           <h1 className="text-4xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <p className="text-base font-black uppercase tracking-[0.35em] text-black/70 mt-1">Contributory Provident Fund</p>
+          <p className="text-base font-black uppercase tracking-[0.35em] text-black mt-1">Contributory Provident Fund</p>
           <h2 className="text-2xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.3em] mt-6">Subsidiary Ledger Statement</h2>
         </div>
 
@@ -156,14 +155,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border border-black p-1 w-[150px]">Particulars</th>
                 <th colSpan={4} className="border border-black p-1 bg-slate-200/50">Contributions & Loans</th>
                 <th colSpan={2} className="border border-black p-1 bg-slate-100">Profits</th>
-                <th rowSpan={3} className="border border-black p-1 bg-slate-200">Net Emp(7)</th>
+                <th rowSpan={3} className="border border-black p-1 bg-slate-200">Net Emp<br/>(7=Pre+1-2+3+5+6)</th>
                 <th colSpan={2} className="border border-black p-1 bg-slate-100">PBS Fund</th>
-                <th rowSpan={3} className="border border-black p-1 bg-slate-200">Net Off(10)</th>
-                <th rowSpan={3} className="border border-black p-1 w-[90px] bg-black text-white">Total (11)</th>
+                <th rowSpan={3} className="border border-black p-1 bg-slate-200">Net Off<br/>(10=8+9)</th>
+                <th rowSpan={3} className="border border-black p-1 w-[90px] bg-black text-white">Total<br/>(11=7+10)</th>
                 <th rowSpan={3} className="border border-black p-1 no-print w-[60px]">Action</th>
               </tr>
               <tr className="text-[7px] uppercase">
-                <th className="border border-black p-1">Contrib</th><th className="border border-black p-1">Drawal</th><th className="border border-black p-1">Repay</th><th className="border border-black p-1 bg-slate-200">Bal(4)</th>
+                <th className="border border-black p-1">Contrib(1)</th><th className="border border-black p-1">Drawal(2)</th><th className="border border-black p-1">Repay(3)</th><th className="border border-black p-1 bg-slate-200">Bal(4=2-3)</th>
                 <th className="border border-black p-1">Emp(5)</th><th className="border border-black p-1">Loan(6)</th><th className="border border-black p-1">Contrib(8)</th><th className="border border-black p-1">Profit(9)</th>
               </tr>
             </thead>

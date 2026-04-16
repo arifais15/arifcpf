@@ -15,8 +15,8 @@
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 0 0% 0%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 0 0% 20%;
-    --accent: 240 70% 60%;
+    --muted-foreground: 0 0% 0%;
+    --accent: 0 0% 0%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
@@ -33,8 +33,12 @@
   }
   body {
     @apply bg-background text-foreground font-body text-[15px] antialiased;
+    color: #000000 !important;
   }
-  h1, h2, h3, h4, h5, h6 { @apply font-black text-black; }
+  h1, h2, h3, h4, h5, h6 { 
+    @apply font-black text-black; 
+    color: #000000 !important;
+  }
 
   input::-webkit-outer-spin-button,
   input::-webkit-inner-spin-button {
@@ -121,12 +125,6 @@
   }
 
   .font-ledger {
-    font-family: 'Times New Roman', 'Segoe UI', 'Arial', Times New Roman !important;
-  }
-
-  .print-portrait-fix {
-    width: 190mm !important;
-    margin: 0 auto !important;
-    padding: 5mm !important;
+    font-family: 'Times New Roman', 'Segoe UI', 'Arial', sans-serif !important;
   }
 }

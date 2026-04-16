@@ -89,7 +89,7 @@ export default function LedgerSummaryReportPage() {
 
       <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden print-container">
         <div className="p-4 border-b-4 border-black bg-slate-100 flex items-center justify-between no-print">
-          <div className="relative flex-1 max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4" /><Input className="pl-9 h-10 border-2 border-black font-black" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+          <div className="relative flex-1 max-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4" /><Input className="pl-9 h-10 border-2 border-black font-black" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
           <Badge className="bg-black text-white font-black px-4 py-1.5 uppercase tracking-widest">{reportData.length} Personnel Audited</Badge>
         </div>
         <div className="overflow-x-auto">
@@ -100,13 +100,13 @@ export default function LedgerSummaryReportPage() {
                 <th rowSpan={2} className="border-r-4 border-black p-2 w-[250px] uppercase text-[10px]">Name & Designation</th>
                 <th colSpan={4} className="border-r-4 border-black p-2 bg-slate-200/50 uppercase text-[10px]">Contributions & Loans</th>
                 <th colSpan={2} className="border-r-4 border-black p-2 bg-slate-100 uppercase text-[10px]">Profits Accrued</th>
-                <th className="border-r-4 border-black p-2 bg-slate-200 uppercase text-[10px]">Net Emp(7)</th>
+                <th className="border-r-4 border-black p-2 bg-slate-200 uppercase text-[10px]">Net Emp(7=Pre+1-2+3+5+6)</th>
                 <th colSpan={2} className="border-r-4 border-black p-2 bg-slate-100 uppercase text-[10px]">Office Matching</th>
-                <th className="border-r-4 border-black p-2 bg-slate-200 uppercase text-[10px]">Net Off(10)</th>
-                <th className="p-2 bg-black text-white uppercase text-[11px]">Total(11)</th>
+                <th className="border-r-4 border-black p-2 bg-slate-200 uppercase text-[10px]">Net Off(10=8+9)</th>
+                <th className="p-2 bg-black text-white uppercase text-[11px]">Total(11=7+10)</th>
               </tr>
               <tr className="bg-slate-50 text-[9px] uppercase">
-                <th className="p-2 text-right border-r">Emp(1)</th><th className="p-2 text-right border-r">Loan(2)</th><th className="p-2 text-right border-r">Repay(3)</th><th className="p-2 text-right border-r-4 bg-slate-100">Bal(4)</th>
+                <th className="p-2 text-right border-r">Emp(1)</th><th className="p-2 text-right border-r">Loan(2)</th><th className="p-2 text-right border-r">Repay(3)</th><th className="p-2 text-right border-r-4 bg-slate-100">Bal(4=2-3)</th>
                 <th className="p-2 text-right border-r">Prof(5)</th><th className="p-2 text-right border-r-4">Loan(6)</th><th className="p-2 text-right border-r-4 bg-slate-200">Equity(7)</th>
                 <th className="p-2 text-right border-r">PBS(8)</th><th className="p-2 text-right border-r-4">Prof(9)</th><th className="p-2 text-right border-r-4 bg-slate-100">Match(10)</th><th className="p-2 text-right bg-slate-300">Total(11)</th>
               </tr>
