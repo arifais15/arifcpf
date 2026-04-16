@@ -17,7 +17,8 @@ import {
   ListFilter,
   CalendarDays,
   ShieldCheck,
-  TrendingUp
+  TrendingUp,
+  FileText
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -295,34 +296,40 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </PageHeaderActions>
 
-      <div className="bg-white p-8 md:p-12 shadow-2xl rounded-none border-2 border-black max-w-[1400px] mx-auto w-full font-ledger text-black print-container">
-        <div className="relative mb-8 text-center border-b-2 border-black pb-6">
+      <div className="bg-white p-8 md:p-12 shadow-2xl rounded-none border-4 border-black max-w-[1400px] mx-auto w-full font-ledger text-black print-container">
+        <div className="relative mb-10 text-center border-b-4 border-black pb-8">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
-          <h1 className="text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
-          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.25em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
+          <h1 className="text-4xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+          <p className="text-base font-black uppercase tracking-[0.35em] text-black/70 mt-1">Contributory Provident Fund</p>
+          <h2 className="text-2xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.3em] mt-6 text-black">Subsidiary Ledger Statement</h2>
           {(dateRange.start || dateRange.end) && (
-            <p className="text-[10px] font-black uppercase tracking-widest mt-6 bg-black text-white px-4 py-1.5 inline-block">Ledger Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}</p>
+            <div className="mt-8 inline-block bg-black text-white px-6 py-2 rounded-none">
+               <p className="text-[11px] font-black uppercase tracking-[0.2em]">Audit Period: {dateRange.start || "Genesis"} to {dateRange.end || "Today"}</p>
+            </div>
           )}
         </div>
 
-        <div className="grid grid-cols-3 gap-x-10 gap-y-4 mb-8 text-[13px] border-b-2 border-black pb-6 font-black text-black">
+        <div className="grid grid-cols-3 gap-x-12 gap-y-8 mb-10 text-[13px] font-black border-b-4 border-black pb-8 text-black">
           {[
-            { label: "Member Name", value: member.name, sub: "uppercase text-[15px]" },
-            { label: "Designation", value: member.designation, sub: "text-sm uppercase" },
-            { label: "ID Number", value: member.memberIdNumber, sub: "font-mono text-base" },
-            { label: "Joined Date", value: member.dateJoined, sub: "text-sm" },
-            { label: "Status", value: member.status || "Active", sub: "uppercase text-xs bg-black text-white px-2 py-0.5 rounded ml-2" },
+            { label: "Full Legal Name", value: member.name, sub: "uppercase text-xl leading-none" },
+            { label: "Official Designation", value: member.designation, sub: "text-base uppercase" },
+            { label: "Trust ID Number", value: member.memberIdNumber, sub: "font-mono text-2xl" },
+            { label: "Fund Joined Date", value: member.dateJoined, sub: "text-lg" },
+            { label: "Personnel Status", value: member.status || "Active", sub: "uppercase text-sm bg-black text-white px-3 py-1 ml-2" },
+            { label: "Mailing Address", value: member.permanentAddress || "-", sub: "text-xs truncate opacity-70" },
           ].map((item, idx) => (
-            <div key={idx} className="flex gap-2 items-end">
-              <span className="font-black min-w-[100px] uppercase text-[9px] text-black mb-0.5 tracking-widest">{item.label}</span>
-              <span className={cn("font-black border-b-2 border-black flex-1 pb-0.5 text-black truncate", item.sub)}>{item.value}</span>
+            <div key={idx} className="flex flex-col gap-2">
+              <span className="font-black uppercase text-[9px] text-black/50 tracking-[0.2em] leading-none">{item.label}</span>
+              <div className="border-b-2 border-black flex items-baseline gap-2 pb-1">
+                 <span className={cn("font-black text-black truncate", item.sub)}>{item.value}</span>
+              </div>
             </div>
           ))}
         </div>
 
         <div className="overflow-x-auto w-full">
           <table className="w-full text-[10px] border-collapse border-2 border-black table-fixed text-black font-black">
-            <thead className="bg-slate-100 font-black border-b-2 border-black">
+            <thead className="bg-slate-100 font-black border-b-4 border-black">
               <tr>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[65px] uppercase text-[8px] tracking-tighter">Date</th>
                 <th rowSpan={3} className="border-2 border-black p-1 text-center w-[120px] uppercase text-[8px] tracking-tighter">Particulars</th>
