@@ -112,7 +112,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       const lastPre = preRows[preRows.length - 1];
       const openingRow = {
         summaryDate: dateRange.start,
-        particulars: "OPENING BALANCE (BROUGHT FORWARD)",
+        particulars: "Opening Balance",
         ...preSums,
         col4: lastPre.col4,
         col7: lastPre.col7,
@@ -235,7 +235,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <td className="border border-black p-0.5 text-center font-mono text-[9px]">{row.summaryDate}</td>
                   <td className="border border-black p-0.5 truncate uppercase text-[9px]">
                     {row.particulars}
-                    {row.isOpening && <Badge variant="outline" className="ml-1 text-[7px] h-3 px-1 border-black bg-white rounded-none">Consol.</Badge>}
                   </td>
                   <td className="border border-black p-0.5 text-right">{row.c1.toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c2.toLocaleString()}</td>
