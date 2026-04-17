@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -91,163 +92,95 @@ export default function FundMovementReportPage() {
   if (isMembersLoading || isSummariesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
-    <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
+    <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page {
-            size: A4 landscape !important;
-            margin: 5mm !important;
-          }
-          .print-container {
-            width: 100% !important;
-            max-width: none !important;
-            padding: 0 !important;
-            display: block !important;
-            transform: scale(0.92);
-            transform-origin: top left;
-          }
-          table {
-            table-layout: fixed !important;
-            width: 100% !important;
-          }
-          body {
-            background-color: white !important;
-          }
+          @page { size: A4 landscape !important; margin: 4mm !important; }
+          .print-container { width: 100% !important; transform: scale(1); transform-origin: top left; display: block !important; }
+          table { table-layout: fixed !important; width: 100% !important; }
+          body { background-color: white !important; font-size: 8px !important; }
         }
       `}} />
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex items-center gap-4">
-          <Link href="/investments" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors"><ArrowLeft className="size-6" /></Link>
-          <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-black text-black tracking-tight uppercase">Fund Movement Audit</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Analysis of Institutional and Personal Fund Evolution</p>
-          </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
+        <div className="flex items-center gap-3">
+          <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5 text-black" /></Link>
+          <h1 className="text-2xl font-black tracking-tighter uppercase">Fund Movement</h1>
         </div>
-        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border-2 border-black">
+          <div className="flex items-center gap-2">
             <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-black text-black">Date Start</Label>
-              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black" />
+              <Label className="text-[9px] uppercase font-black">Start</Label>
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black p-1" />
             </div>
-            <ArrowRightLeft className="size-3 mt-3" />
+            <ArrowRightLeft className="size-3 mt-4 opacity-30" />
             <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-black text-black">Date End</Label>
-              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black" />
+              <Label className="text-[9px] uppercase font-black">End</Label>
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black p-1" />
             </div>
           </div>
-          <div className="h-8 w-px bg-black hidden sm:block" />
-          <Button onClick={() => window.print()} className="gap-2 h-9 font-black uppercase text-[10px] bg-black text-white px-6 shadow-lg">
-            <Printer className="size-4" /> Print Movement
+          <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] uppercase">
+            <Printer className="size-3 mr-1" /> Print
           </Button>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 no-print">
-        <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest">Aggregate Opening Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-black tabular-nums">৳ {stats.op.toLocaleString()}</div></CardContent></Card>
-        <Card className="bg-black text-white border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]"><CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest">Aggregate Closing Balance</CardTitle></CardHeader><CardContent><div className="text-3xl font-black tabular-nums">৳ {stats.cl.toLocaleString()}</div></CardContent></Card>
-      </div>
-
-      <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden no-print">
-        <div className="p-4 border-b-4 border-black bg-slate-100 flex items-center justify-between">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black" />
-            <Input className="pl-9 h-10 border-2 border-black font-black" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="bg-white rounded-none border-2 border-black overflow-hidden print-container">
+        <div className="p-2 border-b-2 border-black bg-slate-100 flex items-center justify-between no-print">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
+            <Input className="pl-7 h-8 border-black font-black text-[10px]" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge className="bg-black text-white font-black px-4 py-1.5 uppercase tracking-widest">{reportData.length} Personnel Registered</Badge>
         </div>
-        <div className="overflow-x-auto">
-          <Table className="min-w-[1800px] border-collapse text-black font-black">
-            <TableHeader className="bg-slate-50 border-b-4 border-black">
-              <TableRow>
-                <TableHead className="font-black text-black uppercase text-[10px] sticky left-0 bg-slate-50 z-20 w-[100px] border-r-2 border-black">Member ID</TableHead>
-                <TableHead className="font-black text-black uppercase text-[10px] sticky left-[100px] bg-slate-50 z-20 w-[200px] border-r-2 border-black">Name</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest bg-slate-100">Emp Opening</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest">Emp Add</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest">Emp Adj</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest bg-slate-200">Emp Closing</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest bg-slate-100">PBS Opening</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest">PBS Add</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest">PBS Adj</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest bg-slate-200">PBS Closing</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest bg-black text-white">TOTAL FUND</TableHead>
-              </TableRow>
+        <div className="overflow-x-hidden">
+          <Table className="w-full font-black tabular-nums border-collapse text-[9px]">
+            <TableHeader className="bg-slate-100 border-b-2 border-black">
+              <tr className="uppercase text-[8px] leading-tight">
+                <th className="font-black p-1 w-[50px] border-r">ID</th>
+                <th className="font-black p-1 text-left w-[120px] border-r">Name</th>
+                <th className="text-right p-1 border-r">E-Open</th>
+                <th className="text-right p-1 border-r">E-Add</th>
+                <th className="text-right p-1 border-r">E-Adj</th>
+                <th className="text-right p-1 border-r-2 bg-slate-200">E-Close</th>
+                <th className="text-right p-1 border-r">P-Open</th>
+                <th className="text-right p-1 border-r">P-Add</th>
+                <th className="text-right p-1 border-r">P-Adj</th>
+                <th className="text-right p-1 border-r-2 bg-slate-200">P-Close</th>
+                <th className="text-right p-1 bg-black text-white">TOTAL</th>
+              </tr>
             </TableHeader>
-            <TableBody className="tabular-nums">
+            <TableBody>
               {reportData.map((row, idx) => (
-                <TableRow key={idx} className="hover:bg-slate-100 border-b border-black text-[11px]">
-                  <td className="font-mono font-black p-3 sticky left-0 bg-white border-r-2 border-black z-10">{row.memberIdNumber}</td>
-                  <td className="p-3 font-black sticky left-[100px] bg-white border-r-2 border-black z-10 truncate uppercase">{row.name}</td>
-                  <td className="text-right p-3 bg-slate-50">{row.opEmp.toLocaleString()}</td>
-                  <td className="text-right p-3">{row.addEmp.toLocaleString()}</td>
-                  <td className="text-right p-3">{row.adjEmp.toLocaleString()}</td>
-                  <td className="text-right p-3 bg-slate-100 font-black">{row.clEmp.toLocaleString()}</td>
-                  <td className="text-right p-3 bg-slate-50">{row.opPbs.toLocaleString()}</td>
-                  <td className="text-right p-3">{row.addPbs.toLocaleString()}</td>
-                  <td className="text-right p-3">{row.adjPbs.toLocaleString()}</td>
-                  <td className="text-right p-3 bg-slate-100 font-black">{row.clPbs.toLocaleString()}</td>
-                  <td className="text-right p-3 bg-slate-200 font-black text-xs underline decoration-black"> {row.total.toLocaleString()}</td>
+                <TableRow key={idx} className="hover:bg-slate-100 border-b border-black h-8">
+                  <td className="font-mono p-1 border-r text-center">{row.memberIdNumber}</td>
+                  <td className="p-1 border-r uppercase truncate leading-none">
+                    <span className="font-black block">{row.name}</span>
+                  </td>
+                  <td className="text-right p-0.5 border-r">{row.opEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.addEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.adjEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r-2 bg-slate-50 font-bold">{row.clEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.opPbs.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.addPbs.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.adjPbs.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r-2 bg-slate-50 font-bold">{row.clPbs.toLocaleString()}</td>
+                  <td className="text-right p-0.5 bg-slate-100 font-bold"> {row.total.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
+            <TableFooter className="bg-black text-white font-black text-[8px]">
+              <TableRow className="h-10">
+                <td colSpan={2} className="text-right pr-2">CONSOLIDATED:</td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.opEmp, 0).toLocaleString()}</td>
+                <td colSpan={2} className="text-right">SUM:</td>
+                <td className="text-right bg-white/10">{reportData.reduce((s, r) => s + r.clEmp, 0).toLocaleString()}</td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.opPbs, 0).toLocaleString()}</td>
+                <td colSpan={2} className="text-right">SUM:</td>
+                <td className="text-right bg-white/10">{reportData.reduce((s, r) => s + r.clPbs, 0).toLocaleString()}</td>
+                <td className="text-right bg-white text-black">৳ {stats.cl.toLocaleString()}</td>
+              </TableRow>
+            </TableFooter>
           </Table>
-        </div>
-      </div>
-
-      <div className="hidden print:block print-container text-black font-black">
-        <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
-          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
-          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Fund Movement Audit Summary Statement</h2>
-          <div className="flex justify-between text-[11px] font-black pt-8">
-            <span className="bg-black text-white px-4 py-1">Period Basis: {dateRange.start} to {dateRange.end}</span>
-            <span>Audit Run Date: {new Date().toLocaleDateString('en-GB')}</span>
-          </div>
-        </div>
-        <table className="w-full text-[8px] border-collapse border-2 border-black tabular-nums">
-          <thead>
-            <tr className="bg-slate-100 border-b-2 border-black">
-              <th className="border border-black p-1 uppercase w-[60px]">ID No</th>
-              <th className="border border-black p-1 text-left uppercase w-[150px]">Member Details</th>
-              <th className="border border-black p-1 text-right uppercase">Op. Emp</th>
-              <th className="border border-black p-1 text-right uppercase">Add. Emp</th>
-              <th className="border border-black p-1 text-right uppercase">Cl. Emp</th>
-              <th className="border border-black p-1 text-right uppercase">Op. PBS</th>
-              <th className="border border-black p-1 text-right uppercase">Add. PBS</th>
-              <th className="border border-black p-1 text-right uppercase">Cl. PBS</th>
-              <th className="border border-black p-1 text-right uppercase bg-slate-100">TOTAL FUND</th>
-            </tr>
-          </thead>
-          <tbody>
-            {reportData.map((row, i) => (
-              <tr key={i} className="border-b border-black">
-                <td className="border border-black p-1 text-center font-mono">{row.memberIdNumber}</td>
-                <td className="border border-black p-1 uppercase leading-tight truncate"><b>{row.name}</b><br/>{row.designation}</td>
-                <td className="border border-black p-1 text-right">{row.opEmp.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{row.addEmp.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right font-black">{row.clEmp.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{row.opPbs.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{row.addPbs.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right font-black">{row.clPbs.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right font-black bg-slate-50">{row.total.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-100 font-black h-12 border-t-2 border-black">
-              <td colSpan={2} className="border border-black p-2 text-right uppercase tracking-widest">Consolidated Totals:</td>
-              <td className="border border-black p-2 text-right">{reportData.reduce((s, r) => s + r.opEmp, 0).toLocaleString()}</td>
-              <td colSpan={2} className="border border-black p-2 text-right">{reportData.reduce((s, r) => s + r.clEmp, 0).toLocaleString()}</td>
-              <td className="border border-black p-2 text-right">{reportData.reduce((s, r) => s + r.opPbs, 0).toLocaleString()}</td>
-              <td colSpan={2} className="border border-black p-2 text-right">{reportData.reduce((s, r) => s + r.clPbs, 0).toLocaleString()}</td>
-              <td className="border border-black p-2 text-right text-base underline decoration-double">৳ {stats.cl.toLocaleString()}</td>
-            </tr>
-          </tfoot>
-        </table>
-        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest">
-          <div className="border-t-2 border-black pt-4">Prepared by</div>
-          <div className="border-t-2 border-black pt-4">Checked by</div>
-          <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
         </div>
         <StandardFooter />
       </div>

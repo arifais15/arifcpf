@@ -17,7 +17,8 @@ import {
   ArrowRightLeft,
   Trash2,
   DatabaseZap,
-  Info
+  Info,
+  ArrowLeft
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { collectionGroup, doc } from "firebase/firestore";
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
+import Link from "next/link";
 
 export default function ContributionAuditPage() {
   const firestore = useFirestore();
@@ -132,7 +134,10 @@ export default function ContributionAuditPage() {
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <h1 className="text-3xl font-black uppercase tracking-tight">Audit & Tracking</h1>
+        <div className="flex items-center gap-3">
+          <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5 text-black" /></Link>
+          <h1 className="text-3xl font-black uppercase tracking-tight">Audit & Tracking</h1>
+        </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 border-2 border-black rounded-xl shadow-xl">
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase">Quick FY</Label>
@@ -152,8 +157,8 @@ export default function ContributionAuditPage() {
             <Input placeholder="Filter keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[150px] text-xs" />
           </div>
           <div className="flex gap-2 mt-4">
-            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase gap-1"><DatabaseZap className="size-3" /> Institutional Cleanup</Button>
-            <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white gap-1"><Printer className="size-3" /> Print List</Button>
+            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase gap-1"><DatabaseZap className="size-3" /> Cleanup</Button>
+            <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white gap-1"><Printer className="size-3" /> Print</Button>
           </div>
         </div>
       </div>
@@ -195,7 +200,7 @@ export default function ContributionAuditPage() {
       <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
         <DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden rounded-none shadow-2xl">
           <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
-            <DialogTitle className="text-xl font-black uppercase text-rose-700">Institutional Cleanup Terminal</DialogTitle>
+            <DialogTitle className="text-xl font-black uppercase text-rose-700">Cleanup Terminal</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-4">
             <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
@@ -205,7 +210,7 @@ export default function ContributionAuditPage() {
             </div>
             <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] leading-relaxed font-bold uppercase">To prevent accidental deletion of valid data, ensure your "Particulars" search is specific (e.g. "Opening Balance (Imported)"). Verify the record count before committing.</p>
+              <p className="text-[10px] leading-relaxed font-bold uppercase">To prevent accidental deletion of valid data, ensure your "Particulars" search is specific (e.g. "Opening Balance (Imported)"). Verify the record count in the list below before committing to delete.</p>
             </div>
             <DialogFooter className="p-6 pt-2">
               <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl rounded-none">

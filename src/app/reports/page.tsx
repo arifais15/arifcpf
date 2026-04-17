@@ -31,7 +31,7 @@ export default function ReportsPage() {
     if (coaData) {
       coaData.forEach(acc => mergedMap.set(acc.code, acc));
     }
-    return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
+    return Array.from(mergedMap.values()).sort((a, b) => (a.code || "").localeCompare(b.code || ""));
   }, [coaData]);
 
   const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
