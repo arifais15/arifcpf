@@ -1,20 +1,26 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
 import { 
   Loader2, 
   Printer, 
-  ArrowLeft
+  ArrowLeft,
+  ArrowRightLeft
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default function AllLedgersPrintPage() {
   const firestore = useFirestore();
   const [isReady, setIsReady] = useState(false);
+  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [selectedFY, setSelectedFY] = useState("");
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
@@ -26,6 +32,39 @@ export default function AllLedgersPrintPage() {
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
+  const availableFYs = useMemo(() => {
+    const fys = [];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+    const activeStartYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    for (let i = 0; i < 15; i++) {
+      const start = activeStartYear - i;
+      fys.push(`${start}-${(start + 1).toString().slice(-2)}`);
+    }
+    return fys;
+  }, []);
+
+  const handleFYChange = (fy: string) => {
+    setSelectedFY(fy);
+    if (fy === "all") {
+      setDateRange({ start: "2010-01-01", end: new Date().toISOString().split('T')[0] });
+    } else {
+      const parts = fy.split("-");
+      const startYear = parseInt(parts[0]);
+      setDateRange({ 
+        start: `${startYear}-07-01`, 
+        end: `${startYear + 1}-06-30` 
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (availableFYs.length > 0 && !selectedFY) {
+      handleFYChange(availableFYs[0]);
+    }
+  }, [availableFYs, selectedFY]);
+
   useEffect(() => {
     if (!isMembersLoading && !isSummariesLoading && members && allSummaries) {
       setIsReady(true);
@@ -34,6 +73,9 @@ export default function AllLedgersPrintPage() {
 
   const memberLedgers = useMemo(() => {
     if (!members || !allSummaries) return [];
+
+    const startDate = dateRange.start ? new Date(dateRange.start).getTime() : 0;
+    const endDate = dateRange.end ? new Date(dateRange.end).getTime() : Infinity;
 
     return members
       .sort((a, b) => (a.memberIdNumber || "").localeCompare(b.memberIdNumber || ""))
@@ -49,37 +91,74 @@ export default function AllLedgersPrintPage() {
             return createA - createB;
           });
 
-        let runningLoanBalance = 0;
-        let runningEmployeeFund = 0;
-        let runningOfficeFund = 0;
-
-        const calculatedRows = memberSummaries.map((row: any) => {
-          const col1 = Number(row.employeeContribution) || 0;
-          const col2 = Number(row.loanWithdrawal) || 0;
-          const col3 = Number(row.loanRepayment) || 0;
-          const col5 = Number(row.profitEmployee) || 0;
-          const col6 = Number(row.profitLoan) || 0;
-          const col8 = Number(row.pbsContribution) || 0;
-          const col9 = Number(row.profitPbs) || 0;
-
-          runningLoanBalance = runningLoanBalance + col2 - col3;
-          runningEmployeeFund = runningEmployeeFund + col1 - col2 + col3 + col5 + col6;
-          runningOfficeFund = runningOfficeFund + col8 + col9;
-          const col11 = runningEmployeeFund + runningOfficeFund;
-
-          return {
-            ...row,
-            col1, col2, col3, col4: runningLoanBalance, col5, col6, col7: runningEmployeeFund, col8, col9, col10: runningOfficeFund, col11
+        let rLoan = 0, rEmp = 0, rOff = 0;
+        const allCalculated = memberSummaries.map(row => {
+          const v = { 
+            c1: Number(row.employeeContribution)||0, 
+            c2: Number(row.loanWithdrawal)||0, 
+            c3: Number(row.loanRepayment)||0, 
+            c5: Number(row.profitEmployee)||0, 
+            c6: Number(row.profitLoan)||0, 
+            c8: Number(row.pbsContribution)||0, 
+            c9: Number(row.profitPbs)||0 
           };
+          rLoan += v.c2 - v.c3;
+          rEmp += v.c1 - v.c2 + v.c3 + v.c5 + v.c6;
+          rOff += v.c8 + v.c9;
+          return { ...row, ...v, col4: rLoan, col7: rEmp, col10: rOff, col11: rEmp + rOff };
         });
 
-        const sums = calculatedRows.reduce((acc, r) => ({
-          c1: acc.c1 + r.col1, c2: acc.c2 + r.col2, c3: acc.c3 + r.col3, c5: acc.c5 + r.col5, c6: acc.c6 + r.col6, c8: acc.c8 + r.col8, c9: acc.c9 + r.col9
+        const preRows = allCalculated.filter(r => new Date(r.summaryDate).getTime() < startDate);
+        const inRangeRows = allCalculated.filter(r => {
+          const time = new Date(r.summaryDate).getTime();
+          return time >= startDate && time <= endDate;
+        });
+
+        const preSums = preRows.reduce((acc, r) => ({
+          c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
+          c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
         }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
-        return { member, rows: calculatedRows, sums, last: calculatedRows[calculatedRows.length - 1] };
+        let displayRows = inRangeRows;
+        let openingRowValue = { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 };
+
+        if (dateRange.start && preRows.length > 0) {
+          const lastPre = preRows[preRows.length - 1];
+          openingRowValue = preSums;
+          const openingRow = {
+            summaryDate: dateRange.start,
+            particulars: "Opening Balance",
+            ...preSums,
+            col4: lastPre.col4,
+            col7: lastPre.col7,
+            col10: lastPre.col10,
+            col11: lastPre.col11,
+            isOpening: true,
+            id: "opening-row"
+          };
+          displayRows = [openingRow, ...inRangeRows];
+        }
+
+        const activityTotals = inRangeRows.reduce((acc, r) => ({ 
+          c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, 
+          c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
+        }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
+        const grandTotals = {
+          c1: openingRowValue.c1 + activityTotals.c1,
+          c2: openingRowValue.c2 + activityTotals.c2,
+          c3: openingRowValue.c3 + activityTotals.c3,
+          c5: openingRowValue.c5 + activityTotals.c5,
+          c6: openingRowValue.c6 + activityTotals.c6,
+          c8: openingRowValue.c8 + activityTotals.c8,
+          c9: openingRowValue.c9 + activityTotals.c9,
+        };
+
+        const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
+
+        return { member, rows: displayRows, sums: grandTotals, last };
       });
-  }, [members, allSummaries]);
+  }, [members, allSummaries, dateRange]);
 
   const StandardFooter = () => (
     <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
@@ -132,6 +211,26 @@ export default function AllLedgersPrintPage() {
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated subsidiary reports audit trail</p>
           </div>
         </div>
+
+        <div className="flex items-center gap-3 bg-black/5 p-2 rounded-xl h-14 px-3">
+          <div className="flex items-center gap-2 pr-3 border-r border-black/10">
+            <Select value={selectedFY} onValueChange={handleFYChange}>
+              <SelectTrigger className="h-8 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
+                <SelectItem value="all" className="font-black text-xs text-rose-600">ALL TIME</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
+            <ArrowRightLeft className="size-3 text-black/20" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
+          </div>
+        </div>
+
         <div className="flex items-center gap-6 bg-white p-4 rounded-2xl border-2 border-black shadow-xl">
           <div className="flex flex-col text-right">
             <span className="text-[10px] font-black uppercase text-black tracking-widest">Active Ledgers</span>
@@ -148,7 +247,7 @@ export default function AllLedgersPrintPage() {
       <div className="flex flex-col gap-0 print-container">
         {memberLedgers.map((ledger, idx) => (
           <div key={ledger.member.id} className={cn("bg-white p-12 print:p-0 print:m-0 print:shadow-none shadow-2xl border-2 border-black mb-16 print:border-none", idx < memberLedgers.length - 1 && "print:break-after-page")}>
-            <div className="relative mb-10 text-center border-b-4 border-black pb-8">
+            <div className="relative mb-6 text-center border-b-4 border-black pb-4">
               <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
               <h1 className="text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
               <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
@@ -173,65 +272,53 @@ export default function AllLedgersPrintPage() {
             <table className="w-full text-[10px] border-collapse border-2 border-black table-fixed text-black font-black">
               <thead className="bg-slate-100 font-black border-b-2 border-black">
                 <tr>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[65px] uppercase text-[8px] tracking-tighter text-black">Date</th>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-center w-[120px] uppercase text-[8px] tracking-tighter text-black">Particulars</th>
-                  <th colSpan={4} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200/50 text-black">Contributions & Loans</th>
-                  <th colSpan={2} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">Profits Received</th>
-                  <th colSpan={1} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-200 text-black">Net Fund (7)</th>
-                  <th colSpan={3} className="border-2 border-black p-1 text-center uppercase text-[8px] bg-slate-100 text-black">PBS Fund</th>
-                  <th rowSpan={3} className="border-2 border-black p-1 text-right w-[90px] uppercase text-[9px] bg-slate-200 text-black">Total (11)</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center w-[65px] uppercase text-[8px] tracking-tighter text-black">Date</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center w-[120px] uppercase text-[8px] tracking-tighter text-black">Particulars</th>
+                  <th colSpan={4} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200/50 text-black">Contributions & Loans</th>
+                  <th colSpan={2} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-100 text-black">Profits Received</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Emp<br/>(7=Pre+1-2+3+5+6)</th>
+                  <th colSpan={2} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-100 text-black">PBS Fund</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Off<br/>(10=8+9)</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-right w-[90px] uppercase text-[9px] bg-black text-white">Total<br/>(11=7+10)</th>
                 </tr>
                 <tr className="bg-slate-50 text-[9px]">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(i => (
-                    <th key={i} className="border border-black p-0.5 text-center font-mono text-black">{i}</th>
-                  ))}
-                </tr>
-                <tr className="text-[7px] uppercase leading-none">
-                  <th className="border border-black p-1 text-right">Contrib</th>
-                  <th className="border border-black p-1 text-right">Drawal</th>
-                  <th className="border border-black p-1 text-right">Repay</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">Balance</th>
-                  <th className="border border-black p-1 text-right">Emp.Cont</th>
-                  <th className="border border-black p-1 text-right">Loan.Int</th>
-                  <th className="border border-black p-1 text-right bg-slate-200">EmNetFund</th>
-                  <th className="border border-black p-1 text-right">Contrib</th>
-                  <th className="border border-black p-1 text-right">Profit</th>
-                  <th className="border border-black p-1 text-right bg-slate-100">NetFund</th>
+                  <th className="border border-black p-0.5">Contrib(1)</th><th className="border border-black p-0.5">Drawal(2)</th><th className="border border-black p-0.5">Repay(3)</th><th className="border border-black p-0.5 bg-slate-200">Bal(4=2-3)</th>
+                  <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">Contrib(8)</th><th className="border border-black p-0.5">Profit(9)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black font-black tabular-nums text-black">
                 {ledger.rows.map((row, rIdx) => (
-                  <tr key={rIdx} className="h-7">
-                    <td className="border border-black p-1 text-center font-mono text-[9px]">{row.summaryDate}</td>
-                    <td className="border border-black p-1 truncate text-[9px] uppercase leading-tight">{row.particulars}</td>
-                    <td className="border border-black p-1 text-right">{row.col1.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col2.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col3.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col4.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col5.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col6.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col7.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col8.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right">{row.col9.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-50">{row.col10.toLocaleString()}</td>
-                    <td className="border border-black p-1 text-right bg-slate-100">{row.col11.toLocaleString()}</td>
+                  <tr key={rIdx} className={cn("h-7", row.isOpening && "bg-slate-50 italic")}>
+                    <td className="border border-black p-0.5 text-center font-mono text-[9px]">{row.summaryDate}</td>
+                    <td className="border border-black p-0.5 truncate text-[9px] uppercase leading-tight">{row.particulars}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c1.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c2.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c3.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right bg-slate-50">{row.col4.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c5.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c6.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right bg-slate-50">{row.col7.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c8.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right">{row.c9.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right bg-slate-50">{row.col10.toLocaleString()}</td>
+                    <td className="border border-black p-0.5 text-right bg-slate-100">{row.col11.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot className="bg-slate-100 font-black border-t-2 border-black tabular-nums text-black">
-                <tr>
-                  <td className="border border-black p-1.5 text-center uppercase text-[9px]" colSpan={2}>Aggregate:</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c1.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c2.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c3.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col4 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c5.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c6.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col7 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c8.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right">{ledger.sums.c9.toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-200">{(ledger.last?.col10 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1.5 text-right bg-slate-300 font-black text-[11px]">{(ledger.last?.col11 || 0).toLocaleString()}</td>
+                <tr className="h-8">
+                  <td className="border border-black p-1 text-right uppercase text-[9px]" colSpan={2}>Aggregate Sum:</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c1.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c2.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c3.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.last?.col4 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c5.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c6.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.last?.col7 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c8.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.sums.c9.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.last?.col10 || 0).toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-300 font-black text-[11px] underline decoration-double">{(ledger.last?.col11 || 0).toLocaleString()}</td>
                 </tr>
               </tfoot>
             </table>

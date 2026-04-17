@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -9,8 +10,7 @@ import {
   Plus, 
   Edit2, 
   Trash2, 
-  ArrowRightLeft, 
-  CalendarDays
+  ArrowRightLeft
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -20,7 +20,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
@@ -28,12 +27,11 @@ import { PageHeaderActions } from "@/components/header-actions";
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
   const firestore = useFirestore();
-  const { toast } = useToast();
   const { showAlert } = useSweetAlert();
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
-  const [pageSize, setPageSize] = useState<number>(25);
+  const [pageSize, setPageSize] = useState<number>(-1); // Default to view all for printing
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -121,14 +119,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       return time >= startDate && time <= endDate;
     });
 
-    let displayRows = inRangeRows;
-    if (dateRange.start && preRows.length > 0) {
-      const preSums = preRows.reduce((acc, r) => ({
-        c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
-        c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
-      }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+    const preSums = preRows.reduce((acc, r) => ({
+      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
+      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
+    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
+    let displayRows = inRangeRows;
+    let openingRowValue = { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 };
+
+    if (dateRange.start && preRows.length > 0) {
       const lastPre = preRows[preRows.length - 1];
+      openingRowValue = preSums;
       const openingRow = {
         summaryDate: dateRange.start,
         particulars: "Opening Balance",
@@ -143,16 +144,27 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       displayRows = [openingRow, ...inRangeRows];
     }
 
-    const totals = inRangeRows.reduce((acc, r) => ({ 
+    const activityTotals = inRangeRows.reduce((acc, r) => ({ 
       c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, 
       c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
+    // Aggregate = Opening + Activity (Grand total for the employee)
+    const grandTotals = {
+      c1: openingRowValue.c1 + activityTotals.c1,
+      c2: openingRowValue.c2 + activityTotals.c2,
+      c3: openingRowValue.c3 + activityTotals.c3,
+      c5: openingRowValue.c5 + activityTotals.c5,
+      c6: openingRowValue.c6 + activityTotals.c6,
+      c8: openingRowValue.c8 + activityTotals.c8,
+      c9: openingRowValue.c9 + activityTotals.c9,
+    };
 
     const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
 
     return { 
       rows: displayRows, 
-      totals, 
+      totals: grandTotals, 
       latest: { col4: last.col4, col7: last.col7, col10: last.col10, col11: last.col11 } 
     };
   }, [summaries, dateRange]);
@@ -191,9 +203,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 landscape !important; margin: 8mm !important; } .print-container { width: 100% !important; display: block !important; } table { table-layout: fixed !important; width: 100% !important; } body { background-color: white !important; color: #000000 !important; } }` }} />
       
       <PageHeaderActions>
-        <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2"><ArrowLeft className="size-5 text-black" /></Link>
+        <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2 no-print"><ArrowLeft className="size-5 text-black" /></Link>
         
-        <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3">
+        <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3 no-print">
           <div className="flex items-center gap-2 pr-3 border-r border-black/10">
             <Select value={selectedFY} onValueChange={handleFYChange}>
               <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase">
@@ -212,7 +224,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <div className="flex items-center gap-1 ml-auto">
+        <div className="flex items-center gap-1 ml-auto no-print">
           <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> New Entry</Button>
           <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1"><Printer className="size-3.5" /> Print Ledger</Button>
         </div>
@@ -291,7 +303,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </tbody>
             <tfoot className="bg-slate-100 border-t-2 border-black text-[9px]">
               <tr className="h-8">
-                <td colSpan={2} className="border border-black p-1 text-right uppercase">Period Totals:</td>
+                <td colSpan={2} className="border border-black p-1 text-right uppercase">Aggregate Sum:</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>

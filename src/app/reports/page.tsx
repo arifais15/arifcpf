@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -112,7 +113,7 @@ export default function ReportsPage() {
   const totalExpense = useMemo(() => expenseAccounts.filter(a => !a.isHeader).reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [expenseAccounts, periodBalances]);
 
   const formatCurrency = (val: number) => {
-    const formatted = new Intl.FormatNumber('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val || 0));
+    const formatted = new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val || 0));
     return val < 0 ? `(${formatted})` : formatted;
   };
 
