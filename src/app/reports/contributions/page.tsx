@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -68,10 +69,7 @@ export default function ContributionAuditPage() {
     } else {
       const parts = fy.split("-");
       const startYear = parseInt(parts[0]);
-      setDateRange({ 
-        start: `${startYear}-07-01`, 
-        end: `${startYear + 1}-06-30` 
-      });
+      setDateRange({ start: `${startYear}-07-01`, end: `${startYear + 1}-06-30` });
     }
   };
 
@@ -104,7 +102,7 @@ export default function ContributionAuditPage() {
       if (item.isSystemGenerated || item.particulars?.includes("Annual Profit")) {
         s.systemProfit += (Number(item.profitEmployee) || 0) + (Number(item.profitPbs) || 0);
       }
-      if (item.isManual || (!item.isSystemGenerated && !item.isSettlement)) {
+      if (item.isManual || (!item.isSystemGenerated && !item.particulars?.includes("Profit"))) {
         s.manualEmp += (Number(item.employeeContribution) || 0);
         s.manualPbs += (Number(item.pbsContribution) || 0);
       }
@@ -115,17 +113,18 @@ export default function ContributionAuditPage() {
   const handleBulkDelete = async () => {
     if (filteredData.length === 0) return;
     showAlert({
-      title: "Confirm Bulk Deletion",
-      description: `Permanently delete ${filteredData.length} entries matching "${particularsSearch || 'All'}"?`,
+      title: "Confirm Institutional Cleanup",
+      description: `Permanently delete ${filteredData.length} records matching "${particularsSearch || 'All'}"?`,
       type: "warning",
       showCancel: true,
+      confirmText: "Delete Records",
       onConfirm: async () => {
         setIsDeleting(true);
         for (const item of filteredData) {
           deleteDocumentNonBlocking(doc(firestore, "members", item.memberId, "fundSummaries", item.id));
         }
         setIsDeleting(false); setIsCleanupOpen(false);
-        showAlert({ title: "Cleanup Complete", type: "success" });
+        showAlert({ title: "Audit Synchronized", type: "success" });
       }
     });
   };
@@ -133,31 +132,32 @@ export default function ContributionAuditPage() {
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <h1 className="text-3xl font-black uppercase">Audit & Tracking</h1>
+        <h1 className="text-3xl font-black uppercase tracking-tight">Audit & Tracking</h1>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 border-2 border-black rounded-xl shadow-xl">
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black">QUICK FY</Label>
+            <Label className="text-[9px] font-black uppercase">Quick FY</Label>
             <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-8 w-[100px] border-black text-xs font-black"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[100px] border-black text-xs font-black focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
                 <SelectItem value="all" className="font-black text-xs">ALL</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-1"><Label className="text-[9px] font-black">START</Label><Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase">Start</Label><Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black" /></div>
           <ArrowRightLeft className="size-3 mt-4" />
-          <div className="grid gap-1"><Label className="text-[9px] font-black">END</Label><Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase">End</Label><Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black" /></div>
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black">FILTER PARTICULARS</Label>
-            <Input placeholder="Keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black font-black w-[150px] text-xs" />
+            <Label className="text-[9px] font-black uppercase">Particulars</Label>
+            <Input placeholder="Filter keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[150px] text-xs" />
           </div>
           <div className="flex gap-2 mt-4">
-            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase"><DatabaseZap className="size-3 mr-1" /> Cleanup</Button>
-            <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white"><Printer className="size-3 mr-1" /> Print</Button>
+            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase gap-1"><DatabaseZap className="size-3" /> Institutional Cleanup</Button>
+            <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white gap-1"><Printer className="size-3" /> Print List</Button>
           </div>
         </div>
       </div>
+      
       <div className="grid gap-6 md:grid-cols-4 no-print">
         {[{l:"SYSTEM PROFIT", v:stats.systemProfit}, {l:"PERSONNEL CONTRIB", v:stats.manualEmp}, {l:"PBS MATCHING", v:stats.manualPbs}, {l:"RECORDS", v:stats.totalEntries, isInt:true}].map((s,i) => (
           <Card key={i} className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
@@ -166,49 +166,51 @@ export default function ContributionAuditPage() {
           </Card>
         ))}
       </div>
+
       <div className="bg-white border-2 border-black rounded-none shadow-xl overflow-hidden">
         <Table className="font-black tabular-nums">
           <TableHeader className="bg-slate-100 border-b-2 border-black">
             <TableRow>
-              <TableHead className="font-black uppercase text-[10px] py-4">Date</TableHead>
-              <TableHead className="font-black uppercase text-[10px] py-4">Particulars</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] py-4">Emp (৳)</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] py-4">PBS (৳)</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] py-4">Profit (৳)</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-4 text-black">Date</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-4 text-black">Particulars</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] py-4 text-black">Emp (৳)</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] py-4 text-black">PBS (৳)</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] py-4 text-black">Profit (৳)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="animate-spin size-8 mx-auto" /></TableCell></TableRow> : filteredData.map((item, idx) => (
               <TableRow key={idx} className="border-b border-black hover:bg-slate-50">
-                <td className="p-4 font-mono text-xs">{item.summaryDate}</td>
-                <td className="p-4 uppercase text-[10px] truncate max-w-[300px]">{item.particulars}</td>
-                <td className="text-right p-4">{Number(item.employeeContribution||0).toLocaleString()}</td>
-                <td className="text-right p-4">{Number(item.pbsContribution||0).toLocaleString()}</td>
-                <td className="text-right p-4">{(Number(item.profitEmployee||0)+Number(item.profitPbs||0)).toLocaleString()}</td>
+                <td className="p-4 font-mono text-xs text-black">{item.summaryDate}</td>
+                <td className="p-4 uppercase text-[10px] truncate max-w-[300px] text-black">{item.particulars}</td>
+                <td className="text-right p-4 text-black">{Number(item.employeeContribution||0).toLocaleString()}</td>
+                <td className="text-right p-4 text-black">{Number(item.pbsContribution||0).toLocaleString()}</td>
+                <td className="text-right p-4 text-black">{(Number(item.profitEmployee||0)+Number(item.profitPbs||0)).toLocaleString()}</td>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
+
       <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
-        <DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden">
+        <DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden rounded-none shadow-2xl">
           <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
-            <DialogTitle className="text-xl font-black uppercase text-rose-700">Bulk Cleanup Utility</DialogTitle>
+            <DialogTitle className="text-xl font-black uppercase text-rose-700">Institutional Cleanup Terminal</DialogTitle>
           </DialogHeader>
           <div className="p-6 space-y-4">
             <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
-              <p className="text-[10px] font-black uppercase opacity-40">Filter Context</p>
-              <p className="text-xs font-black">Records: {filteredData.length}</p>
-              <p className="text-xs font-black">Keyword: {particularsSearch || "NONE"}</p>
+              <p className="text-[10px] font-black uppercase opacity-40">Filter Verification</p>
+              <p className="text-xs font-black">Matched Records: {filteredData.length}</p>
+              <p className="text-xs font-black">Target Keyword: {particularsSearch || "NONE"}</p>
             </div>
             <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-black uppercase">Ensure search is specific to avoid accidental data loss. Verify the record count before deleting.</p>
+              <p className="text-[10px] leading-relaxed font-bold uppercase">To prevent accidental deletion of valid data, ensure your "Particulars" search is specific (e.g. "Opening Balance (Imported)"). Verify the record count before committing.</p>
             </div>
             <DialogFooter className="p-6 pt-2">
-              <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl">
+              <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl rounded-none">
                 {isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />} 
-                Delete {filteredData.length} Records
+                Delete {filteredData.length} Matched Records
               </Button>
             </DialogFooter>
           </div>

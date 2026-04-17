@@ -31,7 +31,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
-  const [pageSize, setPageSize] = useState<number>(-1); // Default to view all for printing
+  const [pageSize, setPageSize] = useState<number>(-1);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -66,10 +66,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     } else {
       const parts = fy.split("-");
       const startYear = parseInt(parts[0]);
-      setDateRange({ 
-        start: `${startYear}-07-01`, 
-        end: `${startYear + 1}-06-30` 
-      });
+      setDateRange({ start: `${startYear}-07-01`, end: `${startYear + 1}-06-30` });
     }
   };
 
@@ -125,11 +122,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
     let displayRows = inRangeRows;
-    let openingRowValue = { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 };
+    let openingRowValue = preSums;
 
     if (dateRange.start && preRows.length > 0) {
       const lastPre = preRows[preRows.length - 1];
-      openingRowValue = preSums;
       const openingRow = {
         summaryDate: dateRange.start,
         particulars: "Opening Balance",
@@ -149,7 +145,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
-    // Aggregate = Opening + Activity (Grand total for the employee)
     const grandTotals = {
       c1: openingRowValue.c1 + activityTotals.c1,
       c2: openingRowValue.c2 + activityTotals.c2,
@@ -168,10 +163,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       latest: { col4: last.col4, col7: last.col7, col10: last.col10, col11: last.col11 } 
     };
   }, [summaries, dateRange]);
-
-  const paginatedRows = useMemo(() => 
-    pageSize === -1 ? ledgerLogic.rows : ledgerLogic.rows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
-  , [ledgerLogic.rows, currentPage, pageSize]);
 
   const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -208,7 +199,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3 no-print">
           <div className="flex items-center gap-2 pr-3 border-r border-black/10">
             <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase">
+              <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -233,7 +224,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <div className="bg-white p-8 md:p-10 shadow-2xl rounded-none border-4 border-black max-w-[1400px] mx-auto w-full font-ledger print-container">
         <div className="relative mb-6 text-center border-b-4 border-black pb-4">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em]">REB Form no: 224</p>
-          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
+          <h1 className="text-3xl font-black uppercase tracking-tighter">Gazipur Palli Bidyut Samity-2</h1>
           <h2 className="text-xl font-black uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
@@ -272,24 +263,22 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">Contrib(8)</th><th className="border border-black p-0.5">Profit(9)</th>
               </tr>
             </thead>
-            <tbody>
-              {paginatedRows.map((row: any) => (
+            <tbody className="divide-y divide-black">
+              {ledgerLogic.rows.map((row: any) => (
                 <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black h-7", row.isOpening && "bg-slate-50 italic")}>
                   <td className="border border-black p-0.5 text-center font-mono text-[9px]">{row.summaryDate}</td>
-                  <td className="border border-black p-0.5 truncate uppercase text-[9px]">
-                    {row.particulars}
-                  </td>
+                  <td className="border border-black p-0.5 truncate uppercase text-[9px]">{row.particulars}</td>
                   <td className="border border-black p-0.5 text-right">{row.c1.toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c2.toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c3.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50">{row.col4.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-50">{(row.col4).toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c5.toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c6.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50">{row.col7.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-50">{(row.col7).toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c8.toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-right">{row.c9.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50">{row.col10.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-100">{row.col11.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-50">{(row.col10).toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-100">{(row.col11).toLocaleString()}</td>
                   <td className="border border-black p-0.5 text-center no-print">
                     {!row.isOpening && (
                       <div className="flex gap-1 justify-center">

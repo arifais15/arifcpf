@@ -62,10 +62,7 @@ export default function ReportsPage() {
     } else {
       const parts = fy.split("-");
       const startYear = parseInt(parts[0]);
-      setDateRange({ 
-        start: `${startYear}-07-01`, 
-        end: `${startYear + 1}-06-30` 
-      });
+      setDateRange({ start: `${startYear}-07-01`, end: `${startYear + 1}-06-30` });
     }
   };
 
@@ -193,7 +190,7 @@ export default function ReportsPage() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-500">Quick Range</Label>
             <Select value={selectedFiscalYear} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-10 font-black border-2 border-black"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 font-black border-2 border-black focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black">FY {fy}</SelectItem>)}
                 <SelectItem value="all" className="font-black text-rose-600">ALL TIME CONSOLIDATED</SelectItem>
@@ -289,7 +286,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y border-black">
-                  {activeCOA.filter(a => !a.isHeader && (balances[a.code] || periodBalances[a.code])).map(acc => { 
+                  {activeCOA.filter(a => !a.isHeader && (balances[a.code] !== 0 || periodBalances[a.code] !== 0)).map(acc => { 
                     const v = balances[acc.code] || 0; 
                     const isDr = acc.balance === 'Debit' ? v > 0 : v < 0; 
                     return (
