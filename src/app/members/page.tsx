@@ -232,7 +232,6 @@ export default function MembersPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
-      {/* Dynamic Header Actions */}
       <PageHeaderActions>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black opacity-40" />
@@ -278,11 +277,6 @@ export default function MembersPage() {
           </Button>
         </div>
       </PageHeaderActions>
-
-      <div className="flex flex-col gap-1 md:hidden">
-        <h1 className="text-2xl font-black text-black tracking-tight uppercase">Members Registry</h1>
-        <p className="text-black font-black uppercase text-[9px] tracking-widest opacity-60">Audit Tools in top header</p>
-      </div>
 
       <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden">
         <Table className="font-black text-black">
@@ -330,9 +324,6 @@ export default function MembersPage() {
               <UserCircle className="size-7" />
               {editingMember ? "Modify Personnel Records" : "New Personnel Registration"}
             </DialogTitle>
-            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500">
-              All fields are mandatory fo Ledger Consistency (Form 224)
-            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-6">
@@ -345,111 +336,24 @@ export default function MembersPage() {
                 <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="AS PER SERVICE BOOK" />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Official Designation</Label>
                 <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="e.g. AGMF" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Zonal/Office Location</Label>
-                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="Head Office / Zonal" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
                   <CalendarDays className="size-3" /> Fund Joined Date
                 </Label>
-                <Input 
-                  name="dateJoined" 
-                  type="date" 
-                  max="9999-12-31"
-                  defaultValue={editingMember?.dateJoined} 
-                  required 
-                  className="h-11 border-2 border-black font-black rounded-none focus:ring-0 uppercase" 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                  <ShieldCheck className="size-3" /> Account Status
-                </Label>
-                <Select name="status" defaultValue={editingMember?.status || "Active"} required>
-                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none focus:ring-0">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent className="border-2 border-black font-black">
-                    <SelectItem value="Active" className="font-black uppercase">Active Personnel</SelectItem>
-                    <SelectItem value="Retired" className="font-black uppercase">Retired Member</SelectItem>
-                    <SelectItem value="Transferred" className="font-black uppercase">Transferred Out</SelectItem>
-                    <SelectItem value="InActive" className="font-black uppercase">InActive Account</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 uppercase" />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                <MapPin className="size-3" /> Permanent Mailing Address
-              </Label>
-              <Textarea 
-                name="permanentAddress" 
-                defaultValue={editingMember?.permanentAddress} 
-                required 
-                className="min-h-[80px] border-2 border-black font-black rounded-none focus:ring-0 resize-none" 
-                placeholder="Required for final settlement and audit records..."
-              />
-            </div>
-
             <DialogFooter className="pt-4">
               <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.3em] rounded-none shadow-xl hover:bg-black/90 text-base">
                 {editingMember ? "Synchronize Profile" : "Register Personnel Profile"}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isBulkOpen} onOpenChange={(open) => { setIsBulkOpen(open); if (!open) setEditingMember(null); }}>
-        <DialogContent className="max-w-2xl border-4 border-black bg-white rounded-none p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="font-black uppercase text-2xl tracking-tighter">Bulk Registry & Ledger Import</DialogTitle>
-              <Button variant="ghost" size="sm" onClick={downloadTemplate} className="h-8 text-[10px] font-black gap-1.5 uppercase hover:bg-black hover:text-white border-2 border-black transition-all">
-                <Download className="size-3.5" /> Download Template
-              </Button>
-            </div>
-            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-slate-500 mt-2">
-              Import personnel and historical opening balances via single XLSX document
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-12">
-            <div className="border-4 border-dashed border-black/20 rounded-none p-16 text-center cursor-pointer hover:border-black transition-colors bg-slate-50 group" onClick={() => fileInputRef.current?.click()}>
-              {isUploading ? (
-                <div className="space-y-4">
-                  <Loader2 className="size-16 mx-auto animate-spin text-black" />
-                  <p className="text-sm font-black uppercase tracking-widest">Processing Trust Data...</p>
-                </div>
-              ) : (
-                <>
-                  <FileSpreadsheet className="size-16 mx-auto mb-4 opacity-20 group-hover:opacity-100 transition-opacity text-black" />
-                  <p className="text-xl font-black uppercase tracking-widest group-hover:text-black">Select Import Spreadsheet</p>
-                  <p className="text-[10px] font-black uppercase text-slate-400 mt-2">Single file for profiles + Descriptive Financial Headers</p>
-                </>
-              )}
-              <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} accept=".xlsx" disabled={isUploading} />
-            </div>
-            
-            <div className="mt-8 p-4 bg-blue-50 border-2 border-blue-100 rounded-none space-y-2">
-              <p className="text-[10px] font-black uppercase text-blue-700 flex items-center gap-2">
-                <Info className="size-3.5" /> Mapping Instructions
-              </p>
-              <p className="text-[9px] text-blue-600 leading-relaxed font-bold">
-                Ensure headers match: ID, Name, Designation, JoinedDate, Address, Office, Employee_Contribution, Loan_Disbursed, Loan_Repaid, Employee_Profit, Loan_Profit, PBS_Contribution, PBS_Profit.
-              </p>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
     </div>

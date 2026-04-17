@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,7 @@ import { LEDGER_COLUMN_MAPPING, NORMAL_DEBIT_ACCOUNTS, type LedgerColumnKey } fr
 
 interface LineItem { id: string; accountCode: string; debit: number; credit: number; memo: string; memberId?: string; }
 
-export default function NewTransactionPage() {
+function TransactionForm() {
   const searchParams = useSearchParams(); const editId = searchParams.get("edit");
   const firestore = useFirestore(); const router = useRouter(); const { toast } = useToast(); const { showAlert } = useSweetAlert();
   const [description, setDescription] = useState(""); const [isClassifying, setIsClassifying] = useState(false); const [isSaving, setIsSaving] = useState(false);
@@ -35,8 +35,6 @@ export default function NewTransactionPage() {
   const { data: members } = useCollection(membersRef);
   const transactionRef = useMemoFirebase(() => editId ? doc(firestore, "journalEntries", editId) : null, [firestore, editId]);
   const { data: existingTransaction, isLoading: isEditLoading } = useDoc(transactionRef);
-  const settingsRef = useMemoFirebase(() => doc(firestore, "settings", "ledger"), [firestore]);
-  const { data: ledgerSettings } = useDoc(settingsRef);
 
   useEffect(() => { if (existingTransaction) { setEntryDate(existingTransaction.entryDate); setDescription(existingTransaction.description); setRefNo(existingTransaction.referenceNumber || ""); if (existingTransaction.lines) setLines(existingTransaction.lines.map((l: any) => ({ id: Math.random().toString(), accountCode: l.accountCode, debit: l.debit || 0, credit: l.credit || 0, memo: l.memo || "", memberId: l.memberId || "" }))); } }, [existingTransaction]);
   const totals = useMemo(() => lines.reduce((acc, curr) => ({ debit: acc.debit + (Number(curr.debit) || 0), credit: acc.credit + (Number(curr.credit) || 0) }), { debit: 0, credit: 0 }), [lines]);
@@ -105,5 +103,13 @@ export default function NewTransactionPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function NewTransactionPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12 text-black" /></div>}>
+      <TransactionForm />
+    </Suspense>
   );
 }

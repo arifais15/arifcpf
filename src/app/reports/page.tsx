@@ -124,9 +124,16 @@ export default function ReportsPage() {
       if (acc.isHeader) {
         if (currentGroup && currentGroup.items.length > 0) groups.push(currentGroup);
         currentGroup = { header: acc, items: [], total: 0 };
-      } else if (currentGroup) {
+      } else {
         const val = balancesMap[acc.code] || 0;
-        if (val !== 0) { currentGroup.items.push(acc); currentGroup.total += val; }
+        if (val !== 0) {
+          if (!currentGroup) {
+            // Fallback for items before any header
+            currentGroup = { header: { code: '', name: 'Unclassified', type: '', balance: '', isHeader: true }, items: [], total: 0 };
+          }
+          currentGroup.items.push(acc);
+          currentGroup.total += val;
+        }
       }
     });
     if (currentGroup && currentGroup.items.length > 0) groups.push(currentGroup);
@@ -135,19 +142,23 @@ export default function ReportsPage() {
 
     return (
       <div className="space-y-6">
-        <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">{title}</h3>
+        <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">{title}</h3>
         {groups.map((g, i) => (
           <div key={i} className="space-y-1">
-            <div className="flex justify-between font-black text-xs uppercase bg-slate-50 p-1 border-l-4 border-black"><span>{g.header.name}</span></div>
+            <div className="flex justify-between font-black text-xs uppercase bg-slate-50 p-1 border-l-4 border-black text-black">
+              <span>{g.header.name}</span>
+            </div>
             <div className="pl-4 space-y-0.5">
               {g.items.map(item => (
-                <div key={item.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums">
+                <div key={item.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums text-black">
                   <span className="flex gap-4"><span className="font-mono w-[80px] opacity-50">{item.code}</span><span>{item.name}</span></span>
                   <span>{formatCurrency(balancesMap[item.code])}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-2 pl-4 italic"><span>Total {g.header.name}</span><span>{formatCurrency(g.total)}</span></div>
+            <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-2 pl-4 italic text-black">
+              <span>Total {g.header.name}</span><span>{formatCurrency(g.total)}</span>
+            </div>
           </div>
         ))}
         <div className="flex justify-between font-black text-sm bg-black text-white p-3 rounded-none mt-4 uppercase tracking-widest">
@@ -159,9 +170,9 @@ export default function ReportsPage() {
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
     <div className="text-center mb-10 border-b-4 border-black pb-6">
-      <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-      <p className="text-sm font-black uppercase tracking-[0.2em] mt-1">Contributory Provident Fund</p>
-      <h2 className="text-xl font-black mt-4 uppercase underline underline-offset-8">{title}</h2>
+      <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+      <p className="text-sm font-black uppercase tracking-[0.2em] mt-1 text-black">Contributory Provident Fund</p>
+      <h2 className="text-xl font-black mt-4 uppercase text-black">{title}</h2>
       <p className="text-[10px] font-black uppercase tracking-[0.3em] mt-6 bg-black text-white py-1 px-4 inline-block rounded">{subtitle}</p>
     </div>
   );
@@ -171,6 +182,7 @@ export default function ReportsPage() {
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 portrait !important; margin: 10mm !important; } .print-container { width: 100% !important; display: block !important; border: none !important; } body { background-color: white !important; color: #000000 !important; } }` }} />
+      
       <div className="flex flex-col gap-4 no-print max-w-4xl mx-auto w-full bg-white p-6 rounded-2xl border-2 border-black shadow-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4"><div className="bg-black p-2 rounded-xl"><ShieldCheck className="size-6 text-white" /></div><div><h1 className="text-xl font-black uppercase">Trust Financials</h1><p className="text-[10px] font-black uppercase tracking-widest">{selectedFiscalYear === 'all' ? 'Consolidated Period' : `FY ${selectedFiscalYear}`}</p></div></div>
@@ -191,9 +203,9 @@ export default function ReportsPage() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-500">Manual Selection</Label>
             <div className="flex items-center gap-2">
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-10 font-black border-2 border-black" />
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-10 font-black border-2 border-black" />
               <ArrowRightLeft className="size-4 opacity-30" />
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-10 font-black border-2 border-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-10 font-black border-2 border-black" />
             </div>
           </div>
         </div>
@@ -225,34 +237,34 @@ export default function ReportsPage() {
             <ReportHeader title="Income & Expenditure Account" subtitle={`Period: ${dateRange.start} to ${dateRange.end}`} />
             <div className="space-y-12">
               <div>
-                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Operating Revenue</h3>
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Revenue</h3>
                 <div className="space-y-1 pl-4 mt-4">
                   {incomeAccounts.filter(a => !a.isHeader).map(acc => periodBalances[acc.code] ? (
-                    <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums">
+                    <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums text-black">
                       <span>{acc.name}</span>
                       <span>{formatCurrency(periodBalances[acc.code])}</span>
                     </div>
                   ) : null)}
-                  <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-4 italic uppercase">
+                  <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-4 italic uppercase text-black">
                     <span>Total Revenue</span><span>{formatCurrency(totalIncome)}</span>
                   </div>
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Operating Expenditure</h3>
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Expenditure</h3>
                 <div className="space-y-1 pl-4 mt-4">
                   {expenseAccounts.filter(a => !a.isHeader).map(acc => periodBalances[acc.code] ? (
-                    <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums">
+                    <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums text-black">
                       <span>{acc.name}</span>
                       <span>{formatCurrency(periodBalances[acc.code])}</span>
                     </div>
                   ) : null)}
-                  <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-4 italic uppercase">
+                  <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-4 italic uppercase text-black">
                     <span>Total Expenditure</span><span>{formatCurrency(totalExpense)}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-between font-black text-lg p-6 border-4 border-black mt-10 rounded-none bg-slate-50 uppercase tracking-widest">
+              <div className="flex justify-between font-black text-lg p-6 border-4 border-black mt-10 rounded-none bg-slate-50 uppercase tracking-widest text-black">
                 <span>Net Surplus / (Deficit)</span>
                 <span>৳ {formatCurrency(totalIncome - totalExpense)}</span>
               </div>
@@ -267,7 +279,7 @@ export default function ReportsPage() {
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
             <ReportHeader title="Institutional Trial Balance" subtitle={`As of ${dateRange.end}`} />
             <div className="border-2 border-black overflow-hidden">
-              <table className="w-full text-xs font-black tabular-nums">
+              <table className="w-full text-xs font-black tabular-nums text-black">
                 <thead className="bg-slate-100 border-b-2 border-black">
                   <tr>
                     <th className="p-2 text-left border-r w-[100px]">Code</th>
@@ -303,10 +315,10 @@ export default function ReportsPage() {
             <ReportHeader title="Institutional Cash Flow" subtitle={`Year Ended ${dateRange.end}`} />
             <div className="space-y-8">
               <div>
-                <h4 className="font-black text-sm border-b-2 border-black pb-1 uppercase tracking-widest">Operating Receipts</h4>
+                <h4 className="font-black text-sm border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Receipts</h4>
                 <div className="space-y-1 mt-4">
                   {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
-                    <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/20 font-black tabular-nums">
+                    <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/20 font-black tabular-nums text-black">
                       <span className="uppercase">{activeCOA.find(a => a.code === c)?.name}</span>
                       <span>{formatCurrency(periodBalances[c])}</span>
                     </div>
