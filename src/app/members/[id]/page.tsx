@@ -19,6 +19,7 @@ import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [pageSize, setPageSize] = useState<number>(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
@@ -46,17 +48,42 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const summariesRef = useMemoFirebase(() => collection(firestore, "members", resolvedParams.id, "fundSummaries"), [firestore, resolvedParams.id]);
   const { data: summaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
-  };
-
-  useEffect(() => {
+  const availableFYs = useMemo(() => {
+    const fys = [];
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const fyStartYear = currentMonth >= 7 ? currentYear : currentYear - 1;
-    setDateRange({ start: `${fyStartYear}-07-01`, end: now.toISOString().split('T')[0] });
+    const activeStartYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    for (let i = 0; i < 15; i++) {
+      const start = activeStartYear - i;
+      fys.push(`${start}-${(start + 1).toString().slice(-2)}`);
+    }
+    return fys;
   }, []);
+
+  const handleFYChange = (fy: string) => {
+    setSelectedFY(fy);
+    if (fy === "all") {
+      setDateRange({ start: "2010-01-01", end: new Date().toISOString().split('T')[0] });
+    } else {
+      const parts = fy.split("-");
+      const startYear = parseInt(parts[0]);
+      setDateRange({ 
+        start: `${startYear}-07-01`, 
+        end: `${startYear + 1}-06-30` 
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (availableFYs.length > 0 && !selectedFY) {
+      handleFYChange(availableFYs[0]);
+    }
+  }, [availableFYs, selectedFY]);
+
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
+  };
 
   const ledgerLogic = useMemo(() => {
     if (!summaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 } };
@@ -165,17 +192,29 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       
       <PageHeaderActions>
         <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2"><ArrowLeft className="size-5 text-black" /></Link>
+        
         <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3">
-          <CalendarDays className="size-4 text-black/40" />
+          <div className="flex items-center gap-2 pr-3 border-r border-black/10">
+            <Select value={selectedFY} onValueChange={handleFYChange}>
+              <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
+                <SelectItem value="all" className="font-black text-xs text-rose-600">ALL TIME</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="flex items-center gap-2">
             <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
             <ArrowRightLeft className="size-3 text-black/20" />
             <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
           </div>
         </div>
+
         <div className="flex items-center gap-1 ml-auto">
-          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> Entry</Button>
-          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1"><Printer className="size-3.5" /> Print</Button>
+          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> New Entry</Button>
+          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1"><Printer className="size-3.5" /> Print Ledger</Button>
         </div>
       </PageHeaderActions>
 
@@ -192,7 +231,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             { label: "Official Designation", value: member.designation, sub: "uppercase" },
             { label: "Trust ID Number", value: member.memberIdNumber, sub: "font-mono" },
             { label: "Joined Date", value: member.dateJoined, sub: "" },
-            { label: "Status", value: member.status || "Active", sub: "uppercase" },
+            { label: "Account Status", value: member.status || "Active", sub: "uppercase" },
             { label: "Mailing Address", value: member.permanentAddress || "-", sub: "truncate" },
           ].map((item, idx) => (
             <div key={idx} className="flex items-end gap-2 border-b border-black/20 pb-0.5">
@@ -209,7 +248,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <th rowSpan={3} className="border border-black p-0.5 w-[65px]">Date</th>
                 <th rowSpan={3} className="border border-black p-0.5 w-[140px]">Particulars</th>
                 <th colSpan={4} className="border border-black p-0.5 bg-slate-200/50">Contributions & Loans</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100">Profits</th>
+                <th colSpan={2} className="border border-black p-0.5 bg-slate-100">Profits Accrued</th>
                 <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-[8px]">Net Emp<br/>(7=Pre+1-2+3+5+6)</th>
                 <th colSpan={2} className="border border-black p-0.5 bg-slate-100">PBS Fund</th>
                 <th rowSpan={3} className="border border-black p-0.5 bg-slate-200">Net Off<br/>(10=8+9)</th>
@@ -222,7 +261,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody>
-              {paginatedRows.map((row: any, idx) => (
+              {paginatedRows.map((row: any) => (
                 <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black h-7", row.isOpening && "bg-slate-50 italic")}>
                   <td className="border border-black p-0.5 text-center font-mono text-[9px]">{row.summaryDate}</td>
                   <td className="border border-black p-0.5 truncate uppercase text-[9px]">

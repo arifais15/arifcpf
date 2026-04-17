@@ -31,6 +31,7 @@ import {
   DialogTitle, 
   DialogFooter
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 
 export default function ContributionAuditPage() {
@@ -42,18 +43,43 @@ export default function ContributionAuditPage() {
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  const [selectedFY, setSelectedFY] = useState("");
   const [particularsSearch, setParticularsSearch] = useState("");
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
+  const availableFYs = useMemo(() => {
+    const fys = [];
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const fyStart = currentMonth >= 7 ? `${currentYear}-07-01` : `${currentYear - 1}-07-01`;
-    const today = now.toISOString().split('T')[0];
-    setDateRange({ start: fyStart, end: today });
+    const activeStartYear = currentMonth >= 7 ? currentYear : currentYear - 1;
+    for (let i = 0; i < 15; i++) {
+      const start = activeStartYear - i;
+      fys.push(`${start}-${(start + 1).toString().slice(-2)}`);
+    }
+    return fys;
   }, []);
+
+  const handleFYChange = (fy: string) => {
+    setSelectedFY(fy);
+    if (fy === "all") {
+      setDateRange({ start: "2010-01-01", end: new Date().toISOString().split('T')[0] });
+    } else {
+      const parts = fy.split("-");
+      const startYear = parseInt(parts[0]);
+      setDateRange({ 
+        start: `${startYear}-07-01`, 
+        end: `${startYear + 1}-06-30` 
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (availableFYs.length > 0 && !selectedFY) {
+      handleFYChange(availableFYs[0]);
+    }
+  }, [availableFYs, selectedFY]);
 
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);
@@ -108,13 +134,28 @@ export default function ContributionAuditPage() {
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <h1 className="text-3xl font-black uppercase">Audit & Tracking</h1>
-        <div className="flex items-center gap-4 bg-white p-3 border-2 border-black rounded-xl shadow-xl">
+        <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 border-2 border-black rounded-xl shadow-xl">
+          <div className="grid gap-1">
+            <Label className="text-[9px] font-black">QUICK FY</Label>
+            <Select value={selectedFY} onValueChange={handleFYChange}>
+              <SelectTrigger className="h-8 w-[100px] border-black text-xs font-black"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
+                <SelectItem value="all" className="font-black text-xs">ALL</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="grid gap-1"><Label className="text-[9px] font-black">START</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
           <ArrowRightLeft className="size-3 mt-4" />
           <div className="grid gap-1"><Label className="text-[9px] font-black">END</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
-          <Input placeholder="Search Particulars..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black font-black w-[180px]" />
-          <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase"><DatabaseZap className="size-3 mr-1" /> Cleanup</Button>
-          <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white"><Printer className="size-3 mr-1" /> Print</Button>
+          <div className="grid gap-1">
+            <Label className="text-[9px] font-black">FILTER PARTICULARS</Label>
+            <Input placeholder="Keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black font-black w-[150px] text-xs" />
+          </div>
+          <div className="flex gap-2 mt-4">
+            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase"><DatabaseZap className="size-3 mr-1" /> Cleanup</Button>
+            <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white"><Printer className="size-3 mr-1" /> Print</Button>
+          </div>
         </div>
       </div>
       <div className="grid gap-6 md:grid-cols-4 no-print">
@@ -162,7 +203,7 @@ export default function ContributionAuditPage() {
             </div>
             <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-black uppercase">Ensure search is specific to avoid accidental data loss.</p>
+              <p className="text-[10px] font-black uppercase">Ensure search is specific to avoid accidental data loss. Verify the record count before deleting.</p>
             </div>
             <DialogFooter className="p-6 pt-2">
               <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl">
