@@ -145,7 +145,7 @@ export default function FundMovementReportPage() {
             <ArrowRightLeft className="size-3 mt-4 opacity-30" />
             <div className="grid gap-1">
               <Label className="text-[9px] uppercase font-black">Period End</Label>
-              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black" />
             </div>
           </div>
           <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1">
@@ -188,9 +188,9 @@ export default function FundMovementReportPage() {
                 <TableRow key={idx} className="border-b border-black hover:bg-slate-100 h-8">
                   <td className="p-0.5 border-r border-black font-mono text-center">{row.memberIdNumber}</td>
                   <td className="p-0.5 border-r border-black uppercase truncate leading-none font-black">{row.name}</td>
-                  <td className="p-0.5 text-right border-r">{row.opEmp.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{row.addEmp.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{row.adjEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.opEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.addEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r">{row.adjEmp.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{row.clEmp.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{row.opPbs.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{row.addPbs.toLocaleString()}</td>

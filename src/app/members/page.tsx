@@ -193,8 +193,10 @@ export default function MembersPage() {
             memberData.createdAt = new Date().toISOString();
           }
 
+          // Merge profile updates (Safe sync)
           setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberData, { merge: true });
 
+          // Always create a NEW ledger entry for the monthly data
           const ledgerEntry = {
             summaryDate: postingDate,
             particulars: particulars,
@@ -218,7 +220,7 @@ export default function MembersPage() {
         
         showAlert({ 
           title: "Import Success", 
-          description: `Successfully processed ${count} records with salary/ledger volumes.`, 
+          description: `Successfully processed ${count} records with salary/ledger volumes. Registry synchronized by ID.`, 
           type: "success", 
           onConfirm: () => window.location.reload() 
         });
@@ -402,11 +404,11 @@ export default function MembersPage() {
               </Button>
             </div>
             <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start">
-              <Info className="size-5 shrink-0" />
-              <p className="text-[10px] font-black uppercase leading-tight">Importer will automatically link data to existing personnel by "ID Number" or create new profiles if required.</p>
+              <Info className="size-5 shrink-0 mt-0.5" />
+              <p className="text-[10px] font-black uppercase leading-tight">Importer will intelligently update existing personnel by ID or create new profiles. Each upload creates unique ledger entries based on "PostingDate" and "Particulars".</p>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">
-              <Download className="size-3.5 mr-2" /> Download Monthly Template
+              <Download className="size-3.5 mr-2" /> Download Template
             </Button>
           </div>
         </DialogContent>

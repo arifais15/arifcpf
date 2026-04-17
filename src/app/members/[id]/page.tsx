@@ -133,16 +133,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         id: "opening-row"
       };
       displayRows = [openingRow, ...inRangeRows];
-    } else if (dateRange.start) {
-        const openingRow = {
-            summaryDate: dateRange.start,
-            particulars: "Opening Balance",
-            c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0,
-            col4: 0, col7: 0, col10: 0, col11: 0,
-            isOpening: true,
-            id: "opening-row-empty"
-        };
-        displayRows = [openingRow, ...inRangeRows];
     }
 
     const activityTotals = inRangeRows.reduce((acc, r) => ({ 
