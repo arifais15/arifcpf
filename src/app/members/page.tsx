@@ -151,7 +151,7 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // Fetch all existing members to prevent duplicates by ID
+        // 1. Fetch current registry to map ID Numbers to Firebase Document IDs (Unique Personnel Only)
         const allMembersSnap = await getDocs(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach(d => {
@@ -165,19 +165,23 @@ export default function MembersPage() {
           
           if (!memberIdNumber || !name) continue;
 
+          // 2. Identify or Create Member Document ID
           let memberDocId = existingMembersMap[memberIdNumber];
-          const isNew = !memberDocId;
+          const isExisting = !!memberDocId;
 
           if (!memberDocId) {
             const newRef = doc(collection(firestore, "members"));
             memberDocId = newRef.id;
+            // Update the map for subsequent rows in the same Excel sheet
+            existingMembersMap[memberIdNumber] = memberDocId;
           }
 
           const joinedDate = String(entry["JoinedDate"] || entry.dateJoined || "");
           const postingDate = String(entry["PostingDate"] || joinedDate || new Date().toISOString().split('T')[0]);
           const particulars = String(entry["Particulars"] || entry.particulars || "Monthly Contribution (Imported)");
           
-          const memberData = {
+          // 3. SAFE SYNC: Update Profile data (One-time creation, monthly update of metadata)
+          const memberProfileData = {
             memberIdNumber,
             name,
             designation: String(entry["Designation"] || ""),
@@ -188,15 +192,16 @@ export default function MembersPage() {
             updatedAt: new Date().toISOString()
           };
 
-          if (isNew) {
+          // If new member, add createdAt
+          if (!isExisting) {
             // @ts-ignore
-            memberData.createdAt = new Date().toISOString();
+            memberProfileData.createdAt = new Date().toISOString();
           }
 
-          // Merge profile updates (Safe sync)
-          setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberData, { merge: true });
+          // Use setDocumentNonBlocking with merge: true to keep the profile unique per ID
+          setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberProfileData, { merge: true });
 
-          // Always create a NEW ledger entry for the monthly data
+          // 4. TRANSACTION APPEND: Always create a NEW unique ledger entry for every row in the sheet
           const ledgerEntry = {
             summaryDate: postingDate,
             particulars: particulars,
@@ -212,6 +217,7 @@ export default function MembersPage() {
             createdAt: new Date().toISOString()
           };
 
+          // This generates a unique ID for the sub-collection entry
           const newSummaryRef = doc(collection(firestore, "members", memberDocId, "fundSummaries"));
           setDocumentNonBlocking(newSummaryRef, ledgerEntry, { merge: true });
 
@@ -219,14 +225,14 @@ export default function MembersPage() {
         }
         
         showAlert({ 
-          title: "Import Success", 
-          description: `Successfully processed ${count} records with salary/ledger volumes. Registry synchronized by ID.`, 
+          title: "Synchronization Complete", 
+          description: `Processed ${count} records. Profiles synchronized by ID and transactions appended to subsidiary ledgers.`, 
           type: "success", 
           onConfirm: () => window.location.reload() 
         });
       } catch (err) {
         console.error(err);
-        toast({ title: "Upload Failed", description: "Internal processing error during Excel parse.", variant: "destructive" });
+        toast({ title: "Import Failed", description: "Internal processing error during Excel parse.", variant: "destructive" });
       } finally {
         setIsUploading(false);
         setIsBulkOpen(false);

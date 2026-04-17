@@ -145,7 +145,7 @@ export default function FundMovementReportPage() {
             <ArrowRightLeft className="size-3 mt-4 opacity-30" />
             <div className="grid gap-1">
               <Label className="text-[9px] uppercase font-black">Period End</Label>
-              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" />
             </div>
           </div>
           <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1">
