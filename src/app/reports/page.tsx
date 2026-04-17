@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -33,10 +34,11 @@ export default function ReportsPage() {
     return Array.from(mergedMap.values()).sort((a, b) => a.code.localeCompare(b.code));
   }, [coaData]);
 
+  // Define categorized account lists for classified statements
   const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
   const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
-  const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4') && !a.isHeader), [activeCOA]);
-  const expenseAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('5') && !a.isHeader), [activeCOA]);
+  const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4')), [activeCOA]);
+  const expenseAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('5')), [activeCOA]);
 
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
   const { data: entries, isLoading: isEntriesLoading } = useCollection(entriesRef);
@@ -112,11 +114,11 @@ export default function ReportsPage() {
     return map;
   }, [entries, activeCOA, fyDates.start, fyDates.end, selectedFiscalYear]);
 
-  const totalIncome = useMemo(() => incomeAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [incomeAccounts, periodBalances]);
-  const totalExpense = useMemo(() => expenseAccounts.reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [expenseAccounts, periodBalances]);
+  const totalIncome = useMemo(() => incomeAccounts.filter(a => !a.isHeader).reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [incomeAccounts, periodBalances]);
+  const totalExpense = useMemo(() => expenseAccounts.filter(a => !a.isHeader).reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [expenseAccounts, periodBalances]);
 
   const formatCurrency = (val: number) => {
-    const formatted = new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val));
+    const formatted = new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val || 0));
     return val < 0 ? `(${formatted})` : formatted;
   };
 
@@ -130,7 +132,10 @@ export default function ReportsPage() {
         currentGroup = { header: acc, items: [], total: 0 };
       } else if (currentGroup) {
         const val = balancesMap[acc.code] || 0;
-        if (val !== 0) { currentGroup.items.push(acc); currentGroup.total += val; }
+        if (val !== 0) { 
+          currentGroup.items.push(acc); 
+          currentGroup.total += val; 
+        }
       }
     });
     if (currentGroup && currentGroup.items.length > 0) groups.push(currentGroup);
@@ -140,22 +145,29 @@ export default function ReportsPage() {
         <h3 className="text-base font-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">{title}</h3>
         {groups.map((group, idx) => (
           <div key={idx} className="space-y-2">
-            <div className="flex justify-between font-black text-sm bg-slate-50 p-2 border-l-4 border-black"><span className="uppercase tracking-widest">{group.header.name}</span></div>
+            <div className="flex justify-between font-black text-sm bg-slate-50 p-2 border-l-4 border-black">
+              <span className="uppercase tracking-widest">{group.header.name}</span>
+            </div>
             <div className="pl-6 space-y-1">
               {group.items.map(item => (
                 <div key={item.code} className="flex justify-between text-xs py-1.5 border-b border-dotted border-black/40 font-black tabular-nums">
-                  <span className="flex gap-6"><span className="font-mono w-[90px] opacity-60">{item.code}</span><span>{item.name}</span></span>
+                  <span className="flex gap-6">
+                    <span className="font-mono w-[90px] opacity-60">{item.code}</span>
+                    <span>{item.name}</span>
+                  </span>
                   <span>{formatCurrency(balancesMap[item.code])}</span>
                 </div>
               ))}
             </div>
             <div className="flex justify-between font-black text-sm pt-3 border-t-2 border-black mt-3 pl-6 italic">
-              <span>Total {group.header.name}</span><span>{formatCurrency(group.total)}</span>
+              <span>Total {group.header.name}</span>
+              <span>{formatCurrency(group.total)}</span>
             </div>
           </div>
         ))}
         <div className="flex justify-between font-black text-base bg-black text-white p-4 rounded-xl mt-8 uppercase tracking-widest">
-          <span>Total {title}</span><span className="underline decoration-double">৳ {formatCurrency(groups.reduce((s, g) => s + g.total, 0))}</span>
+          <span>Total {title}</span>
+          <span className="underline decoration-double">৳ {formatCurrency(groups.reduce((s, g) => s + g.total, 0))}</span>
         </div>
       </div>
     );
@@ -181,7 +193,15 @@ export default function ReportsPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 portrait !important; margin: 10mm !important; } .print-container { width: 100% !important; display: block !important; border: none !important; } .print-portrait-fix { width: 190mm !important; margin: 0 auto !important; } body { background-color: white !important; color: #000000 !important; } }` }} />
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print { 
+          @page { size: A4 portrait !important; margin: 10mm !important; } 
+          .print-container { width: 100% !important; display: block !important; border: none !important; } 
+          .print-portrait-fix { width: 190mm !important; margin: 0 auto !important; } 
+          body { background-color: white !important; color: #000000 !important; } 
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+        }
+      ` }} />
 
       <div className="flex items-center justify-between no-print max-w-5xl mx-auto w-full bg-white p-6 rounded-3xl border-2 border-black shadow-2xl">
         <div className="flex items-center gap-5">
@@ -229,7 +249,7 @@ export default function ReportsPage() {
                 <div className="space-y-6">
                   <h3 className="text-base font-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Institutional Revenue</h3>
                   <div className="space-y-2 pl-6">
-                    {incomeAccounts.map(acc => {
+                    {incomeAccounts.filter(a => !a.isHeader).map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       return val === 0 ? null : (
                         <div key={acc.code} className="flex justify-between text-xs py-1.5 border-b border-dotted border-black/40 font-black tabular-nums">
@@ -245,7 +265,7 @@ export default function ReportsPage() {
                 <div className="space-y-6">
                   <h3 className="text-base font-black border-b-4 border-black pb-1.5 uppercase tracking-[0.2em]">Operating Expenditures</h3>
                   <div className="space-y-2 pl-6">
-                    {expenseAccounts.map(acc => {
+                    {expenseAccounts.filter(a => !a.isHeader).map(acc => {
                       const val = periodBalances[acc.code] || 0;
                       return val === 0 ? null : (
                         <div key={acc.code} className="flex justify-between text-xs py-1.5 border-b border-dotted border-black/40 font-black tabular-nums">
