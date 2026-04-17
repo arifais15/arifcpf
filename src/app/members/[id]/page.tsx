@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -74,10 +73,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       handleFYChange(availableFYs[0]);
     }
   }, [availableFYs, selectedFY]);
-
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
-  };
 
   const ledgerLogic = useMemo(() => {
     if (!summaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 } };
@@ -193,6 +188,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (editingEntry?.id) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), data);
     else addDocumentNonBlocking(summariesRef, data);
     setIsEntryOpen(false); setEditingEntry(null);
+  };
+
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
   };
 
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -34,7 +33,7 @@ export default function ReportsPage() {
     return Array.from(mergedMap.values()).sort((a, b) => (a.code || "").localeCompare(b.code || ""));
   }, [coaData]);
 
-  // Define classification categories to avoid ReferenceErrors
+  // Classification Categories
   const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
   const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
   const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4')), [activeCOA]);
@@ -126,9 +125,7 @@ export default function ReportsPage() {
       } else {
         const val = balancesMap[acc.code] || 0;
         if (val !== 0) {
-          if (!currentGroup) {
-            currentGroup = { header: { code: '', name: 'Unclassified', type: '', balance: '', isHeader: true }, items: [], total: 0 };
-          }
+          if (!currentGroup) currentGroup = { header: { code: '', name: 'Miscellaneous', type: '', balance: '', isHeader: true }, items: [], total: 0 };
           currentGroup.items.push(acc);
           currentGroup.total += val;
         }

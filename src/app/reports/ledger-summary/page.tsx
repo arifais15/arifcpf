@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -17,8 +16,6 @@ import {
   Printer, 
   Loader2, 
   Search,
-  ClipboardCheck,
-  ShieldCheck,
   ArrowLeft
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
@@ -72,25 +69,9 @@ export default function LedgerSummaryReportPage() {
 
   const exportToExcel = () => {
     if (reportData.length === 0) return;
-    const worksheetData = reportData.map(r => ({
-      "ID No": r.memberIdNumber,
-      "Name": r.name,
-      "Designation": r.designation,
-      "Emp Contrib (1)": r.c1,
-      "Loan Draw (2)": r.c2,
-      "Loan Repay (3)": r.c3,
-      "Loan Bal (4)": r.c4,
-      "Emp Profit (5)": r.c5,
-      "Loan Profit (6)": r.c6,
-      "Net Emp (7)": r.c7,
-      "PBS Contrib (8)": r.c8,
-      "PBS Profit (9)": r.c9,
-      "Net Office (10)": r.c10,
-      "Total Fund (11)": r.c11
-    }));
-    const ws = XLSX.utils.json_to_sheet(worksheetData);
+    const ws = XLSX.utils.json_to_sheet(reportData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ledger Summary");
+    XLSX.utils.book_append_sheet(wb, ws, "Ledger Matrix");
     XLSX.writeFile(wb, `CPF_Ledger_Summary_${asOfDate}.xlsx`);
   };
 
@@ -106,24 +87,23 @@ export default function LedgerSummaryReportPage() {
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          @page { size: A4 landscape !important; margin: 4mm !important; }
-          .print-container { width: 100% !important; transform: scale(1); transform-origin: top left; display: block !important; }
+          @page { size: A4 landscape !important; margin: 5mm !important; }
+          .print-container { width: 100% !important; display: block !important; }
           table { table-layout: fixed !important; width: 100% !important; }
           body { background-color: white !important; font-size: 8px !important; color: #000000 !important; }
-          .no-print { display: none !important; }
         }
       `}} />
-      
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5 text-black" /></Link>
+          <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border-2 border-black"><ArrowLeft className="size-5 text-black" /></Link>
           <h1 className="text-2xl font-black tracking-tighter uppercase">Ledger Matrix</h1>
         </div>
         
-        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border-2 border-black">
+        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border-2 border-black shadow-lg">
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black uppercase">Cut-off</Label>
-            <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-xs font-black" />
+            <Label className="text-[9px] font-black uppercase">Statement Date</Label>
+            <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black" />
           </div>
           <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1">
             <FileSpreadsheet className="size-3" /> Excel
@@ -140,23 +120,22 @@ export default function LedgerSummaryReportPage() {
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
             <Input className="pl-7 h-8 border-black font-black text-[10px]" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <Badge className="bg-black text-white font-black px-2 py-0.5 text-[9px] uppercase">{reportData.length} Staff</Badge>
         </div>
         
         <div className="overflow-x-hidden">
-          <Table className="w-full font-black tabular-nums border-collapse text-[9px] table-fixed">
+          <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
-              <tr className="uppercase text-[8px] leading-tight">
-                <th rowSpan={2} className="border-r-2 border-black p-1 w-[45px]">ID</th>
-                <th rowSpan={2} className="border-r-2 border-black p-1 text-left w-[120px]">Name</th>
-                <th colSpan={4} className="border-r-2 border-black p-0.5 bg-slate-200/50">Contrib</th>
+              <tr className="uppercase text-[7px] leading-tight">
+                <th rowSpan={2} className="border-r-2 border-black p-1 w-[40px]">ID</th>
+                <th rowSpan={2} className="border-r-2 border-black p-1 text-left w-[110px]">Name</th>
+                <th colSpan={4} className="border-r-2 border-black p-0.5 bg-slate-200/50">Contributions</th>
                 <th colSpan={2} className="border-r-2 border-black p-0.5">Profits</th>
                 <th className="border-r-2 border-black p-0.5 bg-slate-200">Equity(7)</th>
                 <th colSpan={2} className="border-r-2 border-black p-0.5">PBS</th>
                 <th className="border-r-2 border-black p-0.5 bg-slate-200">Off(10)</th>
-                <th className="p-0.5 bg-black text-white">TOTAL(11)</th>
+                <th className="p-1 bg-black text-white w-[75px]">TOTAL(11)</th>
               </tr>
-              <tr className="bg-slate-50 text-[7px] uppercase">
+              <tr className="bg-slate-50 text-[6px] uppercase">
                 <th className="p-0.5 text-right border-r">E(1)</th>
                 <th className="p-0.5 text-right border-r">D(2)</th>
                 <th className="p-0.5 text-right border-r">R(3)</th>
@@ -173,8 +152,8 @@ export default function LedgerSummaryReportPage() {
             <TableBody>
               {reportData.map((r, i) => (
                 <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-8">
-                  <td className="p-1 border-r-2 border-black font-mono text-center">{r.memberIdNumber}</td>
-                  <td className="p-1 border-r-2 border-black uppercase truncate leading-none">
+                  <td className="p-0.5 border-r-2 border-black font-mono text-center">{r.memberIdNumber}</td>
+                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none">
                     <span className="font-black block">{r.name}</span>
                   </td>
                   <td className="p-0.5 text-right border-r">{r.c1.toLocaleString()}</td>
@@ -193,18 +172,18 @@ export default function LedgerSummaryReportPage() {
             </TableBody>
             <TableFooter className="bg-black text-white font-black text-[8px]">
               <TableRow className="h-10">
-                <td colSpan={2} className="text-right uppercase pr-2">Totals:</td>
-                <td className="text-right border-r border-white/20">{stats.c1.toLocaleString()}</td>
-                <td className="text-right border-r border-white/20">{stats.c2.toLocaleString()}</td>
-                <td className="text-right border-r border-white/20">{stats.c3.toLocaleString()}</td>
-                <td className="text-right border-r-2 border-white/40 bg-white/10">{stats.c4.toLocaleString()}</td>
-                <td className="text-right border-r border-white/20">{stats.c5.toLocaleString()}</td>
-                <td className="text-right border-r-2 border-white/40">{stats.c6.toLocaleString()}</td>
-                <td className="text-right border-r-2 border-white/40 bg-white/10">{stats.c7.toLocaleString()}</td>
-                <td className="text-right border-r border-white/20">{stats.c8.toLocaleString()}</td>
-                <td className="text-right border-r-2 border-white/40">{stats.c9.toLocaleString()}</td>
-                <td className="text-right border-r-2 border-white/40 bg-white/10">{stats.c10.toLocaleString()}</td>
-                <td className="text-right bg-white text-black font-black">৳ {stats.c11.toLocaleString()}</td>
+                <td colSpan={2} className="text-right pr-2">CONSOLIDATED TOTALS:</td>
+                <td className="text-right">{stats.c1.toLocaleString()}</td>
+                <td className="text-right">{stats.c2.toLocaleString()}</td>
+                <td className="text-right">{stats.c3.toLocaleString()}</td>
+                <td className="text-right bg-white/10">{stats.c4.toLocaleString()}</td>
+                <td className="text-right">{stats.c5.toLocaleString()}</td>
+                <td className="text-right">{stats.c6.toLocaleString()}</td>
+                <td className="text-right bg-white/10">{stats.c7.toLocaleString()}</td>
+                <td className="text-right">{stats.c8.toLocaleString()}</td>
+                <td className="text-right">{stats.c9.toLocaleString()}</td>
+                <td className="text-right bg-white/10">{stats.c10.toLocaleString()}</td>
+                <td className="text-right bg-white text-black font-black text-[10px]">৳ {stats.c11.toLocaleString()}</td>
               </TableRow>
             </TableFooter>
           </Table>
