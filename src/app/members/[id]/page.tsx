@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -135,26 +134,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       displayRows = [openingRow, ...inRangeRows];
     }
 
-    const activityTotals = inRangeRows.reduce((acc, r) => ({ 
+    const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
+    const historicalTotals = allCalculated.reduce((acc, r) => ({ 
       c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, 
       c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
-    const grandTotals = {
-      c1: openingRowValue.c1 + activityTotals.c1,
-      c2: openingRowValue.c2 + activityTotals.c2,
-      c3: openingRowValue.c3 + activityTotals.c3,
-      c5: openingRowValue.c5 + activityTotals.c5,
-      c6: openingRowValue.c6 + activityTotals.c6,
-      c8: openingRowValue.c8 + activityTotals.c8,
-      c9: openingRowValue.c9 + activityTotals.c9,
-    };
-
-    const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
-
     return { 
       rows: displayRows, 
-      totals: grandTotals, 
+      totals: historicalTotals, 
       latest: { col4: last.col4, col7: last.col7, col10: last.col10, col11: last.col11 } 
     };
   }, [summaries, dateRange]);
@@ -190,8 +178,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 landscape !important; margin: 8mm !important; } .print-container { width: 100% !important; display: block !important; } table { table-layout: fixed !important; width: 100% !important; } body { background-color: white !important; color: #000000 !important; } }` }} />
-      
       <PageHeaderActions>
         <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2 no-print"><ArrowLeft className="size-5 text-black" /></Link>
         
@@ -208,9 +194,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase text-black" />
             <ArrowRightLeft className="size-3 text-black/20" />
-            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase text-black" />
           </div>
         </div>
 
@@ -289,25 +275,28 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-100 border-t-2 border-black text-[9px] text-black">
-              <tr className="h-8">
-                <td colSpan={2} className="border border-black p-1 text-right uppercase">Aggregate Totals (Incl. Opening):</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200 font-bold">{(ledgerLogic.latest.col4).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c5.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c6.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200 font-bold">{(ledgerLogic.latest.col7).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200 font-bold">{(ledgerLogic.latest.col10).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-300 font-black text-black">৳ {(ledgerLogic.latest.col11).toLocaleString()}</td>
-                <td className="border border-black p-1 no-print"></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
+        
+        {/* Report Footer: Shows totals only at the end of the report, not repeated per page */}
+        <div className="mt-4 border-2 border-black bg-slate-100 font-black tabular-nums text-black p-2 flex items-center justify-between text-[10px]">
+          <span className="uppercase tracking-widest px-2">Consolidated Grand Totals (Entire History):</span>
+          <div className="flex gap-6 pr-4">
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] opacity-60 uppercase">Net Equity</span>
+              <span>৳ {ledgerLogic.latest.col7.toLocaleString()}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] opacity-60 uppercase">Net Office</span>
+              <span>৳ {ledgerLogic.latest.col10.toLocaleString()}</span>
+            </div>
+            <div className="flex flex-col items-end">
+              <span className="text-[8px] opacity-60 uppercase">Historical Aggregate</span>
+              <span className="text-sm underline decoration-double">৳ {ledgerLogic.latest.col11.toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-8 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
           <span>CPF Management Software</span><span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
         </div>

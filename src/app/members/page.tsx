@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -138,6 +137,20 @@ export default function MembersPage() {
     setEditingMember(null);
   };
 
+  const handleDeleteMember = (id: string, name: string) => {
+    showAlert({
+      title: "Delete Personnel?",
+      description: `Permanently remove ${name} and all associated ledger data from the registry?`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Delete Record",
+      onConfirm: () => {
+        deleteDocumentNonBlocking(doc(firestore, "members", id));
+        showAlert({ title: "Removed", description: "The personnel record has been deleted.", type: "success", onConfirm: () => window.location.reload() });
+      }
+    });
+  };
+
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -151,7 +164,6 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // 1. Fetch current registry to map ID Numbers to Firebase Document IDs (Unique Personnel Only)
         const allMembersSnap = await getDocs(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach(d => {
@@ -162,17 +174,14 @@ export default function MembersPage() {
         for (const entry of data as any[]) {
           const memberIdNumber = String(entry["ID"] || entry.memberIdNumber || "").trim();
           const name = String(entry["Name"] || "");
-          
           if (!memberIdNumber || !name) continue;
 
-          // 2. Identify or Create Member Document ID
           let memberDocId = existingMembersMap[memberIdNumber];
           const isExisting = !!memberDocId;
 
           if (!memberDocId) {
             const newRef = doc(collection(firestore, "members"));
             memberDocId = newRef.id;
-            // Update the map for subsequent rows in the same Excel sheet
             existingMembersMap[memberIdNumber] = memberDocId;
           }
 
@@ -180,7 +189,6 @@ export default function MembersPage() {
           const postingDate = String(entry["PostingDate"] || joinedDate || new Date().toISOString().split('T')[0]);
           const particulars = String(entry["Particulars"] || entry.particulars || "Monthly Contribution (Imported)");
           
-          // 3. SAFE SYNC: Update Profile data (One-time creation, monthly update of metadata)
           const memberProfileData = {
             memberIdNumber,
             name,
@@ -192,16 +200,13 @@ export default function MembersPage() {
             updatedAt: new Date().toISOString()
           };
 
-          // If new member, add createdAt
           if (!isExisting) {
             // @ts-ignore
             memberProfileData.createdAt = new Date().toISOString();
           }
 
-          // Use setDocumentNonBlocking with merge: true to keep the profile unique per ID
           setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberProfileData, { merge: true });
 
-          // 4. TRANSACTION APPEND: Always create a NEW unique ledger entry for every row in the sheet
           const ledgerEntry = {
             summaryDate: postingDate,
             particulars: particulars,
@@ -217,21 +222,18 @@ export default function MembersPage() {
             createdAt: new Date().toISOString()
           };
 
-          // This generates a unique ID for the sub-collection entry
           const newSummaryRef = doc(collection(firestore, "members", memberDocId, "fundSummaries"));
           setDocumentNonBlocking(newSummaryRef, ledgerEntry, { merge: true });
-
           count++;
         }
         
         showAlert({ 
-          title: "Synchronization Complete", 
+          title: "Import Success", 
           description: `Processed ${count} records. Profiles synchronized by ID and transactions appended to subsidiary ledgers.`, 
           type: "success", 
           onConfirm: () => window.location.reload() 
         });
       } catch (err) {
-        console.error(err);
         toast({ title: "Import Failed", description: "Internal processing error during Excel parse.", variant: "destructive" });
       } finally {
         setIsUploading(false);
@@ -344,6 +346,7 @@ export default function MembersPage() {
                 <TableCell className="text-right pr-6 py-4">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-black hover:bg-slate-100" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id, member.name)}><Trash2 className="size-4" /></Button>
                     <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] bg-white text-black hover:bg-black hover:text-white transition-all"><Link href={`/members/${member.id}`}><UserCircle className="size-3.5 mr-2" /> Ledger Audit</Link></Button>
                   </div>
                 </TableCell>
@@ -356,7 +359,7 @@ export default function MembersPage() {
       <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingMember(null); }}>
         <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 overflow-hidden rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
-            <DialogTitle className="font-black uppercase text-2xl tracking-tighter flex items-center gap-3">
+            <DialogTitle className="font-black uppercase text-2xl tracking-tighter flex items-center gap-3 text-black">
               <UserCircle className="size-7" />
               {editingMember ? "Modify Personnel Records" : "New Personnel Registration"}
             </DialogTitle>
@@ -364,24 +367,24 @@ export default function MembersPage() {
           <form onSubmit={handleAddMember} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Member ID No (Key)</Label>
-                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="e.g. 5001" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-black">Member ID No (Key)</Label>
+                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 text-black" placeholder="e.g. 5001" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Full Legal Name</Label>
-                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="AS PER SERVICE BOOK" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-black">Full Legal Name</Label>
+                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 text-black" placeholder="AS PER SERVICE BOOK" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Official Designation</Label>
-                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" placeholder="e.g. AGMF" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-black">Official Designation</Label>
+                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 text-black" placeholder="e.g. AGMF" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5 text-black">
                   <CalendarDays className="size-3" /> Fund Joined Date
                 </Label>
-                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 uppercase" />
+                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 uppercase text-black" />
               </div>
             </div>
             <DialogFooter className="pt-4">
@@ -396,13 +399,13 @@ export default function MembersPage() {
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black">
-            <DialogTitle className="text-xl font-black uppercase">Institutional Monthly Import</DialogTitle>
-            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Synchronize personnel registry and monthly contribution volumes</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase text-black">Institutional Monthly Import</DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60 text-black">Synchronize personnel registry and monthly contribution volumes</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
             <div className="bg-slate-50 p-6 border-2 border-black rounded-xl text-center space-y-4">
               <FileSpreadsheet className="size-12 mx-auto text-black opacity-20" />
-              <p className="text-xs font-black uppercase tracking-widest">Select Monthly Salary XLSX</p>
+              <p className="text-xs font-black uppercase tracking-widest text-black">Select Monthly Salary XLSX</p>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
               <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-black text-white font-black uppercase h-12">
                 {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
@@ -413,7 +416,7 @@ export default function MembersPage() {
               <Info className="size-5 shrink-0 mt-0.5" />
               <p className="text-[10px] font-black uppercase leading-tight">Importer will intelligently update existing personnel by ID or create new profiles. Each upload creates unique ledger entries based on "PostingDate" and "Particulars".</p>
             </div>
-            <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">
+            <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10 text-black">
               <Download className="size-3.5 mr-2" /> Download Template
             </Button>
           </div>

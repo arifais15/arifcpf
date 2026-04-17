@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -86,27 +85,18 @@ export default function LedgerSummaryReportPage() {
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { size: A4 landscape !important; margin: 5mm !important; }
-          .print-container { width: 100% !important; display: block !important; }
-          table { table-layout: fixed !important; width: 100% !important; }
-          body { background-color: white !important; font-size: 8px !important; color: #000000 !important; }
-        }
-      `}} />
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
           <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border-2 border-black"><ArrowLeft className="size-5 text-black" /></Link>
-          <h1 className="text-2xl font-black tracking-tighter uppercase">Ledger Matrix</h1>
+          <h1 className="text-2xl font-black tracking-tighter uppercase text-black">Ledger Matrix</h1>
         </div>
         
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border-2 border-black shadow-lg">
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black uppercase">Statement Date</Label>
-            <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black" />
+            <Label className="text-[9px] font-black uppercase text-black">Statement Date</Label>
+            <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black text-black" />
           </div>
-          <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1">
+          <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1 text-black">
             <FileSpreadsheet className="size-3" /> Excel
           </Button>
           <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] gap-1">
@@ -118,15 +108,15 @@ export default function LedgerSummaryReportPage() {
       <div className="bg-white rounded-none border-2 border-black overflow-hidden print-container">
         <div className="p-2 border-b-2 border-black bg-slate-50 flex items-center justify-between no-print">
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
-            <Input className="pl-7 h-8 border-black font-black text-[10px]" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40 text-black" />
+            <Input className="pl-7 h-8 border-black font-black text-[10px] text-black" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
         
         <div className="overflow-x-hidden">
-          <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed">
+          <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed text-black">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
-              <tr className="uppercase text-[7px] leading-tight">
+              <tr className="uppercase text-[7px] leading-tight text-black">
                 <th className="border-r-2 border-black p-0.5 w-[40px]">ID</th>
                 <th className="border-r-2 border-black p-0.5 text-left w-[100px]">Name</th>
                 <th className="text-right border-r p-0.5 w-[65px]">E(1)</th>
@@ -145,25 +135,25 @@ export default function LedgerSummaryReportPage() {
             <TableBody>
               {reportData.map((r, i) => (
                 <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-8">
-                  <td className="p-0.5 border-r-2 border-black font-mono text-center">{r.memberIdNumber}</td>
-                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none font-black">{r.name}</td>
-                  <td className="p-0.5 text-right border-r">{r.c1.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{r.c2.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{r.c3.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c4.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{r.c5.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2">{r.c6.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c7.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{r.c8.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2">{r.c9.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c10.toLocaleString()}</td>
+                  <td className="p-0.5 border-r-2 border-black font-mono text-center text-black">{r.memberIdNumber}</td>
+                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none font-black text-black">{r.name}</td>
+                  <td className="p-0.5 text-right border-r text-black">{r.c1.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{r.c2.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{r.c3.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c4.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{r.c5.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 text-black">{r.c6.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c7.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{r.c8.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 text-black">{r.c9.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c10.toLocaleString()}</td>
                   <td className="p-0.5 text-right bg-slate-100 font-black text-black"> {r.c11.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter className="bg-black text-white font-black text-[8px]">
               <TableRow className="h-10">
-                <td colSpan={2} className="text-right pr-2">CONSOLIDATED TOTALS:</td>
+                <td colSpan={2} className="text-right pr-2 uppercase">CONSOLIDATED TOTALS:</td>
                 <td className="text-right">{stats.c1.toLocaleString()}</td>
                 <td className="text-right">{stats.c2.toLocaleString()}</td>
                 <td className="text-right">{stats.c3.toLocaleString()}</td>

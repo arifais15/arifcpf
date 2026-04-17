@@ -53,7 +53,7 @@
 
 @media print {
   @page {
-    size: auto;
+    size: A4 landscape;
     margin: 8mm;
   }
 
@@ -122,6 +122,11 @@
     padding: 1pt 1pt !important;
     word-wrap: break-word !important;
     overflow: visible !important;
+  }
+  
+  /* Prevent TFOOT from repeating on every page if it's meant to be a report summary */
+  tfoot {
+    display: table-row-group !important;
   }
 
   .font-ledger {

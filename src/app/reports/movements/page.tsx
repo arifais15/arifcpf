@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -122,33 +121,24 @@ export default function FundMovementReportPage() {
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { size: A4 landscape !important; margin: 5mm !important; }
-          .print-container { width: 100% !important; display: block !important; }
-          table { table-layout: fixed !important; width: 100% !important; }
-          body { background-color: white !important; font-size: 8px !important; color: #000000 !important; }
-        }
-      `}} />
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
           <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border-2 border-black"><ArrowLeft className="size-5 text-black" /></Link>
-          <h1 className="text-2xl font-black uppercase tracking-tight">Fund Movement Audit</h1>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-black">Fund Movement Audit</h1>
         </div>
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border-2 border-black shadow-lg">
           <div className="flex items-center gap-2">
             <div className="grid gap-1">
-              <Label className="text-[9px] font-black uppercase">Period Start</Label>
-              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" />
+              <Label className="text-[9px] font-black uppercase text-black">Period Start</Label>
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black bg-white" />
             </div>
-            <ArrowRightLeft className="size-3 mt-4 opacity-30" />
+            <ArrowRightLeft className="size-3 mt-4 opacity-30 text-black" />
             <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-black">Period End</Label>
-              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" />
+              <Label className="text-[9px] uppercase font-black text-black">Period End</Label>
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black bg-white" />
             </div>
           </div>
-          <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1">
+          <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1 text-black">
             <FileSpreadsheet className="size-3" /> Excel
           </Button>
           <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] gap-1">
@@ -160,16 +150,16 @@ export default function FundMovementReportPage() {
       <div className="bg-white rounded-none border-2 border-black overflow-hidden print-container">
         <div className="p-2 border-b-2 border-black bg-slate-50 flex items-center justify-between no-print">
           <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
-            <Input className="pl-7 h-8 border-black font-black text-[10px]" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40 text-black" />
+            <Input className="pl-7 h-8 border-black font-black text-[10px] text-black" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Badge className="bg-black text-white font-black px-2 py-0.5 text-[9px] uppercase">{reportData.length} Personnel</Badge>
         </div>
 
         <div className="overflow-x-hidden">
-          <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed">
+          <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed text-black">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
-              <tr className="uppercase text-[7px] leading-tight">
+              <tr className="uppercase text-[7px] leading-tight text-black">
                 <th className="border-r border-black p-0.5 w-[40px]">ID</th>
                 <th className="border-r border-black p-0.5 text-left w-[100px]">Name</th>
                 <th className="text-right border-r p-0.5 w-[65px]">E-Open</th>
@@ -186,16 +176,16 @@ export default function FundMovementReportPage() {
             <TableBody>
               {reportData.map((row, idx) => (
                 <TableRow key={idx} className="border-b border-black hover:bg-slate-100 h-8">
-                  <td className="p-0.5 border-r border-black font-mono text-center">{row.memberIdNumber}</td>
-                  <td className="p-0.5 border-r border-black uppercase truncate leading-none font-black">{row.name}</td>
-                  <td className="text-right p-0.5 border-r">{row.opEmp.toLocaleString()}</td>
-                  <td className="text-right p-0.5 border-r">{row.addEmp.toLocaleString()}</td>
-                  <td className="text-right p-0.5 border-r">{row.adjEmp.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{row.clEmp.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{row.opPbs.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{row.addPbs.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r">{row.adjPbs.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{row.clPbs.toLocaleString()}</td>
+                  <td className="p-0.5 border-r border-black font-mono text-center text-black">{row.memberIdNumber}</td>
+                  <td className="p-0.5 border-r border-black uppercase truncate leading-none font-black text-black">{row.name}</td>
+                  <td className="text-right p-0.5 border-r text-black">{row.opEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r text-black">{row.addEmp.toLocaleString()}</td>
+                  <td className="text-right p-0.5 border-r text-black">{row.adjEmp.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{row.clEmp.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{row.opPbs.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{row.addPbs.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r text-black">{row.adjPbs.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{row.clPbs.toLocaleString()}</td>
                   <td className="p-0.5 text-right bg-slate-100 font-black text-black"> {row.total.toLocaleString()}</td>
                 </TableRow>
               ))}

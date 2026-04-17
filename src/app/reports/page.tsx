@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -276,7 +275,7 @@ export default function ReportsPage() {
             <div className="border-2 border-black overflow-hidden">
               <table className="w-full text-xs font-black tabular-nums text-black">
                 <thead className="bg-slate-100 border-b-2 border-black">
-                  <tr>
+                  <tr className="text-black">
                     <th className="p-2 text-left border-r w-[100px]">Code</th>
                     <th className="p-2 text-left border-r">Account Description</th>
                     <th className="p-2 text-right border-r w-[120px]">Debit</th>
@@ -289,10 +288,10 @@ export default function ReportsPage() {
                     const isDr = acc.balance === 'Debit' ? v > 0 : v < 0; 
                     return (
                       <tr key={acc.code} className="h-8">
-                        <td className="p-2 font-mono border-r">{acc.code}</td>
-                        <td className="p-2 uppercase border-r">{acc.name}</td>
-                        <td className="p-2 text-right border-r">{isDr ? formatCurrency(Math.abs(v)) : "—"}</td>
-                        <td className="p-2 text-right">{!isDr ? formatCurrency(Math.abs(v)) : "—"}</td>
+                        <td className="p-2 font-mono border-r text-black">{acc.code}</td>
+                        <td className="p-2 uppercase border-r text-black">{acc.name}</td>
+                        <td className="p-2 text-right border-r text-black">{isDr ? formatCurrency(Math.abs(v)) : "—"}</td>
+                        <td className="p-2 text-right text-black">{!isDr ? formatCurrency(Math.abs(v)) : "—"}</td>
                       </tr>
                     );
                   })}

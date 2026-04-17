@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -139,24 +138,9 @@ export default function AllLedgersPrintPage() {
           displayRows = [openingRow, ...inRangeRows];
         }
 
-        const activityTotals = inRangeRows.reduce((acc, r) => ({ 
-          c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, 
-          c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
-        }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
-
-        const grandTotals = {
-          c1: openingRowValue.c1 + activityTotals.c1,
-          c2: openingRowValue.c2 + activityTotals.c2,
-          c3: openingRowValue.c3 + activityTotals.c3,
-          c5: openingRowValue.c5 + activityTotals.c5,
-          c6: openingRowValue.c6 + activityTotals.c6,
-          c8: openingRowValue.c8 + activityTotals.c8,
-          c9: openingRowValue.c9 + activityTotals.c9,
-        };
-
         const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
 
-        return { member, rows: displayRows, sums: grandTotals, last };
+        return { member, rows: displayRows, last };
       });
   }, [members, allSummaries, dateRange]);
 
@@ -178,29 +162,6 @@ export default function AllLedgersPrintPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page {
-            size: A4 landscape !important;
-            margin: 10mm !important;
-          }
-          .print-container {
-            width: 100% !important;
-            max-width: none !important;
-            padding: 0 !important;
-            display: block !important;
-          }
-          table {
-            table-layout: fixed !important;
-            width: 100% !important;
-          }
-          body {
-            background-color: white !important;
-            color: #000000 !important;
-          }
-        }
-      `}} />
-
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
           <Link href="/reports" className="p-2 hover:bg-slate-100 rounded-full transition-colors border-2 border-black">
@@ -215,19 +176,19 @@ export default function AllLedgersPrintPage() {
         <div className="flex items-center gap-3 bg-black/5 p-2 rounded-xl h-14 px-3">
           <div className="flex items-center gap-2 pr-3 border-r border-black/10">
             <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-8 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0">
+              <SelectTrigger className="h-8 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0 text-black">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
+                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs text-black">FY {fy}</SelectItem>)}
                 <SelectItem value="all" className="font-black text-xs text-rose-600">ALL TIME</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
-            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase text-black" />
             <ArrowRightLeft className="size-3 text-black/20" />
-            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase text-black" />
           </div>
         </div>
 
@@ -244,7 +205,7 @@ export default function AllLedgersPrintPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-0 print-container">
+      <div className="flex flex-col gap-0 print-container text-black font-ledger">
         {memberLedgers.map((ledger, idx) => (
           <div key={ledger.member.id} className={cn("bg-white p-12 print:p-0 print:m-0 print:shadow-none shadow-2xl border-2 border-black mb-16 print:border-none", idx < memberLedgers.length - 1 && "print:break-after-page")}>
             <div className="relative mb-6 text-center border-b-4 border-black pb-4">
@@ -281,7 +242,7 @@ export default function AllLedgersPrintPage() {
                   <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Off<br/>(10=8+9)</th>
                   <th rowSpan={3} className="border border-black p-0.5 text-right w-[90px] uppercase text-[9px] bg-black text-white">Total<br/>(11=7+10)</th>
                 </tr>
-                <tr className="bg-slate-50 text-[9px]">
+                <tr className="bg-slate-50 text-[9px] text-black">
                   <th className="border border-black p-0.5">Contrib(1)</th><th className="border border-black p-0.5">Drawal(2)</th><th className="border border-black p-0.5">Repay(3)</th><th className="border border-black p-0.5 bg-slate-200">Bal(4=2-3)</th>
                   <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">Contrib(8)</th><th className="border border-black p-0.5">Profit(9)</th>
                 </tr>
@@ -305,25 +266,28 @@ export default function AllLedgersPrintPage() {
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-100 font-black border-t-2 border-black tabular-nums text-black">
-                <tr className="h-8">
-                  <td className="border border-black p-1 text-right uppercase text-[9px]" colSpan={2}>Aggregate Sum:</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c1.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c2.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c3.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.last?.col4 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c5.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c6.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.last?.col7 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c8.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right">{ledger.sums.c9.toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.last?.col10 || 0).toLocaleString()}</td>
-                  <td className="border border-black p-1 text-right bg-slate-300 font-black text-[11px] underline decoration-double">{(ledger.last?.col11 || 0).toLocaleString()}</td>
-                </tr>
-              </tfoot>
             </table>
+            
+            {/* Report Footer Total - Only at the end of the member's report */}
+            <div className="mt-4 border-2 border-black bg-slate-100 font-black tabular-nums text-black p-3 flex items-center justify-between text-[11px]">
+              <span className="uppercase tracking-[0.2em] px-2 font-black">Institutional Consolidated Aggregate (All-Time History):</span>
+              <div className="flex gap-10 pr-6">
+                <div className="flex flex-col items-end">
+                  <span className="text-[8px] opacity-60 uppercase font-black">Net Equity</span>
+                  <span className="text-black">৳ {(ledger.last?.col7 || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[8px] opacity-60 uppercase font-black">Net Office</span>
+                  <span className="text-black">৳ {(ledger.last?.col10 || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="text-[8px] opacity-60 uppercase font-black">Total Portfolio</span>
+                  <span className="text-lg underline decoration-double font-black text-black">৳ {(ledger.last?.col11 || 0).toLocaleString()}</span>
+                </div>
+              </div>
+            </div>
 
-            <div className="mt-24 grid grid-cols-3 gap-16 text-[11px] font-black text-center uppercase tracking-widest">
+            <div className="mt-24 grid grid-cols-3 gap-16 text-[11px] font-black text-center uppercase tracking-widest text-black">
               <div className="border-t-2 border-black pt-4">Prepared by</div>
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
