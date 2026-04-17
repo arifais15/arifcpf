@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter, CalendarDays, MapPin, ShieldCheck, Info } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
+import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, getDocs } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -137,30 +138,44 @@ export default function MembersPage() {
     setEditingMember(null);
   };
 
-  const handleExcelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setIsUploading(true);
+    
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       try {
         const bstr = event.target?.result;
         const workbook = XLSX.read(bstr, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
+        // Fetch all existing members to prevent duplicates
+        const allMembersSnap = await getDocs(collection(firestore, "members"));
+        const existingMembersMap: Record<string, string> = {};
+        allMembersSnap.forEach(d => {
+          existingMembersMap[d.data().memberIdNumber] = d.id;
+        });
+
         let count = 0;
         for (const entry of data as any[]) {
-          const memberIdNumber = String(entry["ID"] || entry.memberIdNumber || "");
+          const memberIdNumber = String(entry["ID"] || entry.memberIdNumber || "").trim();
           const name = String(entry["Name"] || "");
           
           if (!memberIdNumber || !name) continue;
 
-          const memberCol = collection(firestore, "members");
-          const newMemberRef = doc(memberCol);
+          let memberDocId = existingMembersMap[memberIdNumber];
+          const isNew = !memberDocId;
+
+          if (!memberDocId) {
+            const newRef = doc(collection(firestore, "members"));
+            memberDocId = newRef.id;
+          }
 
           const joinedDate = String(entry["JoinedDate"] || entry.dateJoined || "");
           const postingDate = String(entry["PostingDate"] || joinedDate || new Date().toISOString().split('T')[0]);
+          const particulars = String(entry["Particulars"] || entry.particulars || "Monthly Contribution (Imported)");
           
           const memberData = {
             memberIdNumber,
@@ -170,15 +185,19 @@ export default function MembersPage() {
             permanentAddress: String(entry["Address"] || entry.permanentAddress || ""),
             zonalOffice: String(entry["Office"] || entry.zonalOffice || ""),
             status: String(entry["Status"] || "Active"),
-            createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           };
 
-          setDocumentNonBlocking(newMemberRef, memberData, { merge: true });
+          if (isNew) {
+            // @ts-ignore
+            memberData.createdAt = new Date().toISOString();
+          }
 
-          const openingEntry = {
+          setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberData, { merge: true });
+
+          const ledgerEntry = {
             summaryDate: postingDate,
-            particulars: "Opening Balance (Imported)",
+            particulars: particulars,
             employeeContribution: Number(entry["Employee_Contribution"] || 0),
             loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
             loanRepayment: Number(entry["Loan_Repaid"] || 0),
@@ -187,24 +206,25 @@ export default function MembersPage() {
             pbsContribution: Number(entry["PBS_Contribution"] || 0),
             profitPbs: Number(entry["PBS_Profit"] || 0),
             isSystemGenerated: true,
-            memberId: newMemberRef.id,
+            memberId: memberDocId,
             createdAt: new Date().toISOString()
           };
 
-          const summariesRef = collection(firestore, "members", newMemberRef.id, "fundSummaries");
-          const newSummaryRef = doc(summariesRef);
-          setDocumentNonBlocking(newSummaryRef, openingEntry, { merge: true });
+          const newSummaryRef = doc(collection(firestore, "members", memberDocId, "fundSummaries"));
+          setDocumentNonBlocking(newSummaryRef, ledgerEntry, { merge: true });
 
           count++;
         }
+        
         showAlert({ 
           title: "Import Success", 
-          description: `Successfully registered ${count} personnel with opening ledger balances.`, 
+          description: `Successfully processed ${count} records with salary/ledger volumes.`, 
           type: "success", 
           onConfirm: () => window.location.reload() 
         });
       } catch (err) {
-        toast({ title: "Upload Failed", description: "Ensure the Excel format matches requirements.", variant: "destructive" });
+        console.error(err);
+        toast({ title: "Upload Failed", description: "Internal processing error during Excel parse.", variant: "destructive" });
       } finally {
         setIsUploading(false);
         setIsBulkOpen(false);
@@ -218,23 +238,24 @@ export default function MembersPage() {
       "ID": "5001",
       "Name": "MD. ARIFUL ISLAM",
       "Designation": "AGMF",
+      "Particulars": "Salary Contribution July-2024",
       "JoinedDate": "2020-01-01",
-      "PostingDate": "2024-01-01",
+      "PostingDate": "2024-07-31",
       "Address": "GAZIPUR",
       "Office": "HEAD OFFICE",
       "Status": "Active",
-      "Employee_Contribution": 150000,
+      "Employee_Contribution": 5000,
       "Loan_Disbursed": 0,
       "Loan_Repaid": 0,
-      "Employee_Profit": 45000,
+      "Employee_Profit": 0,
       "Loan_Profit": 0,
-      "PBS_Contribution": 150000,
-      "PBS_Profit": 45000
+      "PBS_Contribution": 5000,
+      "PBS_Profit": 0
     }];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "RegistryTemplate");
-    XLSX.writeFile(wb, "PBS_CPF_Import_Template.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "MonthlyUploadTemplate");
+    XLSX.writeFile(wb, "PBS_CPF_Monthly_Import_Template.xlsx");
   };
 
   return (
@@ -277,7 +298,7 @@ export default function MembersPage() {
         <div className="h-8 w-px bg-black/10 mx-1" />
         <div className="flex items-center gap-1">
           <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="h-9 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-3">
-            <Upload className="size-3.5" /> Bulk
+            <Upload className="size-3.5" /> Monthly Bulk
           </Button>
           <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 shadow-lg shadow-black/20">
             <Plus className="size-3.5" /> Register Personnel
@@ -366,22 +387,26 @@ export default function MembersPage() {
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-black uppercase">Institutional Bulk Import</DialogTitle>
-            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Synchronize personnel registry and opening ledger volumes</DialogDescription>
+          <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black">
+            <DialogTitle className="text-xl font-black uppercase">Institutional Monthly Import</DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Synchronize personnel registry and monthly contribution volumes</DialogDescription>
           </DialogHeader>
-          <div className="py-8 space-y-6">
+          <div className="p-8 space-y-6">
             <div className="bg-slate-50 p-6 border-2 border-black rounded-xl text-center space-y-4">
               <FileSpreadsheet className="size-12 mx-auto text-black opacity-20" />
-              <p className="text-xs font-black uppercase tracking-widest">Select Institutional XLSX Template</p>
+              <p className="text-xs font-black uppercase tracking-widest">Select Monthly Salary XLSX</p>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
               <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-black text-white font-black uppercase h-12">
                 {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
-                Choose File
+                Process Excel File
               </Button>
             </div>
+            <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start">
+              <Info className="size-5 shrink-0" />
+              <p className="text-[10px] font-black uppercase leading-tight">Importer will automatically link data to existing personnel by "ID Number" or create new profiles if required.</p>
+            </div>
             <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">
-              <Download className="size-3.5 mr-2" /> Download Import Template
+              <Download className="size-3.5 mr-2" /> Download Monthly Template
             </Button>
           </div>
         </DialogContent>

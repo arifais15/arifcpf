@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -33,7 +34,6 @@ export default function ReportsPage() {
     return Array.from(mergedMap.values()).sort((a, b) => (a.code || "").localeCompare(b.code || ""));
   }, [coaData]);
 
-  // Fixed categorization to resolve ReferenceError
   const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
   const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
   const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4')), [activeCOA]);
