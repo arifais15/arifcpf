@@ -11,7 +11,6 @@ import {
   Trash2, 
   Calculator, 
   ArrowRightLeft, 
-  UserX, 
   ChevronLeft,
   ChevronRight,
   CalendarDays,
@@ -189,21 +188,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </PageHeaderActions>
 
       <div className="bg-white p-8 md:p-10 shadow-2xl rounded-none border-4 border-black max-w-[1400px] mx-auto w-full font-ledger print-container">
-        <div className="relative mb-8 text-center border-b-4 border-black pb-4">
+        <div className="relative mb-6 text-center border-b-4 border-black pb-4">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em]">REB Form no: 224</p>
           <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <p className="text-sm font-black uppercase tracking-[0.35em] text-black mt-1">Contributory Provident Fund</p>
-          <h2 className="text-xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.3em] mt-4">Subsidiary Ledger Statement</h2>
+          <h2 className="text-xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-8 gap-y-2 mb-6 text-[12px] font-black border-b-4 border-black pb-4">
+        <div className="grid grid-cols-3 gap-x-8 gap-y-1.5 mb-6 text-[12px] font-black border-b-4 border-black pb-4">
           {[
             { label: "Full Legal Name", value: member.name, sub: "uppercase text-sm" },
             { label: "Official Designation", value: member.designation, sub: "uppercase" },
             { label: "Trust ID Number", value: member.memberIdNumber, sub: "font-mono" },
             { label: "Joined Date", value: member.dateJoined, sub: "" },
             { label: "Status", value: member.status || "Active", sub: "uppercase" },
-            { label: "Mailing Address", value: member.permanentAddress || "-", sub: "truncate max-w-[200px]" },
+            { label: "Mailing Address", value: member.permanentAddress || "-", sub: "truncate" },
           ].map((item, idx) => (
             <div key={idx} className="flex items-end gap-2 border-b border-black/20 pb-0.5">
               <span className="uppercase text-[9px] text-black shrink-0 tracking-widest min-w-[100px]">{item.label}:</span>

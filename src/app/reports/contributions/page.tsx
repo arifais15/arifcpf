@@ -11,23 +11,18 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { 
-  FileSpreadsheet, 
   Printer, 
   Loader2, 
   Search,
-  Calendar,
-  ShieldCheck,
-  TrendingUp,
-  UserPlus,
   ArrowRightLeft,
   Trash2,
   AlertTriangle,
   DatabaseZap,
-  FilterX,
+  ShieldCheck,
   Info
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
-import { collectionGroup, query, where, doc } from "firebase/firestore";
+import { collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -37,18 +32,13 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogTrigger, 
-  DialogFooter,
-  DialogDescription
+  DialogDescription,
+  DialogFooter
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
-import * as XLSX from "xlsx";
-import { cn } from "@/lib/utils";
 
 export default function ContributionAuditPage() {
   const firestore = useFirestore();
-  const { toast } = useToast();
   const { showAlert } = useSweetAlert();
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
@@ -75,32 +65,19 @@ export default function ContributionAuditPage() {
   const filteredData = useMemo(() => {
     if (!allSummaries) return [];
     let data = allSummaries;
-    
     if (dateRange.start && dateRange.end) {
       const s = new Date(dateRange.start).getTime();
       const e = new Date(dateRange.end).getTime();
-      data = data.filter(item => {
-        const d = new Date(item.summaryDate).getTime();
-        return d >= s && d <= e;
-      });
+      data = data.filter(item => { const d = new Date(item.summaryDate).getTime(); return d >= s && d <= e; });
     }
-
     if (particularsSearch) {
-      data = data.filter(item => 
-        item.particulars?.toLowerCase().includes(particularsSearch.toLowerCase())
-      );
+      data = data.filter(item => item.particulars?.toLowerCase().includes(particularsSearch.toLowerCase()));
     }
-
     return data.sort((a, b) => new Date(b.summaryDate).getTime() - new Date(a.summaryDate).getTime());
   }, [allSummaries, dateRange, particularsSearch]);
 
   const stats = useMemo(() => {
-    const s = {
-      systemProfit: 0,
-      manualEmp: 0,
-      manualPbs: 0,
-      totalEntries: filteredData.length
-    };
+    const s = { systemProfit: 0, manualEmp: 0, manualPbs: 0, totalEntries: filteredData.length };
     filteredData.forEach(item => {
       if (item.isSystemGenerated || item.particulars?.includes("Annual Profit")) {
         s.systemProfit += (Number(item.profitEmployee) || 0) + (Number(item.profitPbs) || 0);
@@ -115,181 +92,68 @@ export default function ContributionAuditPage() {
 
   const handleBulkDelete = async () => {
     if (filteredData.length === 0) return;
-    
     showAlert({
       title: "Confirm Bulk Deletion",
-      description: `You are about to delete ${filteredData.length} ledger entries matching: "${particularsSearch || 'All'}" within the selected date range. This cannot be undone.`,
+      description: `Permanently delete ${filteredData.length} entries matching "${particularsSearch || 'All'}"?`,
       type: "warning",
       showCancel: true,
-      confirmText: "Yes, Delete All",
       onConfirm: async () => {
         setIsDeleting(true);
         for (const item of filteredData) {
-          const docRef = doc(firestore, "members", item.memberId, "fundSummaries", item.id);
-          deleteDocumentNonBlocking(docRef);
+          deleteDocumentNonBlocking(doc(firestore, "members", item.memberId, "fundSummaries", item.id));
         }
-        setIsDeleting(false);
-        setIsCleanupOpen(false);
-        showAlert({
-          title: "Cleanup Complete",
-          description: `Removal process initiated for ${filteredData.length} records.`,
-          type: "success"
-        });
+        setIsDeleting(false); setIsCleanupOpen(false);
+        showAlert({ title: "Cleanup Complete", type: "success" });
       }
     });
   };
 
-  const StandardFooter = () => (
-    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-      <span>CPF Management Software</span>
-      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-    </div>
-  );
-
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-black text-black tracking-tight uppercase">Audit & Tracking</h1>
-          <p className="text-black uppercase tracking-widest text-[10px] font-black">Comprehensive institutional ledger audit terminal</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
-          <div className="flex items-center gap-3">
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-black text-black">Ledger Start</Label>
-              <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" />
-            </div>
-            <ArrowRightLeft className="size-3 text-black mt-3" />
-            <div className="grid gap-1">
-              <Label className="text-[9px] uppercase font-black text-black">Ledger End</Label>
-              <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" />
-            </div>
-          </div>
-          <div className="h-6 w-px bg-black hidden sm:block" />
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-black/40" />
-            <Input 
-              placeholder="Search Particulars..." 
-              value={particularsSearch} 
-              onChange={(e) => setParticularsSearch(e.target.value)} 
-              className="h-8 pl-8 text-xs border-black font-black w-[200px]"
-            />
-          </div>
-          <div className="h-6 w-px bg-black hidden sm:block" />
-          <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="gap-2 h-8 font-black text-[10px] uppercase shadow-lg">
-            <DatabaseZap className="size-3.5" /> Institutional Cleanup
-          </Button>
-          <Button onClick={() => window.print()} className="gap-2 h-8 font-black text-[10px] bg-black text-white shadow-lg uppercase">
-            <Printer className="size-3.5" /> Print Audit
-          </Button>
+        <h1 className="text-3xl font-black uppercase">Audit & Tracking</h1>
+        <div className="flex items-center gap-4 bg-white p-3 border-2 border-black rounded-xl shadow-xl">
+          <div className="grid gap-1"><Label className="text-[9px] font-black">START</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
+          <ArrowRightLeft className="size-3 mt-4" />
+          <div className="grid gap-1"><Label className="text-[9px] font-black">END</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
+          <Input placeholder="Search Particulars..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black font-black w-[180px]" />
+          <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase"><DatabaseZap className="size-3 mr-1" /> Cleanup</Button>
+          <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white"><Printer className="size-3 mr-1" /> Print</Button>
         </div>
       </div>
-
       <div className="grid gap-6 md:grid-cols-4 no-print">
-        <Card className="border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">System Generated Profit</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black text-black tabular-nums">৳ {stats.systemProfit.toLocaleString()}</div></CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Manual Personnel Contrib.</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black text-black tabular-nums">৳ {stats.manualEmp.toLocaleString()}</div></CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-black">Manual PBS Matching</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black text-black tabular-nums">৳ {stats.manualPbs.toLocaleString()}</div></CardContent>
-        </Card>
-        <Card className="border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,0.1)] bg-black text-white">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase text-white">Total Ledger Hits</CardTitle></CardHeader>
-          <CardContent><div className="text-xl font-black">{stats.totalEntries} Records</div></CardContent>
-        </Card>
+        {[{l:"SYSTEM PROFIT", v:stats.systemProfit}, {l:"PERSONNEL CONTRIB", v:stats.manualEmp}, {l:"PBS MATCHING", v:stats.manualPbs}, {l:"RECORDS", v:stats.totalEntries, isInt:true}].map((s,i) => (
+          <Card key={i} className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
+            <CardHeader className="pb-1"><CardTitle className="text-[10px] font-black uppercase opacity-60">{s.l}</CardTitle></CardHeader>
+            <CardContent><div className="text-xl font-black">{s.isInt ? s.v : `৳ ${s.v.toLocaleString()}`}</div></CardContent>
+          </Card>
+        ))}
       </div>
-
-      <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden no-print">
-        <div className="p-4 border-b-4 border-black bg-slate-100 flex items-center justify-between">
-          <h2 className="text-sm font-black flex items-center gap-3 uppercase tracking-widest">
-            <ShieldCheck className="size-5" /> Operational Ledger Trail
-          </h2>
-          <Badge className="bg-black text-white font-black px-4 py-1 uppercase border-black">{filteredData.length} Postings Matched</Badge>
-        </div>
-        <Table className="text-black font-black tabular-nums">
-          <TableHeader className="bg-slate-50 border-b-2 border-black">
+      <div className="bg-white border-2 border-black rounded-none shadow-xl overflow-hidden">
+        <Table className="font-black tabular-nums">
+          <TableHeader className="bg-slate-100 border-b-2 border-black">
             <TableRow>
-              <TableHead className="font-black text-black uppercase text-[10px] py-4">Date</TableHead>
-              <TableHead className="font-black text-black uppercase text-[10px] py-4">Synchronized Particulars</TableHead>
-              <TableHead className="text-right font-black text-black uppercase text-[10px] py-4">Emp. Cont (৳)</TableHead>
-              <TableHead className="text-right font-black text-black uppercase text-[10px] py-4">PBS Cont (৳)</TableHead>
-              <TableHead className="text-right font-black text-black uppercase text-[10px] py-4 bg-slate-100">Net Profit (৳)</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-4">Date</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-4">Particulars</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] py-4">Emp (৳)</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] py-4">PBS (৳)</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] py-4">Profit (৳)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
-            ) : filteredData.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black text-lg uppercase italic">No records found for current filters</TableCell></TableRow>
-            ) : filteredData.map((item, idx) => (
-              <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
-                <td className="font-mono text-xs p-4">{item.summaryDate}</td>
-                <td className="p-4 uppercase text-[10px] leading-tight max-w-[400px] truncate">{item.particulars}</td>
-                <td className="text-right p-4">{Number(item.employeeContribution || 0).toLocaleString()}</td>
-                <td className="text-right p-4">{Number(item.pbsContribution || 0).toLocaleString()}</td>
-                <td className="text-right p-4 font-black bg-slate-50/50">৳ {(Number(item.profitEmployee || 0) + Number(item.profitPbs || 0)).toLocaleString()}</td>
+            {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="animate-spin size-8 mx-auto" /></TableCell></TableRow> : filteredData.map((item, idx) => (
+              <TableRow key={idx} className="border-b border-black hover:bg-slate-50">
+                <td className="p-4 font-mono text-xs">{item.summaryDate}</td>
+                <td className="p-4 uppercase text-[10px] truncate max-w-[300px]">{item.particulars}</td>
+                <td className="text-right p-4">{Number(item.employeeContribution||0).toLocaleString()}</td>
+                <td className="text-right p-4">{Number(item.pbsContribution||0).toLocaleString()}</td>
+                <td className="text-right p-4">{(Number(item.profitEmployee||0)+Number(item.profitPbs||0)).toLocaleString()}</td>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-
-      <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
-        <DialogContent className="max-w-2xl border-4 border-black bg-white rounded-none p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
-            <DialogTitle className="font-black uppercase text-2xl tracking-tighter flex items-center gap-3 text-rose-700">
-              <AlertTriangle className="size-8" />
-              Institutional Cleanup Terminal
-            </DialogTitle>
-            <DialogDescription className="font-black text-[10px] uppercase tracking-widest text-rose-600">
-              DANGER: This action will permanently remove records from member ledgers.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="p-8 space-y-6">
-            <div className="bg-slate-50 p-6 border-2 border-black space-y-4">
-              <div className="flex items-center justify-between border-b border-black/10 pb-4">
-                <p className="text-[11px] font-black uppercase text-slate-500">Current Filter Matches</p>
-                <Badge className="bg-rose-600 text-white font-black">{filteredData.length} Ledger Entries</Badge>
-              </div>
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">Date Coverage</p>
-                  <p className="text-xs font-black">{dateRange.start || "N/A"} to {dateRange.end || "N/A"}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">Particulars Keyword</p>
-                  <p className="text-xs font-black">{particularsSearch || "ANY"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
-              <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] leading-relaxed font-bold uppercase">
-                To prevent accidental deletion of valid data, ensure your "Particulars" search is specific (e.g. "Opening Balance (Imported)"). Verify the record count in the list below before committing to delete.
-              </p>
-            </div>
-
-            <DialogFooter className="pt-4 gap-4">
-              <Button variant="ghost" onClick={() => setIsCleanupOpen(false)} className="font-black uppercase tracking-widest border-2 border-black">Cancel Audit</Button>
-              <Button 
-                variant="destructive" 
-                onClick={handleBulkDelete} 
-                disabled={isDeleting || filteredData.length === 0}
-                className="flex-1 font-black uppercase h-12 shadow-xl tracking-[0.2em]"
-              >
-                {isDeleting ? <Loader2 className="size-5 animate-spin mr-2" /> : <Trash2 className="size-5 mr-2" />}
-                Confirm Deletion of {filteredData.length} Records
-              </Button>
-            </DialogFooter>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}><DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden"><DialogHeader className="bg-rose-50 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase text-rose-700">Bulk Cleanup Utility</DialogTitle></DialogHeader><div className="p-6 space-y-4"><div className="bg-slate-50 p-4 border-2 border-black space-y-2"><p className="text-[10px] font-black uppercase opacity-40">Filter Context</p><p className="text-xs font-black">Records: {filteredData.length}</p><p className="text-xs font-black">Keyword: {particularsSearch || "NONE"}</p></div><div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800"><Info className="size-5 shrink-0" /><p className="text-[10px] font-black uppercase">Ensure search is specific to avoid accidental data loss.</p></div><DialogFooter className="p-6 pt-2"><Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl">{isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />} Delete {filteredData.length} Records</Button></DialogFooter></div></DialogContent></Dialog>
     </div>
   );
 }
