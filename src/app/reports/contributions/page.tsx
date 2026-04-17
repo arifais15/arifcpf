@@ -145,9 +145,9 @@ export default function ContributionAuditPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-1"><Label className="text-[9px] font-black">START</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black">START</Label><Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
           <ArrowRightLeft className="size-3 mt-4" />
-          <div className="grid gap-1"><Label className="text-[9px] font-black">END</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black">END</Label><Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black font-black" /></div>
           <div className="grid gap-1">
             <Label className="text-[9px] font-black">FILTER PARTICULARS</Label>
             <Input placeholder="Keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black font-black w-[150px] text-xs" />

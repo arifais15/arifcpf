@@ -112,7 +112,7 @@ export default function ReportsPage() {
   const totalExpense = useMemo(() => expenseAccounts.filter(a => !a.isHeader).reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [expenseAccounts, periodBalances]);
 
   const formatCurrency = (val: number) => {
-    const formatted = new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val || 0));
+    const formatted = new Intl.FormatNumber('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val || 0));
     return val < 0 ? `(${formatted})` : formatted;
   };
 
@@ -128,7 +128,6 @@ export default function ReportsPage() {
         const val = balancesMap[acc.code] || 0;
         if (val !== 0) {
           if (!currentGroup) {
-            // Fallback for items before any header
             currentGroup = { header: { code: '', name: 'Unclassified', type: '', balance: '', isHeader: true }, items: [], total: 0 };
           }
           currentGroup.items.push(acc);
