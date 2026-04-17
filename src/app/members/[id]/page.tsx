@@ -138,7 +138,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       };
       displayRows = [openingRow, ...inRangeRows];
     } else if (dateRange.start) {
-        // Even if no preRows, we need the "Opening Balance" row if a start date is set
         const openingRow = {
             summaryDate: dateRange.start,
             particulars: "Opening Balance",
@@ -233,12 +232,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
       <div className="bg-white p-6 md:p-10 shadow-2xl rounded-none border-4 border-black max-w-[1400px] mx-auto w-full font-ledger print-container text-black">
         <div className="relative mb-6 text-center border-b-4 border-black pb-4">
-          <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em]">REB Form no: 224</p>
-          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-2">Provident Fund Subsidiary Ledger</h2>
+          <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
+          <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
+          <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-2 text-black">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-8 gap-y-1.5 mb-6 text-[12px] font-black border-b-4 border-black pb-4">
+        <div className="grid grid-cols-3 gap-x-8 gap-y-1.5 mb-6 text-[12px] font-black border-b-4 border-black pb-4 text-black">
           {[
             { label: "Full Legal Name", value: member.name },
             { label: "Designation", value: member.designation },
@@ -249,7 +248,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           ].map((item, idx) => (
             <div key={idx} className="flex items-end gap-2 border-b border-black/20 pb-0.5">
               <span className="uppercase text-[9px] text-black shrink-0 tracking-widest min-w-[80px]">{item.label}:</span>
-              <span className="font-black uppercase truncate border-none flex-1">{item.value}</span>
+              <span className="font-black uppercase truncate border-none flex-1 text-black">{item.value}</span>
             </div>
           ))}
         </div>
@@ -257,18 +256,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="overflow-x-auto">
           <table className="w-full text-[9px] border-collapse border-2 border-black table-fixed font-black tabular-nums text-black">
             <thead className="bg-slate-100 border-b-2 border-black">
-              <tr className="uppercase text-[8px] tracking-tighter">
+              <tr className="uppercase text-[8px] tracking-tighter text-black">
                 <th rowSpan={3} className="border border-black p-0.5 w-[60px]">Date</th>
                 <th rowSpan={3} className="border border-black p-0.5 w-[140px]">Particulars</th>
-                <th colSpan={4} className="border border-black p-0.5 bg-slate-200/50">Contributions</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100">Profits</th>
-                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-[8px]">Equity(7)</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100">PBS Fund</th>
-                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200">Off(10)</th>
+                <th colSpan={4} className="border border-black p-0.5 bg-slate-200/50 text-black">Contributions</th>
+                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">Profits</th>
+                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-[8px] text-black">Equity(7)</th>
+                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">PBS Fund</th>
+                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-black">Off(10)</th>
                 <th rowSpan={3} className="border border-black p-0.5 w-[85px] bg-black text-white">Total(11)</th>
-                <th rowSpan={3} className="border border-black p-0.5 no-print w-[50px]">Action</th>
+                <th rowSpan={3} className="border border-black p-0.5 no-print w-[50px] text-black">Action</th>
               </tr>
-              <tr className="text-[7px] uppercase">
+              <tr className="text-[7px] uppercase text-black">
                 <th className="border border-black p-0.5">E(1)</th><th className="border border-black p-0.5">D(2)</th><th className="border border-black p-0.5">R(3)</th><th className="border border-black p-0.5 bg-slate-200">L(4)</th>
                 <th className="border border-black p-0.5">E(5)</th><th className="border border-black p-0.5">L(6)</th><th className="border border-black p-0.5">P(8)</th><th className="border border-black p-0.5">P(9)</th>
               </tr>
@@ -276,20 +275,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <tbody className="divide-y divide-black">
               {ledgerLogic.rows.map((row: any) => (
                 <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black h-7", row.isOpening && "bg-slate-50 italic")}>
-                  <td className="border border-black p-0.5 text-center font-mono text-[9px]">{row.summaryDate}</td>
-                  <td className="border border-black p-0.5 truncate uppercase text-[9px]">{row.particulars}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c1.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c2.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c3.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50">{(row.col4).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c5.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c6.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50">{(row.col7).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c8.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right">{row.c9.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50">{(row.col10).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-100 font-bold">{(row.col11).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-center no-print">
+                  <td className="border border-black p-0.5 text-center font-mono text-[9px] text-black">{row.summaryDate}</td>
+                  <td className="border border-black p-0.5 truncate uppercase text-[9px] text-black">{row.particulars}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c1.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c2.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c3.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-50 text-black">{(row.col4).toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c5.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c6.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-50 text-black">{(row.col7).toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c8.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right text-black">{row.c9.toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-50 text-black">{(row.col10).toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-right bg-slate-100 font-bold text-black">{(row.col11).toLocaleString()}</td>
+                  <td className="border border-black p-0.5 text-center no-print text-black">
                     {!row.isOpening && (
                       <div className="flex gap-1 justify-center">
                         <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3"/></Button>
@@ -300,9 +299,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-100 border-t-2 border-black text-[9px]">
+            <tfoot className="bg-slate-100 border-t-2 border-black text-[9px] text-black">
               <tr className="h-8">
-                <td colSpan={2} className="border border-black p-1 text-right uppercase">Totals (Incl. Opening):</td>
+                <td colSpan={2} className="border border-black p-1 text-right uppercase">Aggregate Totals (Incl. Opening):</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>
@@ -313,7 +312,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-200 font-bold">{(ledgerLogic.latest.col10).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-300 font-black">৳ {(ledgerLogic.latest.col11).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-300 font-black text-black">৳ {(ledgerLogic.latest.col11).toLocaleString()}</td>
                 <td className="border border-black p-1 no-print"></td>
               </tr>
             </tfoot>
@@ -327,15 +326,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-4xl border-2 border-black rounded-none p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="p-8 border-b-2 border-black bg-slate-50">
-            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3">
+            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3 text-black">
               <Calculator className="size-6" />
               {editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSaveEntry} className="p-8 space-y-6 pt-0 mt-6">
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black" /></div>
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="border-2 border-black font-black" /></div>
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-black">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black" /></div>
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-black">Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="border-2 border-black font-black text-black" /></div>
             </div>
             <div className="grid grid-cols-3 gap-6 bg-slate-50 p-6 border-2 border-black">
               {[
@@ -347,7 +346,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 { n: "pbsContribution", l: "PBS Cont(8)", v: editingEntry?.pbsContribution },
                 { n: "profitPbs", l: "PBS Profit(9)", v: editingEntry?.profitPbs }
               ].map(f => (
-                <div key={f.n} className="space-y-1"><Label className="text-[9px] font-black uppercase opacity-60">{f.l}</Label><Input name={f.n} type="number" step="0.01" defaultValue={f.v || 0} onKeyDown={handleNumericKeyDown} className="h-9 border-black font-black text-right tabular-nums" /></div>
+                <div key={f.n} className="space-y-1"><Label className="text-[9px] font-black uppercase opacity-60 text-black">{f.l}</Label><Input name={f.n} type="number" step="0.01" defaultValue={f.v || 0} onKeyDown={handleNumericKeyDown} className="h-9 border-black border-2 font-black text-right tabular-nums text-black" /></div>
               ))}
             </div>
             <Button type="submit" className="w-full bg-black text-white font-black h-12 uppercase tracking-widest shadow-xl">Save Record</Button>

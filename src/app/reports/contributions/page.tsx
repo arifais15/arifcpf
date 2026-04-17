@@ -136,25 +136,25 @@ export default function ContributionAuditPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-3">
           <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5 text-black" /></Link>
-          <h1 className="text-3xl font-black uppercase tracking-tight">Audit & Tracking</h1>
+          <h1 className="text-3xl font-black uppercase tracking-tight text-black">Audit & Tracking</h1>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 border-2 border-black rounded-xl shadow-xl">
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black uppercase">Quick FY</Label>
+            <Label className="text-[9px] font-black uppercase text-black">Quick FY</Label>
             <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-8 w-[100px] border-black text-xs font-black focus:ring-0"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-8 w-[100px] border-black text-xs font-black focus:ring-0 text-black"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
                 <SelectItem value="all" className="font-black text-xs">ALL</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase">Start</Label><Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black" /></div>
-          <ArrowRightLeft className="size-3 mt-4" />
-          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase">End</Label><Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black">Start</Label><Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" /></div>
+          <ArrowRightLeft className="size-3 mt-4 text-black opacity-30" />
+          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black">End</Label><Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" /></div>
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black uppercase">Particulars</Label>
-            <Input placeholder="Filter keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[150px] text-xs" />
+            <Label className="text-[9px] font-black uppercase text-black">Particulars</Label>
+            <Input placeholder="Filter keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[150px] text-xs text-black" />
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase gap-1"><DatabaseZap className="size-3" /> Cleanup</Button>
@@ -166,14 +166,14 @@ export default function ContributionAuditPage() {
       <div className="grid gap-6 md:grid-cols-4 no-print">
         {[{l:"SYSTEM PROFIT", v:stats.systemProfit}, {l:"PERSONNEL CONTRIB", v:stats.manualEmp}, {l:"PBS MATCHING", v:stats.manualPbs}, {l:"RECORDS", v:stats.totalEntries, isInt:true}].map((s,i) => (
           <Card key={i} className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] bg-white">
-            <CardHeader className="pb-1"><CardTitle className="text-[10px] font-black uppercase opacity-60">{s.l}</CardTitle></CardHeader>
-            <CardContent><div className="text-xl font-black">{s.isInt ? s.v : `৳ ${s.v.toLocaleString()}`}</div></CardContent>
+            <CardHeader className="pb-1"><CardTitle className="text-[10px] font-black uppercase opacity-60 text-black">{s.l}</CardTitle></CardHeader>
+            <CardContent><div className="text-xl font-black text-black">{s.isInt ? s.v : `৳ ${s.v.toLocaleString()}`}</div></CardContent>
           </Card>
         ))}
       </div>
 
       <div className="bg-white border-2 border-black rounded-none shadow-xl overflow-hidden">
-        <Table className="font-black tabular-nums">
+        <Table className="font-black tabular-nums text-black">
           <TableHeader className="bg-slate-100 border-b-2 border-black">
             <TableRow>
               <TableHead className="font-black uppercase text-[10px] py-4 text-black">Date</TableHead>
@@ -204,9 +204,9 @@ export default function ContributionAuditPage() {
           </DialogHeader>
           <div className="p-6 space-y-4">
             <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
-              <p className="text-[10px] font-black uppercase opacity-40">Filter Verification</p>
-              <p className="text-xs font-black">Matched Records: {filteredData.length}</p>
-              <p className="text-xs font-black">Target Keyword: {particularsSearch || "NONE"}</p>
+              <p className="text-[10px] font-black uppercase opacity-40 text-black">Filter Verification</p>
+              <p className="text-xs font-black text-black">Matched Records: {filteredData.length}</p>
+              <p className="text-xs font-black text-black">Target Keyword: {particularsSearch || "NONE"}</p>
             </div>
             <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
               <Info className="size-5 shrink-0 mt-0.5" />

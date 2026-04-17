@@ -109,7 +109,7 @@ export default function LedgerSummaryReportPage() {
           @page { size: A4 landscape !important; margin: 4mm !important; }
           .print-container { width: 100% !important; transform: scale(1); transform-origin: top left; display: block !important; }
           table { table-layout: fixed !important; width: 100% !important; }
-          body { background-color: white !important; font-size: 8px !important; }
+          body { background-color: white !important; font-size: 8px !important; color: #000000 !important; }
           .no-print { display: none !important; }
         }
       `}} />
@@ -126,7 +126,7 @@ export default function LedgerSummaryReportPage() {
             <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-xs font-black" />
           </div>
           <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1">
-            <FileSpreadsheet className="size-3" /> Export
+            <FileSpreadsheet className="size-3" /> Excel
           </Button>
           <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] gap-1">
             <Printer className="size-3" /> Print
@@ -144,17 +144,17 @@ export default function LedgerSummaryReportPage() {
         </div>
         
         <div className="overflow-x-hidden">
-          <Table className="w-full font-black tabular-nums border-collapse text-[9px]">
+          <Table className="w-full font-black tabular-nums border-collapse text-[9px] table-fixed">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
               <tr className="uppercase text-[8px] leading-tight">
                 <th rowSpan={2} className="border-r-2 border-black p-1 w-[45px]">ID</th>
-                <th rowSpan={2} className="border-r-2 border-black p-1 text-left w-[120px]">Name & Designation</th>
-                <th colSpan={4} className="border-r-2 border-black p-0.5 bg-slate-200/50">Contributions</th>
+                <th rowSpan={2} className="border-r-2 border-black p-1 text-left w-[120px]">Name</th>
+                <th colSpan={4} className="border-r-2 border-black p-0.5 bg-slate-200/50">Contrib</th>
                 <th colSpan={2} className="border-r-2 border-black p-0.5">Profits</th>
                 <th className="border-r-2 border-black p-0.5 bg-slate-200">Equity(7)</th>
                 <th colSpan={2} className="border-r-2 border-black p-0.5">PBS</th>
                 <th className="border-r-2 border-black p-0.5 bg-slate-200">Off(10)</th>
-                <th className="p-0.5 bg-black text-white">Total(11)</th>
+                <th className="p-0.5 bg-black text-white">TOTAL(11)</th>
               </tr>
               <tr className="bg-slate-50 text-[7px] uppercase">
                 <th className="p-0.5 text-right border-r">E(1)</th>
@@ -176,7 +176,6 @@ export default function LedgerSummaryReportPage() {
                   <td className="p-1 border-r-2 border-black font-mono text-center">{r.memberIdNumber}</td>
                   <td className="p-1 border-r-2 border-black uppercase truncate leading-none">
                     <span className="font-black block">{r.name}</span>
-                    <span className="text-[7px] opacity-60 block truncate">{r.designation}</span>
                   </td>
                   <td className="p-0.5 text-right border-r">{r.c1.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c2.toLocaleString()}</td>
@@ -188,7 +187,7 @@ export default function LedgerSummaryReportPage() {
                   <td className="p-0.5 text-right border-r">{r.c8.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2">{r.c9.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2 bg-slate-50">{r.c10.toLocaleString()}</td>
-                  <td className="p-0.5 text-right bg-slate-100 font-bold"> {r.c11.toLocaleString()}</td>
+                  <td className="p-0.5 text-right bg-slate-100 font-bold text-black"> {r.c11.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>

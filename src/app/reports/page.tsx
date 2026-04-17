@@ -34,6 +34,7 @@ export default function ReportsPage() {
     return Array.from(mergedMap.values()).sort((a, b) => (a.code || "").localeCompare(b.code || ""));
   }, [coaData]);
 
+  // Define classification categories to avoid ReferenceErrors
   const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
   const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
   const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4')), [activeCOA]);
@@ -182,7 +183,7 @@ export default function ReportsPage() {
       
       <div className="flex flex-col gap-4 no-print max-w-4xl mx-auto w-full bg-white p-6 rounded-2xl border-2 border-black shadow-xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4"><div className="bg-black p-2 rounded-xl"><ShieldCheck className="size-6 text-white" /></div><div><h1 className="text-xl font-black uppercase">Trust Financials</h1><p className="text-[10px] font-black uppercase tracking-widest">{selectedFiscalYear === 'all' ? 'Consolidated Period' : `FY ${selectedFiscalYear}`}</p></div></div>
+          <div className="flex items-center gap-4"><div className="bg-black p-2 rounded-xl"><ShieldCheck className="size-6 text-white" /></div><div><h1 className="text-xl font-black uppercase text-black">Trust Financials</h1><p className="text-[10px] font-black uppercase tracking-widest text-black">{selectedFiscalYear === 'all' ? 'Consolidated Period' : `FY ${selectedFiscalYear}`}</p></div></div>
           <Button onClick={() => window.print()} className="h-9 gap-2 font-black px-6 bg-black text-white rounded-lg uppercase text-[10px]"><Printer className="size-3.5" /> Print Statement</Button>
         </div>
         
@@ -190,7 +191,7 @@ export default function ReportsPage() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-500">Quick Range</Label>
             <Select value={selectedFiscalYear} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-10 font-black border-2 border-black focus:ring-0"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-10 font-black border-2 border-black focus:ring-0 text-black"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black">FY {fy}</SelectItem>)}
                 <SelectItem value="all" className="font-black text-rose-600">ALL TIME CONSOLIDATED</SelectItem>
@@ -200,9 +201,9 @@ export default function ReportsPage() {
           <div className="space-y-2">
             <Label className="text-[10px] font-black uppercase text-slate-500">Manual Selection</Label>
             <div className="flex items-center gap-2">
-              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-10 font-black border-2 border-black" />
-              <ArrowRightLeft className="size-4 opacity-30" />
-              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-10 font-black border-2 border-black" />
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-10 font-black border-2 border-black text-black" />
+              <ArrowRightLeft className="size-4 opacity-30 text-black" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-10 font-black border-2 border-black text-black" />
             </div>
           </div>
         </div>
@@ -210,10 +211,10 @@ export default function ReportsPage() {
 
       <Tabs defaultValue="position" className="w-full max-w-4xl mx-auto">
         <TabsList className="grid w-full grid-cols-4 mb-6 no-print h-12 bg-white border-2 border-black p-1 rounded-xl">
-          <TabsTrigger value="position" className="rounded-lg font-black uppercase text-[10px]"><Wallet className="size-3.5 mr-2" /> Balance Sheet</TabsTrigger>
-          <TabsTrigger value="income" className="rounded-lg font-black uppercase text-[10px]"><TrendingUp className="size-3.5 mr-2" /> Income Stmt</TabsTrigger>
-          <TabsTrigger value="trial" className="rounded-lg font-black uppercase text-[10px]"><Scale className="size-3.5 mr-2" /> Trial Balance</TabsTrigger>
-          <TabsTrigger value="receipts" className="rounded-lg font-black uppercase text-[10px]"><ArrowDownUp className="size-3.5 mr-2" /> Cash Flow</TabsTrigger>
+          <TabsTrigger value="position" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><Wallet className="size-3.5 mr-2" /> Balance Sheet</TabsTrigger>
+          <TabsTrigger value="income" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><TrendingUp className="size-3.5 mr-2" /> Income Stmt</TabsTrigger>
+          <TabsTrigger value="trial" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><Scale className="size-3.5 mr-2" /> Trial Balance</TabsTrigger>
+          <TabsTrigger value="receipts" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><ArrowDownUp className="size-3.5 mr-2" /> Cash Flow</TabsTrigger>
         </TabsList>
 
         <TabsContent value="position">

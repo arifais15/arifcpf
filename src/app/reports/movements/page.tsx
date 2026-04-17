@@ -82,6 +82,27 @@ export default function FundMovementReportPage() {
 
   const stats = useMemo(() => reportData.reduce((acc, c) => ({ op: acc.op+c.opEmp+c.opPbs, cl: acc.cl+c.total }), { op: 0, cl: 0 }), [reportData]);
 
+  const exportToExcel = () => {
+    if (reportData.length === 0) return;
+    const worksheetData = reportData.map(r => ({
+      "ID": r.memberIdNumber,
+      "Name": r.name,
+      "Emp Op": r.opEmp,
+      "Emp Add": r.addEmp,
+      "Emp Adj": r.adjEmp,
+      "Emp Close": r.clEmp,
+      "PBS Op": r.opPbs,
+      "PBS Add": r.addPbs,
+      "PBS Adj": r.adjPbs,
+      "PBS Close": r.clPbs,
+      "Total": r.total
+    }));
+    const ws = XLSX.utils.json_to_sheet(worksheetData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Movements");
+    XLSX.writeFile(wb, `Fund_Movements_${dateRange.start}_to_${dateRange.end}.xlsx`);
+  };
+
   const StandardFooter = () => (
     <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
       <span>CPF Management Software</span>
@@ -98,7 +119,7 @@ export default function FundMovementReportPage() {
           @page { size: A4 landscape !important; margin: 4mm !important; }
           .print-container { width: 100% !important; transform: scale(1); transform-origin: top left; display: block !important; }
           table { table-layout: fixed !important; width: 100% !important; }
-          body { background-color: white !important; font-size: 8px !important; }
+          body { background-color: white !important; font-size: 8px !important; color: #000000 !important; }
         }
       `}} />
 
@@ -119,8 +140,11 @@ export default function FundMovementReportPage() {
               <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black p-1" />
             </div>
           </div>
-          <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] uppercase">
-            <Printer className="size-3 mr-1" /> Print
+          <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] uppercase gap-1">
+            <FileSpreadsheet className="size-3" /> Excel
+          </Button>
+          <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] uppercase gap-1">
+            <Printer className="size-3" /> Print
           </Button>
         </div>
       </div>
@@ -133,10 +157,10 @@ export default function FundMovementReportPage() {
           </div>
         </div>
         <div className="overflow-x-hidden">
-          <Table className="w-full font-black tabular-nums border-collapse text-[9px]">
+          <Table className="w-full font-black tabular-nums border-collapse text-[9px] table-fixed">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
               <tr className="uppercase text-[8px] leading-tight">
-                <th className="font-black p-1 w-[50px] border-r">ID</th>
+                <th className="font-black p-1 w-[45px] border-r">ID</th>
                 <th className="font-black p-1 text-left w-[120px] border-r">Name</th>
                 <th className="text-right p-1 border-r">E-Open</th>
                 <th className="text-right p-1 border-r">E-Add</th>
@@ -164,7 +188,7 @@ export default function FundMovementReportPage() {
                   <td className="text-right p-0.5 border-r">{row.addPbs.toLocaleString()}</td>
                   <td className="text-right p-0.5 border-r">{row.adjPbs.toLocaleString()}</td>
                   <td className="text-right p-0.5 border-r-2 bg-slate-50 font-bold">{row.clPbs.toLocaleString()}</td>
-                  <td className="text-right p-0.5 bg-slate-100 font-bold"> {row.total.toLocaleString()}</td>
+                  <td className="text-right p-0.5 bg-slate-100 font-bold text-black"> {row.total.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
