@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter, CalendarDays, MapPin, ShieldCheck, Info } from "lucide-react";
 import Link from "next/link";
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, addDoc } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
+import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
-import { Textarea } from "@/components/ui/textarea";
 import * as XLSX from "xlsx";
 
 export default function MembersPage() {
@@ -24,21 +23,18 @@ export default function MembersPage() {
   const { toast } = useToast();
   const { showAlert } = useSweetAlert();
   
-  // Pagination & Search States
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [pageSize, setPageSize] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<any>(null);
 
-  // UI States
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -48,7 +44,6 @@ export default function MembersPage() {
     return () => clearTimeout(handler);
   }, [search]);
 
-  // Dynamic Query Construction
   const membersQuery = useMemoFirebase(() => {
     const baseRef = collection(firestore, "members");
     const constraints: QueryConstraint[] = [];
@@ -65,7 +60,6 @@ export default function MembersPage() {
       constraints.push(orderBy("memberIdNumber", "asc"));
     }
 
-    // "View All" handling
     const fetchLimit = pageSize === -1 ? 10000 : pageSize;
     constraints.push(limit(fetchLimit + 1));
 
@@ -127,10 +121,11 @@ export default function MembersPage() {
         onConfirm: () => window.location.reload() 
       });
     } else {
-      addDocumentNonBlocking(collection(firestore, "members"), { 
+      const newMemberRef = doc(collection(firestore, "members"));
+      setDocumentNonBlocking(newMemberRef, { 
         ...memberData, 
         createdAt: new Date().toISOString() 
-      });
+      }, { merge: true });
       showAlert({ 
         title: "Personnel Registered", 
         description: `${memberData.name} added to trust registry.`,
@@ -147,7 +142,7 @@ export default function MembersPage() {
     if (!file) return;
     setIsUploading(true);
     const reader = new FileReader();
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       try {
         const bstr = event.target?.result;
         const workbook = XLSX.read(bstr, { type: "binary" });
@@ -156,10 +151,18 @@ export default function MembersPage() {
         
         let count = 0;
         for (const entry of data as any[]) {
+          const memberIdNumber = String(entry["ID"] || entry.memberIdNumber || "");
+          const name = String(entry["Name"] || "");
+          
+          if (!memberIdNumber || !name) continue;
+
+          const memberCol = collection(firestore, "members");
+          const newMemberRef = doc(memberCol);
+
           const joinedDate = String(entry["JoinedDate"] || entry.dateJoined || "");
           const memberData = {
-            memberIdNumber: String(entry["ID"] || entry.memberIdNumber || ""),
-            name: String(entry["Name"] || ""),
+            memberIdNumber,
+            name,
             designation: String(entry["Designation"] || ""),
             dateJoined: joinedDate,
             permanentAddress: String(entry["Address"] || entry.permanentAddress || ""),
@@ -169,27 +172,28 @@ export default function MembersPage() {
             updatedAt: new Date().toISOString()
           };
 
-          if (memberData.memberIdNumber && memberData.name) {
-            const memberRef = await addDoc(collection(firestore, "members"), memberData);
-            
-            // Inject Opening Balance Entry using descriptive headers
-            const openingEntry = {
-              summaryDate: joinedDate || new Date().toISOString().split('T')[0],
-              particulars: "Opening Balance (Imported)",
-              employeeContribution: Number(entry["Employee_Contribution"] || 0),
-              loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
-              loanRepayment: Number(entry["Loan_Repaid"] || 0),
-              profitEmployee: Number(entry["Employee_Profit"] || 0),
-              profitLoan: Number(entry["Loan_Profit"] || 0),
-              pbsContribution: Number(entry["PBS_Contribution"] || 0),
-              profitPbs: Number(entry["PBS_Profit"] || 0),
-              isSystemGenerated: true,
-              memberId: memberRef.id,
-              createdAt: new Date().toISOString()
-            };
-            await addDoc(collection(firestore, "members", memberRef.id, "fundSummaries"), openingEntry);
-            count++;
-          }
+          setDocumentNonBlocking(newMemberRef, memberData, { merge: true });
+
+          const openingEntry = {
+            summaryDate: joinedDate || new Date().toISOString().split('T')[0],
+            particulars: "Opening Balance (Imported)",
+            employeeContribution: Number(entry["Employee_Contribution"] || 0),
+            loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
+            loanRepayment: Number(entry["Loan_Repaid"] || 0),
+            profitEmployee: Number(entry["Employee_Profit"] || 0),
+            profitLoan: Number(entry["Loan_Profit"] || 0),
+            pbsContribution: Number(entry["PBS_Contribution"] || 0),
+            profitPbs: Number(entry["PBS_Profit"] || 0),
+            isSystemGenerated: true,
+            memberId: newMemberRef.id,
+            createdAt: new Date().toISOString()
+          };
+
+          const summariesRef = collection(firestore, "members", newMemberRef.id, "fundSummaries");
+          const newSummaryRef = doc(summariesRef);
+          setDocumentNonBlocking(newSummaryRef, openingEntry, { merge: true });
+
+          count++;
         }
         showAlert({ 
           title: "Import Success", 
@@ -198,7 +202,7 @@ export default function MembersPage() {
           onConfirm: () => window.location.reload() 
         });
       } catch (err) {
-        toast({ title: "Upload Failed", description: "Ensure the Excel format matches the requirement.", variant: "destructive" });
+        toast({ title: "Upload Failed", description: "Ensure the Excel format matches requirements.", variant: "destructive" });
       } finally {
         setIsUploading(false);
         setIsBulkOpen(false);
@@ -354,6 +358,29 @@ export default function MembersPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
+        <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black uppercase">Institutional Bulk Import</DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Synchronize personnel registry and opening ledger volumes</DialogDescription>
+          </DialogHeader>
+          <div className="py-8 space-y-6">
+            <div className="bg-slate-50 p-6 border-2 border-black rounded-xl text-center space-y-4">
+              <FileSpreadsheet className="size-12 mx-auto text-black opacity-20" />
+              <p className="text-xs font-black uppercase tracking-widest">Select Institutional XLSX Template</p>
+              <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
+              <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-black text-white font-black uppercase h-12">
+                {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
+                Choose File
+              </Button>
+            </div>
+            <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">
+              <Download className="size-3.5 mr-2" /> Download Import Template
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

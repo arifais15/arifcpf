@@ -169,30 +169,24 @@ export default function FundMovementReportPage() {
           <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
               <tr className="uppercase text-[7px] leading-tight">
-                <th rowSpan={2} className="border-r-2 border-black p-1 w-[40px]">ID</th>
-                <th rowSpan={2} className="border-r-2 border-black p-1 text-left w-[110px]">Name</th>
-                <th colSpan={4} className="border-r-2 border-black p-0.5 bg-slate-200/50">Employee Fund</th>
-                <th colSpan={4} className="border-r-2 border-black p-0.5">PBS Fund</th>
-                <th rowSpan={2} className="p-1 bg-black text-white w-[75px]">Total(11)</th>
-              </tr>
-              <tr className="bg-slate-50 text-[6px] uppercase">
-                <th className="p-0.5 text-right border-r">Opening</th>
-                <th className="p-0.5 text-right border-r">Add</th>
-                <th className="p-0.5 text-right border-r">Adj</th>
-                <th className="p-0.5 text-right border-r-2 bg-slate-100">Closing</th>
-                <th className="p-0.5 text-right border-r">Opening</th>
-                <th className="p-0.5 text-right border-r">Add</th>
-                <th className="p-0.5 text-right border-r">Adj</th>
-                <th className="p-0.5 text-right border-r-2 bg-slate-100">Closing</th>
+                <th className="border-r border-black p-0.5 w-[40px]">ID</th>
+                <th className="border-r border-black p-0.5 text-left w-[100px]">Name</th>
+                <th className="text-right border-r p-0.5 w-[65px]">E-Open</th>
+                <th className="text-right border-r p-0.5 w-[65px]">E-Add</th>
+                <th className="text-right border-r p-0.5 w-[65px]">E-Adj</th>
+                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-50">E-Close</th>
+                <th className="text-right border-r p-0.5 w-[65px]">P-Open</th>
+                <th className="text-right border-r p-0.5 w-[65px]">P-Add</th>
+                <th className="text-right border-r p-0.5 w-[65px]">P-Adj</th>
+                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-50">P-Close</th>
+                <th className="text-right p-0.5 w-[85px] bg-black text-white">Total</th>
               </tr>
             </TableHeader>
             <TableBody>
               {reportData.map((row, idx) => (
                 <TableRow key={idx} className="border-b border-black hover:bg-slate-100 h-8">
-                  <td className="p-0.5 border-r-2 border-black font-mono text-center">{row.memberIdNumber}</td>
-                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none">
-                    <span className="font-black block">{row.name}</span>
-                  </td>
+                  <td className="p-0.5 border-r border-black font-mono text-center">{row.memberIdNumber}</td>
+                  <td className="p-0.5 border-r border-black uppercase truncate leading-none font-black">{row.name}</td>
                   <td className="p-0.5 text-right border-r">{row.opEmp.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{row.addEmp.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{row.adjEmp.toLocaleString()}</td>
