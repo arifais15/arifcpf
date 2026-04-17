@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -162,15 +163,15 @@ export default function FundMovementReportPage() {
               <tr className="uppercase text-[7px] leading-tight text-black">
                 <th className="border-r border-black p-0.5 w-[40px]">ID</th>
                 <th className="border-r border-black p-0.5 text-left w-[100px]">Name</th>
-                <th className="text-right border-r p-0.5 w-[65px]">E-Open</th>
-                <th className="text-right border-r p-0.5 w-[65px]">E-Add</th>
-                <th className="text-right border-r p-0.5 w-[65px]">E-Adj</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-50">E-Close</th>
-                <th className="text-right border-r p-0.5 w-[65px]">P-Open</th>
-                <th className="text-right border-r p-0.5 w-[65px]">P-Add</th>
-                <th className="text-right border-r p-0.5 w-[65px]">P-Adj</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-50">P-Close</th>
-                <th className="text-right p-0.5 w-[85px] bg-black text-white">Total</th>
+                <th className="text-right border-r p-0.5 w-[60px]">E-Open</th>
+                <th className="text-right border-r p-0.5 w-[60px]">E-Add</th>
+                <th className="text-right border-r p-0.5 w-[60px]">E-Adj</th>
+                <th className="text-right border-r-2 p-0.5 w-[70px] bg-slate-50">E-Close</th>
+                <th className="text-right border-r p-0.5 w-[60px]">P-Open</th>
+                <th className="text-right border-r p-0.5 w-[60px]">P-Add</th>
+                <th className="text-right border-r p-0.5 w-[60px]">P-Adj</th>
+                <th className="text-right border-r-2 p-0.5 w-[70px] bg-slate-50">P-Close</th>
+                <th className="text-right p-0.5 w-[80px] bg-black text-white">Total</th>
               </tr>
             </TableHeader>
             <TableBody>
@@ -193,9 +194,13 @@ export default function FundMovementReportPage() {
             <TableFooter className="bg-black text-white font-black text-[8px]">
               <TableRow className="h-10">
                 <td colSpan={2} className="text-right pr-2 uppercase">Aggregates:</td>
-                <td colSpan={3}></td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.opEmp, 0).toLocaleString()}</td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.addEmp, 0).toLocaleString()}</td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.adjEmp, 0).toLocaleString()}</td>
                 <td className="text-right bg-white/10">{reportData.reduce((s, r) => s + r.clEmp, 0).toLocaleString()}</td>
-                <td colSpan={3}></td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.opPbs, 0).toLocaleString()}</td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.addPbs, 0).toLocaleString()}</td>
+                <td className="text-right">{reportData.reduce((s, r) => s + r.adjPbs, 0).toLocaleString()}</td>
                 <td className="text-right bg-white/10">{reportData.reduce((s, r) => s + r.clPbs, 0).toLocaleString()}</td>
                 <td className="text-right bg-white text-black font-black text-[10px]">৳ {stats.cl.toLocaleString()}</td>
               </TableRow>

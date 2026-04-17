@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -124,7 +125,6 @@
     overflow: visible !important;
   }
   
-  /* Prevent TFOOT from repeating on every page if it's meant to be a report summary */
   tfoot {
     display: table-row-group !important;
   }

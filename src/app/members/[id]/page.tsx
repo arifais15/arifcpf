@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -16,7 +17,7 @@ import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -75,7 +76,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [availableFYs, selectedFY]);
 
   const ledgerLogic = useMemo(() => {
-    if (!summaries) return { rows: [], totals: { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }, latest: { col4: 0, col7: 0, col10: 0, col11: 0 } };
+    if (!summaries) return { rows: [], totals: { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 }, grand: { c1:0, c2:0, c3:0, c4:0, c5:0, c6:0, c7:0, c8:0, c9:0, c10:0, c11:0 } };
     
     const sorted = [...summaries].sort((a, b) => {
       const dateA = new Date(a.summaryDate).getTime();
@@ -116,8 +117,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
     let displayRows = inRangeRows;
-    let openingRowValue = preSums;
-
     if (dateRange.start && preRows.length > 0) {
       const lastPre = preRows[preRows.length - 1];
       const openingRow = {
@@ -134,16 +133,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       displayRows = [openingRow, ...inRangeRows];
     }
 
-    const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
-    const historicalTotals = allCalculated.reduce((acc, r) => ({ 
-      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, 
-      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
+    const currentTotals = displayRows.reduce((acc, r) => ({
+      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
+      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
     }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
+    const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
 
     return { 
       rows: displayRows, 
-      totals: historicalTotals, 
-      latest: { col4: last.col4, col7: last.col7, col10: last.col10, col11: last.col11 } 
+      totals: currentTotals, 
+      grand: { 
+        ...currentTotals, 
+        c4: last.col4, 
+        c7: last.col7, 
+        c10: last.col10, 
+        c11: last.col11 
+      } 
     };
   }, [summaries, dateRange]);
 
@@ -184,7 +190,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3 no-print">
           <div className="flex items-center gap-2 pr-3 border-r border-black/10">
             <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0">
+              <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0 text-black">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -233,19 +239,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <table className="w-full text-[9px] border-collapse border-2 border-black table-fixed font-black tabular-nums text-black">
             <thead className="bg-slate-100 border-b-2 border-black">
               <tr className="uppercase text-[8px] tracking-tighter text-black">
-                <th rowSpan={3} className="border border-black p-0.5 w-[60px]">Date</th>
-                <th rowSpan={3} className="border border-black p-0.5 w-[140px]">Particulars</th>
-                <th colSpan={4} className="border border-black p-0.5 bg-slate-200/50 text-black">Contributions</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">Profits</th>
-                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-[8px] text-black">Equity(7)</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">PBS Fund</th>
-                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-black">Off(10)</th>
-                <th rowSpan={3} className="border border-black p-0.5 w-[85px] bg-black text-white">Total(11)</th>
+                <th rowSpan={3} className="border border-black p-0.5 w-[65px]">Date</th>
+                <th rowSpan={3} className="border border-black p-0.5 w-[150px]">Particulars</th>
+                <th colSpan={4} className="border border-black p-0.5 bg-slate-200/50 text-black">Contributions & Loans</th>
+                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">Profits Received</th>
+                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-black">Net Emp(7)</th>
+                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">PBS Matching Fund</th>
+                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-black">Net Off(10)</th>
+                <th rowSpan={3} className="border border-black p-0.5 w-[90px] bg-black text-white">Total(11)</th>
                 <th rowSpan={3} className="border border-black p-0.5 no-print w-[50px] text-black">Action</th>
               </tr>
               <tr className="text-[7px] uppercase text-black">
-                <th className="border border-black p-0.5">E(1)</th><th className="border border-black p-0.5">D(2)</th><th className="border border-black p-0.5">R(3)</th><th className="border border-black p-0.5 bg-slate-200">L(4)</th>
-                <th className="border border-black p-0.5">E(5)</th><th className="border border-black p-0.5">L(6)</th><th className="border border-black p-0.5">P(8)</th><th className="border border-black p-0.5">P(9)</th>
+                <th className="border border-black p-0.5">Emp(1)</th><th className="border border-black p-0.5">Draw(2)</th><th className="border border-black p-0.5">Repay(3)</th><th className="border border-black p-0.5 bg-slate-200">Bal(4)</th>
+                <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">PBS(8)</th><th className="border border-black p-0.5">Profit(9)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-black">
@@ -275,26 +281,24 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 </tr>
               ))}
             </tbody>
+            <tfoot className="bg-slate-100 font-black text-black border-t-2 border-black">
+              <tr className="h-10 text-[8px] uppercase">
+                <td colSpan={2} className="border border-black p-1 text-right tracking-widest">Aggregate Column-wise Sums:</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.grand.c4).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c5.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c6.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.grand.c7).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.grand.c10).toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-black text-white text-[10px] underline decoration-double">৳ {(ledgerLogic.grand.c11).toLocaleString()}</td>
+                <td className="border border-black p-1 no-print"></td>
+              </tr>
+            </tfoot>
           </table>
-        </div>
-        
-        {/* Report Footer: Shows totals only at the end of the report, not repeated per page */}
-        <div className="mt-4 border-2 border-black bg-slate-100 font-black tabular-nums text-black p-2 flex items-center justify-between text-[10px]">
-          <span className="uppercase tracking-widest px-2">Consolidated Grand Totals (Entire History):</span>
-          <div className="flex gap-6 pr-4">
-            <div className="flex flex-col items-end">
-              <span className="text-[8px] opacity-60 uppercase">Net Equity</span>
-              <span>৳ {ledgerLogic.latest.col7.toLocaleString()}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[8px] opacity-60 uppercase">Net Office</span>
-              <span>৳ {ledgerLogic.latest.col10.toLocaleString()}</span>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[8px] opacity-60 uppercase">Historical Aggregate</span>
-              <span className="text-sm underline decoration-double">৳ {ledgerLogic.latest.col11.toLocaleString()}</span>
-            </div>
-          </div>
         </div>
 
         <div className="mt-8 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
@@ -307,8 +311,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <DialogHeader className="p-8 border-b-2 border-black bg-slate-50">
             <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3 text-black">
               <Calculator className="size-6" />
-              {editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}
+              {editingEntry ? "Modify Transaction" : "Institutional Voucher Entry"}
             </DialogTitle>
+            <DialogDescription className="text-xs uppercase font-black opacity-60">Synchronize dual-accounting records to member subsidiary ledger</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSaveEntry} className="p-8 space-y-6 pt-0 mt-6">
             <div className="grid grid-cols-2 gap-6">

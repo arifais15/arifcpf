@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -119,11 +120,8 @@ export default function AllLedgersPrintPage() {
         }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
         let displayRows = inRangeRows;
-        let openingRowValue = { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 };
-
         if (dateRange.start && preRows.length > 0) {
           const lastPre = preRows[preRows.length - 1];
-          openingRowValue = preSums;
           const openingRow = {
             summaryDate: dateRange.start,
             particulars: "Opening Balance",
@@ -138,9 +136,19 @@ export default function AllLedgersPrintPage() {
           displayRows = [openingRow, ...inRangeRows];
         }
 
+        const rangeTotals = displayRows.reduce((acc, r) => ({
+          c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
+          c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
+        }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+
         const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
 
-        return { member, rows: displayRows, last };
+        return { 
+          member, 
+          rows: displayRows, 
+          totals: rangeTotals,
+          grand: { ...rangeTotals, c4: last.col4, c7: last.col7, c10: last.col10, c11: last.col11 }
+        };
       });
   }, [members, allSummaries, dateRange]);
 
@@ -155,7 +163,7 @@ export default function AllLedgersPrintPage() {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 bg-white">
         <Loader2 className="size-12 animate-spin text-black" />
-        <p className="text-sm font-black uppercase tracking-[0.2em] text-black">Synthesizing Institutional Ledger Volume...</p>
+        <p className="text-sm font-black uppercase tracking-[0.2em] text-black">Consolidating Institutional Ledger Volume...</p>
       </div>
     );
   }
@@ -169,7 +177,7 @@ export default function AllLedgersPrintPage() {
           </Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tighter uppercase">Batch Ledger Print</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated subsidiary reports audit trail</p>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Institutional subsidiary reports audit trail</p>
           </div>
         </div>
 
@@ -234,17 +242,17 @@ export default function AllLedgersPrintPage() {
               <thead className="bg-slate-100 font-black border-b-2 border-black">
                 <tr>
                   <th rowSpan={3} className="border border-black p-0.5 text-center w-[65px] uppercase text-[8px] tracking-tighter text-black">Date</th>
-                  <th rowSpan={3} className="border border-black p-0.5 text-center w-[120px] uppercase text-[8px] tracking-tighter text-black">Particulars</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center w-[150px] uppercase text-[8px] tracking-tighter text-black">Particulars</th>
                   <th colSpan={4} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200/50 text-black">Contributions & Loans</th>
                   <th colSpan={2} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-100 text-black">Profits Received</th>
-                  <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Emp<br/>(7=Pre+1-2+3+5+6)</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Emp(7)</th>
                   <th colSpan={2} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-100 text-black">PBS Fund</th>
-                  <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Off<br/>(10=8+9)</th>
-                  <th rowSpan={3} className="border border-black p-0.5 text-right w-[90px] uppercase text-[9px] bg-black text-white">Total<br/>(11=7+10)</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-center uppercase text-[8px] bg-slate-200 text-black">Net Off(10)</th>
+                  <th rowSpan={3} className="border border-black p-0.5 text-right w-[95px] uppercase text-[9px] bg-black text-white">Total(11)</th>
                 </tr>
                 <tr className="bg-slate-50 text-[9px] text-black">
-                  <th className="border border-black p-0.5">Contrib(1)</th><th className="border border-black p-0.5">Drawal(2)</th><th className="border border-black p-0.5">Repay(3)</th><th className="border border-black p-0.5 bg-slate-200">Bal(4=2-3)</th>
-                  <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">Contrib(8)</th><th className="border border-black p-0.5">Profit(9)</th>
+                  <th className="border border-black p-0.5">Emp(1)</th><th className="border border-black p-0.5">Draw(2)</th><th className="border border-black p-0.5">Repay(3)</th><th className="border border-black p-0.5 bg-slate-200">Bal(4)</th>
+                  <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">PBS(8)</th><th className="border border-black p-0.5">Profit(9)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black font-black tabular-nums text-black">
@@ -266,26 +274,23 @@ export default function AllLedgersPrintPage() {
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-slate-100 border-t-2 border-black font-black text-black">
+                <tr className="h-10 text-[8px] uppercase">
+                  <td colSpan={2} className="border border-black p-1 text-right">Aggregate Column Sums:</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c1.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c2.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c3.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.grand.c4).toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c5.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c6.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.grand.c7).toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c8.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right">{ledger.totals.c9.toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-slate-200">{(ledger.grand.c10).toLocaleString()}</td>
+                  <td className="border border-black p-1 text-right bg-black text-white text-[10px]">৳ {(ledger.grand.c11).toLocaleString()}</td>
+                </tr>
+              </tfoot>
             </table>
-            
-            {/* Report Footer Total - Only at the end of the member's report */}
-            <div className="mt-4 border-2 border-black bg-slate-100 font-black tabular-nums text-black p-3 flex items-center justify-between text-[11px]">
-              <span className="uppercase tracking-[0.2em] px-2 font-black">Institutional Consolidated Aggregate (All-Time History):</span>
-              <div className="flex gap-10 pr-6">
-                <div className="flex flex-col items-end">
-                  <span className="text-[8px] opacity-60 uppercase font-black">Net Equity</span>
-                  <span className="text-black">৳ {(ledger.last?.col7 || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[8px] opacity-60 uppercase font-black">Net Office</span>
-                  <span className="text-black">৳ {(ledger.last?.col10 || 0).toLocaleString()}</span>
-                </div>
-                <div className="flex flex-col items-end">
-                  <span className="text-[8px] opacity-60 uppercase font-black">Total Portfolio</span>
-                  <span className="text-lg underline decoration-double font-black text-black">৳ {(ledger.last?.col11 || 0).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
 
             <div className="mt-24 grid grid-cols-3 gap-16 text-[11px] font-black text-center uppercase tracking-widest text-black">
               <div className="border-t-2 border-black pt-4">Prepared by</div>

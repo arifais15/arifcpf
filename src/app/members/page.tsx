@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -25,7 +26,7 @@ export default function MembersPage() {
   
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [lastVisible, setLastVisible] = useState<any>(null);
 
@@ -117,8 +118,7 @@ export default function MembersPage() {
       showAlert({ 
         title: "Profile Updated", 
         description: `Records for ${memberData.name} have been synchronized.`,
-        type: "success", 
-        onConfirm: () => window.location.reload() 
+        type: "success"
       });
     } else {
       const newMemberRef = doc(collection(firestore, "members"));
@@ -129,8 +129,7 @@ export default function MembersPage() {
       showAlert({ 
         title: "Personnel Registered", 
         description: `${memberData.name} added to trust registry.`,
-        type: "success", 
-        onConfirm: () => window.location.reload() 
+        type: "success"
       });
     }
     setIsAddOpen(false);
@@ -146,7 +145,7 @@ export default function MembersPage() {
       confirmText: "Delete Record",
       onConfirm: () => {
         deleteDocumentNonBlocking(doc(firestore, "members", id));
-        showAlert({ title: "Removed", description: "The personnel record has been deleted.", type: "success", onConfirm: () => window.location.reload() });
+        showAlert({ title: "Removed", description: "The personnel record has been deleted.", type: "success" });
       }
     });
   };
@@ -164,6 +163,7 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
+        // Fetch all current members to map ID -> DocRef
         const allMembersSnap = await getDocs(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach(d => {
@@ -185,28 +185,27 @@ export default function MembersPage() {
             existingMembersMap[memberIdNumber] = memberDocId;
           }
 
-          const joinedDate = String(entry["JoinedDate"] || entry.dateJoined || "");
-          const postingDate = String(entry["PostingDate"] || joinedDate || new Date().toISOString().split('T')[0]);
-          const particulars = String(entry["Particulars"] || entry.particulars || "Monthly Contribution (Imported)");
-          
+          // 1. Sync Profile
           const memberProfileData = {
             memberIdNumber,
             name,
             designation: String(entry["Designation"] || ""),
-            dateJoined: joinedDate,
+            dateJoined: String(entry["JoinedDate"] || entry.dateJoined || ""),
             permanentAddress: String(entry["Address"] || entry.permanentAddress || ""),
             zonalOffice: String(entry["Office"] || entry.zonalOffice || ""),
             status: String(entry["Status"] || "Active"),
             updatedAt: new Date().toISOString()
           };
-
           if (!isExisting) {
             // @ts-ignore
             memberProfileData.createdAt = new Date().toISOString();
           }
-
           setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberProfileData, { merge: true });
 
+          // 2. Append Ledger Transaction
+          const postingDate = String(entry["PostingDate"] || entry.PostingDate || new Date().toISOString().split('T')[0]);
+          const particulars = String(entry["Particulars"] || entry.particulars || "Monthly Salary Contribution");
+          
           const ledgerEntry = {
             summaryDate: postingDate,
             particulars: particulars,
@@ -229,9 +228,8 @@ export default function MembersPage() {
         
         showAlert({ 
           title: "Import Success", 
-          description: `Processed ${count} records. Profiles synchronized by ID and transactions appended to subsidiary ledgers.`, 
-          type: "success", 
-          onConfirm: () => window.location.reload() 
+          description: `Processed ${count} records. Profiles updated and transactions appended.`, 
+          type: "success"
         });
       } catch (err) {
         toast({ title: "Import Failed", description: "Internal processing error during Excel parse.", variant: "destructive" });
@@ -248,7 +246,7 @@ export default function MembersPage() {
       "ID": "5001",
       "Name": "MD. ARIFUL ISLAM",
       "Designation": "AGMF",
-      "Particulars": "Salary Contribution July-2024",
+      "Particulars": "Monthly Contribution July-2024",
       "JoinedDate": "2020-01-01",
       "PostingDate": "2024-07-31",
       "Address": "GAZIPUR",
@@ -264,8 +262,8 @@ export default function MembersPage() {
     }];
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "MonthlyUploadTemplate");
-    XLSX.writeFile(wb, "PBS_CPF_Monthly_Import_Template.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "MonthlyImport");
+    XLSX.writeFile(wb, "PBS_CPF_Monthly_Append_Template.xlsx");
   };
 
   return (
@@ -308,9 +306,9 @@ export default function MembersPage() {
         <div className="h-8 w-px bg-black/10 mx-1" />
         <div className="flex items-center gap-1">
           <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="h-9 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-3">
-            <Upload className="size-3.5" /> Monthly Bulk
+            <Upload className="size-3.5" /> Monthly Append
           </Button>
-          <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 shadow-lg shadow-black/20">
+          <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 shadow-lg">
             <Plus className="size-3.5" /> Register Personnel
           </Button>
         </div>
@@ -323,7 +321,7 @@ export default function MembersPage() {
               <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6 text-black py-5">ID Number</TableHead>
               <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Full Name</TableHead>
               <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Designation</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Account Status</TableHead>
+              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Status</TableHead>
               <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 text-black py-5">Audit Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -399,8 +397,8 @@ export default function MembersPage() {
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black">
-            <DialogTitle className="text-xl font-black uppercase text-black">Institutional Monthly Import</DialogTitle>
-            <DialogDescription className="text-[10px] uppercase font-black opacity-60 text-black">Synchronize personnel registry and monthly contribution volumes</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase text-black">Institutional Monthly Append</DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60 text-black">Append new monthly transactions and sync personnel registry</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
             <div className="bg-slate-50 p-6 border-2 border-black rounded-xl text-center space-y-4">
@@ -409,12 +407,12 @@ export default function MembersPage() {
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
               <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-black text-white font-black uppercase h-12">
                 {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
-                Process Excel File
+                Upload Transactions
               </Button>
             </div>
             <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-black uppercase leading-tight">Importer will intelligently update existing personnel by ID or create new profiles. Each upload creates unique ledger entries based on "PostingDate" and "Particulars".</p>
+              <p className="text-[10px] font-black uppercase leading-tight">Importer will link transactions to existing members by ID. New members will be registered automatically. Transactions are appended to the subsidiary ledger.</p>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10 text-black">
               <Download className="size-3.5 mr-2" /> Download Template

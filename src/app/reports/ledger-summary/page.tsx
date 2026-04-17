@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -119,17 +120,17 @@ export default function LedgerSummaryReportPage() {
               <tr className="uppercase text-[7px] leading-tight text-black">
                 <th className="border-r-2 border-black p-0.5 w-[40px]">ID</th>
                 <th className="border-r-2 border-black p-0.5 text-left w-[100px]">Name</th>
-                <th className="text-right border-r p-0.5 w-[65px]">E(1)</th>
-                <th className="text-right border-r p-0.5 w-[65px]">D(2)</th>
-                <th className="text-right border-r p-0.5 w-[65px]">R(3)</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-100">L(4)</th>
-                <th className="text-right border-r p-0.5 w-[65px]">P(5)</th>
-                <th className="text-right border-r-2 p-0.5 w-[65px]">L(6)</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-200">7</th>
-                <th className="text-right border-r p-0.5 w-[65px]">O(8)</th>
-                <th className="text-right border-r-2 p-0.5 w-[65px]">P(9)</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-100">10</th>
-                <th className="text-right p-0.5 w-[85px] bg-black text-white">11</th>
+                <th className="text-right border-r p-0.5 w-[60px]">Emp(1)</th>
+                <th className="text-right border-r p-0.5 w-[60px]">Draw(2)</th>
+                <th className="text-right border-r p-0.5 w-[60px]">Repay(3)</th>
+                <th className="text-right border-r-2 p-0.5 w-[70px] bg-slate-100">Bal(4)</th>
+                <th className="text-right border-r p-0.5 w-[60px]">E.Profit(5)</th>
+                <th className="text-right border-r-2 p-0.5 w-[60px]">L.Int(6)</th>
+                <th className="text-right border-r-2 p-0.5 w-[70px] bg-slate-200">Equity(7)</th>
+                <th className="text-right border-r p-0.5 w-[60px]">PBS(8)</th>
+                <th className="text-right border-r-2 p-0.5 w-[60px]">P.Profit(9)</th>
+                <th className="text-right border-r-2 p-0.5 w-[70px] bg-slate-100">Off(10)</th>
+                <th className="text-right p-0.5 w-[80px] bg-black text-white">Total(11)</th>
               </tr>
             </TableHeader>
             <TableBody>
@@ -153,7 +154,7 @@ export default function LedgerSummaryReportPage() {
             </TableBody>
             <TableFooter className="bg-black text-white font-black text-[8px]">
               <TableRow className="h-10">
-                <td colSpan={2} className="text-right pr-2 uppercase">CONSOLIDATED TOTALS:</td>
+                <td colSpan={2} className="text-right pr-2 uppercase">Aggregates:</td>
                 <td className="text-right">{stats.c1.toLocaleString()}</td>
                 <td className="text-right">{stats.c2.toLocaleString()}</td>
                 <td className="text-right">{stats.c3.toLocaleString()}</td>
