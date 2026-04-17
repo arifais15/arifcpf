@@ -9,26 +9,18 @@ import {
   Plus, 
   Edit2, 
   Trash2, 
-  Calculator, 
   ArrowRightLeft, 
-  ChevronLeft,
-  ChevronRight,
-  CalendarDays,
-  ShieldCheck,
-  TrendingUp,
-  Info
+  CalendarDays
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
 
@@ -191,7 +183,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <div className="relative mb-6 text-center border-b-4 border-black pb-4">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em]">REB Form no: 224</p>
           <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <h2 className="text-xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
+          <h2 className="text-xl font-black uppercase tracking-[0.2em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
         <div className="grid grid-cols-3 gap-x-8 gap-y-1.5 mb-6 text-[12px] font-black border-b-4 border-black pb-4">

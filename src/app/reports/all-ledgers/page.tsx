@@ -151,10 +151,10 @@ export default function AllLedgersPrintPage() {
             <div className="relative mb-10 text-center border-b-4 border-black pb-8">
               <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
               <h1 className="text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
-              <h2 className="text-xl font-black underline underline-offset-8 decoration-2 uppercase tracking-[0.3em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
+              <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
             </div>
             
-            <div className="grid grid-cols-3 gap-x-8 gap-y-2 mb-8 text-[12px] font-black border-b-4 border-black pb-4 text-black">
+            <div className="grid grid-cols-3 gap-x-8 gap-y-1.5 mb-8 text-[12px] font-black border-b-4 border-black pb-4 text-black">
               {[
                 { l: "Full Legal Name", v: ledger.member.name, u: "uppercase" },
                 { l: "Official Designation", v: ledger.member.designation, u: "uppercase" },

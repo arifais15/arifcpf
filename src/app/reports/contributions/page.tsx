@@ -13,12 +13,9 @@ import { Button } from "@/components/ui/button";
 import { 
   Printer, 
   Loader2, 
-  Search,
   ArrowRightLeft,
   Trash2,
-  AlertTriangle,
   DatabaseZap,
-  ShieldCheck,
   Info
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
@@ -32,7 +29,6 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle, 
-  DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
@@ -153,7 +149,30 @@ export default function ContributionAuditPage() {
           </TableBody>
         </Table>
       </div>
-      <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}><DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden"><DialogHeader className="bg-rose-50 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase text-rose-700">Bulk Cleanup Utility</DialogTitle></DialogHeader><div className="p-6 space-y-4"><div className="bg-slate-50 p-4 border-2 border-black space-y-2"><p className="text-[10px] font-black uppercase opacity-40">Filter Context</p><p className="text-xs font-black">Records: {filteredData.length}</p><p className="text-xs font-black">Keyword: {particularsSearch || "NONE"}</p></div><div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800"><Info className="size-5 shrink-0" /><p className="text-[10px] font-black uppercase">Ensure search is specific to avoid accidental data loss.</p></div><DialogFooter className="p-6 pt-2"><Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl">{isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />} Delete {filteredData.length} Records</Button></DialogFooter></div></DialogContent></Dialog>
+      <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
+        <DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden">
+          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
+            <DialogTitle className="text-xl font-black uppercase text-rose-700">Bulk Cleanup Utility</DialogTitle>
+          </DialogHeader>
+          <div className="p-6 space-y-4">
+            <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
+              <p className="text-[10px] font-black uppercase opacity-40">Filter Context</p>
+              <p className="text-xs font-black">Records: {filteredData.length}</p>
+              <p className="text-xs font-black">Keyword: {particularsSearch || "NONE"}</p>
+            </div>
+            <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
+              <Info className="size-5 shrink-0 mt-0.5" />
+              <p className="text-[10px] font-black uppercase">Ensure search is specific to avoid accidental data loss.</p>
+            </div>
+            <DialogFooter className="p-6 pt-2">
+              <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl">
+                {isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />} 
+                Delete {filteredData.length} Records
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
