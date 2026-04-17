@@ -1,18 +1,8 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { 
-  Printer, 
-  ArrowLeft, 
-  Loader2, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  ArrowRightLeft,
-  Calculator
-} from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, Edit2, Trash2, ArrowRightLeft, Calculator } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -58,47 +48,24 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     return fys;
   }, []);
 
-  const handleFYChange = (fy: string) => {
-    setSelectedFY(fy);
-    if (fy === "all") {
-      setDateRange({ start: "2010-01-01", end: new Date().toISOString().split('T')[0] });
-    } else {
-      const parts = fy.split("-");
-      const startYear = parseInt(parts[0]);
-      setDateRange({ start: `${startYear}-07-01`, end: `${startYear + 1}-06-30` });
-    }
-  };
-
   useEffect(() => {
     if (availableFYs.length > 0 && !selectedFY) {
-      handleFYChange(availableFYs[0]);
+      const fy = availableFYs[0];
+      setSelectedFY(fy);
+      const startYear = parseInt(fy.split("-")[0]);
+      setDateRange({ start: `${startYear}-07-01`, end: `${startYear + 1}-06-30` });
     }
   }, [availableFYs, selectedFY]);
 
   const ledgerLogic = useMemo(() => {
     if (!summaries) return { rows: [], totals: { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 }, grand: { c1:0, c2:0, c3:0, c4:0, c5:0, c6:0, c7:0, c8:0, c9:0, c10:0, c11:0 } };
     
-    const sorted = [...summaries].sort((a, b) => {
-      const dateA = new Date(a.summaryDate).getTime();
-      const dateB = new Date(b.summaryDate).getTime();
-      if (dateA !== dateB) return dateA - dateB;
-      return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
-    });
+    const sorted = [...summaries].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
 
     let rLoan = 0, rEmp = 0, rOff = 0;
     const allCalculated = sorted.map(row => {
-      const v = { 
-        c1: Number(row.employeeContribution)||0, 
-        c2: Number(row.loanWithdrawal)||0, 
-        c3: Number(row.loanRepayment)||0, 
-        c5: Number(row.profitEmployee)||0, 
-        c6: Number(row.profitLoan)||0, 
-        c8: Number(row.pbsContribution)||0, 
-        c9: Number(row.profitPbs)||0 
-      };
-      rLoan += v.c2 - v.c3;
-      rEmp += v.c1 - v.c2 + v.c3 + v.c5 + v.c6;
-      rOff += v.c8 + v.c9;
+      const v = { c1: Number(row.employeeContribution)||0, c2: Number(row.loanWithdrawal)||0, c3: Number(row.loanRepayment)||0, c5: Number(row.profitEmployee)||0, c6: Number(row.profitLoan)||0, c8: Number(row.pbsContribution)||0, c9: Number(row.profitPbs)||0 };
+      rLoan += (v.c2 - v.c3); rEmp += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6); rOff += (v.c8 + v.c9);
       return { ...row, ...v, col4: rLoan, col7: rEmp, col10: rOff, col11: rEmp + rOff };
     });
 
@@ -106,234 +73,135 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const endDate = dateRange.end ? new Date(dateRange.end).getTime() : Infinity;
 
     const preRows = allCalculated.filter(r => new Date(r.summaryDate).getTime() < startDate);
-    const inRangeRows = allCalculated.filter(r => {
-      const time = new Date(r.summaryDate).getTime();
-      return time >= startDate && time <= endDate;
-    });
+    const preSums = preRows.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+    const lastPre = preRows[preRows.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
 
-    const preSums = preRows.reduce((acc, r) => ({
-      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
-      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
-    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
-
-    let displayRows = inRangeRows;
+    const inRange = allCalculated.filter(r => { const t = new Date(r.summaryDate).getTime(); return t >= startDate && t <= endDate; });
+    
+    let displayRows = inRange;
     if (dateRange.start && preRows.length > 0) {
-      const lastPre = preRows[preRows.length - 1];
-      const openingRow = {
-        summaryDate: dateRange.start,
-        particulars: "Opening Balance",
-        ...preSums,
-        col4: lastPre.col4,
-        col7: lastPre.col7,
-        col10: lastPre.col10,
-        col11: lastPre.col11,
-        isOpening: true,
-        id: "opening-row"
-      };
-      displayRows = [openingRow, ...inRangeRows];
+      displayRows = [{ summaryDate: dateRange.start, particulars: "Opening Balance", ...preSums, col4: lastPre.col4, col7: lastPre.col7, col10: lastPre.col10, col11: lastPre.col11, isOpening: true, id: "op-row" }, ...inRange];
     }
 
-    const currentTotals = displayRows.reduce((acc, r) => ({
-      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
-      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
-    }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
-
     const last = allCalculated[allCalculated.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
+    const grandTotals = allCalculated.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
-    return { 
-      rows: displayRows, 
-      totals: currentTotals, 
-      grand: { 
-        ...currentTotals, 
-        c4: last.col4, 
-        c7: last.col7, 
-        c10: last.col10, 
-        c11: last.col11 
-      } 
-    };
+    return { rows: displayRows, grand: { ...grandTotals, c4: last.col4, c7: last.col7, c10: last.col10, c11: last.col11 } };
   }, [summaries, dateRange]);
 
-  const handleSaveEntry = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const data = { 
-      summaryDate: formData.get("summaryDate"), 
-      particulars: formData.get("particulars"), 
-      employeeContribution: Number(formData.get("employeeContribution")), 
-      loanWithdrawal: Number(formData.get("loanWithdrawal")), 
-      loanRepayment: Number(formData.get("loanRepayment")), 
-      profitEmployee: Number(formData.get("profitEmployee")), 
-      profitLoan: Number(formData.get("profitLoan")), 
-      pbsContribution: Number(formData.get("pbsContribution")), 
-      profitPbs: Number(formData.get("profitPbs")), 
-      lastUpdateDate: new Date().toISOString(), 
-      createdAt: editingEntry?.createdAt || new Date().toISOString(), 
-      memberId: resolvedParams.id 
-    };
-    if (editingEntry?.id) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), data);
-    else addDocumentNonBlocking(summariesRef, data);
-    setIsEntryOpen(false); setEditingEntry(null);
-  };
-
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault();
-  };
-
-  if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
-  if (!member) return <div className="p-8 text-center bg-white"><h1 className="text-2xl font-black text-black uppercase">Member not found</h1></div>;
+  if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12" /></div>;
 
   return (
-    <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
+    <div className="p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
       <PageHeaderActions>
-        <Link href="/members" className="p-2 hover:bg-black/5 rounded-full transition-colors mr-2 no-print"><ArrowLeft className="size-5 text-black" /></Link>
-        
-        <div className="flex items-center gap-3 bg-black/5 p-1 rounded-xl h-10 px-3 no-print">
-          <div className="flex items-center gap-2 pr-3 border-r border-black/10">
-            <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-7 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0 text-black">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
-                <SelectItem value="all" className="font-black text-xs text-rose-600">ALL TIME</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center gap-2">
-            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase text-black" />
-            <ArrowRightLeft className="size-3 text-black/20" />
-            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-7 w-[120px] bg-white border-black/20 text-[10px] font-black uppercase text-black" />
-          </div>
+        <Link href="/members" className="p-2 hover:bg-slate-100 rounded-full border border-black no-print"><ArrowLeft className="size-5" /></Link>
+        <div className="flex items-center gap-3 bg-slate-50 p-2 border-2 border-black rounded-xl no-print">
+          <Select value={selectedFY} onValueChange={(fy) => { setSelectedFY(fy); if (fy === "all") setDateRange({ start: "2010-01-01", end: new Date().toISOString().split('T')[0] }); else { const s = parseInt(fy.split("-")[0]); setDateRange({ start: `${s}-07-01`, end: `${s+1}-06-30` }); } }}>
+            <SelectTrigger className="h-8 w-[120px] font-black text-[10px] uppercase border-black"><SelectValue /></SelectTrigger>
+            <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}<SelectItem value="all" className="font-black text-xs">All Time</SelectItem></SelectContent>
+          </Select>
+          <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" />
+          <ArrowRightLeft className="size-3" />
+          <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" />
         </div>
-
-        <div className="flex items-center gap-1 ml-auto no-print">
-          <Button variant="outline" onClick={() => { setEditingEntry(null); setIsEntryOpen(true); }} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> New Entry</Button>
-          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1"><Printer className="size-3.5" /> Print Ledger</Button>
+        <div className="flex gap-2 ml-auto no-print">
+          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px]"><Plus className="size-4 mr-2" /> New Entry</Button>
+          <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8"><Printer className="size-4 mr-2" /> Print Ledger</Button>
         </div>
       </PageHeaderActions>
 
-      <div className="bg-white p-6 md:p-10 shadow-2xl rounded-none border-4 border-black max-w-[1400px] mx-auto w-full font-ledger print-container text-black">
-        <div className="relative mb-6 text-center border-b-4 border-black pb-4">
-          <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em] text-black">REB Form no: 224</p>
-          <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
-          <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-2 text-black">Provident Fund Subsidiary Ledger</h2>
+      <div className="bg-white p-12 shadow-2xl border-4 border-black max-w-[1400px] mx-auto w-full font-ledger print-container">
+        <div className="relative mb-8 text-center border-b-4 border-black pb-4">
+          <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-widest">REB Form no: 224</p>
+          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
+          <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-3">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-8 gap-y-1.5 mb-6 text-[12px] font-black border-b-4 border-black pb-4 text-black">
-          {[
-            { label: "Full Legal Name", value: member.name },
-            { label: "Designation", value: member.designation },
-            { label: "ID Number", value: member.memberIdNumber },
-            { label: "Joined Date", value: member.dateJoined },
-            { label: "Status", value: member.status || "Active" },
-            { label: "Address", value: member.permanentAddress || "-" },
-          ].map((item, idx) => (
-            <div key={idx} className="flex items-end gap-2 border-b border-black/20 pb-0.5">
-              <span className="uppercase text-[9px] text-black shrink-0 tracking-widest min-w-[80px]">{item.label}:</span>
-              <span className="font-black uppercase truncate border-none flex-1 text-black">{item.value}</span>
-            </div>
-          ))}
+        <div className="grid grid-cols-3 gap-6 mb-8 text-[12px] font-black border-b-4 border-black pb-6">
+          <div className="flex gap-2 border-b border-black/20"><span>NAME:</span><span className="uppercase">{member?.name}</span></div>
+          <div className="flex gap-2 border-b border-black/20"><span>DESIGNATION:</span><span className="uppercase">{member?.designation}</span></div>
+          <div className="flex gap-2 border-b border-black/20"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
+          <div className="flex gap-2 border-b border-black/20"><span>JOINED:</span><span>{member?.dateJoined}</span></div>
+          <div className="flex gap-2 border-b border-black/20"><span>STATUS:</span><span className="uppercase">{member?.status || "Active"}</span></div>
+          <div className="flex gap-2 border-b border-black/20"><span>OFFICE:</span><span className="uppercase">{member?.zonalOffice || "HEAD OFFICE"}</span></div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-[9px] border-collapse border-2 border-black table-fixed font-black tabular-nums text-black">
-            <thead className="bg-slate-100 border-b-2 border-black">
-              <tr className="uppercase text-[8px] tracking-tighter text-black">
-                <th rowSpan={3} className="border border-black p-0.5 w-[65px]">Date</th>
-                <th rowSpan={3} className="border border-black p-0.5 w-[150px]">Particulars</th>
-                <th colSpan={4} className="border border-black p-0.5 bg-slate-200/50 text-black">Contributions & Loans</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">Profits Received</th>
-                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-black">Net Emp(7)</th>
-                <th colSpan={2} className="border border-black p-0.5 bg-slate-100 text-black">PBS Matching Fund</th>
-                <th rowSpan={3} className="border border-black p-0.5 bg-slate-200 text-black">Net Off(10)</th>
-                <th rowSpan={3} className="border border-black p-0.5 w-[90px] bg-black text-white">Total(11)</th>
-                <th rowSpan={3} className="border border-black p-0.5 no-print w-[50px] text-black">Action</th>
+        <table className="w-full text-[9px] border-collapse border-2 border-black font-black tabular-nums">
+          <thead className="bg-slate-100 border-b-2 border-black uppercase text-[8px] tracking-tighter">
+            <tr className="h-8">
+              <th rowSpan={2} className="border border-black p-1 w-[70px]">Date</th>
+              <th rowSpan={2} className="border border-black p-1">Particulars</th>
+              <th className="border border-black p-1 bg-slate-200/50">Emp Cont(1)</th>
+              <th className="border border-black p-1">Loan Draw(2)</th>
+              <th className="border border-black p-1">Loan Repay(3)</th>
+              <th className="border border-black p-1 bg-slate-200">Loan Bal(4)</th>
+              <th className="border border-black p-1">Profit Emp(5)</th>
+              <th className="border border-black p-1">Profit Loan(6)</th>
+              <th className="border border-black p-1 bg-slate-200">Net Emp(7)</th>
+              <th className="border border-black p-1">PBS Cont(8)</th>
+              <th className="border border-black p-1">Profit PBS(9)</th>
+              <th className="border border-black p-1 bg-slate-200">Net Off(10)</th>
+              <th className="border border-black p-1 bg-black text-white">Total(11)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ledgerLogic.rows.map((r: any) => (
+              <tr key={r.id} className={cn("border-b border-black h-8 hover:bg-slate-50", r.isOpening && "bg-slate-50 italic")}>
+                <td className="border border-black p-1 text-center font-mono">{r.summaryDate}</td>
+                <td className="border border-black p-1 uppercase truncate max-w-[200px]">{r.particulars}</td>
+                <td className="border border-black p-1 text-right">{r.c1.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{r.c2.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{r.c3.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-50">{r.col4.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{r.c5.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{r.c6.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-50">{r.col7.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{r.c8.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right">{r.c9.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-50">{r.col10.toLocaleString()}</td>
+                <td className="border border-black p-1 text-right bg-slate-100 font-bold">{r.col11.toLocaleString()}</td>
               </tr>
-              <tr className="text-[7px] uppercase text-black">
-                <th className="border border-black p-0.5">Emp(1)</th><th className="border border-black p-0.5">Draw(2)</th><th className="border border-black p-0.5">Repay(3)</th><th className="border border-black p-0.5 bg-slate-200">Bal(4)</th>
-                <th className="border border-black p-0.5">Emp(5)</th><th className="border border-black p-0.5">Loan(6)</th><th className="border border-black p-0.5">PBS(8)</th><th className="border border-black p-0.5">Profit(9)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black">
-              {ledgerLogic.rows.map((row: any) => (
-                <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black h-7", row.isOpening && "bg-slate-50 italic")}>
-                  <td className="border border-black p-0.5 text-center font-mono text-[9px] text-black">{row.summaryDate}</td>
-                  <td className="border border-black p-0.5 truncate uppercase text-[9px] text-black">{row.particulars}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c1.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c2.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c3.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50 text-black">{(row.col4).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c5.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c6.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50 text-black">{(row.col7).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c8.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right text-black">{row.c9.toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-50 text-black">{(row.col10).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-right bg-slate-100 font-bold text-black">{(row.col11).toLocaleString()}</td>
-                  <td className="border border-black p-0.5 text-center no-print text-black">
-                    {!row.isOpening && (
-                      <div className="flex gap-1 justify-center">
-                        <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => { setEditingEntry(row); setIsEntryOpen(true); }}><Edit2 className="size-3"/></Button>
-                        <Button variant="ghost" size="icon" className="h-5 w-5 text-destructive" onClick={() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", row.id))}><Trash2 className="size-3"/></Button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-slate-100 font-black text-black border-t-2 border-black">
-              <tr className="h-10 text-[8px] uppercase">
-                <td colSpan={2} className="border border-black p-1 text-right tracking-widest">Aggregate Column-wise Sums:</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c1.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c2.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c3.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.grand.c4).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c5.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c6.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.grand.c7).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c8.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right">{ledgerLogic.totals.c9.toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-slate-200">{(ledgerLogic.grand.c10).toLocaleString()}</td>
-                <td className="border border-black p-1 text-right bg-black text-white text-[10px] underline decoration-double">৳ {(ledgerLogic.grand.c11).toLocaleString()}</td>
-                <td className="border border-black p-1 no-print"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-
-        <div className="mt-8 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
+            ))}
+          </tbody>
+          <tfoot className="bg-slate-100 font-black border-t-4 border-black text-[9px]">
+            <tr className="h-10 uppercase">
+              <td colSpan={2} className="border border-black p-2 text-right tracking-widest">Aggregate Institutional Sums:</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c4.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c7.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-black text-white">৳ {ledgerLogic.grand.c11.toLocaleString()}</td>
+            </tr>
+          </tfoot>
+        </table>
+        <div className="mt-20 pt-2 border-t border-black flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
           <span>CPF Management Software</span><span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
         </div>
       </div>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
-        <DialogContent className="max-w-4xl border-2 border-black rounded-none p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="p-8 border-b-2 border-black bg-slate-50">
-            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3 text-black">
-              <Calculator className="size-6" />
-              {editingEntry ? "Modify Transaction" : "Institutional Voucher Entry"}
+        <DialogContent className="border-4 border-black max-w-4xl bg-white p-0 rounded-none shadow-2xl">
+          <DialogHeader className="bg-slate-50 p-8 border-b-4 border-black">
+            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3">
+              <Calculator className="size-6" /> Voucher Entry Terminal
             </DialogTitle>
-            <DialogDescription className="text-xs uppercase font-black opacity-60">Synchronize dual-accounting records to member subsidiary ledger</DialogDescription>
+            <DialogDescription className="text-xs font-black uppercase opacity-60">Synchronize manual records to personnel subsidiary ledger</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSaveEntry} className="p-8 space-y-6 pt-0 mt-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-black">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black text-black" /></div>
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase text-black">Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="border-2 border-black font-black text-black" /></div>
+          <form onSubmit={(e) => { e.preventDefault(); const f = new FormData(e.currentTarget); const d = { summaryDate: f.get("summaryDate"), particulars: f.get("particulars"), employeeContribution: Number(f.get("c1")), loanWithdrawal: Number(f.get("c2")), loanRepayment: Number(f.get("c3")), profitEmployee: Number(f.get("c5")), profitLoan: Number(f.get("c6")), pbsContribution: Number(f.get("c8")), profitPbs: Number(f.get("c9")), memberId: resolvedParams.id, createdAt: new Date().toISOString() }; addDocumentNonBlocking(summariesRef, d); setIsEntryOpen(false); }} className="p-8 space-y-8">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" required className="border-2 border-black font-black" /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Particulars</Label><Input name="particulars" required className="border-2 border-black font-black" /></div>
             </div>
-            <div className="grid grid-cols-3 gap-6 bg-slate-50 p-6 border-2 border-black">
-              {[
-                { n: "employeeContribution", l: "Emp Cont(1)", v: editingEntry?.employeeContribution },
-                { n: "loanWithdrawal", l: "Loan Draw(2)", v: editingEntry?.loanWithdrawal },
-                { n: "loanRepayment", l: "Loan Repay(3)", v: editingEntry?.loanRepayment },
-                { n: "profitEmployee", l: "Emp Profit(5)", v: editingEntry?.profitEmployee },
-                { n: "profitLoan", l: "Loan Int(6)", v: editingEntry?.profitLoan },
-                { n: "pbsContribution", l: "PBS Cont(8)", v: editingEntry?.pbsContribution },
-                { n: "profitPbs", l: "PBS Profit(9)", v: editingEntry?.profitPbs }
-              ].map(f => (
-                <div key={f.n} className="space-y-1"><Label className="text-[9px] font-black uppercase opacity-60 text-black">{f.l}</Label><Input name={f.n} type="number" step="0.01" defaultValue={f.v || 0} onKeyDown={handleNumericKeyDown} className="h-9 border-black border-2 font-black text-right tabular-nums text-black" /></div>
-              ))}
+            <div className="grid grid-cols-4 gap-6 bg-slate-50 p-8 border-2 border-black">
+              {["c1","c2","c3","c5","c6","c8","c9"].map(n => <div key={n} className="space-y-1"><Label className="text-[9px] font-black uppercase">{n.toUpperCase()}</Label><Input name={n} type="number" step="0.01" defaultValue={0} className="border-black border-2 font-black text-right" /></div>)}
             </div>
-            <Button type="submit" className="w-full bg-black text-white font-black h-12 uppercase tracking-widest shadow-xl">Save Record</Button>
+            <Button type="submit" className="w-full bg-black text-white h-14 font-black uppercase tracking-widest shadow-xl">Post to Ledger</Button>
           </form>
         </DialogContent>
       </Dialog>

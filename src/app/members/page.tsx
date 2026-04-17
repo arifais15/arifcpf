@@ -1,11 +1,10 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, ListFilter, CalendarDays, MapPin, ShieldCheck, Info } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, CalendarDays, Info } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, getDocs } from "firebase/firestore";
@@ -93,11 +92,6 @@ export default function MembersPage() {
     setLastVisible(null);
   };
 
-  const handleClearSearch = () => {
-    setSearch("");
-    setDebouncedSearch("");
-  };
-
   const handleAddMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -113,24 +107,11 @@ export default function MembersPage() {
     };
 
     if (editingMember) {
-      const docRef = doc(firestore, "members", editingMember.id);
-      updateDocumentNonBlocking(docRef, memberData);
-      showAlert({ 
-        title: "Profile Updated", 
-        description: `Records for ${memberData.name} have been synchronized.`,
-        type: "success"
-      });
+      updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
+      showAlert({ title: "Updated", type: "success" });
     } else {
-      const newMemberRef = doc(collection(firestore, "members"));
-      setDocumentNonBlocking(newMemberRef, { 
-        ...memberData, 
-        createdAt: new Date().toISOString() 
-      }, { merge: true });
-      showAlert({ 
-        title: "Personnel Registered", 
-        description: `${memberData.name} added to trust registry.`,
-        type: "success"
-      });
+      setDocumentNonBlocking(doc(collection(firestore, "members")), { ...memberData, createdAt: new Date().toISOString() }, { merge: true });
+      showAlert({ title: "Registered", type: "success" });
     }
     setIsAddOpen(false);
     setEditingMember(null);
@@ -139,14 +120,10 @@ export default function MembersPage() {
   const handleDeleteMember = (id: string, name: string) => {
     showAlert({
       title: "Delete Personnel?",
-      description: `Permanently remove ${name} and all associated ledger data from the registry?`,
+      description: `Permanently remove ${name} from registry?`,
       type: "warning",
       showCancel: true,
-      confirmText: "Delete Record",
-      onConfirm: () => {
-        deleteDocumentNonBlocking(doc(firestore, "members", id));
-        showAlert({ title: "Removed", description: "The personnel record has been deleted.", type: "success" });
-      }
+      onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", id))
     });
   };
 
@@ -163,12 +140,9 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // Fetch all current members to map ID -> DocRef
         const allMembersSnap = await getDocs(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
-        allMembersSnap.forEach(d => {
-          existingMembersMap[d.data().memberIdNumber] = d.id;
-        });
+        allMembersSnap.forEach(d => { existingMembersMap[d.data().memberIdNumber] = d.id; });
 
         let count = 0;
         for (const entry of data as any[]) {
@@ -177,38 +151,18 @@ export default function MembersPage() {
           if (!memberIdNumber || !name) continue;
 
           let memberDocId = existingMembersMap[memberIdNumber];
-          const isExisting = !!memberDocId;
-
           if (!memberDocId) {
             const newRef = doc(collection(firestore, "members"));
             memberDocId = newRef.id;
             existingMembersMap[memberIdNumber] = memberDocId;
+            setDocumentNonBlocking(newRef, { memberIdNumber, name, designation: String(entry["Designation"] || ""), dateJoined: String(entry["JoinedDate"] || ""), status: String(entry["Status"] || "Active"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+          } else {
+            updateDocumentNonBlocking(doc(firestore, "members", memberDocId), { designation: String(entry["Designation"] || ""), updatedAt: new Date().toISOString() });
           }
 
-          // 1. Sync Profile
-          const memberProfileData = {
-            memberIdNumber,
-            name,
-            designation: String(entry["Designation"] || ""),
-            dateJoined: String(entry["JoinedDate"] || entry.dateJoined || ""),
-            permanentAddress: String(entry["Address"] || entry.permanentAddress || ""),
-            zonalOffice: String(entry["Office"] || entry.zonalOffice || ""),
-            status: String(entry["Status"] || "Active"),
-            updatedAt: new Date().toISOString()
-          };
-          if (!isExisting) {
-            // @ts-ignore
-            memberProfileData.createdAt = new Date().toISOString();
-          }
-          setDocumentNonBlocking(doc(firestore, "members", memberDocId), memberProfileData, { merge: true });
-
-          // 2. Append Ledger Transaction
-          const postingDate = String(entry["PostingDate"] || entry.PostingDate || new Date().toISOString().split('T')[0]);
-          const particulars = String(entry["Particulars"] || entry.particulars || "Monthly Salary Contribution");
-          
           const ledgerEntry = {
-            summaryDate: postingDate,
-            particulars: particulars,
+            summaryDate: String(entry["PostingDate"] || new Date().toISOString().split('T')[0]),
+            particulars: String(entry["Particulars"] || "Monthly Salary Contribution"),
             employeeContribution: Number(entry["Employee_Contribution"] || 0),
             loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
             loanRepayment: Number(entry["Loan_Repaid"] || 0),
@@ -216,23 +170,16 @@ export default function MembersPage() {
             profitLoan: Number(entry["Loan_Profit"] || 0),
             pbsContribution: Number(entry["PBS_Contribution"] || 0),
             profitPbs: Number(entry["PBS_Profit"] || 0),
-            isSystemGenerated: true,
             memberId: memberDocId,
             createdAt: new Date().toISOString()
           };
 
-          const newSummaryRef = doc(collection(firestore, "members", memberDocId, "fundSummaries"));
-          setDocumentNonBlocking(newSummaryRef, ledgerEntry, { merge: true });
+          setDocumentNonBlocking(doc(collection(firestore, "members", memberDocId, "fundSummaries")), ledgerEntry, { merge: true });
           count++;
         }
-        
-        showAlert({ 
-          title: "Import Success", 
-          description: `Processed ${count} records. Profiles updated and transactions appended.`, 
-          type: "success"
-        });
+        showAlert({ title: "Import Success", description: `Processed ${count} records.`, type: "success" });
       } catch (err) {
-        toast({ title: "Import Failed", description: "Internal processing error during Excel parse.", variant: "destructive" });
+        toast({ title: "Import Failed", variant: "destructive" });
       } finally {
         setIsUploading(false);
         setIsBulkOpen(false);
@@ -241,60 +188,22 @@ export default function MembersPage() {
     reader.readAsBinaryString(file);
   };
 
-  const downloadTemplate = () => {
-    const templateData = [{
-      "ID": "5001",
-      "Name": "MD. ARIFUL ISLAM",
-      "Designation": "AGMF",
-      "Particulars": "Monthly Contribution July-2024",
-      "JoinedDate": "2020-01-01",
-      "PostingDate": "2024-07-31",
-      "Address": "GAZIPUR",
-      "Office": "HEAD OFFICE",
-      "Status": "Active",
-      "Employee_Contribution": 5000,
-      "Loan_Disbursed": 0,
-      "Loan_Repaid": 0,
-      "Employee_Profit": 0,
-      "Loan_Profit": 0,
-      "PBS_Contribution": 5000,
-      "PBS_Profit": 0
-    }];
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "MonthlyImport");
-    XLSX.writeFile(wb, "PBS_CPF_Monthly_Append_Template.xlsx");
-  };
-
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-[#000000]">
       <PageHeaderActions>
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black opacity-40" />
-          <Input 
-            className="pl-9 h-10 bg-white/50 border-black/20 font-black text-xs" 
-            placeholder="Search Registry..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-          />
-          {search && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={handleClearSearch}><FilterX className="size-3.5" /></Button>}
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black/40" />
+          <Input className="pl-9 h-10 bg-white border-black/20 font-black text-xs" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          {search && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => setSearch("")}><FilterX className="size-3.5" /></Button>}
         </div>
-        
-        <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 overflow-hidden ml-2">
-          <div className="flex items-center gap-2 px-3">
-            <Label className="text-[9px] font-black uppercase text-black">Limit:</Label>
-            <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); setLastVisible(null); }}>
-              <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px] focus:ring-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="5" className="font-black text-[10px]">5 Rows</SelectItem>
-                <SelectItem value="10" className="font-black text-[10px]">10 Rows</SelectItem>
-                <SelectItem value="25" className="font-black text-[10px]">25 Rows</SelectItem>
-                <SelectItem value="-1" className="font-black text-[10px]">View All</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 ml-2">
+          <Label className="text-[9px] font-black uppercase text-black px-2">Limit:</Label>
+          <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); setLastVisible(null); }}>
+            <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {[5, 10, 25, -1].map(v => <SelectItem key={v} value={v.toString()} className="font-black text-[10px]">{v === -1 ? 'All' : `${v} Rows`}</SelectItem>)}
+            </SelectContent>
+          </Select>
           {pageSize !== -1 && (
             <div className="flex gap-1 border-l border-black/10 ml-1 pl-1">
               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handlePrevPage} disabled={currentPage === 1}><ChevronLeft className="size-3.5" /></Button>
@@ -302,121 +211,84 @@ export default function MembersPage() {
             </div>
           )}
         </div>
-
-        <div className="h-8 w-px bg-black/10 mx-1" />
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="sm" onClick={() => setIsBulkOpen(true)} className="h-9 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-3">
-            <Upload className="size-3.5" /> Monthly Append
-          </Button>
-          <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 shadow-lg">
-            <Plus className="size-3.5" /> Register Personnel
-          </Button>
+        <div className="flex gap-2 ml-auto">
+          <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-4"><Upload className="size-3.5" /> Monthly Append</Button>
+          <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-6"><Plus className="size-3.5" /> Register Staff</Button>
         </div>
       </PageHeaderActions>
 
-      <div className="bg-white rounded-xl shadow-lg border-2 border-black overflow-hidden">
-        <Table className="font-black text-black">
+      <div className="bg-white rounded-none border-2 border-black overflow-hidden shadow-xl">
+        <Table className="text-black font-black">
           <TableHeader>
             <TableRow className="bg-slate-100 border-b-2 border-black">
-              <TableHead className="w-[120px] font-black uppercase text-[10px] tracking-widest pl-6 text-black py-5">ID Number</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Full Name</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Designation</TableHead>
-              <TableHead className="font-black uppercase text-[10px] tracking-widest text-black py-5">Status</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] tracking-widest pr-6 text-black py-5">Audit Actions</TableHead>
+              <TableHead className="w-[100px] font-black uppercase text-[10px] pl-6 py-5">ID No</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-5">Full Name</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-5">Designation</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-5">Status</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] pr-6 py-5">Audit</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody className="tabular-nums">
+          <TableBody className="tabular-nums text-[#000000]">
             {isLoading && members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
-            ) : members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-32 text-black font-black italic uppercase">Registry Empty</TableCell></TableRow>
-            ) : members.map((member) => (
-              <TableRow key={member.id} className="hover:bg-slate-50 border-b border-black">
-                <TableCell className="font-mono text-base pl-6 text-black font-black py-4">{member.memberIdNumber}</TableCell>
-                <TableCell className="text-sm font-black uppercase text-black py-4">{member.name}</TableCell>
-                <TableCell className="text-[10px] uppercase font-black text-black py-4">{member.designation}</TableCell>
-                <TableCell className="py-4">
-                  <Badge variant="outline" className={cn(
-                    "text-[9px] uppercase font-black px-3 py-0.5 border-black rounded-none",
-                    member.status === 'Active' ? "bg-black text-white" : "bg-white text-black"
-                  )}>{member.status || "Active"}</Badge>
-                </TableCell>
-                <TableCell className="text-right pr-6 py-4">
+              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto" /></TableCell></TableRow>
+            ) : members.map((m) => (
+              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black">
+                <td className="font-mono text-base pl-6 font-black py-4">{m.memberIdNumber}</td>
+                <td className="text-sm font-black uppercase py-4">{m.name}</td>
+                <td className="text-[10px] font-black uppercase py-4">{m.designation}</td>
+                <td className="py-4"><Badge variant="outline" className={cn("text-[9px] uppercase font-black px-3 border-black rounded-none", m.status === 'Active' ? "bg-black text-white" : "bg-white")}>{m.status || "Active"}</Badge></td>
+                <td className="text-right pr-6 py-4">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-black hover:bg-slate-100" onClick={() => { setEditingMember(member); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(member.id, member.name)}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] bg-white text-black hover:bg-black hover:text-white transition-all"><Link href={`/members/${member.id}`}><UserCircle className="size-3.5 mr-2" /> Ledger Audit</Link></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(m.id, m.name)}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px]"><Link href={`/members/${m.id}`}>Ledger Audit</Link></Button>
                   </div>
-                </TableCell>
+                </td>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
 
-      <Dialog open={isAddOpen} onOpenChange={(open) => { setIsAddOpen(open); if (!open) setEditingMember(null); }}>
-        <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 overflow-hidden rounded-none shadow-2xl">
+      <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if (!o) setEditingMember(null); }}>
+        <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
-            <DialogTitle className="font-black uppercase text-2xl tracking-tighter flex items-center gap-3 text-black">
-              <UserCircle className="size-7" />
-              {editingMember ? "Modify Personnel Records" : "New Personnel Registration"}
-            </DialogTitle>
+            <DialogTitle className="font-black uppercase text-2xl">Personnel Registration</DialogTitle>
+            <DialogDescription className="text-xs uppercase font-black opacity-60">Synchronize official trust profiles</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-black">Member ID No (Key)</Label>
-                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 text-black" placeholder="e.g. 5001" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-black">Full Legal Name</Label>
-                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 text-black" placeholder="AS PER SERVICE BOOK" />
-              </div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Member ID No</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Joined Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none" /></div>
             </div>
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 text-black">Official Designation</Label>
-                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 text-black" placeholder="e.g. AGMF" />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-1.5 text-black">
-                  <CalendarDays className="size-3" /> Fund Joined Date
-                </Label>
-                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0 uppercase text-black" />
-              </div>
-            </div>
-            <DialogFooter className="pt-4">
-              <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.3em] rounded-none shadow-xl hover:bg-black/90 text-base">
-                {editingMember ? "Synchronize Profile" : "Register Personnel Profile"}
-              </Button>
-            </DialogFooter>
+            <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.3em] rounded-none">Save Personnel Profile</Button>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
-        <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none shadow-2xl">
+        <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black">
-            <DialogTitle className="text-xl font-black uppercase text-black">Institutional Monthly Append</DialogTitle>
-            <DialogDescription className="text-[10px] uppercase font-black opacity-60 text-black">Append new monthly transactions and sync personnel registry</DialogDescription>
+            <DialogTitle className="text-xl font-black uppercase">Monthly Append Matrix</DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Append transactions and sync profiles</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
-            <div className="bg-slate-50 p-6 border-2 border-black rounded-xl text-center space-y-4">
+            <div className="bg-slate-50 p-10 border-2 border-black border-dashed text-center space-y-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => fileInputRef.current?.click()}>
               <FileSpreadsheet className="size-12 mx-auto text-black opacity-20" />
-              <p className="text-xs font-black uppercase tracking-widest text-black">Select Monthly Salary XLSX</p>
+              <p className="text-xs font-black uppercase tracking-widest">Select Monthly XLSX File</p>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
-              <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-black text-white font-black uppercase h-12">
-                {isUploading ? <Loader2 className="animate-spin mr-2" /> : <Upload className="mr-2" />}
-                Upload Transactions
-              </Button>
+              {isUploading && <Loader2 className="animate-spin mx-auto" />}
             </div>
             <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-black uppercase leading-tight">Importer will link transactions to existing members by ID. New members will be registered automatically. Transactions are appended to the subsidiary ledger.</p>
+              <p className="text-[10px] font-black uppercase leading-tight">Importer will link by ID. Profiles are updated with new designations; new transactions are appended to historical ledger.</p>
             </div>
-            <Button variant="outline" onClick={downloadTemplate} className="w-full border-2 border-black font-black uppercase text-[10px] h-10 text-black">
-              <Download className="size-3.5 mr-2" /> Download Template
-            </Button>
+            <Button variant="outline" onClick={() => {
+              const ws = XLSX.utils.json_to_sheet([{ "ID": "5001", "Name": "MD. ARIFUL ISLAM", "Designation": "AGMF", "Particulars": "Salary July-2024", "PostingDate": "2024-07-31", "Employee_Contribution": 5000, "Loan_Disbursed": 0, "Loan_Repaid": 0, "Employee_Profit": 0, "Loan_Profit": 0, "PBS_Contribution": 5000, "PBS_Profit": 0 }]);
+              const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Monthly"); XLSX.writeFile(wb, "Monthly_Append_Template.xlsx");
+            }} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">Download Excel Template</Button>
           </div>
         </DialogContent>
       </Dialog>
