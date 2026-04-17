@@ -117,6 +117,7 @@ export default function AllLedgersPrintPage() {
           }
           body {
             background-color: white !important;
+            color: #000000 !important;
           }
         }
       `}} />
@@ -152,18 +153,19 @@ export default function AllLedgersPrintPage() {
               <h1 className="text-3xl font-black uppercase tracking-tight text-black">{pbsName}</h1>
               <h2 className="text-xl font-black underline underline-offset-8 decoration-2 uppercase tracking-[0.3em] mt-4 text-black">Provident Fund Subsidiary Ledger</h2>
             </div>
-            <div className="grid grid-cols-3 gap-x-12 gap-y-6 mb-10 text-[13px] font-black border-b-4 border-black pb-6 text-black">
+            
+            <div className="grid grid-cols-3 gap-x-8 gap-y-2 mb-8 text-[12px] font-black border-b-4 border-black pb-4 text-black">
               {[
-                { l: "Member Name", v: ledger.member.name, u: "uppercase" },
-                { l: "Designation", v: ledger.member.designation },
-                { l: "ID Number", v: ledger.member.memberIdNumber, m: "font-mono" },
-                { l: "Perm. Address", v: ledger.member.permanentAddress || "-", s: "text-[11px]" },
+                { l: "Full Legal Name", v: ledger.member.name, u: "uppercase" },
+                { l: "Official Designation", v: ledger.member.designation, u: "uppercase" },
+                { l: "Trust ID Number", v: ledger.member.memberIdNumber, m: "font-mono" },
+                { l: "Mailing Address", v: ledger.member.permanentAddress || "-", s: "text-[10px]" },
                 { l: "Joined Date", v: ledger.member.dateJoined },
                 { l: "Status", v: ledger.member.status || "Active", u: "uppercase" },
               ].map((item, i) => (
-                <div key={i} className="flex gap-2 items-end border-b-2 border-black pb-1.5">
-                  <span className="min-w-[110px] uppercase text-[9px] text-black tracking-widest">{item.l}</span>
-                  <span className={cn("flex-1 truncate font-black text-black", item.u, item.m, item.s)}>{item.v}</span>
+                <div key={i} className="flex items-end gap-2 border-b border-black/20 pb-0.5">
+                  <span className="uppercase text-[9px] text-black shrink-0 tracking-widest min-w-[100px]">{item.l}:</span>
+                  <span className={cn("truncate font-black text-black", item.u, item.m, item.s)}>{item.v}</span>
                 </div>
               ))}
             </div>
@@ -199,7 +201,7 @@ export default function AllLedgersPrintPage() {
               </thead>
               <tbody className="divide-y divide-black font-black tabular-nums text-black">
                 {ledger.rows.map((row, rIdx) => (
-                  <tr key={rIdx}>
+                  <tr key={rIdx} className="h-7">
                     <td className="border border-black p-1 text-center font-mono text-[9px]">{row.summaryDate}</td>
                     <td className="border border-black p-1 truncate text-[9px] uppercase leading-tight">{row.particulars}</td>
                     <td className="border border-black p-1 text-right">{row.col1.toLocaleString()}</td>

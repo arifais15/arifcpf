@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -125,17 +124,15 @@ export default function ContributionAuditPage() {
       confirmText: "Yes, Delete All",
       onConfirm: async () => {
         setIsDeleting(true);
-        let count = 0;
         for (const item of filteredData) {
           const docRef = doc(firestore, "members", item.memberId, "fundSummaries", item.id);
           deleteDocumentNonBlocking(docRef);
-          count++;
         }
         setIsDeleting(false);
         setIsCleanupOpen(false);
         showAlert({
           title: "Cleanup Complete",
-          description: `Successfully removed ${count} records.`,
+          description: `Removal process initiated for ${filteredData.length} records.`,
           type: "success"
         });
       }
@@ -293,54 +290,6 @@ export default function ContributionAuditPage() {
           </div>
         </DialogContent>
       </Dialog>
-
-      <div className="hidden print:block print-container font-ledger text-black">
-        <div className="text-center space-y-2 mb-8 border-b-4 border-black pb-6">
-          <h1 className="text-4xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
-          <h2 className="text-xl font-black underline underline-offset-4 decoration-2 uppercase tracking-[0.2em] mt-4">Institutional Contribution & Profit Audit Statement</h2>
-          <div className="flex justify-between text-[11px] font-black pt-8">
-            <span className="bg-black text-white px-4 py-1">Ledger Period: {dateRange.start} to {dateRange.end}</span>
-            <span>Audit Run Date: {new Date().toLocaleDateString('en-GB')}</span>
-          </div>
-        </div>
-        <table className="w-full text-[9px] border-collapse border-2 border-black text-black font-black tabular-nums">
-          <thead>
-            <tr className="bg-slate-100 border-b-2 border-black">
-              <th className="border border-black p-2 uppercase">Date</th>
-              <th className="border border-black p-2 text-left uppercase">Particulars & Synchronized Metadata</th>
-              <th className="border border-black p-2 text-right uppercase">Emp. Cont (৳)</th>
-              <th className="border border-black p-2 text-right uppercase">PBS Cont (৳)</th>
-              <th className="border border-black p-2 text-right uppercase bg-slate-50">Profit (৳)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((item, idx) => (
-              <tr key={idx} className="border-b border-black">
-                <td className="border border-black p-2 text-center font-mono">{item.summaryDate}</td>
-                <td className="border border-black p-2 uppercase text-[8px] leading-tight">{item.particulars}</td>
-                <td className="border border-black p-2 text-right">{Number(item.employeeContribution || 0).toLocaleString()}</td>
-                <td className="border border-black p-2 text-right">{Number(item.pbsContribution || 0).toLocaleString()}</td>
-                <td className="border border-black p-2 text-right font-black bg-slate-50">{(Number(item.profitEmployee || 0) + Number(item.profitPbs || 0)).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-100 font-black border-t-2 border-black h-12">
-              <td colSpan={2} className="border border-black p-2 text-right uppercase tracking-widest">Institutional Audit Totals:</td>
-              <td className="border border-black p-2 text-right">{stats.manualEmp.toLocaleString()}</td>
-              <td className="border border-black p-2 text-right">{stats.manualPbs.toLocaleString()}</td>
-              <td className="border border-black p-2 text-right text-base underline decoration-double">৳ {stats.systemProfit.toLocaleString()}</td>
-            </tr>
-          </tfoot>
-        </table>
-        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest">
-          <div className="border-t-2 border-black pt-4">Prepared by</div>
-          <div className="border-t-2 border-black pt-4">Checked by</div>
-          <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
-        </div>
-        <StandardFooter />
-      </div>
     </div>
   );
 }

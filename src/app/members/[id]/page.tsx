@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -190,25 +189,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </PageHeaderActions>
 
       <div className="bg-white p-8 md:p-10 shadow-2xl rounded-none border-4 border-black max-w-[1400px] mx-auto w-full font-ledger print-container">
-        <div className="relative mb-6 text-center border-b-4 border-black pb-4">
+        <div className="relative mb-8 text-center border-b-4 border-black pb-4">
           <p className="text-[10px] absolute left-0 top-0 font-black uppercase tracking-[0.2em]">REB Form no: 224</p>
           <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
           <p className="text-sm font-black uppercase tracking-[0.35em] text-black mt-1">Contributory Provident Fund</p>
           <h2 className="text-xl font-black underline underline-offset-8 decoration-4 uppercase tracking-[0.3em] mt-4">Subsidiary Ledger Statement</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-12 gap-y-3 mb-4 text-[13px] font-black border-b-4 border-black pb-4">
+        <div className="grid grid-cols-3 gap-x-8 gap-y-2 mb-6 text-[12px] font-black border-b-4 border-black pb-4">
           {[
-            { label: "Full Legal Name", value: member.name, sub: "uppercase text-lg" },
+            { label: "Full Legal Name", value: member.name, sub: "uppercase text-sm" },
             { label: "Official Designation", value: member.designation, sub: "uppercase" },
-            { label: "Trust ID Number", value: member.memberIdNumber, sub: "font-mono text-xl" },
+            { label: "Trust ID Number", value: member.memberIdNumber, sub: "font-mono" },
             { label: "Joined Date", value: member.dateJoined, sub: "" },
-            { label: "Status", value: member.status || "Active", sub: "uppercase bg-black text-white px-3 py-0.5" },
-            { label: "Mailing Address", value: member.permanentAddress || "-", sub: "text-xs italic opacity-70" },
+            { label: "Status", value: member.status || "Active", sub: "uppercase" },
+            { label: "Mailing Address", value: member.permanentAddress || "-", sub: "truncate max-w-[200px]" },
           ].map((item, idx) => (
-            <div key={idx} className="flex flex-col gap-1">
-              <span className="font-black uppercase text-[8px] text-black/50 tracking-[0.2em]">{item.label}</span>
-              <div className="border-b border-black/40 pb-0.5"><span className={cn("font-black", item.sub)}>{item.value}</span></div>
+            <div key={idx} className="flex items-end gap-2 border-b border-black/20 pb-0.5">
+              <span className="uppercase text-[9px] text-black shrink-0 tracking-widest min-w-[100px]">{item.label}:</span>
+              <span className={cn("font-black uppercase truncate", item.sub)}>{item.value}</span>
             </div>
           ))}
         </div>
@@ -234,7 +233,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             </thead>
             <tbody>
               {paginatedRows.map((row: any, idx) => (
-                <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black", row.isOpening && "bg-slate-50 italic")}>
+                <tr key={row.id} className={cn("hover:bg-slate-50 border-b border-black h-7", row.isOpening && "bg-slate-50 italic")}>
                   <td className="border border-black p-0.5 text-center font-mono text-[9px]">{row.summaryDate}</td>
                   <td className="border border-black p-0.5 truncate uppercase text-[9px]">
                     {row.particulars}
