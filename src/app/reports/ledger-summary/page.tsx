@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -149,7 +150,7 @@ export default function LedgerSummaryReportPage() {
                   <td className="p-0.5 text-right border-r">{r.c1.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c2.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c3.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50">{r.c4.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c4.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c5.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2">{r.c6.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c7.toLocaleString()}</td>
