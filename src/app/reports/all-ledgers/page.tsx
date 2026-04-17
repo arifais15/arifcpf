@@ -215,7 +215,7 @@ export default function AllLedgersPrintPage() {
         <div className="flex items-center gap-3 bg-black/5 p-2 rounded-xl h-14 px-3">
           <div className="flex items-center gap-2 pr-3 border-r border-black/10">
             <Select value={selectedFY} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-8 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase">
+              <SelectTrigger className="h-8 w-[110px] bg-white border-black/20 text-[10px] font-black uppercase focus:ring-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

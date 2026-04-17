@@ -85,7 +85,7 @@ export default function LedgerSummaryReportPage() {
       "Net Emp (7)": r.c7,
       "PBS Contrib (8)": r.c8,
       "PBS Profit (9)": r.c9,
-      "Net Office (10)": r.col10,
+      "Net Office (10)": r.c10,
       "Total Fund (11)": r.c11
     }));
 
@@ -122,7 +122,7 @@ export default function LedgerSummaryReportPage() {
         <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border-4 border-black shadow-xl">
           <div className="grid gap-1">
             <Label className="text-[10px] font-black uppercase">Cut-off Date</Label>
-            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-9 border-2 border-black font-black" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-9 border-2 border-black font-black" />
           </div>
           <div className="flex gap-2">
             <Button variant="outline" onClick={exportToExcel} className="h-10 font-black px-4 border-2 border-black uppercase tracking-widest text-[10px] gap-2">
@@ -144,12 +144,12 @@ export default function LedgerSummaryReportPage() {
           <Badge className="bg-black text-white font-black px-4 py-1.5 uppercase tracking-widest">{reportData.length} Personnel Registered</Badge>
         </div>
         
-        <div className="overflow-x-auto">
-          <Table className="min-w-[1500px] font-black tabular-nums border-collapse">
+        <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-black">
+          <Table className="min-w-[1600px] font-black tabular-nums border-collapse">
             <TableHeader className="bg-slate-100 border-b-4 border-black">
               <tr className="uppercase text-[8px]">
-                <th rowSpan={2} className="border-r-4 border-black p-2 w-[80px] sticky left-0 bg-slate-100 z-10">ID No</th>
-                <th rowSpan={2} className="border-r-4 border-black p-2 w-[180px] sticky left-[80px] bg-slate-100 z-10">Member Name</th>
+                <th rowSpan={2} className="border-r-4 border-black p-2 w-[80px] sticky left-0 bg-slate-100 z-30">ID No</th>
+                <th rowSpan={2} className="border-r-4 border-black p-2 w-[220px] sticky left-[80px] bg-slate-100 z-30">Member Name & Designation</th>
                 <th colSpan={4} className="border-r-4 border-black p-1 bg-slate-200/50">Contributions & Loans</th>
                 <th colSpan={2} className="border-r-4 border-black p-1 bg-slate-100">Profits Accrued</th>
                 <th className="border-r-4 border-black p-1 bg-slate-200">Net Emp(7)</th>
@@ -173,9 +173,12 @@ export default function LedgerSummaryReportPage() {
             </TableHeader>
             <TableBody className="text-[10px]">
               {reportData.map((r, i) => (
-                <TableRow key={i} className="border-b-2 border-black hover:bg-slate-50 h-8">
-                  <td className="p-1 border-r-4 border-black font-mono sticky left-0 bg-white z-10">{r.memberIdNumber}</td>
-                  <td className="p-1 border-r-4 border-black uppercase sticky left-[80px] bg-white z-10 truncate">{r.name}</td>
+                <TableRow key={i} className="border-b-2 border-black hover:bg-slate-50 h-10">
+                  <td className="p-1 border-r-4 border-black font-mono sticky left-0 bg-white z-20">{r.memberIdNumber}</td>
+                  <td className="p-1 border-r-4 border-black uppercase sticky left-[80px] bg-white z-20 leading-tight">
+                    <span className="block font-black text-sm">{r.name}</span>
+                    <span className="block text-[8px] opacity-60 truncate">{r.designation}</span>
+                  </td>
                   <td className="p-1 text-right border-r">{r.c1.toLocaleString()}</td>
                   <td className="p-1 text-right border-r">{r.c2.toLocaleString()}</td>
                   <td className="p-1 text-right border-r">{r.c3.toLocaleString()}</td>
@@ -186,13 +189,13 @@ export default function LedgerSummaryReportPage() {
                   <td className="p-1 text-right border-r">{r.c8.toLocaleString()}</td>
                   <td className="p-1 text-right border-r-4">{r.c9.toLocaleString()}</td>
                   <td className="p-1 text-right border-r-4 bg-slate-50">{r.c10.toLocaleString()}</td>
-                  <td className="p-1 text-right bg-slate-100 underline decoration-black decoration-1">৳ {r.c11.toLocaleString()}</td>
+                  <td className="p-1 text-right bg-slate-100 underline decoration-black decoration-1 font-bold text-sm">৳ {r.c11.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter className="bg-slate-900 text-white font-black">
-              <TableRow className="h-12 text-[9px]">
-                <TableCell colSpan={2} className="text-right uppercase tracking-widest pr-4 sticky left-0 bg-slate-900 z-10">Totals:</TableCell>
+              <TableRow className="h-14 text-[9px]">
+                <TableCell colSpan={2} className="text-right uppercase tracking-widest pr-4 sticky left-0 bg-slate-900 z-30">Consolidated Grand Totals:</TableCell>
                 <TableCell className="text-right border-r border-white/10">{stats.c1.toLocaleString()}</TableCell>
                 <TableCell className="text-right border-r border-white/10">{stats.c2.toLocaleString()}</TableCell>
                 <TableCell className="text-right border-r border-white/10">{stats.c3.toLocaleString()}</TableCell>
@@ -203,7 +206,7 @@ export default function LedgerSummaryReportPage() {
                 <TableCell className="text-right border-r border-white/10">{stats.c8.toLocaleString()}</TableCell>
                 <TableCell className="text-right border-r-4 border-white/40">{stats.c9.toLocaleString()}</TableCell>
                 <TableCell className="text-right border-r-4 border-white/40 bg-white/10">{stats.c10.toLocaleString()}</TableCell>
-                <TableCell className="text-right bg-white text-black text-sm underline decoration-double">৳ {stats.c11.toLocaleString()}</TableCell>
+                <TableCell className="text-right bg-white text-black text-base underline decoration-double">৳ {stats.c11.toLocaleString()}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>

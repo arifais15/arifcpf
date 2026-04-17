@@ -10,7 +10,8 @@ import {
   Plus, 
   Edit2, 
   Trash2, 
-  ArrowRightLeft
+  ArrowRightLeft,
+  Calculator
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -31,8 +32,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
-  const [pageSize, setPageSize] = useState<number>(-1);
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
@@ -216,7 +215,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
 
         <div className="flex items-center gap-1 ml-auto no-print">
-          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> New Entry</Button>
+          <Button variant="outline" onClick={() => { setEditingEntry(null); setIsEntryOpen(true); }} className="h-9 border-black font-black text-[10px] uppercase gap-1.5 px-3"><Plus className="size-3.5" /> New Entry</Button>
           <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-4 ml-1"><Printer className="size-3.5" /> Print Ledger</Button>
         </div>
       </PageHeaderActions>
@@ -316,8 +315,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
         <DialogContent className="max-w-4xl border-2 border-black rounded-none p-0 overflow-hidden shadow-2xl">
-          <form onSubmit={handleSaveEntry} className="p-8 space-y-6">
-            <h2 className="text-2xl font-black uppercase border-b-2 border-black pb-4">{editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}</h2>
+          <DialogHeader className="p-8 border-b-2 border-black bg-slate-50">
+            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3">
+              <Calculator className="size-6" />
+              {editingEntry ? "Edit Ledger Entry" : "New Ledger Entry"}
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEntry} className="p-8 space-y-6 pt-0 mt-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="border-2 border-black font-black" /></div>
               <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="border-2 border-black font-black" /></div>
