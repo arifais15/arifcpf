@@ -160,6 +160,8 @@ export default function MembersPage() {
           const newMemberRef = doc(memberCol);
 
           const joinedDate = String(entry["JoinedDate"] || entry.dateJoined || "");
+          const postingDate = String(entry["PostingDate"] || joinedDate || new Date().toISOString().split('T')[0]);
+          
           const memberData = {
             memberIdNumber,
             name,
@@ -175,7 +177,7 @@ export default function MembersPage() {
           setDocumentNonBlocking(newMemberRef, memberData, { merge: true });
 
           const openingEntry = {
-            summaryDate: joinedDate || new Date().toISOString().split('T')[0],
+            summaryDate: postingDate,
             particulars: "Opening Balance (Imported)",
             employeeContribution: Number(entry["Employee_Contribution"] || 0),
             loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
@@ -217,6 +219,7 @@ export default function MembersPage() {
       "Name": "MD. ARIFUL ISLAM",
       "Designation": "AGMF",
       "JoinedDate": "2020-01-01",
+      "PostingDate": "2024-01-01",
       "Address": "GAZIPUR",
       "Office": "HEAD OFFICE",
       "Status": "Active",

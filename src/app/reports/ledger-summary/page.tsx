@@ -126,47 +126,37 @@ export default function LedgerSummaryReportPage() {
           <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
               <tr className="uppercase text-[7px] leading-tight">
-                <th rowSpan={2} className="border-r-2 border-black p-1 w-[40px]">ID</th>
-                <th rowSpan={2} className="border-r-2 border-black p-1 text-left w-[110px]">Name</th>
-                <th colSpan={4} className="border-r-2 border-black p-0.5 bg-slate-200/50">Contributions</th>
-                <th colSpan={2} className="border-r-2 border-black p-0.5">Profits</th>
-                <th className="border-r-2 border-black p-0.5 bg-slate-200">Equity(7)</th>
-                <th colSpan={2} className="border-r-2 border-black p-0.5">PBS</th>
-                <th className="border-r-2 border-black p-0.5 bg-slate-200">Off(10)</th>
-                <th className="p-1 bg-black text-white w-[75px]">TOTAL(11)</th>
-              </tr>
-              <tr className="bg-slate-50 text-[6px] uppercase">
-                <th className="p-0.5 text-right border-r">E(1)</th>
-                <th className="p-0.5 text-right border-r">D(2)</th>
-                <th className="p-0.5 text-right border-r">R(3)</th>
-                <th className="p-0.5 text-right border-r-2 bg-slate-100">L(4)</th>
-                <th className="p-0.5 text-right border-r">P(5)</th>
-                <th className="p-0.5 text-right border-r-2">L(6)</th>
-                <th className="p-0.5 text-right border-r-2 bg-slate-200">7</th>
-                <th className="p-0.5 text-right border-r">O(8)</th>
-                <th className="p-0.5 text-right border-r-2">P(9)</th>
-                <th className="p-0.5 text-right border-r-2 bg-slate-100">10</th>
-                <th className="p-0.5 text-right bg-slate-300">11</th>
+                <th className="border-r-2 border-black p-0.5 w-[40px]">ID</th>
+                <th className="border-r-2 border-black p-0.5 text-left w-[100px]">Name</th>
+                <th className="text-right border-r p-0.5 w-[65px]">E(1)</th>
+                <th className="text-right border-r p-0.5 w-[65px]">D(2)</th>
+                <th className="text-right border-r p-0.5 w-[65px]">R(3)</th>
+                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-100">L(4)</th>
+                <th className="text-right border-r p-0.5 w-[65px]">P(5)</th>
+                <th className="text-right border-r-2 p-0.5 w-[65px]">L(6)</th>
+                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-200">7</th>
+                <th className="text-right border-r p-0.5 w-[65px]">O(8)</th>
+                <th className="text-right border-r-2 p-0.5 w-[65px]">P(9)</th>
+                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-100">10</th>
+                <th className="text-right p-0.5 w-[85px] bg-black text-white">11</th>
               </tr>
             </TableHeader>
             <TableBody>
               {reportData.map((r, i) => (
                 <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-8">
                   <td className="p-0.5 border-r-2 border-black font-mono text-center">{r.memberIdNumber}</td>
-                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none">
-                    <span className="font-black block">{r.name}</span>
-                  </td>
+                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none font-black">{r.name}</td>
                   <td className="p-0.5 text-right border-r">{r.c1.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c2.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c3.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2 bg-slate-50">{r.c4.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c5.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2">{r.c6.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50">{r.c7.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c7.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r">{r.c8.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r-2">{r.c9.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50">{r.c10.toLocaleString()}</td>
-                  <td className="p-0.5 text-right bg-slate-100 font-bold text-black"> {r.c11.toLocaleString()}</td>
+                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold">{r.c10.toLocaleString()}</td>
+                  <td className="p-0.5 text-right bg-slate-100 font-black text-black"> {r.c11.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
