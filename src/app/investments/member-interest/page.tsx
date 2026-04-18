@@ -114,7 +114,10 @@ export default function CPFInterestPage() {
   }, [fyOptions]);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
-  const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
+  const { data: rawMembers, isLoading: isMembersLoading } = useCollection(membersRef);
+  
+  // Filter for calculations
+  const activeMembers = useMemo(() => rawMembers?.filter(m => m.status === 'Active') || [], [rawMembers]);
 
   const calculateTieredAnnual = (balance: number) => {
     let totalInterest = 0;
@@ -137,7 +140,7 @@ export default function CPFInterestPage() {
   };
 
   const handleRunCPFCalculation = async () => {
-    if (!members) return;
+    if (activeMembers.length === 0) return;
     if (calculationMode === 'custom' && (!customRange.start || !customRange.end)) return;
 
     setIsCalculating(true);
@@ -154,15 +157,8 @@ export default function CPFInterestPage() {
     const results = [];
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
 
-    for (let i = 0; i < members.length; i++) {
-      const member = members[i];
-      
-      // SKIP INACTIVE MEMBERS PER INSTITUTIONAL RULE
-      if (member.status !== 'Active') {
-        setProgress(Math.round(((i + 1) / members.length) * 100));
-        continue;
-      }
-
+    for (let i = 0; i < activeMembers.length; i++) {
+      const member = activeMembers[i];
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
       const snapshot = await getDocs(q);
@@ -220,7 +216,7 @@ export default function CPFInterestPage() {
       const pbsProfit = totalFundAtEnd > 0 ? (totalInterest * finalOfficeFund) / totalFundAtEnd : totalInterest / 2;
 
       results.push({ memberId: member.id, memberIdNumber: member.memberIdNumber, name: member.name, designation: member.designation || "N/A", calculatedInterest: totalInterest, employeeProfit, pbsProfit, employeeFund: finalEmployeeFund, officeFund: finalOfficeFund, isPosted: isAlreadyPosted, monthlyDetails: monthlyBreakdown });
-      setProgress(Math.round(((i + 1) / members.length) * 100));
+      setProgress(Math.round(((i + 1) / activeMembers.length) * 100));
     }
     setPreviewData(results);
     setIsCalculating(false);
@@ -243,7 +239,7 @@ export default function CPFInterestPage() {
         profitEmployee: Math.round(item.employeeProfit), 
         profitLoan: 0, 
         pbsContribution: 0, 
-        profitPbs: Math.round(item.pbsProfit), // CORRECTED: MAP TO COLUMN 9
+        profitPbs: Math.round(item.pbsProfit), // Map to Column 9
         lastUpdateDate: new Date().toISOString(), 
         createdAt: new Date().toISOString(), 
         memberId: item.memberId 
@@ -257,23 +253,23 @@ export default function CPFInterestPage() {
 
   const exportToExcel = () => {
     if (previewData.length === 0) return;
-    const exportRows = previewData.map(item => ({ "Member ID": item.memberIdNumber, "Name": item.name, "Designation": item.designation, "Profit (Emp)": item.employeeProfit.toFixed(2), "Profit (PBS)": item.pbsProfit.toFixed(2), "Total": item.calculatedInterest.toFixed(2) }));
+    const exportRows = previewData.map(item => ({ 
+      "Member ID": item.memberIdNumber, 
+      "Name": item.name, 
+      "Designation": item.designation, 
+      "Profit (Emp)": item.employeeProfit.toFixed(2), 
+      "Profit (PBS)": item.pbsProfit.toFixed(2), 
+      "Total": item.calculatedInterest.toFixed(2) 
+    }));
     const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Interest");
-    XLSX.writeFile(wb, `CPF_Profit_${selectedFY}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, "Annual Interest");
+    XLSX.writeFile(wb, `CPF_Profit_Audit_${selectedFY || 'Custom'}.xlsx`);
     toast({ title: "Exported", description: "Interest distribution data saved to Excel." });
   };
 
   const totalCPFProfit = useMemo(() => previewData.reduce((sum, item) => sum + item.calculatedInterest, 0), [previewData]);
   const hasUnpostedEntries = useMemo(() => previewData.some(item => !item.isPosted && item.calculatedInterest > 0), [previewData]);
-
-  const StandardFooter = () => (
-    <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-      <span>CPF Management Software</span>
-      <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
-    </div>
-  );
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
@@ -296,12 +292,10 @@ export default function CPFInterestPage() {
           <div className="h-6 w-px bg-black hidden sm:block" />
 
           {calculationMode === 'fy' ? (
-            <div className="flex items-center gap-2">
-              <Select value={selectedFY} onValueChange={setSelectedFY}>
-                <SelectTrigger className="w-[140px] border-2 border-black font-black text-xs h-9 uppercase"><SelectValue /></SelectTrigger>
-                <SelectContent>{fyOptions.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs uppercase">FY {fy}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
+            <Select value={selectedFY} onValueChange={setSelectedFY}>
+              <SelectTrigger className="w-[140px] border-2 border-black font-black text-xs h-9 uppercase"><SelectValue /></SelectTrigger>
+              <SelectContent>{fyOptions.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs uppercase">FY {fy}</SelectItem>)}</SelectContent>
+            </Select>
           ) : (
             <div className="flex items-center gap-2">
               <Input type="date" value={customRange.start} max="9999-12-31" onChange={(e) => setCustomRange({...customRange, start: e.target.value})} className="h-9 text-xs border-2 border-black font-black" />
@@ -320,7 +314,7 @@ export default function CPFInterestPage() {
       <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
           <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-black">Audit Scope</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-black">{members?.filter(m => m.status === 'Active').length || 0} Active Members</div></CardContent>
+          <CardContent><div className="text-2xl font-black">{activeMembers.length} Active Members</div></CardContent>
         </Card>
         <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
           <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-black">Computed Profit</CardTitle></CardHeader>
@@ -347,9 +341,20 @@ export default function CPFInterestPage() {
       {previewData.length > 0 && (
         <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden no-print animate-in fade-in duration-500">
           <div className="p-6 border-b-4 border-black bg-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <h2 className="font-black text-sm uppercase tracking-widest flex items-center gap-3">
-              <ShieldCheck className="size-5" /> Audit Matrix Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
-            </h2>
+            <div className="flex flex-col gap-3">
+              <h2 className="font-black text-sm uppercase tracking-widest flex items-center gap-3">
+                <ShieldCheck className="size-5" /> Audit Matrix Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
+              </h2>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={exportToExcel} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
+                  <FileSpreadsheet className="size-3.5" /> Export Excel
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
+                  <Printer className="size-3.5" /> Print Audit Report
+                </Button>
+              </div>
+            </div>
+            
             <div className="flex items-center gap-4 bg-white p-3 border-2 border-black shadow-lg">
               <div className="grid gap-1">
                 <Label className="text-[9px] uppercase font-black text-black">Ledger Posting Date</Label>
@@ -404,6 +409,7 @@ export default function CPFInterestPage() {
         </div>
       )}
 
+      {/* Detail Breakdown Dialog */}
       <Dialog open={!!viewingDetails} onOpenChange={(open) => !open && setViewingDetails(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto font-ledger text-black border-4 border-black p-0 rounded-none shadow-2xl">
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
@@ -479,11 +485,12 @@ export default function CPFInterestPage() {
             </div>
           </div>
           <div className="bg-slate-100 p-6 border-t-4 border-black text-right">
-            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white">Close Terminal</Button>
+            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-6">Close Terminal</Button>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* PRINT VIEW */}
       <div className="hidden print:block print-container text-black font-black">
         <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
           <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
@@ -529,7 +536,6 @@ export default function CPFInterestPage() {
           <div className="border-t-2 border-black pt-4">Checked by</div>
           <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
         </div>
-        <StandardFooter />
       </div>
     </div>
   );

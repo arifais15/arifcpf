@@ -84,6 +84,8 @@ export default function SpecialInterestDPPage() {
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
+  
+  const activeMembers = useMemo(() => members?.filter(m => m.status === 'Active') || [], [members]);
 
   const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
   const { data: interestSettings } = useDoc(interestSettingsRef);
@@ -125,23 +127,31 @@ export default function SpecialInterestDPPage() {
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
     
-    // INSTITUTIONAL RULE: ONLY ACTIVE MEMBERS ARE ELIGIBLE FOR INTEREST CALCULATION
     const targetMembers = selectedMember === "all" 
-      ? (members?.filter(m => m.status === 'Active') || []) 
-      : (members?.filter(m => m.id === selectedMember && m.status === 'Active') || []);
+      ? activeMembers 
+      : activeMembers.filter(m => m.id === selectedMember);
+
+    if (targetMembers.length === 0 && selectedMember !== "all") {
+       toast({ title: "Ineligible Member", description: "Interest is only calculated for Active members.", variant: "destructive" });
+       setIsCalculating(false);
+       return;
+    }
 
     const auditResults = [];
     for (const member of targetMembers) {
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const snapshot = await getDocs(query(summariesRef, orderBy("summaryDate", "asc")));
       const allEntries = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+      
       let totalInterest = 0;
       let dailyLog = [];
       let currentDate = new Date(auditStart);
       const openingRefDate = new Date(auditStart);
       openingRefDate.setDate(openingRefDate.getDate() - 1);
-      let runningBalance = allEntries.filter((e: any) => new Date(e.summaryDate) <= openingRefDate).reduce((sum, e: any) => sum + ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0) + (Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)), 0);
+      
+      let runningBalance = allEntries.filter((e: any) => new Date(e.summaryDate).getTime() <= openingRefDate.getTime()).reduce((sum, e: any) => sum + ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0) + (Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)), 0);
       const openingBalance = runningBalance;
+      
       while (currentDate <= auditEnd) {
         const dateStr = currentDate.toISOString().split('T')[0];
         const daysEntries = allEntries.filter((e: any) => e.summaryDate === dateStr);
@@ -151,16 +161,15 @@ export default function SpecialInterestDPPage() {
         dailyLog.push({ date: dateStr, balance: runningBalance, interest: dailyInterest, hasActivity: daysEntries.length > 0 });
         currentDate.setDate(currentDate.getDate() + 1);
       }
+      
       let currentEmpFund = 0, currentPbsFund = 0;
-      allEntries.forEach((e: any) => { if (new Date(e.summaryDate) <= auditEnd) { currentEmpFund += ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0)); currentPbsFund += ((Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)); } });
+      allEntries.forEach((e: any) => { if (new Date(e.summaryDate).getTime() <= auditEnd.getTime()) { currentEmpFund += ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0)); currentPbsFund += ((Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)); } });
       const totalFund = currentEmpFund + currentPbsFund;
+      
       auditResults.push({ memberId: member.id, memberIdNumber: member.memberIdNumber, name: member.name, designation: member.designation, openingBalance, closingBalance: runningBalance, totalInterest, empProfit: totalFund > 0 ? (totalInterest * currentEmpFund) / totalFund : totalInterest / 2, pbsProfit: totalFund > 0 ? (totalInterest * currentPbsFund) / totalFund : totalInterest / 2, dailyLog, days: dailyLog.length });
     }
     setResults(auditResults);
     setIsCalculating(false);
-    if (auditResults.length === 0 && selectedMember !== "all") {
-      toast({ title: "Ineligible Member", description: "Interest is only calculated for Active members.", variant: "destructive" });
-    }
   };
 
   const handlePostAll = async () => {
@@ -176,21 +185,35 @@ export default function SpecialInterestDPPage() {
     toast({ title: "Posted", description: "Special interest distribution synchronized." });
   };
 
+  const exportToExcel = () => {
+    if (results.length === 0) return;
+    const data = results.map(r => ({
+      "ID No": r.memberIdNumber,
+      "Name": r.name,
+      "Days Audited": r.days,
+      "Opening Balance": r.openingBalance.toFixed(2),
+      "Closing Balance": r.closingBalance.toFixed(2),
+      "Total DP Profit": r.totalInterest.toFixed(2),
+      "Emp Portion": r.empProfit.toFixed(2),
+      "PBS Portion": r.pbsProfit.toFixed(2)
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Special Interest");
+    XLSX.writeFile(wb, `Special_Profit_Audit_${dateRange.start}.xlsx`);
+    toast({ title: "Exported", description: "Audit data saved to Excel." });
+  };
+
   const monthlyBreakdown = useMemo(() => {
     if (!viewingDetails?.dailyLog) return [];
-    
     const groups: Record<string, number> = {};
     viewingDetails.dailyLog.forEach((day: any) => {
-      const monthKey = day.date.substring(0, 7); // YYYY-MM
+      const monthKey = day.date.substring(0, 7); 
       groups[monthKey] = (groups[monthKey] || 0) + day.interest;
     });
-
     return Object.entries(groups).map(([key, amount]) => {
       const date = new Date(key + "-01");
-      return {
-        label: date.toLocaleDateString('default', { month: 'long', year: 'numeric' }),
-        amount
-      };
+      return { label: date.toLocaleDateString('default', { month: 'long', year: 'numeric' }), amount };
     });
   }, [viewingDetails]);
 
@@ -204,11 +227,6 @@ export default function SpecialInterestDPPage() {
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Mid-month balance tracking • Fraction month settlement audit</p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => window.print()} disabled={results.length === 0} className="gap-2 h-11 font-black bg-black text-white shadow-lg uppercase tracking-widest">
-            <Printer className="size-4" /> Print Statement
-          </Button>
-        </div>
       </div>
 
       <div className="bg-white p-6 rounded-2xl border-2 border-black shadow-xl flex flex-col gap-6 no-print">
@@ -216,11 +234,11 @@ export default function SpecialInterestDPPage() {
           <div className="space-y-1.5">
             <Label className="text-[10px] uppercase font-black text-black ml-1">Active Member Focus</Label>
             <Select value={selectedMember} onValueChange={setSelectedMember}>
-              <SelectTrigger className="h-11 font-black border-black border-2"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="h-11 border-black border-2 font-black uppercase text-xs"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">All Active Institutional Personnel</SelectItem>
-                {members?.filter(m => m.status === 'Active').map(m => (
-                  <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name} ({m.designation})</SelectItem>
+                <SelectItem value="all" className="font-black text-xs">ALL ACTIVE PERSONNEL</SelectItem>
+                {activeMembers.map(m => (
+                  <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -259,6 +277,17 @@ export default function SpecialInterestDPPage() {
           </div>
 
           <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden no-print">
+            <div className="p-4 bg-slate-50 border-b-4 border-black flex items-center justify-between">
+               <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={exportToExcel} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
+                    <FileSpreadsheet className="size-3.5" /> Export Excel
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => window.print()} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
+                    <Printer className="size-3.5" /> Print Statement
+                  </Button>
+               </div>
+               <Badge className="bg-black text-white rounded-none uppercase text-[9px] font-black">Audit Results: {results.length} Personnel</Badge>
+            </div>
             <Table className="text-black font-black">
               <TableHeader className="bg-slate-100 border-b-2 border-black">
                 <TableRow>
@@ -285,7 +314,7 @@ export default function SpecialInterestDPPage() {
         </div>
       )}
 
-      {/* DETAIL BREAKDOWN DIALOG */}
+      {/* Detail Breakdown Dialog */}
       <Dialog open={!!viewingDetails} onOpenChange={(o) => !o && setViewingDetails(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto font-ledger text-black border-4 border-black p-0 rounded-none shadow-2xl">
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
@@ -398,6 +427,7 @@ export default function SpecialInterestDPPage() {
         </DialogContent>
       </Dialog>
 
+      {/* PRINT VIEW */}
       <div className="hidden print:block print-container text-black font-black">
         <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
           <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
