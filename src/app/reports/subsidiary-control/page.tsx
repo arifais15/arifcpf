@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -18,7 +17,8 @@ import {
   ArrowRightLeft,
   LayoutList,
   History,
-  ShieldCheck
+  ShieldCheck,
+  FileSpreadsheet
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
@@ -34,9 +34,12 @@ import {
   DialogDescription 
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SubsidiaryControlLedgerPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
@@ -105,6 +108,29 @@ export default function SubsidiaryControlLedgerPage() {
     return { rows, opening: openingBalance, closing: currentBalance };
   }, [allSummaries, dateRange]);
 
+  const exportToExcel = () => {
+    if (ledgerResult.rows.length === 0) return;
+    const exportRows = [
+      { Date: dateRange.start, Particulars: "Opening Balance Brought Forward", Debit: 0, Credit: 0, Balance: ledgerResult.opening }
+    ];
+
+    ledgerResult.rows.forEach(r => {
+      exportRows.push({
+        Date: r.date,
+        Particulars: r.particulars,
+        Debit: r.debit,
+        Credit: r.credit,
+        Balance: r.balance
+      });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Subsidiary Control");
+    XLSX.writeFile(wb, `Subsidiary_Control_${dateRange.start}_to_${dateRange.end}.xlsx`);
+    toast({ title: "Exported", description: "Subsidiary control ledger saved to Excel." });
+  };
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-[#000000]">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -115,9 +141,14 @@ export default function SubsidiaryControlLedgerPage() {
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Audit Matrix</p>
           </div>
         </div>
-        <Button onClick={() => window.print()} className="gap-2 h-10 font-black bg-black text-white shadow-xl uppercase tracking-widest text-xs px-8">
-          <Printer className="size-4" /> Print Control Ledger
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel} className="gap-2 h-10 font-black border-black text-black shadow-xl uppercase tracking-widest text-[10px] px-6">
+            <FileSpreadsheet className="size-4" /> Export Excel
+          </Button>
+          <Button onClick={() => window.print()} className="gap-2 h-10 font-black bg-black text-white shadow-xl uppercase tracking-widest text-[10px] px-8">
+            <Printer className="size-4" /> Print Control Ledger
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-2xl border-4 border-black shadow-2xl flex items-center justify-between no-print">

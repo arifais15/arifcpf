@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -30,6 +29,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function LoanReportPage() {
   const firestore = useFirestore();
@@ -111,6 +111,25 @@ export default function LoanReportPage() {
     }), { totalOpening: 0, totalNew: 0, totalRepaid: 0, totalClosing: 0 });
   }, [reportData]);
 
+  const exportToExcel = () => {
+    if (reportData.length === 0) return;
+    const exportRows = reportData.map(r => ({
+      "ID No": r.memberIdNumber,
+      "Personnel Name": r.name,
+      "Designation": r.designation,
+      "Opening Balance": r.openingBalance,
+      "New Loans": r.loansDuring,
+      "Recovery/Repayment": r.repaymentsDuring,
+      "Closing Balance": r.closingBalance
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Loan Registry");
+    XLSX.writeFile(wb, `Loan_Audit_Report_${dateRange.start}_to_${dateRange.end}.xlsx`);
+    toast({ title: "Exported", description: "Loan registry data saved to Excel." });
+  };
+
   if (isMembersLoading || isSummariesLoading) {
     return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
   }
@@ -142,9 +161,14 @@ export default function LoanReportPage() {
             </div>
           </div>
           <div className="h-6 w-px bg-black hidden sm:block" />
-          <Button onClick={() => window.print()} className="gap-2 h-10 font-black px-8 bg-black text-white shadow-xl uppercase tracking-widest">
-            <Printer className="size-4" /> Print Report
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToExcel} className="gap-2 h-10 font-black px-6 border-2 border-black text-black uppercase text-[10px] tracking-widest">
+              <FileSpreadsheet className="size-4" /> Export
+            </Button>
+            <Button onClick={() => window.print()} className="gap-2 h-10 font-black px-8 bg-black text-white shadow-xl uppercase text-[10px] tracking-widest">
+              <Printer className="size-4" /> Print
+            </Button>
+          </div>
         </div>
       </div>
 

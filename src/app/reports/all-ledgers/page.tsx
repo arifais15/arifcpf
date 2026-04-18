@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
-import { Loader2, Printer, ArrowLeft, ArrowRightLeft } from "lucide-react";
+import { Loader2, Printer, ArrowLeft, ArrowRightLeft, FileSpreadsheet } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AllLedgersPrintPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [isReady, setIsReady] = useState(false);
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [selectedFY, setSelectedFY] = useState("");
@@ -82,6 +85,61 @@ export default function AllLedgersPrintPage() {
       });
   }, [members, allSummaries, dateRange]);
 
+  const exportToExcel = () => {
+    if (memberLedgers.length === 0) return;
+    
+    const workbook = XLSX.utils.book_new();
+    const exportData: any[] = [];
+
+    memberLedgers.forEach(l => {
+      // Add Member Header Row
+      exportData.push({ Date: `MEMBER: ${l.member.name} (${l.member.memberIdNumber})`, Particulars: "", "Emp Cont (1)": "", "Loan Drw (2)": "", "Loan Repay (3)": "", "Loan Bal (4)": "", "Profit E (5)": "", "Profit L (6)": "", "Net Emp (7)": "", "PBS Cont (8)": "", "Profit P (9)": "", "Net Off (10)": "", "Total (11)": "" });
+      
+      l.rows.forEach(r => {
+        exportData.push({
+          Date: r.summaryDate,
+          Particulars: r.particulars,
+          "Emp Cont (1)": r.c1,
+          "Loan Drw (2)": r.c2,
+          "Loan Repay (3)": r.c3,
+          "Loan Bal (4)": r.col4,
+          "Profit E (5)": r.c5,
+          "Profit L (6)": r.c6,
+          "Net Emp (7)": r.col7,
+          "PBS Cont (8)": r.c8,
+          "Profit P (9)": r.c9,
+          "Net Off (10)": r.col10,
+          "Total (11)": r.col11
+        });
+      });
+      
+      // Add Grand Totals for this member
+      exportData.push({
+        Date: "AGGREGATE TOTALS",
+        Particulars: "",
+        "Emp Cont (1)": l.grand.c1,
+        "Loan Drw (2)": l.grand.c2,
+        "Loan Repay (3)": l.grand.c3,
+        "Loan Bal (4)": l.grand.c4,
+        "Profit E (5)": l.grand.c5,
+        "Profit L (6)": l.grand.c6,
+        "Net Emp (7)": l.grand.c7,
+        "PBS Cont (8)": l.grand.c8,
+        "Profit P (9)": l.grand.c9,
+        "Net Off (10)": l.grand.c10,
+        "Total (11)": l.grand.c11
+      });
+      
+      // Empty separator row
+      exportData.push({});
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(workbook, ws, "All Personnel Ledgers");
+    XLSX.writeFile(workbook, `Batch_Ledgers_Export_${dateRange.start}.xlsx`);
+    toast({ title: "Exported", description: "All personnel ledgers synchronized to Excel." });
+  };
+
   if (!isReady) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12" /></div>;
 
   return (
@@ -97,7 +155,10 @@ export default function AllLedgersPrintPage() {
           <ArrowRightLeft className="size-3" />
           <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black font-black text-[10px]" />
         </div>
-        <Button onClick={() => window.print()} className="h-12 bg-black text-white font-black uppercase text-xs px-10">Commit Batch Print</Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel} className="h-12 border-2 border-black font-black uppercase text-xs px-8"><FileSpreadsheet className="size-4 mr-2" /> Export Excel</Button>
+          <Button onClick={() => window.print()} className="h-12 bg-black text-white font-black uppercase text-xs px-10">Commit Batch Print</Button>
+        </div>
       </div>
 
       <div className="print-container">

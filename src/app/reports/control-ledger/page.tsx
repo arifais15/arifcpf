@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -17,7 +16,8 @@ import {
   Loader2, 
   ArrowRightLeft,
   BookText,
-  ShieldCheck
+  ShieldCheck,
+  FileSpreadsheet
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 export default function ControlAccountLedgerPage() {
   const firestore = useFirestore();
@@ -99,6 +100,32 @@ export default function ControlAccountLedgerPage() {
     return { rows, opening: openingBalance, closing: currentBalance };
   }, [allEntries, selectedAccount, activeCOA, dateRange]);
 
+  const exportToExcel = () => {
+    if (!selectedAccount || ledgerResult.rows.length === 0) return;
+    const account = activeCOA.find(a => a.code === selectedAccount);
+    
+    const exportRows = [
+      { Date: dateRange.start, "Ref No": "N/A", Particulars: "Opening Balance Brought Forward", Debit: 0, Credit: 0, Balance: ledgerResult.opening }
+    ];
+
+    ledgerResult.rows.forEach(r => {
+      exportRows.push({
+        Date: r.date,
+        "Ref No": r.ref,
+        Particulars: r.particulars,
+        Debit: r.debit,
+        Credit: r.credit,
+        Balance: r.balance
+      });
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Control Ledger");
+    XLSX.writeFile(wb, `Control_Ledger_${selectedAccount}_${dateRange.start}_to_${dateRange.end}.xlsx`);
+    toast({ title: "Exported", description: "Control ledger saved to Excel." });
+  };
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-[#000000]">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
@@ -109,9 +136,14 @@ export default function ControlAccountLedgerPage() {
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Brought Forward Logic • Reconciled Matrix</p>
           </div>
         </div>
-        <Button onClick={() => window.print()} disabled={!selectedAccount} className="gap-2 h-10 font-black bg-black text-white shadow-xl uppercase tracking-widest text-xs px-8">
-          <Printer className="size-4" /> Print Control Ledger
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportToExcel} disabled={!selectedAccount} className="gap-2 h-10 font-black border-black text-black shadow-xl uppercase tracking-widest text-[10px] px-6">
+            <FileSpreadsheet className="size-4" /> Export Excel
+          </Button>
+          <Button onClick={() => window.print()} disabled={!selectedAccount} className="gap-2 h-10 font-black bg-black text-white shadow-xl uppercase tracking-widest text-[10px] px-8">
+            <Printer className="size-4" /> Print Control Ledger
+          </Button>
+        </div>
       </div>
 
       <div className="bg-white p-6 rounded-2xl border-4 border-black shadow-2xl flex flex-col md:flex-row items-center gap-8 no-print">

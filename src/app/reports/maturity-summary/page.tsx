@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -94,6 +93,26 @@ export default function InvestmentMaturityReportPage() {
     }), { gross: 0, tds: 0, net: 0, principal: 0 });
   }, [reportData]);
 
+  const exportToExcel = () => {
+    if (reportData.length === 0) return;
+    const exportRows = reportData.map(r => ({
+      Bank: r.bankName,
+      "Ref No": r.referenceNumber,
+      Principal: r.principalAmount,
+      Rate: r.displayRate,
+      Maturity: r.maturityDate,
+      "Gross Interest": r.totalGrossInterest,
+      "TDS Amount": r.tdsAmount,
+      "Net Yield": r.netInterest
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Maturity Schedule");
+    XLSX.writeFile(wb, `Investment_Maturity_${dateRange.start}.xlsx`);
+    toast({ title: "Exported", description: "Maturity yield matrix saved to Excel." });
+  };
+
   const currentYearStr = new Date().getFullYear().toString();
 
   const StandardFooter = () => (
@@ -149,9 +168,14 @@ export default function InvestmentMaturityReportPage() {
             </Button>
           </div>
           <div className="h-8 w-px bg-black/20" />
-          <Button onClick={() => window.print()} className="gap-2 h-10 font-black bg-black text-white shadow-lg uppercase text-[10px] tracking-widest">
-            <Printer className="size-4" /> Commit to Print
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportToExcel} className="gap-2 h-10 font-black border-2 border-black text-black uppercase text-[10px] tracking-widest">
+              <FileSpreadsheet className="size-4" /> Export
+            </Button>
+            <Button onClick={() => window.print()} className="gap-2 h-10 font-black bg-black text-white shadow-lg uppercase text-[10px] tracking-widest">
+              <Printer className="size-4" /> Commit to Print
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -17,7 +17,8 @@ import {
   Scale,
   ShieldCheck,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  FileSpreadsheet
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
@@ -27,9 +28,12 @@ import { Badge } from "@/components/ui/badge";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TrialBalancePage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [asOfDate, setAsOfDate] = useState("");
   const [search, setSearch] = useState("");
 
@@ -108,6 +112,30 @@ export default function TrialBalancePage() {
 
   const isBalanced = Math.abs(stats.debit - stats.credit) < 0.01;
 
+  const exportToExcel = () => {
+    if (trialBalanceData.length === 0) return;
+    const exportRows = trialBalanceData.map(r => ({
+      "Account Code": r.code,
+      "Account Name": r.name,
+      "Debit Balance": r.debit,
+      "Credit Balance": r.credit
+    }));
+    
+    // Add Totals Row
+    exportRows.push({
+      "Account Code": "",
+      "Account Name": "GRAND TOTALS",
+      "Debit Balance": stats.debit,
+      "Credit Balance": stats.credit
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Trial Balance");
+    XLSX.writeFile(wb, `Trial_Balance_${asOfDate}.xlsx`);
+    toast({ title: "Exported", description: "Trial balance matrix saved to Excel." });
+  };
+
   if (isLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-primary" /></div>;
 
   return (
@@ -137,6 +165,9 @@ export default function TrialBalancePage() {
             />
           </div>
           <div className="h-8 w-px bg-black/20" />
+          <Button variant="outline" onClick={exportToExcel} className="h-10 border-black font-black text-[10px] px-6 uppercase tracking-widest shadow-xl">
+            <FileSpreadsheet className="size-4 mr-2" /> Export Excel
+          </Button>
           <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black text-[10px] px-10 uppercase tracking-widest shadow-xl">
             <Printer className="size-4 mr-2" /> Print Statement
           </Button>

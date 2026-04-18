@@ -3,16 +3,19 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, Search, ArrowRightLeft, ArrowLeft } from "lucide-react";
+import { Printer, Loader2, Search, ArrowRightLeft, ArrowLeft, FileSpreadsheet } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FundMovementReportPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [search, setSearch] = useState("");
 
@@ -56,6 +59,29 @@ export default function FundMovementReportPage() {
 
   const stats = useMemo(() => reportData.reduce((a,c) => ({ opE:a.opE+c.opE, clE:a.clE+c.clE, opP:a.opP+c.opP, clP:a.clP+c.clP, total:a.total+c.total }), {opE:0,clE:0,opP:0,clP:0,total:0}), [reportData]);
 
+  const exportToExcel = () => {
+    if (reportData.length === 0) return;
+    const exportRows = reportData.map(r => ({
+      "ID No": r.id,
+      "Name": r.name,
+      "E-Open": r.opE,
+      "E-Add": r.addE,
+      "E-Adj": r.adjE,
+      "E-Close": r.clE,
+      "P-Open": r.opP,
+      "P-Add": r.addP,
+      "P-Adj": r.adjP,
+      "P-Close": r.clP,
+      "Total Fund": r.total
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Fund Movements");
+    XLSX.writeFile(wb, `Fund_Movements_${dateRange.start}_to_${dateRange.end}.xlsx`);
+    toast({ title: "Exported", description: "Movement audit data saved to Excel." });
+  };
+
   if (isMembersLoading || isSummariesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-primary" /></div>;
 
   return (
@@ -69,6 +95,7 @@ export default function FundMovementReportPage() {
           <div className="grid gap-1"><Label className="text-[9px] font-black uppercase ml-1">Start</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" /></div>
           <ArrowRightLeft className="size-3 opacity-30" />
           <div className="grid gap-1"><Label className="text-[9px] font-black uppercase ml-1">End</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black" /></div>
+          <Button variant="outline" onClick={exportToExcel} className="h-9 border-black font-black text-[10px] px-6 uppercase tracking-widest"><FileSpreadsheet className="size-3.5 mr-2" /> Export</Button>
           <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-8 uppercase tracking-widest"><Printer className="size-3.5 mr-2" /> Print</Button>
         </div>
       </div>

@@ -1,10 +1,9 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, Search, ArrowLeft } from "lucide-react";
+import { Printer, Loader2, Search, ArrowLeft, FileSpreadsheet } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
@@ -12,9 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import * as XLSX from "xlsx";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LedgerSummaryReportPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
@@ -63,6 +65,31 @@ export default function LedgerSummaryReportPage() {
       c1:a.c1+c.c1, c2:a.c2+c.c2, c3:a.c3+c.c3, c4:a.c4+c.c4, c5:a.c5+c.c5, c6:a.c6+c.c6, c7:a.c7+c.c7, c8:a.c8+c.c8, c9:a.c9+c.c9, c10:a.c10+c.c10, c11:a.c11+c.c11 
   }), {c1:0,c2:0,c3:0,c4:0,c5:0,c6:0,c7:0,c8:0,c9:0,c10:0,c11:0}), [reportData]);
 
+  const exportToExcel = () => {
+    if (reportData.length === 0) return;
+    const exportRows = reportData.map(r => ({
+      "ID No": r.id,
+      "Name": r.name,
+      "Emp Cont (1)": r.c1,
+      "Loan Draw (2)": r.c2,
+      "Loan Repay (3)": r.c3,
+      "Loan Bal (4)": r.c4,
+      "Profit Emp (5)": r.c5,
+      "Profit Loan (6)": r.c6,
+      "Net Emp Fund (7)": r.c7,
+      "PBS Cont (8)": r.c8,
+      "Profit PBS (9)": r.c9,
+      "Net Office Fund (10)": r.c10,
+      "Total Fund (11)": r.c11
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ledger Summary");
+    XLSX.writeFile(wb, `Ledger_Summary_${asOfDate}.xlsx`);
+    toast({ title: "Exported", description: "Ledger summary matrix saved to Excel." });
+  };
+
   if (isMembersLoading || isSummariesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-primary" /></div>;
 
   return (
@@ -77,6 +104,7 @@ export default function LedgerSummaryReportPage() {
             <Label className="text-[9px] font-black uppercase ml-1">Statement Cut-off</Label>
             <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black" />
           </div>
+          <Button variant="outline" onClick={exportToExcel} className="h-9 border-black font-black text-[10px] px-6 uppercase tracking-widest"><FileSpreadsheet className="size-3.5 mr-2" /> Export</Button>
           <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-8 uppercase tracking-widest"><Printer className="size-3.5 mr-2" /> Print</Button>
         </div>
       </div>
@@ -93,7 +121,7 @@ export default function LedgerSummaryReportPage() {
         <div className="overflow-x-auto">
           <Table className="w-full text-[8px] font-black table-fixed border-collapse">
             <TableHeader className="bg-slate-100 border-b border-black uppercase text-[7px] leading-tight">
-              <TableRow className="border-b border-black">
+              <TableRow>
                 <TableHead className="border-r border-black p-0.5 w-[40px] font-black text-black text-center h-8">ID No</TableHead>
                 <TableHead className="border-r border-black p-0.5 text-left w-[110px] font-black text-black h-8">Personnel Name</TableHead>
                 <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Emp(1)</TableHead>
@@ -127,8 +155,10 @@ export default function LedgerSummaryReportPage() {
                   <TableCell className="text-right p-0.5 bg-slate-200 font-black text-black">{r.c11.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
-              <TableRow className="bg-black text-white font-black h-10 uppercase text-[7px]">
-                <TableCell colSpan={2} className="text-right pr-2 font-black text-white">Aggregates:</TableCell>
+            </TableBody>
+            <TableFooter className="bg-black text-white font-black h-10 border-t-2 border-white/20">
+              <TableRow className="h-10 hover:bg-black">
+                <TableCell colSpan={2} className="text-right pr-2 uppercase font-black text-white">Aggregates:</TableCell>
                 <TableCell className="text-right border-l border-white/10 text-white">{stats.c1.toLocaleString()}</TableCell>
                 <TableCell className="text-right border-l border-white/10 text-white">{stats.c2.toLocaleString()}</TableCell>
                 <TableCell className="text-right border-l border-white/10 text-white">{stats.c3.toLocaleString()}</TableCell>
@@ -141,7 +171,7 @@ export default function LedgerSummaryReportPage() {
                 <TableCell className="text-right border-l border-white/10 bg-white/10 text-white">{stats.c10.toLocaleString()}</TableCell>
                 <TableCell className="text-right bg-white text-black font-black text-[9px]">৳ {stats.c11.toLocaleString()}</TableCell>
               </TableRow>
-            </TableBody>
+            </TableFooter>
           </Table>
         </div>
       </div>
