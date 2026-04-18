@@ -83,8 +83,16 @@ export default function MembersPage() {
   const handleAddMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const idNum = (formData.get("memberIdNumber") as string).trim();
     
+    // Safely get ID number - when editing, the input is disabled and won't be in FormData
+    const rawId = formData.get("memberIdNumber") as string | null;
+    const idNum = (rawId || editingMember?.memberIdNumber || "").trim();
+    
+    if (!idNum) {
+      toast({ title: "Error", description: "Member ID is required", variant: "destructive" });
+      return;
+    }
+
     const memberData = {
       memberIdNumber: idNum,
       name: formData.get("name") as string,
