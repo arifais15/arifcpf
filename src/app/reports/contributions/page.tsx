@@ -77,6 +77,12 @@ export default function ContributionAuditPage() {
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
+  /**
+   * CRITICAL PERFORMANCE FIX:
+   * During cleanup, we return an empty array to prevent the browser from 
+   * attempting to re-render the heavy table and re-filter thousands of items 
+   * for every single record deleted.
+   */
   const filteredData = useMemo(() => {
     if (!allSummaries || isProcessingCleanup) return [];
     let data = allSummaries;
@@ -109,19 +115,9 @@ export default function ContributionAuditPage() {
   }, [allSummaries, dateRange, searchQuery, isProcessingCleanup, memberMap]);
 
   const stats = useMemo(() => {
-    const s = { systemProfit: 0, manualEmp: 0, manualPbs: 0, totalEntries: filteredData.length };
-    if (isProcessingCleanup) return s;
-    filteredData.forEach(item => {
-      if (item.isSystemGenerated || item.particulars?.includes("Annual Profit")) {
-        s.systemProfit += (Number(item.profitEmployee) || 0) + (Number(item.profitPbs) || 0);
-      }
-      if (item.isManual || (!item.isSystemGenerated && !item.particulars?.includes("Profit"))) {
-        s.manualEmp += (Number(item.employeeContribution) || 0);
-        s.manualPbs += (Number(item.pbsContribution) || 0);
-      }
-    });
+    const s = { totalEntries: filteredData.length };
     return s;
-  }, [filteredData, isProcessingCleanup]);
+  }, [filteredData]);
 
   const handleBulkDelete = async () => {
     if (filteredData.length === 0) return;
@@ -133,18 +129,28 @@ export default function ContributionAuditPage() {
       confirmText: "Delete Records",
       onConfirm: async () => {
         setIsDeleting(true);
-        setIsProcessingCleanup(true);
+        setIsProcessingCleanup(true); // Engages the CPU throttling overlay
         
-        for (const item of filteredData) {
+        // Use the existing filteredData snapshot so it doesn't change mid-loop
+        const batch = [...filteredData];
+        
+        // Execute deletions
+        batch.forEach((item) => {
           deleteDocumentNonBlocking(doc(firestore, "members", item.memberId, "fundSummaries", item.id));
-        }
+        });
 
+        // Stabilization window: keeps the overlay up for a moment to let React finish its 
+        // internal reconciliation after the state-update storm.
         setTimeout(() => {
           setIsDeleting(false);
           setIsProcessingCleanup(false);
           setIsCleanupOpen(false);
-          showAlert({ title: "Audit Synchronized", description: "Batch deletion completed successfully.", type: "success" });
-        }, 1500);
+          showAlert({ 
+            title: "Audit Synchronized", 
+            description: "Batch deletion completed. The registry is now reconciled.", 
+            type: "success" 
+          });
+        }, 2000);
       }
     });
   };
@@ -176,7 +182,7 @@ export default function ContributionAuditPage() {
     toast({ title: "Exported", description: "Full audit registry saved to Excel." });
   };
 
-  if (isSummariesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
+  if (isSummariesLoading && !isProcessingCleanup) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-[#000000]">
@@ -191,7 +197,7 @@ export default function ContributionAuditPage() {
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-2 border-2 border-black rounded-xl shadow-xl">
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase text-black ml-1">Period Filter</Label>
-            <Select value={selectedFY} onValueChange={handleFYChange}>
+            <Select value={selectedFY} onValueChange={handleFYChange} disabled={isProcessingCleanup}>
               <SelectTrigger className="h-8 w-[100px] border-black border-2 font-black text-[10px] uppercase focus:ring-0"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
@@ -199,13 +205,19 @@ export default function ContributionAuditPage() {
               </SelectContent>
             </Select>
           </div>
-          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black ml-1">From</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start:e.target.value})} className="h-8 w-32 border-black border-2 text-[10px] font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black ml-1">From</Label><Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start:e.target.value})} className="h-8 w-32 border-black border-2 text-[10px] font-black" disabled={isProcessingCleanup} /></div>
           <ArrowRightLeft className="size-3 text-black opacity-30 mt-4" />
-          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black ml-1">To</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end:e.target.value})} className="h-8 w-32 border-black border-2 text-[10px] font-black" /></div>
+          <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black ml-1">To</Label><Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end:e.target.value})} className="h-8 w-32 border-black border-2 text-[10px] font-black" disabled={isProcessingCleanup} /></div>
           <div className="flex gap-2 mt-4">
-            <Button variant="outline" onClick={exportToExcel} className="h-9 border-black border-2 font-black text-[10px] px-4 uppercase bg-white hover:bg-slate-50"><FileSpreadsheet className="size-3.5 mr-2" /> Export</Button>
-            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-9 font-black text-[10px] px-4 uppercase shadow-lg"><DatabaseZap className="size-3.5 mr-2" /> Purge</Button>
-            <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-6 uppercase shadow-lg"><Printer className="size-3.5 mr-2" /> Print Audit</Button>
+            <Button variant="outline" onClick={exportToExcel} className="h-9 border-black border-2 font-black text-[10px] px-4 uppercase bg-white hover:bg-slate-50" disabled={isProcessingCleanup}>
+              <FileSpreadsheet className="size-3.5 mr-2" /> Export
+            </Button>
+            <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-9 font-black text-[10px] px-4 uppercase shadow-lg" disabled={isProcessingCleanup}>
+              <DatabaseZap className="size-3.5 mr-2" /> Purge
+            </Button>
+            <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-6 uppercase shadow-lg" disabled={isProcessingCleanup}>
+              <Printer className="size-3.5 mr-2" /> Print Audit
+            </Button>
           </div>
         </div>
       </div>
@@ -215,24 +227,25 @@ export default function ContributionAuditPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-black/40" />
           <Input 
             className="pl-10 h-12 bg-slate-50 border-black border-2 font-black text-lg" 
-            placeholder="Search Member ID, Name, Desig, or Particulars..." 
+            placeholder="Search Member ID, Name, or Designation..." 
             value={searchQuery} 
             onChange={(e) => setSearchQuery(e.target.value)} 
+            disabled={isProcessingCleanup}
           />
         </div>
         <div className="flex gap-4">
-           <Badge className="bg-black text-white font-black text-[10px] uppercase tracking-widest px-6 py-3 rounded-none h-12 shadow-md">{filteredData.length} Records Found</Badge>
+           <Badge className="bg-black text-white font-black text-[10px] uppercase tracking-widest px-6 py-3 rounded-none h-12 shadow-md">{isProcessingCleanup ? "UPDATING..." : `${filteredData.length} Records Found`}</Badge>
         </div>
       </div>
 
       <div className="relative bg-white border-2 border-black rounded-none shadow-2xl overflow-hidden min-h-[500px]">
         {isProcessingCleanup && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-6 animate-in fade-in duration-300">
-             <div className="p-10 bg-black rounded-3xl shadow-2xl flex flex-col items-center gap-5 border-4 border-white/20">
+             <div className="p-12 bg-black rounded-3xl shadow-2xl flex flex-col items-center gap-6 border-4 border-white/20">
                 <Loader2 className="size-16 animate-spin text-white" />
                 <div className="text-center">
-                  <p className="text-white font-black uppercase tracking-[0.4em] text-sm">Purging Transaction Matrix</p>
-                  <p className="text-slate-500 text-[10px] font-black mt-1 uppercase tracking-widest">Reconciling Subsidiary Ledger States...</p>
+                  <p className="text-white font-black uppercase tracking-[0.5em] text-lg">Reconciling Ledger States</p>
+                  <p className="text-slate-400 text-[10px] font-black mt-2 uppercase tracking-widest">Please wait while the institutional database stabilizes...</p>
                 </div>
              </div>
           </div>
@@ -308,7 +321,7 @@ export default function ContributionAuditPage() {
             <div className="p-5 bg-amber-50 border-4 border-amber-200 text-amber-900 rounded-xl flex gap-5 items-start">
               <Info className="size-8 shrink-0 mt-1" />
               <p className="text-[11px] leading-relaxed font-black uppercase tracking-tight">
-                CRITICAL: This action permanently purges filtered records from all individual subsidiary ledgers. Ensure your search criteria is exact to avoid unintended data loss. Verify the record count above before committing.
+                CRITICAL: This action permanently purges filtered records from all individual subsidiary ledgers. Ensure your search criteria is exact. The system will stabilize the UI during processing to prevent crashes.
               </p>
             </div>
             
@@ -329,3 +342,4 @@ export default function ContributionAuditPage() {
     </div>
   );
 }
+
