@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Loader2, Printer, ShieldCheck, Scale, ArrowRightLeft, FileStack, TrendingUp } from "lucide-react";
+import { Loader2, Printer, ShieldCheck, Scale, ArrowRightLeft, FileStack, TrendingUp, Landmark } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -75,7 +75,6 @@ export default function ReportsPage() {
     entries.forEach(entry => {
       if (new Date(entry.entryDate).getTime() > cutOff) return;
       (entry.lines || []).forEach((line: any) => {
-        // Match exact code or check if it starts with the group prefix
         const isMatch = codeList.some(code => 
           line.accountCode === code || 
           (code.endsWith('.00.0000') && line.accountCode.startsWith(code.split('.')[0]))
@@ -92,8 +91,8 @@ export default function ReportsPage() {
     return total;
   };
 
-  // Helper to get periodic movement (Income/Expense)
-  const getMovementForPeriod = (startStr: string, endStr: string, codes: string | string[]) => {
+  // Helper to get periodic movement (Income/Expense/Receipt/Payment)
+  const getMovementForPeriod = (startStr: string, endStr: string, codes: string | string[], flowType?: 'Receipt' | 'Payment') => {
     if (!entries || !startStr || !endStr) return 0;
     const s = new Date(`${startStr}T00:00:00`).getTime();
     const e = new Date(`${endStr}T23:59:59`).getTime();
@@ -103,17 +102,28 @@ export default function ReportsPage() {
     entries.forEach(entry => {
       const t = new Date(entry.entryDate).getTime();
       if (t < s || t > e) return;
-      (entry.lines || []).forEach((line: any) => {
+
+      const lines = entry.lines || [];
+      const hasBankDebit = lines.some((l: any) => l.accountCode === '131.10.0000' && Number(l.debit) > 0);
+      const hasBankCredit = lines.some((l: any) => l.accountCode === '131.10.0000' && Number(l.credit) > 0);
+
+      lines.forEach((line: any) => {
         const isMatch = codeList.some(code => 
           line.accountCode === code || 
           (code.endsWith('.00.0000') && line.accountCode.startsWith(code.split('.')[0]))
         );
 
         if (isMatch) {
-          const coa = activeCOA.find(a => a.code === line.accountCode);
-          if (!coa) return;
-          const amt = coa.balance === 'Debit' ? (Number(line.debit) - Number(line.credit)) : (Number(line.credit) - Number(line.debit));
-          total += amt;
+          if (flowType === 'Receipt') {
+            if (hasBankDebit) total += (Number(line.credit) || 0);
+          } else if (flowType === 'Payment') {
+            if (hasBankCredit) total += (Number(line.debit) || 0);
+          } else {
+            const coa = activeCOA.find(a => a.code === line.accountCode);
+            if (!coa) return;
+            const amt = coa.balance === 'Debit' ? (Number(line.debit) - Number(line.credit)) : (Number(line.credit) - Number(line.debit));
+            total += amt;
+          }
         }
       });
     });
@@ -136,6 +146,18 @@ export default function ReportsPage() {
   const formatValue = (val: number) => {
     if (val === 0) return "—";
     return new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
+  };
+
+  const calculateTotalReceipts = (start: string, end: string) => {
+    return [
+      '200.10', '200.20', '400.50', '105.20', '400.40', '101.20', '400.20', '101.10', '400.10', '107', '410.20'
+    ].reduce((sum, prefix) => sum + getMovementForPeriod(start, end, prefix + '.00.0000', 'Receipt'), 0);
+  };
+
+  const calculateTotalPayments = (start: string, end: string) => {
+    return [
+      '200.50', '105.10', '101.10', '101.20', '500.30', '500.20', '500.10', '500.40', '500.50', '108'
+    ].reduce((sum, prefix) => sum + getMovementForPeriod(start, end, prefix + '.00.0000', 'Payment'), 0);
   };
 
   if (isCoaLoading || isEntriesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
@@ -180,12 +202,12 @@ export default function ReportsPage() {
       </div>
 
       <Tabs defaultValue="position" className="w-full max-w-6xl mx-auto">
-        <TabsList className="grid w-full grid-cols-2 mb-8 no-print h-14 bg-slate-100 border-2 border-black p-1 rounded-2xl">
-          <TabsTrigger value="position" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Financial Position (BS)</TabsTrigger>
-          <TabsTrigger value="income" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Income Statement (PL)</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 mb-8 no-print h-14 bg-slate-100 border-2 border-black p-1 rounded-2xl">
+          <TabsTrigger value="position" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Financial Position</TabsTrigger>
+          <TabsTrigger value="income" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Income Statement</TabsTrigger>
+          <TabsTrigger value="receipt" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Receipt & Payment</TabsTrigger>
         </TabsList>
 
-        {/* --- STATEMENT OF FINANCIAL POSITION --- */}
         <TabsContent value="position" className="animate-in fade-in duration-500">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
             <div className="text-center mb-10 text-black">
@@ -196,7 +218,7 @@ export default function ReportsPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums">
+              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-black">
                     <th className="border-r border-black p-3 text-left w-[120px]">Account Code</th>
@@ -279,7 +301,7 @@ export default function ReportsPage() {
               </table>
             </div>
 
-            <div className="mt-32 grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest">
+            <div className="mt-32 grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
               <div className="border-t-2 border-black pt-4">Prepared by</div>
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
@@ -287,7 +309,6 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
-        {/* --- INCOME STATEMENT --- */}
         <TabsContent value="income">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
             <div className="text-center mb-10 text-black">
@@ -298,7 +319,7 @@ export default function ReportsPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums">
+              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-black">
                     <th className="border-r border-black p-3 text-left w-[120px]">Code</th>
@@ -423,6 +444,133 @@ export default function ReportsPage() {
                     </td>
                     <td className="p-2 text-right pr-4 underline decoration-double">
                       {formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, ['400','410']) - getMovementForPeriod(prevYearStart, prevYearEnd, ['500']))}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-32 grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+              <div className="border-t-2 border-black pt-4">Prepared by</div>
+              <div className="border-t-2 border-black pt-4">Checked by</div>
+              <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
+            </div>
+          </Card>
+        </TabsContent>
+
+        {/* --- STATEMENT OF RECEIPT & PAYMENT --- */}
+        <TabsContent value="receipt" className="animate-in fade-in duration-500">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
+            <div className="text-center mb-10 text-black">
+              <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
+              <p className="text-lg font-black uppercase tracking-[0.2em] mt-1">Employees' Provident Fund</p>
+              <h2 className="text-xl font-black mt-6 uppercase underline underline-offset-8">Statement of Receipt & Payment</h2>
+              <p className="text-sm font-black mt-6">For the Year Ended June 30, {dateRange.end ? format(parseISO(dateRange.end), 'yyyy') : '...'}</p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black">
+                <thead>
+                  <tr className="bg-slate-50 border-b-2 border-black">
+                    <th className="border-r border-black p-3 text-center w-[60px]">SL</th>
+                    <th className="border-r border-black p-3 text-left">Particulars</th>
+                    <th colSpan={2} className="p-3 text-center border-b border-black">Amount in Taka</th>
+                  </tr>
+                  <tr className="bg-slate-100 border-b-2 border-black">
+                    <th className="border-r border-black"></th>
+                    <th className="border-r border-black"></th>
+                    <th className="border-r border-black p-2 text-center w-[140px]">{currentPeriodLabel}</th>
+                    <th className="p-2 text-center w-[140px]">{previousPeriodLabel}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-b border-black uppercase text-[10px]">Opening Balance:</td></tr>
+                  <tr className="border-b border-black hover:bg-slate-50/50">
+                    <td className="border-r border-black p-2 text-center">1</td>
+                    <td className="border-r border-black p-2 pl-4">Bank Balance Accounts (STD)</td>
+                    <td className="border-r border-black p-2 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.start, '131.10.0000'))}</td>
+                    <td className="p-2 text-right pr-4">{formatValue(getBalanceAtDate(prevYearStart, '131.10.0000'))}</td>
+                  </tr>
+
+                  <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-y border-black uppercase text-[10px]">RECEIPTS:</td></tr>
+                  {[
+                    { sl: '3', label: "Members' Own Subscriptions (10%)", code: '200.10.0000' },
+                    { sl: '4', label: "PBS's Contribution (8.33% / Matching)", code: '200.20.0000' },
+                    { sl: '5', label: 'Interest from Saving Accounts', code: '400.50.0000' },
+                    { sl: '6', label: 'CPF Loan & Interest Realized', code: ['105.20.0000', '400.40.0000'] },
+                    { sl: '7', label: 'Encashment Savings Certificate', code: '101.20.0000' },
+                    { sl: '8', label: 'Encashment Savings Certificate Interest (Net)', code: '400.20.0000' },
+                    { sl: '9', label: 'FDR Encashment', code: '101.10.0000' },
+                    { sl: '10', label: 'FDR Interest Encashment (Net)', code: '400.10.0000' },
+                    { sl: '11', label: 'Other Receipt', code: ['107.20.0000', '410.10.0000'] },
+                    { sl: '12', label: 'PBS Subsidy', code: '410.20.0000' },
+                    { sl: '13', label: 'Recovery of Excess CPF Loan', code: '105.20.0000' },
+                  ].map((row) => (
+                    <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50">
+                      <td className="border-r border-black p-2 text-center">{row.sl}</td>
+                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code, 'Receipt'))}</td>
+                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Receipt'))}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-100 font-black h-10 border-y-2 border-black">
+                    <td className="border-r border-black"></td>
+                    <td className="border-r border-black p-2 pl-4 uppercase">Total RECEIPTS</td>
+                    <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
+                      {formatValue(calculateTotalReceipts(dateRange.start, dateRange.end))}
+                    </td>
+                    <td className="p-2 text-right pr-4 underline decoration-double">
+                      {formatValue(calculateTotalReceipts(prevYearStart, prevYearEnd))}
+                    </td>
+                  </tr>
+                  <tr className="bg-black text-white font-black h-10 border-b-2 border-black">
+                    <td className="border-r border-white/20"></td>
+                    <td className="border-r border-white/20 p-2 pl-4 uppercase">Total Receipts with Opening Balance (A)</td>
+                    <td className="border-r border-white/20 p-2 text-right pr-4">
+                      {formatValue(calculateTotalReceipts(dateRange.start, dateRange.end) + getBalanceAtDate(dateRange.start, '131.10.0000'))}
+                    </td>
+                    <td className="p-2 text-right pr-4">
+                      {formatValue(calculateTotalReceipts(prevYearStart, prevYearEnd) + getBalanceAtDate(prevYearStart, '131.10.0000'))}
+                    </td>
+                  </tr>
+
+                  <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-y border-black uppercase text-[10px]">Payment:</td></tr>
+                  {[
+                    { sl: '14', label: 'Benefits Paid (Final Settlements)', code: '200.50.0000' },
+                    { sl: '15', label: 'CPF Loan Payments', code: '105.10.0000' },
+                    { sl: '16', label: 'New Investment in FDR', code: '101.10.0000' },
+                    { sl: '17', label: 'New Investment in Savings Certificate', code: '101.20.0000' },
+                    { sl: '18', label: 'Administrative & Audit Expenses', code: ['500.30.0000', '500.20.0000'] },
+                    { sl: '19', label: 'Bank Charge & Others on Savings Accounts', code: '500.10.0000' },
+                    { sl: '20', label: 'Other payment', code: '500.40.0000' },
+                    { sl: '21', label: 'Tax Paid with Return', code: '500.50.0000' },
+                    { sl: '22', label: 'Advance Tax Payment', code: '108.00.0000' },
+                  ].map((row) => (
+                    <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50">
+                      <td className="border-r border-black p-2 text-center">{row.sl}</td>
+                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code, 'Payment'))}</td>
+                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Payment'))}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-100 font-black h-10 border-y-2 border-black">
+                    <td className="border-r border-black"></td>
+                    <td className="border-r border-black p-2 pl-4 uppercase">Total Payment: (B)</td>
+                    <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
+                      {formatValue(calculateTotalPayments(dateRange.start, dateRange.end))}
+                    </td>
+                    <td className="p-2 text-right pr-4 underline decoration-double">
+                      {formatValue(calculateTotalPayments(prevYearStart, prevYearEnd))}
+                    </td>
+                  </tr>
+                  <tr className="bg-black text-white font-black h-12">
+                    <td className="border-r border-white/20"></td>
+                    <td className="border-r border-white/20 p-2 pl-4 uppercase tracking-widest">Net Assets Available at End of Year</td>
+                    <td className="border-r border-white/20 p-2 text-right pr-4 underline decoration-double">
+                      {formatValue((calculateTotalReceipts(dateRange.start, dateRange.end) + getBalanceAtDate(dateRange.start, '131.10.0000')) - calculateTotalPayments(dateRange.start, dateRange.end))}
+                    </td>
+                    <td className="p-2 text-right pr-4 underline decoration-double">
+                      {formatValue((calculateTotalReceipts(prevYearStart, prevYearEnd) + getBalanceAtDate(prevYearStart, '131.10.0000')) - calculateTotalPayments(prevYearStart, prevYearEnd))}
                     </td>
                   </tr>
                 </tbody>
