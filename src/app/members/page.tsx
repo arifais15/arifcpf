@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -109,10 +110,10 @@ export default function MembersPage() {
 
     if (editingMember) {
       updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
-      showAlert({ title: "Updated", type: "success" });
+      showAlert({ title: "Profile Updated", type: "success" });
     } else {
       setDocumentNonBlocking(doc(collection(firestore, "members")), { ...memberData, createdAt: new Date().toISOString() }, { merge: true });
-      showAlert({ title: "Registered", type: "success" });
+      showAlert({ title: "Personnel Registered", type: "success" });
     }
     setIsAddOpen(false);
     setEditingMember(null);
@@ -121,9 +122,10 @@ export default function MembersPage() {
   const handleDeleteMember = (id: string, name: string) => {
     showAlert({
       title: "Delete Personnel?",
-      description: `Permanently remove ${name} from registry?`,
+      description: `Permanently remove ${name} from registry? All historical ledger data for this member will remain archived but hidden from active lists.`,
       type: "warning",
       showCancel: true,
+      confirmText: "Delete Records",
       onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", id))
     });
   };
@@ -155,15 +157,30 @@ export default function MembersPage() {
             const newRef = doc(collection(firestore, "members"));
             memberDocId = newRef.id;
             existingMembersMap[memberIdNumber] = memberDocId;
-            setDocumentNonBlocking(newRef, { memberIdNumber, name, designation: String(entry["Designation"] || ""), dateJoined: String(entry["JoinedDate"] || ""), zonalOffice: String(entry["ZonalOffice"] || "Head Office"), permanentAddress: String(entry["Address"] || ""), status: String(entry["Status"] || "Active"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+            setDocumentNonBlocking(newRef, { 
+              memberIdNumber, 
+              name, 
+              designation: String(entry["Designation"] || ""), 
+              dateJoined: String(entry["JoinedDate"] || ""), 
+              zonalOffice: String(entry["ZonalOffice"] || "Head Office"), 
+              permanentAddress: String(entry["Address"] || ""), 
+              status: String(entry["Status"] || "Active"), 
+              createdAt: new Date().toISOString(), 
+              updatedAt: new Date().toISOString() 
+            }, { merge: true });
           } else {
-            updateDocumentNonBlocking(doc(firestore, "members", memberDocId), { designation: String(entry["Designation"] || ""), zonalOffice: String(entry["ZonalOffice"] || "Head Office"), updatedAt: new Date().toISOString() });
+            // Update existing profile with latest metadata from salary sheet
+            updateDocumentNonBlocking(doc(firestore, "members", memberDocId), { 
+              designation: String(entry["Designation"] || ""), 
+              zonalOffice: String(entry["ZonalOffice"] || "Head Office"), 
+              updatedAt: new Date().toISOString() 
+            });
           }
 
           const ledgerEntry = {
             summaryDate: String(entry["PostingDate"] || new Date().toISOString().split('T')[0]),
             particulars: String(entry["Particulars"] || "Monthly Salary Contribution"),
-            employeeContribution: Number(entry["Employee_Contribution"] || 0),
+            employeeContribution: Number(entry["Emp_Contrib"] || 0),
             loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
             loanRepayment: Number(entry["Loan_Repaid"] || 0),
             profitEmployee: Number(entry["Employee_Profit"] || 0),
@@ -176,7 +193,7 @@ export default function MembersPage() {
 
           setDocumentNonBlocking(doc(collection(firestore, "members", memberDocId, "fundSummaries")), ledgerEntry, { merge: true });
         }
-        showAlert({ title: "Import Success", type: "success" });
+        showAlert({ title: "Batch Import Complete", type: "success" });
       } catch (err) {
         toast({ title: "Import Failed", variant: "destructive" });
       } finally {
@@ -192,15 +209,15 @@ export default function MembersPage() {
       <PageHeaderActions>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black/40" />
-          <Input className="pl-9 h-10 bg-white border-black/20 font-black text-xs" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input className="pl-9 h-10 bg-white border-black/20 font-black text-xs" placeholder="Search Personnel ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
           {search && <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8" onClick={() => setSearch("")}><FilterX className="size-3.5" /></Button>}
         </div>
         <div className="flex items-center bg-black/5 p-1 rounded-xl h-10 ml-2">
-          <Label className="text-[9px] font-black uppercase text-black px-2">Limit:</Label>
+          <Label className="text-[9px] font-black uppercase text-black px-2">Rows:</Label>
           <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setCurrentPage(1); setLastVisible(null); }}>
             <SelectTrigger className="h-7 w-[70px] border-black/20 bg-white font-black text-[10px]"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[5, 10, 25, -1].map(v => <SelectItem key={v} value={v.toString()} className="font-black text-[10px]">{v === -1 ? 'All' : `${v} Rows`}</SelectItem>)}
+              {[5, 10, 25, 50, -1].map(v => <SelectItem key={v} value={v.toString()} className="font-black text-[10px]">{v === -1 ? 'ALL' : `${v} Rows`}</SelectItem>)}
             </SelectContent>
           </Select>
           {pageSize !== -1 && (
@@ -211,36 +228,47 @@ export default function MembersPage() {
           )}
         </div>
         <div className="flex gap-2 ml-auto">
-          <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-4"><Upload className="size-3.5" /> Monthly Append</Button>
-          <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-6"><Plus className="size-3.5" /> Register Staff</Button>
+          <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-4 shadow-sm hover:bg-slate-50 transition-colors"><Upload className="size-3.5" /> Monthly Salary Import</Button>
+          <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-6 shadow-xl hover:bg-slate-900 transition-colors"><Plus className="size-3.5" /> Register Personnel</Button>
         </div>
       </PageHeaderActions>
 
-      <div className="bg-white rounded-none border-2 border-black overflow-hidden shadow-xl">
+      <div className="bg-white rounded-none border-2 border-black overflow-hidden shadow-2xl animate-in fade-in duration-500">
         <Table className="text-black font-black">
           <TableHeader>
             <TableRow className="bg-slate-100 border-b-2 border-black">
               <TableHead className="w-[100px] font-black uppercase text-[10px] pl-6 py-5">ID No</TableHead>
-              <TableHead className="font-black uppercase text-[10px] py-5">Full Name</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-5">Full Legal Name</TableHead>
               <TableHead className="font-black uppercase text-[10px] py-5">Designation</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-5">Zonal Office</TableHead>
               <TableHead className="font-black uppercase text-[10px] py-5">Status</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] pr-6 py-5">Audit</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] pr-6 py-5">Institutional Audit</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="tabular-nums text-[#000000]">
             {isLoading && members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
+            ) : members.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-black uppercase tracking-widest italic">No personnel records identified</TableCell></TableRow>
             ) : members.map((m) => (
-              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black">
+              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black group transition-colors">
                 <td className="font-mono text-base pl-6 font-black py-4">{m.memberIdNumber}</td>
                 <td className="text-sm font-black uppercase py-4">{m.name}</td>
-                <td className="text-[10px] font-black uppercase py-4">{m.designation}</td>
-                <td className="py-4"><Badge variant="outline" className={cn("text-[9px] uppercase font-black px-3 border-black rounded-none", m.status === 'Active' ? "bg-black text-white" : "bg-white")}>{m.status || "Active"}</Badge></td>
+                <td className="text-[10px] font-black uppercase py-4 opacity-70">{m.designation}</td>
+                <td className="text-[10px] font-black uppercase py-4 opacity-70">{m.zonalOffice || "Head Office"}</td>
+                <td className="py-4">
+                  <Badge variant="outline" className={cn(
+                    "text-[9px] uppercase font-black px-3 border-black rounded-none transition-all",
+                    m.status === 'Active' ? "bg-black text-white" : "bg-white text-black"
+                  )}>
+                    {m.status || "Active"}
+                  </Badge>
+                </td>
                 <td className="text-right pr-6 py-4">
                   <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(m.id, m.name)}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px]"><Link href={`/members/${m.id}`}>Ledger Audit</Link></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-slate-200" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleDeleteMember(m.id, m.name)}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-8 border-2 border-black font-black uppercase text-[10px] shadow-sm active:scale-95 transition-transform"><Link href={`/members/${m.id}`}>Ledger Terminal</Link></Button>
                   </div>
                 </td>
               </TableRow>
@@ -249,82 +277,111 @@ export default function MembersPage() {
         </Table>
       </div>
 
+      {/* REGISTRATION TERMINAL */}
       <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if (!o) setEditingMember(null); }}>
         <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
-            <DialogTitle className="font-black uppercase text-2xl">Personnel Registration</DialogTitle>
-            <DialogDescription className="text-xs font-black uppercase opacity-60">Synchronize official trust profiles</DialogDescription>
+            <DialogTitle className="font-black uppercase text-2xl flex items-center gap-3">
+                <UserCircle className="size-6" /> Personnel Registry Terminal
+            </DialogTitle>
+            <DialogDescription className="text-xs font-black uppercase opacity-60">Synchronize official trust profiles with institutional data</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Member ID No</Label>
-                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Member ID No</Label>
+                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Full Legal Name</Label>
-                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Full Legal Name</Label>
+                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Designation</Label>
-                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Official Designation</Label>
+                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Joining Date</Label>
-                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Joining Date</Label>
+                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Zonal Office</Label>
-                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} placeholder="e.g. Head Office" className="h-11 border-2 border-black font-black rounded-none" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Zonal Office</Label>
+                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} placeholder="e.g. Head Office / Office-1" className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase">Account Status</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Account Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
-                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none">
+                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none focus:ring-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Active" className="font-black">Active</SelectItem>
-                    <SelectItem value="Retired" className="font-black">Retired</SelectItem>
-                    <SelectItem value="Transferred" className="font-black">Transferred</SelectItem>
-                    <SelectItem value="InActive" className="font-black">InActive</SelectItem>
+                    <SelectItem value="Active" className="font-black uppercase">Active</SelectItem>
+                    <SelectItem value="Retired" className="font-black uppercase">Retired</SelectItem>
+                    <SelectItem value="Transferred" className="font-black uppercase">Transferred</SelectItem>
+                    <SelectItem value="InActive" className="font-black uppercase">InActive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="col-span-2 space-y-2">
-                <Label className="text-[10px] font-black uppercase">Permanent Address</Label>
-                <Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-2 border-black font-black rounded-none min-h-[100px]" />
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Permanent Address</Label>
+                <Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-2 border-black font-black rounded-none min-h-[100px] focus:ring-0" />
               </div>
             </div>
-            <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.3em] rounded-none">Save Personnel Profile</Button>
+            <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.4em] rounded-none shadow-xl hover:bg-slate-900 transition-colors">
+                Commit Personnel Profile
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
 
+      {/* MONTHLY BATCH IMPORT TERMINAL */}
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none p-0 overflow-hidden shadow-2xl">
-          <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black">
-            <DialogTitle className="text-xl font-black uppercase">Monthly Append Matrix</DialogTitle>
-            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Append transactions and sync profiles</DialogDescription>
+          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
+            <DialogTitle className="text-xl font-black uppercase flex items-center gap-3">
+                <FileSpreadsheet className="size-5" /> Institutional Batch Importer
+            </DialogTitle>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Append transactions and synchronize personnel profiles from salary matrices</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
             <div className="bg-slate-50 p-10 border-2 border-black border-dashed text-center space-y-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => fileInputRef.current?.click()}>
               <FileSpreadsheet className="size-12 mx-auto text-black opacity-20" />
-              <p className="text-xs font-black uppercase tracking-widest">Select Monthly XLSX File</p>
+              <p className="text-xs font-black uppercase tracking-widest">Select Monthly Matrix (XLSX)</p>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
-              {isUploading && <Loader2 className="animate-spin mx-auto" />}
+              {isUploading && <Loader2 className="size-8 animate-spin mx-auto text-black" />}
             </div>
-            <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start">
+            <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start shadow-inner">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-black uppercase leading-tight">Importer will link by ID. Profiles are updated with new designations; new transactions are appended to historical ledger.</p>
+              <p className="text-[10px] font-black uppercase leading-tight">Profiles are updated by ID. Designations are synced to latest; ledger entries are appended as new unique records.</p>
             </div>
             <Button variant="outline" onClick={() => {
-              const ws = XLSX.utils.json_to_sheet([{ "ID": "5001", "Name": "MD. ARIFUL ISLAM", "Designation": "AGMF", "ZonalOffice": "Head Office", "Particulars": "Salary July-2024", "PostingDate": "2024-07-31", "Employee_Contribution": 5000, "Loan_Disbursed": 0, "Loan_Repaid": 0, "Employee_Profit": 0, "Loan_Profit": 0, "PBS_Contribution": 5000, "PBS_Profit": 0 }]);
-              const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Monthly"); XLSX.writeFile(wb, "Monthly_Append_Template.xlsx");
-            }} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">Download Excel Template</Button>
+              const ws = XLSX.utils.json_to_sheet([{ 
+                  "ID": "5001", 
+                  "Name": "MD. ARIFUL ISLAM", 
+                  "Designation": "AGMF", 
+                  "ZonalOffice": "Head Office", 
+                  "Status": "Active",
+                  "JoinedDate": "2020-01-01",
+                  "Particulars": "Salary July-2024", 
+                  "PostingDate": "2024-07-31", 
+                  "Emp_Contrib": 5000, 
+                  "Loan_Disbursed": 0, 
+                  "Loan_Repaid": 0, 
+                  "Employee_Profit": 0, 
+                  "Loan_Profit": 0, 
+                  "PBS_Contribution": 5000, 
+                  "PBS_Profit": 0 
+              }]);
+              const wb = XLSX.utils.book_new(); 
+              XLSX.utils.book_append_sheet(wb, ws, "MonthlyMatrix"); 
+              XLSX.writeFile(wb, "Institutional_Salary_Import_Template.xlsx");
+            }} className="w-full border-2 border-black font-black uppercase text-[10px] h-11 tracking-widest hover:bg-slate-50">
+                Download Standard Template
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
