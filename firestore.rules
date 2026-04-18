@@ -6,7 +6,7 @@ service cloud.firestore {
     /**
      * FIREBASE SECURITY RULES - PBS CPF SYSTEM
      * 
-     * Allows access to authenticatedSamity personnel while
+     * Allows access to authenticated Samity personnel while
      * enforcing role-based controls for administrative collections.
      */
 
@@ -47,42 +47,42 @@ service cloud.firestore {
 
     // Chart of Accounts (Institutional Standard)
     match /chartOfAccounts/{accountId} {
-      allow read: if isSignedIn();
+      allow read, list: if isSignedIn();
       allow write: if isSignedIn();
     }
 
     // Members Registry (Samity Personnel)
     match /members/{memberId} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
       
       // Subcollection for Individual Subsidiary Ledgers
       match /fundSummaries/{summaryId} {
-        allow read, write: if isSignedIn();
+        allow read, list, write: if isSignedIn();
       }
     }
 
     // Investment Instruments Portfolio
     match /investmentInstruments/{id} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
 
       // Subcollection for Audit/Renewal History
       match /auditHistory/{historyId} {
-        allow read, write: if isSignedIn();
+        allow read, list, write: if isSignedIn();
       }
     }
     
     // Accrued Interest Logs (Year-end Provisions)
     match /accruedInterestLogs/{id} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     // Journal Entries (General Ledger)
     match /journalEntries/{entryId} {
-      allow read, write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
       
       // Double-entry Line Items
       match /line_items/{lineId} {
-        allow read, write: if isSignedIn();
+        allow read, list: if isSignedIn();
       }
     }
 

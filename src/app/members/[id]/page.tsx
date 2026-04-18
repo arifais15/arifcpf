@@ -12,7 +12,8 @@ import {
   UserX,
   Edit2,
   Trash2,
-  Calendar
+  Calendar,
+  ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -54,9 +55,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const availableFYs = useMemo(() => {
     const fys = [];
     const now = new Date();
-    const curMonth = now.getMonth() + 1;
     const curYear = now.getFullYear();
-    const startYear = curMonth >= 7 ? curYear : curYear - 1;
+    const currentMonth = now.getMonth() + 1;
+    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -90,9 +91,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const pSums = pre.reduce((acc, r) => ({ c1:acc.c1+r.c1, c2:acc.c2+r.c2, c3:acc.c3+r.c3, c5:acc.c5+r.c5, c6:acc.c6+r.c6, c8:acc.c8+r.c8, c9:acc.c9+r.c9 }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
     let rows = inR;
     if (pre.length > 0) rows = [{ summaryDate: dateRange.start, particulars: "Opening Balance Brought Forward", ...pSums, col4:lastP.col4, col7:lastP.col7, col10:lastP.col10, col11:lastP.col11, isOpening: true }, ...inR];
-    const viewSums = rows.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
+    
+    // Aggregate View Sums includes Opening + Period Entries
+    const viewSums = rows.reduce((acc, r) => ({ 
+      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
+    }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
+    
     const lastRow = rows[rows.length-1] || { col4:0, col7:0, col10:0, col11:0 };
-    return { rows, grand: { c1:viewSums.c1, c2:viewSums.c2, c3:viewSums.c3, c5:viewSums.c5, c6:viewSums.c6, c8:viewSums.c8, c9:viewSums.c9, c4:lastRow.col4, c7:lastRow.col7, c10:lastRow.col10, c11:lastRow.col11 }, totalAllTime: allC.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 }) };
+    return { 
+      rows, 
+      grand: { c1:viewSums.c1, c2:viewSums.c2, c3:viewSums.c3, c5:viewSums.c5, c6:viewSums.c6, c8:viewSums.c8, c9:viewSums.c9, c4:lastRow.col4, c7:lastRow.col7, c10:lastRow.col10, c11:lastRow.col11 }, 
+      totalAllTime: allC.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 }) 
+    };
   }, [summaries, dateRange]);
 
   const rowVerification = useMemo(() => {
@@ -118,20 +128,43 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const reason = f.get("reason") as string;
     const sDate = f.get("settlementDate") as string;
     const currentLoanBal = (ledgerLogic.totalAllTime.c2 || 0) - (ledgerLogic.totalAllTime.c3 || 0);
-    const entry = { summaryDate: sDate, particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}`, employeeContribution: -(ledgerLogic.totalAllTime.c1 || 0), loanWithdrawal: 0, loanRepayment: currentLoanBal > 0 ? currentLoanBal : 0, profitEmployee: -(ledgerLogic.totalAllTime.c5 || 0), profitLoan: -(ledgerLogic.totalAllTime.c6 || 0), pbsContribution: -(ledgerLogic.totalAllTime.c8 || 0), profitPbs: -(ledgerLogic.totalAllTime.c9 || 0), memberId: resolvedParams.id, isSettlement: true, createdAt: new Date().toISOString() };
+    
+    // Settlement reversal entry to zero out ALL columns
+    const entry = { 
+      summaryDate: sDate, 
+      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ' (LOAN BAL ADJUSTED)' : ''}`, 
+      employeeContribution: -(ledgerLogic.totalAllTime.c1 || 0), 
+      loanWithdrawal: 0, 
+      loanRepayment: currentLoanBal > 0 ? currentLoanBal : 0, // Fill recovery to balance draw
+      profitEmployee: -(ledgerLogic.totalAllTime.c5 || 0), 
+      profitLoan: -(ledgerLogic.totalAllTime.c6 || 0), 
+      pbsContribution: -(ledgerLogic.totalAllTime.c8 || 0), 
+      profitPbs: -(ledgerLogic.totalAllTime.c9 || 0), 
+      memberId: resolvedParams.id, 
+      isSettlement: true, 
+      createdAt: new Date().toISOString() 
+    };
+    
     addDocumentNonBlocking(summariesRef, entry);
     updateDocumentNonBlocking(memberRef, { status: reason, settlementDate: sDate, settledAmount: ledgerLogic.grand.c11, updatedAt: new Date().toISOString() });
     setIsSettlementOpen(false);
     toast({ title: "Settlement Confirmed" });
   };
 
+  // Header Actions - Memoized for stability
   const headerActions = useMemo(() => (
     <div className="flex gap-2 ml-auto no-print">
-      <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[10px]"><UserX className="size-4 mr-2" /> Final Settlement</Button>
-      <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px] text-black"><Plus className="size-4 mr-2" /> Manual Sync</Button>
-      <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8"><Printer className="size-4 mr-2" /> Print</Button>
+      <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[10px]">
+        <UserX className="size-4 mr-2" /> Final Settlement
+      </Button>
+      <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px] text-black">
+        <Plus className="size-4 mr-2" /> Manual Sync
+      </Button>
+      <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8">
+        <Printer className="size-4 mr-2" /> Print
+      </Button>
     </div>
-  ), []);
+  ), [ledgerLogic.grand.c11]);
 
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12" /></div>;
 
@@ -139,14 +172,27 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
+      {/* BODY TOOLBAR: Fiscal Year and Date Range filters */}
       <div className="bg-white p-4 border-2 border-black shadow-xl flex flex-col md:flex-row items-center justify-between no-print animate-in slide-in-from-top duration-500 gap-4">
         <Link href="/members" className="p-2 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5" /></Link>
         <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-2 border border-black rounded-xl">
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase text-black ml-1">Analysis Period</Label>
-            <Select value={selectedFY} onValueChange={(fy) => { setSelectedFY(fy); if(fy==="all") setDateRange({start:"2010-01-01", end:new Date().toISOString().split('T')[0]}); else { const s = parseInt(fy.split("-")[0]); setDateRange({start:`${s}-07-01`, end:`${s+1}-06-30`}); } }}>
-              <SelectTrigger className="h-8 w-[100px] border-black font-black text-[10px] uppercase"><SelectValue /></SelectTrigger>
-              <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}<SelectItem value="all" className="font-black text-xs">ALL TIME</SelectItem></SelectContent>
+            <Select 
+              value={selectedFY} 
+              onValueChange={(fy) => { 
+                setSelectedFY(fy); 
+                if(fy==="all") setDateRange({start:"2010-01-01", end:new Date().toISOString().split('T')[0]}); 
+                else { const s = parseInt(fy.split("-")[0]); setDateRange({start:`${s}-07-01`, end:`${s+1}-06-30`}); } 
+              }}
+            >
+              <SelectTrigger className="h-8 w-[100px] border-black font-black text-[10px] uppercase">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
+                <SelectItem value="all" className="font-black text-xs">ALL TIME</SelectItem>
+              </SelectContent>
             </Select>
           </div>
           <ArrowRightLeft className="size-3 opacity-30 mt-4" />
@@ -190,24 +236,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             ))}
           </tbody>
           <tfoot className="bg-slate-100 font-black border-t-4 border-black text-[9px] uppercase">
-            <tr className="h-10"><td colSpan={2} className="border border-black p-2 text-right">Aggregate Period Totals:</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c4.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c7.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td><td className="border border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString()}</td><td className="border border-black p-1 no-print"></td></tr>
+            <tr className="h-10">
+              <td colSpan={2} className="border border-black p-2 text-right">Aggregate Period Totals:</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c4.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c7.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString()}</td>
+              <td className="border border-black p-1 no-print"></td>
+            </tr>
           </tfoot>
         </table>
       </div>
 
-      <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
-        <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden shadow-2xl rounded-none">
-          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase text-rose-700">Final Settlement</DialogTitle></DialogHeader>
-          <form onSubmit={handleFinalSettlement} className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Category</Label><Select name="reason" defaultValue="Retired"><SelectTrigger className="h-11 border-2 border-black font-black uppercase text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Retired">RETIRED</SelectItem><SelectItem value="Transferred">TRANSFERRED</SelectItem><SelectItem value="Dismissed">DISMISSED</SelectItem></SelectContent></Select></div>
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Date</Label><Input name="settlementDate" type="date" required max="9999-12-31" defaultValue={new Date().toISOString().split('T')[0]} className="h-11 border-2 border-black font-black" /></div>
-            </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setIsSettlementOpen(false)}>Cancel</Button><Button type="submit" className="bg-rose-700 text-white font-black uppercase text-xs">Confirm Settlement</Button></DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
+      {/* Manual Entry Dialog: Optimized for PC/Mobile and Live Verification */}
       <Dialog open={isEntryOpen} onOpenChange={(o) => { setIsEntryOpen(o); if(!o) setEditingEntry(null); }}>
         <DialogContent className="max-w-4xl bg-white p-0 rounded-2xl shadow-2xl border-4 border-black overflow-hidden max-h-[95vh] flex flex-col">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black shrink-0"><DialogTitle className="text-xl font-black uppercase">Voucher Matrix Terminal</DialogTitle></DialogHeader>
@@ -219,11 +267,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 bg-slate-50 p-6 rounded-2xl border-2 border-black shadow-inner">
               <div className="space-y-4">
                 <h3 className="text-[11px] font-black uppercase underline tracking-widest text-primary">Contributions</h3>
-                <div className="space-y-3"><div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 1: Emp</Label><Input type="number" step="0.01" value={manualVals.c1||''} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="w-full sm:w-32 border-black border-2 text-right font-black" /></div><div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 8: PBS</Label><Input type="number" step="0.01" value={manualVals.c8||''} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="w-full sm:w-32 border-black border-2 text-right font-black" /></div></div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 1: Emp</Label><Input type="number" step="0.01" value={manualVals.c1||''} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="w-full sm:w-32 border-black border-2 text-right font-black" /></div>
+                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 8: PBS</Label><Input type="number" step="0.01" value={manualVals.c8||''} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="w-full sm:w-32 border-black border-2 text-right font-black" /></div>
+                </div>
               </div>
               <div className="space-y-4">
                 <h3 className="text-[11px] font-black uppercase underline tracking-widest text-rose-600">Loan Activity</h3>
-                <div className="space-y-3"><div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 2: Draw</Label><Input type="number" step="0.01" value={manualVals.c2||''} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="w-full sm:w-32 border-rose-600 border-2 text-right font-black" /></div><div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 3: Repay</Label><Input type="number" step="0.01" value={manualVals.c3||''} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="w-full sm:w-32 border-emerald-600 border-2 text-right font-black" /></div></div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 2: Draw</Label><Input type="number" step="0.01" value={manualVals.c2||''} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="w-full sm:w-32 border-rose-600 border-2 text-right font-black" /></div>
+                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 3: Repay</Label><Input type="number" step="0.01" value={manualVals.c3||''} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="w-full sm:w-32 border-emerald-600 border-2 text-right font-black" /></div>
+                </div>
               </div>
             </div>
             <div className="p-6 bg-black text-white rounded-2xl flex flex-col gap-4 border-4 border-white/20">
@@ -235,6 +289,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
             <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] bg-black text-white shadow-2xl hover:bg-slate-900">Commit Matrix to Ledger</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
+        <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden shadow-2xl rounded-none">
+          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
+            <DialogTitle className="text-xl font-black uppercase text-rose-700 flex items-center gap-3"><UserX className="size-6" /> Final Settlement</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFinalSettlement} className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Category</Label><Select name="reason" defaultValue="Retired"><SelectTrigger className="h-11 border-2 border-black font-black uppercase text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Retired">RETIRED</SelectItem><SelectItem value="Transferred">TRANSFERRED</SelectItem><SelectItem value="Dismissed">DISMISSED</SelectItem><SelectItem value="InActive">INACTIVE</SelectItem></SelectContent></Select></div>
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Date</Label><Input name="settlementDate" type="date" required max="9999-12-31" defaultValue={new Date().toISOString().split('T')[0]} className="h-11 border-2 border-black font-black" /></div>
+            </div>
+            <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
+               <p className="text-[9px] font-black uppercase opacity-40">Closure Impact Audit</p>
+               <p className="text-xs font-black">Net Pay-out: ৳ {ledgerLogic.grand.c11.toLocaleString()}</p>
+               <p className="text-[9px] text-slate-500 font-bold uppercase italic leading-tight">Zeroing all columns. Outstanding loans will be adjusted via positive repayment.</p>
+            </div>
+            <DialogFooter><Button type="button" variant="outline" className="border-2 border-black font-black uppercase text-xs" onClick={() => setIsSettlementOpen(false)}>Cancel</Button><Button type="submit" className="bg-rose-700 text-white font-black uppercase text-xs px-8">Confirm Settlement</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

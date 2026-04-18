@@ -62,8 +62,11 @@ export default function MembersPage() {
       constraints.push(orderBy("memberIdNumber", "asc"));
     }
 
-    const fetchLimit = pageSize === -1 ? 10000 : pageSize;
-    constraints.push(limit(fetchLimit + 1));
+    if (pageSize !== -1) {
+      constraints.push(limit(pageSize + 1));
+    } else {
+      constraints.push(limit(5000)); // Reasonable upper bound for "All"
+    }
 
     if (lastVisible && currentPage > 1 && pageSize !== -1) {
       constraints.push(startAfter(lastVisible));
@@ -76,7 +79,7 @@ export default function MembersPage() {
 
   const members = useMemo(() => {
     if (!rawMembers) return [];
-    const displayLimit = pageSize === -1 ? 10000 : pageSize;
+    const displayLimit = pageSize === -1 ? 5000 : pageSize;
     return rawMembers.slice(0, displayLimit);
   }, [rawMembers, pageSize]);
 
@@ -156,10 +159,15 @@ export default function MembersPage() {
     reader.readAsBinaryString(file);
   };
 
+  // Header Actions - Memoized for stability to prevent focus/interactivity loss
   const headerActions = useMemo(() => (
     <div className="flex gap-2 ml-auto no-print">
-      <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 uppercase text-[10px] font-black text-black"><Upload className="size-3.5 mr-2" /> Monthly Matrix</Button>
-      <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white uppercase text-[10px] font-black"><Plus className="size-3.5 mr-2" /> Register Personnel</Button>
+      <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 uppercase text-[10px] font-black text-black">
+        <Upload className="size-3.5 mr-2" /> Monthly Matrix
+      </Button>
+      <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white uppercase text-[10px] font-black">
+        <Plus className="size-3.5 mr-2" /> Register Personnel
+      </Button>
     </div>
   ), []);
 
@@ -167,17 +175,37 @@ export default function MembersPage() {
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
+      {/* BODY TOOLBAR: Search and Filters moved here for stability */}
       <div className="bg-white p-6 border-2 border-black shadow-xl flex items-center justify-between no-print animate-in slide-in-from-top duration-500">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
-          <Input className="pl-10 h-12 bg-slate-50 border-black border-2 font-black text-lg" placeholder="Search Personnel (ID/Name)..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input 
+            className="pl-10 h-12 bg-slate-50 border-black border-2 font-black text-lg" 
+            placeholder="Search Personnel (ID/Name)..." 
+            value={search} 
+            onChange={(e) => setSearch(e.target.value)} 
+          />
         </div>
         <div className="flex items-center gap-4 border-l-2 border-slate-100 pl-6 ml-6">
           <div className="flex items-center gap-2">
             <Label className="text-[10px] font-black uppercase text-slate-400">Rows</Label>
-            <Select value={pageSize.toString()} onValueChange={(v) => { setPageSize(parseInt(v)); setLastVisible(null); setCurrentPage(1); }}>
-              <SelectTrigger className="h-10 w-24 border-2 border-black font-black"><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="5">5</SelectItem><SelectItem value="10">10</SelectItem><SelectItem value="25">25</SelectItem><SelectItem value="-1">All</SelectItem></SelectContent>
+            <Select 
+              value={pageSize.toString()} 
+              onValueChange={(v) => { 
+                setPageSize(parseInt(v)); 
+                setLastVisible(null); 
+                setCurrentPage(1); 
+              }}
+            >
+              <SelectTrigger className="h-10 w-24 border-2 border-black font-black">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="-1">All</SelectItem>
+              </SelectContent>
             </Select>
           </div>
         </div>
