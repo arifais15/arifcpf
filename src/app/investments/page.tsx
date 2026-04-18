@@ -160,6 +160,12 @@ export default function InvestmentsPage() {
     }
   };
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   const handleSaveInvestment = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -285,12 +291,6 @@ export default function InvestmentsPage() {
       case 'Matured': return <Badge variant="outline" className="text-orange-600 border-orange-200 gap-1 font-black"><Clock className="size-3" /> Matured</Badge>;
       case 'Closed': return <Badge variant="secondary" className="gap-1 font-black"><AlertCircle className="size-3" /> Closed</Badge>;
       default: return <Badge variant="outline" className="font-black">{status}</Badge>;
-    }
-  };
-
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      e.preventDefault();
     }
   };
 

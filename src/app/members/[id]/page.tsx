@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -108,6 +107,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const netOff = manualVals.c8 + manualVals.c9;
     return { netEmp, netOff, total: netEmp + netOff, loanEffect: manualVals.c2 - manualVals.c3 };
   }, [manualVals]);
+
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
 
   const handleManualSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -321,13 +326,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                  <div className="text-[9px] font-black uppercase text-center truncate">9: Profit (PBS)</div>
               </div>
               <div className="grid grid-cols-7 gap-2 bg-slate-100 p-2 border-2 border-black rounded-xl">
-                 <Input type="number" step="0.01" placeholder="Col 1" value={manualVals.c1||''} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-10 border-black border-2 font-black text-center" />
-                 <Input type="number" step="0.01" placeholder="Col 2" value={manualVals.c2||''} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="h-10 border-rose-600 border-2 font-black text-center text-rose-700" />
-                 <Input type="number" step="0.01" placeholder="Col 3" value={manualVals.c3||''} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="h-10 border-emerald-600 border-2 font-black text-center text-emerald-700" />
-                 <Input type="number" step="0.01" placeholder="Col 5" value={manualVals.c5||''} onChange={e=>setManualVals({...manualVals, c5:Number(e.target.value)})} className="h-10 border-orange-600 border-2 font-black text-center text-orange-700" />
-                 <Input type="number" step="0.01" placeholder="Col 6" value={manualVals.c6||''} onChange={e=>setManualVals({...manualVals, c6:Number(e.target.value)})} className="h-10 border-orange-600 border-2 font-black text-center text-orange-700" />
-                 <Input type="number" step="0.01" placeholder="Col 8" value={manualVals.c8||''} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="h-10 border-blue-600 border-2 font-black text-center text-blue-700" />
-                 <Input type="number" step="0.01" placeholder="Col 9" value={manualVals.c9||''} onChange={e=>setManualVals({...manualVals, c9:Number(e.target.value)})} className="h-10 border-blue-600 border-2 font-black text-center text-blue-700" />
+                 <Input type="number" step="0.01" placeholder="Col 1" value={manualVals.c1||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-10 border-black border-2 font-black text-center" />
+                 <Input type="number" step="0.01" placeholder="Col 2" value={manualVals.c2||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="h-10 border-rose-600 border-2 font-black text-center text-rose-700" />
+                 <Input type="number" step="0.01" placeholder="Col 3" value={manualVals.c3||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="h-10 border-emerald-600 border-2 font-black text-center text-emerald-700" />
+                 <Input type="number" step="0.01" placeholder="Col 5" value={manualVals.c5||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c5:Number(e.target.value)})} className="h-10 border-orange-600 border-2 font-black text-center text-orange-700" />
+                 <Input type="number" step="0.01" placeholder="Col 6" value={manualVals.c6||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c6:Number(e.target.value)})} className="h-10 border-orange-600 border-2 font-black text-center text-orange-700" />
+                 <Input type="number" step="0.01" placeholder="Col 8" value={manualVals.c8||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="h-10 border-blue-600 border-2 font-black text-center text-blue-700" />
+                 <Input type="number" step="0.01" placeholder="Col 9" value={manualVals.c9||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c9:Number(e.target.value)})} className="h-10 border-blue-600 border-2 font-black text-center text-blue-700" />
               </div>
             </div>
 

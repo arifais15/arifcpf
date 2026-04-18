@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -128,6 +127,12 @@ export default function SettingsPage() {
     }
   }, [savedInterestSettings])
 
+  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+    }
+  };
+
   const handleSaveGeneral = () => {
     setIsSaving(true)
     setDocumentNonBlocking(generalSettingsRef, {
@@ -137,7 +142,7 @@ export default function SettingsPage() {
     
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Branding Updated", description: "Institution name saved. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
+      showAlert({ title: "Branding Updated", description: "Institution name saved. Refreshing system...", type: "success" })
     }, 500)
   }
 
@@ -151,7 +156,7 @@ export default function SettingsPage() {
     
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Ledger Saved", description: "Mapping configuration updated. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
+      showAlert({ title: "Ledger Saved", description: "Mapping configuration updated. Refreshing system...", type: "success" })
     }, 500)
   }
 
@@ -170,7 +175,7 @@ export default function SettingsPage() {
 
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Policy Updated", description: "Interest tiers and TDS rates saved. Refreshing system...", type: "success", onConfirm: () => window.location.reload() })
+      showAlert({ title: "Policy Updated", description: "Interest tiers and TDS rates saved. Refreshing system...", type: "success" })
     }, 500)
   }
 
@@ -227,10 +232,10 @@ export default function SettingsPage() {
     if (editingCoaAccount && editingCoaAccount.id) {
       const docRef = doc(firestore, "chartOfAccounts", editingCoaAccount.id);
       updateDocumentNonBlocking(docRef, accountData);
-      showAlert({ title: "Success", description: `${accountData.accountName} updated. Refreshing...`, type: "success", onConfirm: () => window.location.reload() });
+      showAlert({ title: "Success", description: `${accountData.accountName} updated.`, type: "success" });
     } else {
       addDocumentNonBlocking(coaRef, accountData);
-      showAlert({ title: "Added", description: `${accountData.accountName} added. Refreshing...`, type: "success", onConfirm: () => window.location.reload() });
+      showAlert({ title: "Added", description: `${accountData.accountName} added.`, type: "success" });
     }
     setIsCoaAddOpen(false);
     setEditingCoaAccount(null);
@@ -246,15 +251,9 @@ export default function SettingsPage() {
       onConfirm: () => {
         const docRef = doc(firestore, "chartOfAccounts", id);
         deleteDocumentNonBlocking(docRef);
-        showAlert({ title: "Deleted", description: "Account removed. Refreshing...", type: "success", onConfirm: () => window.location.reload() });
+        showAlert({ title: "Deleted", description: "Account removed.", type: "success" });
       }
     });
-  };
-
-  const handleNumericKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      e.preventDefault();
-    }
   };
 
   if (isLedgerLoading || isInterestLoading || isCoaLoading || isGeneralLoading) {
