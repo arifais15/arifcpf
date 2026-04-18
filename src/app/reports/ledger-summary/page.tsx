@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -52,10 +53,7 @@ export default function LedgerSummaryReportPage() {
       const c7 = c1 - c2 + c3 + c5 + c6; 
       const c10 = c8 + c9; 
       const c11 = c7 + c10;
-      return { 
-          id: m.memberIdNumber, name: m.name, 
-          c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 
-      };
+      return { id: m.memberIdNumber, name: m.name, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 };
     })
     .filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.id?.includes(search))
     .sort((a,b) => (a.id||"").localeCompare(b.id||""));
@@ -83,17 +81,17 @@ export default function LedgerSummaryReportPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-none border border-black overflow-hidden print-container shadow-2xl">
+      <div className="bg-white rounded-none border border-black overflow-hidden shadow-2xl">
         <div className="p-2 border-b border-black bg-slate-50 flex items-center justify-between no-print">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
-            <Input className="pl-7 h-8 border-black font-black text-[10px] bg-white" placeholder="Search ID/Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input className="pl-7 h-8 border-black font-black text-[10px] bg-white" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
           <Badge className="bg-black text-white font-black text-[9px] uppercase tracking-widest rounded-none">{reportData.length} Personnel</Badge>
         </div>
         
         <div className="overflow-x-auto">
-          <Table className="w-full text-[8px] font-black table-fixed border-collapse text-[#000000]">
+          <Table className="w-full text-[8px] font-black table-fixed border-collapse">
             <TableHeader className="bg-slate-100 border-b border-black uppercase text-[7px] leading-tight">
               <TableRow className="border-b border-black">
                 <TableHead className="border-r border-black p-0.5 w-[40px] font-black text-black text-center h-8">ID No</TableHead>
@@ -129,7 +127,6 @@ export default function LedgerSummaryReportPage() {
                   <TableCell className="text-right p-0.5 bg-slate-200 font-black text-black">{r.c11.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
-              {/* Institutional Summary Footer as part of tbody to ensure single end display */}
               <TableRow className="bg-black text-white font-black h-10 uppercase text-[7px]">
                 <TableCell colSpan={2} className="text-right pr-2 font-black text-white">Aggregates:</TableCell>
                 <TableCell className="text-right border-l border-white/10 text-white">{stats.c1.toLocaleString()}</TableCell>
@@ -146,10 +143,6 @@ export default function LedgerSummaryReportPage() {
               </TableRow>
             </TableBody>
           </Table>
-        </div>
-        <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest hidden print:flex">
-          <span>PBS CPF Management Software</span>
-          <span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
         </div>
       </div>
     </div>

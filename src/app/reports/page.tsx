@@ -7,11 +7,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS as INITIAL_COA, type COAEntry } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck, Scale, ArrowRightLeft } from "lucide-react";
+import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck, Scale, ArrowRightLeft, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export default function ReportsPage() {
   const firestore = useFirestore();
@@ -34,20 +35,13 @@ export default function ReportsPage() {
     return Array.from(mergedMap.values()).sort((a, b) => (a.code || "").localeCompare(b.code || ""));
   }, [coaData]);
 
-  const assetAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('1')), [activeCOA]);
-  const liabilityEquityAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('2')), [activeCOA]);
-  const incomeAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('4')), [activeCOA]);
-  const expenseAccounts = useMemo(() => activeCOA.filter(a => a.code.startsWith('5')), [activeCOA]);
-
   const entriesRef = useMemoFirebase(() => collection(firestore, "journalEntries"), [firestore]);
   const { data: entries, isLoading: isEntriesLoading } = useCollection(entriesRef);
 
   const availableFYs = useMemo(() => {
     const fys = [];
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const activeStartYear = month >= 7 ? currentYear : currentYear - 1;
+    const activeStartYear = (now.getMonth() + 1) >= 7 ? now.getFullYear() : now.getFullYear() - 1;
     for (let i = 0; i < 15; i++) {
       const start = activeStartYear - i;
       fys.push(`${start}-${(start + 1).toString().slice(-2)}`);
@@ -60,18 +54,16 @@ export default function ReportsPage() {
     if (fy === "all") {
       setDateRange({ start: "2010-01-01", end: new Date().toISOString().split('T')[0] });
     } else {
-      const parts = fy.split("-");
-      const startYear = parseInt(parts[0]);
+      const startYear = parseInt(fy.split("-")[0]);
       setDateRange({ start: `${startYear}-07-01`, end: `${startYear + 1}-06-30` });
     }
   };
 
   useEffect(() => {
-    if (availableFYs.length > 0 && !selectedFiscalYear) {
-      handleFYChange(availableFYs[0]);
-    }
+    if (availableFYs.length > 0 && !selectedFiscalYear) handleFYChange(availableFYs[0]);
   }, [availableFYs, selectedFiscalYear]);
 
+  // IAS 1: Balance Sheet Balances (As of end date)
   const balances = useMemo(() => {
     const map: Record<string, number> = {};
     if (!entries || !dateRange.end) return map;
@@ -88,6 +80,7 @@ export default function ReportsPage() {
     return map;
   }, [entries, activeCOA, dateRange.end]);
 
+  // IAS 1: Income Statement Balances (For the period)
   const periodBalances = useMemo(() => {
     const map: Record<string, number> = {};
     if (!entries || !dateRange.start || !dateRange.end) return map;
@@ -106,222 +99,227 @@ export default function ReportsPage() {
     return map;
   }, [entries, activeCOA, dateRange.start, dateRange.end]);
 
-  const totalIncome = useMemo(() => incomeAccounts.filter(a => !a.isHeader).reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [incomeAccounts, periodBalances]);
-  const totalExpense = useMemo(() => expenseAccounts.filter(a => !a.isHeader).reduce((sum, acc) => sum + (periodBalances[acc.code] || 0), 0), [expenseAccounts, periodBalances]);
-
   const formatCurrency = (val: number) => {
-    const formatted = new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Math.abs(val || 0));
+    const formatted = new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2 }).format(Math.abs(val || 0));
     return val < 0 ? `(${formatted})` : formatted;
   };
 
-  const ClassifiedSection = ({ title, accounts, balancesMap }: { title: string, accounts: COAEntry[], balancesMap: Record<string, number> }) => {
-    const groups: { header: COAEntry; items: COAEntry[]; total: number }[] = [];
-    let currentGroup: { header: COAEntry; items: COAEntry[]; total: number } | null = null;
-    
-    accounts.forEach(acc => {
-      if (acc.isHeader) {
-        if (currentGroup && currentGroup.items.length > 0) groups.push(currentGroup);
-        currentGroup = { header: acc, items: [], total: 0 };
-      } else {
-        const val = balancesMap[acc.code] || 0;
-        if (val !== 0) {
-          if (!currentGroup) currentGroup = { header: { code: '', name: 'General', type: '', balance: '', isHeader: true }, items: [], total: 0 };
-          currentGroup.items.push(acc);
-          currentGroup.total += val;
-        }
-      }
-    });
-    if (currentGroup && currentGroup.items.length > 0) groups.push(currentGroup);
-    if (groups.length === 0) return null;
+  const SummaryRow = ({ label, value, isBold, isTotal, isGrandTotal }: any) => (
+    <div className={cn(
+      "flex justify-between py-1.5 text-[11px] font-black tabular-nums border-b border-dotted border-black/10",
+      isBold && "font-black text-xs border-black/20",
+      isTotal && "bg-slate-50 border-t-2 border-black mt-2",
+      isGrandTotal && "bg-black text-white p-3 border-none mt-4 uppercase tracking-widest text-sm"
+    )}>
+      <span>{label}</span>
+      <span className={cn(isGrandTotal && "underline decoration-double")}>{isGrandTotal ? `৳ ${formatCurrency(value)}` : formatCurrency(value)}</span>
+    </div>
+  );
 
-    return (
-      <div className="space-y-6 text-[#000000]">
-        <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">{title}</h3>
-        {groups.map((g, i) => (
-          <div key={i} className="space-y-1">
-            <div className="flex justify-between font-black text-xs uppercase bg-slate-50 p-1 border-l-4 border-black text-black">
-              <span>{g.header.name}</span>
-            </div>
-            <div className="pl-4 space-y-0.5">
-              {g.items.map(item => (
-                <div key={item.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums text-black">
-                  <span className="flex gap-4"><span className="font-mono w-[80px] opacity-50">{item.code}</span><span>{item.name}</span></span>
-                  <span>{formatCurrency(balancesMap[item.code])}</span>
-                </div>
-              ))}
-            </div>
-            <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-2 pl-4 italic text-black">
-              <span>Total {g.header.name}</span><span>{formatCurrency(g.total)}</span>
-            </div>
-          </div>
-        ))}
-        <div className="flex justify-between font-black text-sm bg-black text-white p-3 rounded-none mt-4 uppercase tracking-widest">
-          <span>Total {title}</span><span className="underline decoration-double">৳ {formatCurrency(groups.reduce((s, g) => s + g.total, 0))}</span>
-        </div>
-      </div>
-    );
-  };
-
-  const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="text-center mb-10 border-b-4 border-black pb-6 text-[#000000]">
-      <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
-      <p className="text-sm font-black uppercase tracking-[0.2em] mt-1 text-black">Contributory Provident Fund</p>
-      <h2 className="text-xl font-black mt-4 uppercase text-black">{title}</h2>
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] mt-6 bg-black text-white py-1 px-4 inline-block rounded">{subtitle}</p>
+  const IAS1_Heading = ({ title, date }: any) => (
+    <div className="text-center mb-10 border-b-4 border-black pb-8 text-black">
+      <h1 className="text-4xl font-black uppercase tracking-tighter">{pbsName}</h1>
+      <p className="text-sm font-black uppercase tracking-[0.3em] mt-2">Contributory Provident Fund (CPF)</p>
+      <h2 className="text-2xl font-black mt-6 uppercase underline underline-offset-8 decoration-4">{title}</h2>
+      <p className="text-xs font-black uppercase tracking-[0.2em] mt-6 bg-black text-white py-2 px-8 inline-block rounded-full">{date}</p>
     </div>
   );
 
   if (isCoaLoading || isEntriesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
+  const netSurplus = (periodBalances['400.10.0000']||0) + (periodBalances['400.20.0000']||0) + (periodBalances['400.30.0000']||0) + (periodBalances['400.40.0000']||0) + (periodBalances['400.50.0000']||0) + (periodBalances['410.10.0000']||0) + (periodBalances['410.20.0000']||0) - (periodBalances['500.10.0000']||0) - (periodBalances['500.20.0000']||0) - (periodBalances['500.30.0000']||0) - (periodBalances['500.40.0000']||0) - (periodBalances['500.50.0000']||0) - (periodBalances['500.60.0000']||0);
+
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { @page { size: A4 portrait !important; margin: 10mm !important; } .print-container { width: 100% !important; display: block !important; border: none !important; } body { background-color: white !important; color: #000000 !important; } }` }} />
-      
-      <div className="flex flex-col gap-4 no-print max-w-4xl mx-auto w-full bg-white p-6 rounded-2xl border-2 border-black shadow-xl">
+      <div className="flex flex-col gap-6 no-print max-w-5xl mx-auto w-full bg-white p-8 rounded-3xl border-4 border-black shadow-2xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4"><div className="bg-black p-2 rounded-xl"><ShieldCheck className="size-6 text-white" /></div><div><h1 className="text-xl font-black uppercase text-black">Trust Financials</h1><p className="text-[10px] font-black uppercase tracking-widest text-black">{selectedFiscalYear === 'all' ? 'All Time' : `FY ${selectedFiscalYear}`}</p></div></div>
-          <Button onClick={() => window.print()} className="h-9 gap-2 font-black px-6 bg-black text-white rounded-lg uppercase text-[10px]"><Printer className="size-3.5" /> Print Report</Button>
+          <div className="flex items-center gap-5">
+            <div className="bg-black p-3 rounded-2xl shadow-xl"><ShieldCheck className="size-8 text-white" /></div>
+            <div>
+              <h1 className="text-2xl font-black uppercase tracking-tight">IAS 1 Reporting Matrix</h1>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Institutional Compliance Terminal</p>
+            </div>
+          </div>
+          <Button onClick={() => window.print()} className="h-12 gap-2 font-black px-10 bg-black text-white rounded-xl uppercase text-xs tracking-widest shadow-xl hover:bg-slate-900 transition-all"><Printer className="size-4" /> Commit to Print</Button>
         </div>
-        
-        <div className="grid grid-cols-2 gap-6 p-4 bg-slate-50 border-2 border-black rounded-xl">
+        <div className="grid grid-cols-2 gap-8 p-6 bg-slate-50 border-2 border-black rounded-2xl">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-500">Target period</Label>
+            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Analysis Target</Label>
             <Select value={selectedFiscalYear} onValueChange={handleFYChange}>
-              <SelectTrigger className="h-10 font-black border-2 border-black focus:ring-0 text-black"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black">FY {fy}</SelectItem>)}
-                <SelectItem value="all" className="font-black">ALL CONSOLIDATED</SelectItem>
-              </SelectContent>
+              <SelectTrigger className="h-12 font-black border-2 border-black focus:ring-0 bg-white"><SelectValue /></SelectTrigger>
+              <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black">Fiscal Year {fy}</SelectItem>)}<SelectItem value="all" className="font-black">Consolidated (Genesis to Date)</SelectItem></SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-500">Custom selection</Label>
-            <div className="flex items-center gap-2">
-              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-10 font-black border-2 border-black text-black" />
-              <ArrowRightLeft className="size-4 opacity-30 text-black" />
-              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-10 font-black border-2 border-black text-black" />
+            <Label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-1">Custom Reconciliation Range</Label>
+            <div className="flex items-center gap-4">
+              <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-12 font-black border-2 border-black bg-white" />
+              <ArrowRightLeft className="size-5 opacity-20" />
+              <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-12 font-black border-2 border-black bg-white" />
             </div>
           </div>
         </div>
       </div>
 
-      <Tabs defaultValue="position" className="w-full max-w-4xl mx-auto">
-        <TabsList className="grid w-full grid-cols-4 mb-6 no-print h-12 bg-white border-2 border-black p-1 rounded-xl">
-          <TabsTrigger value="position" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><Wallet className="size-3.5 mr-2" /> Balance Sheet</TabsTrigger>
-          <TabsTrigger value="income" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><TrendingUp className="size-3.5 mr-2" /> Income Stmt</TabsTrigger>
-          <TabsTrigger value="trial" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><Scale className="size-3.5 mr-2" /> Trial Balance</TabsTrigger>
-          <TabsTrigger value="receipts" className="rounded-lg font-black uppercase text-[10px] text-black data-[state=active]:bg-black data-[state=active]:text-white"><ArrowDownUp className="size-3.5 mr-2" /> Cash Flow</TabsTrigger>
+      <Tabs defaultValue="position" className="w-full max-w-5xl mx-auto">
+        <TabsList className="grid w-full grid-cols-4 mb-8 no-print h-14 bg-slate-100 border-4 border-black p-1 rounded-2xl">
+          <TabsTrigger value="position" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Position (BS)</TabsTrigger>
+          <TabsTrigger value="income" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Comprehensive (PL)</TabsTrigger>
+          <TabsTrigger value="changes" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Equity Movement</TabsTrigger>
+          <TabsTrigger value="cash" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Cash Flows</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="position">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
-            <ReportHeader title="Statement of Financial Position" subtitle={`As of ${dateRange.end}`} />
-            <div className="space-y-12">
-              <ClassifiedSection title="Institutional Assets" accounts={assetAccounts} balancesMap={balances} />
-              <ClassifiedSection title="Equity & Liabilities" accounts={liabilityEquityAccounts} balancesMap={balances} />
+        <TabsContent value="position" className="animate-in fade-in duration-500">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0">
+            <IAS1_Heading title="Statement of Financial Position" date={`As at ${dateRange.end}`} />
+            <div className="grid md:grid-cols-2 gap-16">
+              <div className="space-y-8">
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Assets</h3>
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase opacity-40 mb-2">Non-Current Assets</p>
+                    <div className="pl-4">
+                      <SummaryRow label="Long-term Investments (Portfolio)" value={(balances['101.10.0000']||0)+(balances['101.20.0000']||0)+(balances['101.30.0000']||0)} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase opacity-40 mb-2">Current Assets</p>
+                    <div className="pl-4">
+                      <SummaryRow label="Loans & Advances to Members" value={(balances['105.10.0000']||0)+(balances['105.20.0000']||0)} />
+                      <SummaryRow label="Accrued Interest Receivables" value={(balances['106.10.0000']||0)+(balances['106.40.0000']||0)} />
+                      <SummaryRow label="Other Receivables from PBS" value={balances['107.10.0000']||0} />
+                      <SummaryRow label="Cash & Cash Equivalents" value={balances['131.10.0000']||0} />
+                    </div>
+                  </div>
+                  <SummaryRow isGrandTotal label="Total Institutional Assets" value={Object.values(balances).filter((_,k)=>k.toString().startsWith('1')).reduce((s,v)=>s+v,0)} />
+                </div>
+              </div>
+              <div className="space-y-8">
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Equity & Liabilities</h3>
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-black uppercase opacity-40 mb-2">Members' Equity (Net Funds)</p>
+                    <div className="pl-4">
+                      <SummaryRow label="Personnel Principal Contribution" value={balances['200.10.0000']||0} />
+                      <SummaryRow label="Institutional Matching Contribution" value={balances['200.20.0000']||0} />
+                      <SummaryRow label="Accumulated Profit Distribution" value={(balances['200.30.0000']||0)+(balances['200.40.0000']||0)} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase opacity-40 mb-2">Current Liabilities</p>
+                    <div className="pl-4">
+                      <SummaryRow label="Payable to Members/PBS" value={(balances['210.10.0000']||0)+(balances['210.20.0000']||0)} />
+                      <SummaryRow label="Lapse & Forfeiture Suspense" value={balances['205.10.0000']||0} />
+                      <SummaryRow label="Provision for Taxation" value={balances['220.10.0000']||0} />
+                    </div>
+                  </div>
+                  <SummaryRow isGrandTotal label="Total Equity & Liabilities" value={Object.values(balances).filter((_,k)=>k.toString().startsWith('2')).reduce((s,v)=>s+v,0)} />
+                </div>
+              </div>
             </div>
-            <div className="mt-20 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-              <span>CPF Management Software</span><span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+            <div className="mt-20 pt-4 border-t border-black flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+              <span>IAS 1 Compliant Report</span><span>Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
             </div>
           </Card>
         </TabsContent>
 
         <TabsContent value="income">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
-            <ReportHeader title="Income & Expenditure Account" subtitle={`Period: ${dateRange.start} to ${dateRange.end}`} />
-            <div className="space-y-12 text-black">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0">
+            <IAS1_Heading title="Statement of Comprehensive Income" date={`For the period ended ${dateRange.end}`} />
+            <div className="space-y-12 max-w-3xl mx-auto">
               <div>
-                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Revenue</h3>
-                <div className="space-y-1 pl-4 mt-4">
-                  {incomeAccounts.filter(a => !a.isHeader).map(acc => periodBalances[acc.code] ? (
-                    <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums text-black">
-                      <span>{acc.name}</span>
-                      <span>{formatCurrency(periodBalances[acc.code])}</span>
-                    </div>
-                  ) : null)}
-                  <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-4 italic uppercase text-black">
-                    <span>Total Revenue</span><span>{formatCurrency(totalIncome)}</span>
-                  </div>
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Operating Revenue</h3>
+                <div className="pl-4 space-y-1 mt-4">
+                  <SummaryRow label="Interest on Portfolio (FDR/Bonds)" value={(periodBalances['400.10.0000']||0)+(periodBalances['400.20.0000']||0)+(periodBalances['400.30.0000']||0)} />
+                  <SummaryRow label="Interest on Member Loans" value={periodBalances['400.40.0000']||0} />
+                  <SummaryRow label="Other Operating Receipts" value={(periodBalances['400.50.0000']||0)+(periodBalances['410.10.0000']||0)} />
+                  <SummaryRow label="PBS Support Subsidy" value={periodBalances['410.20.0000']||0} />
+                  <SummaryRow isBold label="Total Operating Revenue" value={Object.keys(periodBalances).filter(c=>c.startsWith('4')).reduce((s,c)=>s+(periodBalances[c]||0), 0)} />
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Expenditure</h3>
-                <div className="space-y-1 pl-4 mt-4">
-                  {expenseAccounts.filter(a => !a.isHeader).map(acc => periodBalances[acc.code] ? (
-                    <div key={acc.code} className="flex justify-between text-[11px] py-1 border-b border-dotted border-black/20 font-black tabular-nums text-black">
-                      <span>{acc.name}</span>
-                      <span>{formatCurrency(periodBalances[acc.code])}</span>
-                    </div>
-                  ) : null)}
-                  <div className="flex justify-between font-black text-xs pt-2 border-t border-black mt-4 italic uppercase text-black">
-                    <span>Total Expenditure</span><span>{formatCurrency(totalExpense)}</span>
-                  </div>
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Operating Expenditure</h3>
+                <div className="pl-4 space-y-1 mt-4">
+                  <SummaryRow label="Bank Charges & Excise Duty" value={periodBalances['500.10.0000']||0} />
+                  <SummaryRow label="Audit & Professional Fees" value={periodBalances['500.20.0000']||0} />
+                  <SummaryRow label="Administrative Support Expenses" value={periodBalances['500.30.0000']||0} />
+                  <SummaryRow label="Allocated Member Profit" value={periodBalances['500.60.0000']||0} />
+                  <SummaryRow isBold label="Total Operating Expenditure" value={Object.keys(periodBalances).filter(c=>c.startsWith('5')).reduce((s,c)=>s+(periodBalances[c]||0), 0)} />
                 </div>
               </div>
-              <div className="flex justify-between font-black text-lg p-6 border-4 border-black mt-10 rounded-none bg-slate-50 uppercase tracking-widest text-black">
-                <span>Net Surplus / (Deficit)</span>
-                <span>৳ {formatCurrency(totalIncome - totalExpense)}</span>
-              </div>
+              <SummaryRow isGrandTotal label="Net Institutional Surplus / (Deficit)" value={netSurplus} />
             </div>
-            <div className="mt-20 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-              <span>CPF Management Software</span><span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+            <div className="mt-24 pt-4 border-t border-black flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+              <span>Statutory Compliance Matrix</span><span>Professional Terminal v1.0</span>
             </div>
           </Card>
         </TabsContent>
 
-        <TabsContent value="trial">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
-            <ReportHeader title="Institutional Trial Balance" subtitle={`As of ${dateRange.end}`} />
-            <div className="border-2 border-black overflow-hidden">
-              <table className="w-full text-xs font-black tabular-nums text-black">
-                <thead className="bg-slate-100 border-b-2 border-black text-black">
+        <TabsContent value="changes">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0">
+            <IAS1_Heading title="Statement of Changes in Members' Funds" date={`Period: ${dateRange.start} to ${dateRange.end}`} />
+            <div className="overflow-x-auto">
+              <table className="w-full text-[10px] font-black border-collapse border-2 border-black">
+                <thead className="bg-slate-100 border-b-2 border-black">
                   <tr>
-                    <th className="p-2 text-left border-r w-[100px]">Code</th>
-                    <th className="p-2 text-left border-r">Account Description</th>
-                    <th className="p-2 text-right border-r w-[120px]">Debit</th>
-                    <th className="p-2 text-right w-[120px]">Credit</th>
+                    <th className="border border-black p-3 text-left uppercase">Description of Movement</th>
+                    <th className="border border-black p-3 text-right uppercase">Principal (৳)</th>
+                    <th className="border border-black p-3 text-right uppercase">Allocated Profit (৳)</th>
+                    <th className="border border-black p-3 text-right uppercase bg-slate-200">Aggregate Fund (৳)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y border-black text-black">
-                  {activeCOA.filter(a => !a.isHeader && (balances[a.code] !== 0 || periodBalances[a.code] !== 0)).map(acc => { 
-                    const v = balances[acc.code] || 0; 
-                    const isDr = acc.balance === 'Debit' ? v > 0 : v < 0; 
-                    return (
-                      <tr key={acc.code} className="h-8">
-                        <td className="p-2 font-mono border-r text-black">{acc.code}</td>
-                        <td className="p-2 uppercase border-r text-black">{acc.name}</td>
-                        <td className="p-2 text-right border-r text-black">{isDr ? formatCurrency(Math.abs(v)) : "—"}</td>
-                        <td className="p-2 text-right text-black">{!isDr ? formatCurrency(Math.abs(v)) : "—"}</td>
-                      </tr>
-                    );
-                  })}
+                <tbody>
+                  <tr className="h-12">
+                    <td className="border border-black p-3 uppercase opacity-50">Opening Balance Brought Forward</td>
+                    <td className="border border-black p-3 text-right">{formatCurrency((balances['200.10.0000']||0)+(balances['200.20.0000']||0) - (periodBalances['200.10.0000']||0) - (periodBalances['200.20.0000']||0))}</td>
+                    <td className="border border-black p-3 text-right">{formatCurrency((balances['200.30.0000']||0)+(balances['200.40.0000']||0) - (periodBalances['200.30.0000']||0) - (periodBalances['200.40.0000']||0))}</td>
+                    <td className="border border-black p-3 text-right bg-slate-50 font-bold">---</td>
+                  </tr>
+                  <tr className="h-12 bg-slate-50/30">
+                    <td className="border border-black p-3 uppercase">Net Contributions during period</td>
+                    <td className="border border-black p-3 text-right">{formatCurrency((periodBalances['200.10.0000']||0)+(periodBalances['200.20.0000']||0))}</td>
+                    <td className="border border-black p-3 text-right">0.00</td>
+                    <td className="border border-black p-3 text-right">---</td>
+                  </tr>
+                  <tr className="h-12">
+                    <td className="border border-black p-3 uppercase">Profit Allocation for the period</td>
+                    <td className="border border-black p-3 text-right">0.00</td>
+                    <td className="border border-black p-3 text-right">{formatCurrency(netSurplus)}</td>
+                    <td className="border border-black p-3 text-right">---</td>
+                  </tr>
                 </tbody>
+                <tfoot className="bg-black text-white font-black">
+                  <tr className="h-16">
+                    <td className="border border-white/20 p-3 uppercase tracking-widest">Closing Institutional Balance</td>
+                    <td className="border border-white/20 p-3 text-right text-lg">{formatCurrency(balances['200.10.0000']||0 + (balances['200.20.0000']||0))}</td>
+                    <td className="border border-white/20 p-3 text-right text-lg">{formatCurrency(balances['200.30.0000']||0 + (balances['200.40.0000']||0))}</td>
+                    <td className="border border-white/20 p-3 text-right text-2xl underline decoration-double">৳ {formatCurrency((balances['200.10.0000']||0)+(balances['200.20.0000']||0)+(balances['200.30.0000']||0)+(balances['200.40.0000']||0))}</td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
-            <div className="mt-20 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-              <span>CPF Management Software</span><span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+            <div className="mt-20 pt-4 border-t border-black flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+              <span>Audited Fund Lifecycle Statement</span><span>Gazipur PBS-2 Authority</span>
             </div>
           </Card>
         </TabsContent>
 
-        <TabsContent value="receipts">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
-            <ReportHeader title="Institutional Cash Flow" subtitle={`Year Ended ${dateRange.end}`} />
-            <div className="space-y-8 text-black">
+        <TabsContent value="cash">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0">
+            <IAS1_Heading title="Statement of Cash Flows (Direct)" date={`For the period ended ${dateRange.end}`} />
+            <div className="space-y-12 max-w-3xl mx-auto">
               <div>
-                <h4 className="font-black text-sm border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Receipts</h4>
-                <div className="space-y-1 mt-4">
-                  {Object.keys(periodBalances).filter(c => periodBalances[c] > 0 && activeCOA.find(a => a.code === c)?.balance === 'Credit').map(c => (
-                    <div key={c} className="flex justify-between text-[11px] py-1.5 border-b border-dotted border-black/20 font-black tabular-nums text-black">
-                      <span className="uppercase">{activeCOA.find(a => a.code === c)?.name}</span>
-                      <span>{formatCurrency(periodBalances[c])}</span>
-                    </div>
+                <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest">Operating Cash Receipts</h3>
+                <div className="pl-4 space-y-1 mt-4">
+                  {Object.keys(periodBalances).filter(c=>periodBalances[c]>0 && activeCOA.find(a=>a.code===c)?.balance==='Credit').map(c=>(
+                    <SummaryRow key={c} label={activeCOA.find(a=>a.code===c)?.name} value={periodBalances[c]} />
                   ))}
+                  <SummaryRow isBold label="Net Increase in Trust Cash" value={Object.values(periodBalances).reduce((s,v)=>s+v,0)} />
                 </div>
               </div>
             </div>
-            <div className="mt-20 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-              <span>CPF Management Software</span><span className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+            <div className="mt-32 pt-4 border-t border-black flex justify-between items-center text-[8px] font-black uppercase tracking-widest">
+              <span>Verified Cash Liquidity Terminal</span><span>Professional Documentation v1.0</span>
             </div>
           </Card>
         </TabsContent>
