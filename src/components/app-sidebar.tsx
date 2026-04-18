@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -25,6 +24,7 @@ import {
   HelpCircle,
   Activity,
   Scale,
+  Coins
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -59,6 +59,7 @@ const navItems = [
   { title: "Member Interest", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
   { title: "Special Yield (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
   { title: "Movement Audit", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
+  { title: "Interest Movements", icon: Coins, url: "/reports/interest-movements", iconColor: "text-emerald-500" },
   { title: "Financial Terminal", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
   { title: "Ledger Batch Print", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
   { title: "Loan Registry", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
