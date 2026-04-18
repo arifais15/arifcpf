@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, ArrowRightLeft, Trash2, DatabaseZap, Info, ArrowLeft, FileSpreadsheet } from "lucide-react";
+import { Printer, Loader2, ArrowRightLeft, Trash2, DatabaseZap, Info, ArrowLeft, FileSpreadsheet, ShieldAlert } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import * as XLSX from "xlsx";
+import { cn } from "@/lib/utils";
 
 export default function ContributionAuditPage() {
   const firestore = useFirestore();
@@ -31,6 +32,7 @@ export default function ContributionAuditPage() {
   const [particularsSearch, setParticularsSearch] = useState("");
   const [isCleanupOpen, setIsCleanupOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isProcessingCleanup, setIsProcessingCleanup] = useState(false);
 
   const availableFYs = useMemo(() => {
     const fys = [];
@@ -65,8 +67,9 @@ export default function ContributionAuditPage() {
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading } = useCollection(summariesRef);
 
+  // OPTIMIZATION: Prevent expensive re-filtering while a bulk deletion is in progress
   const filteredData = useMemo(() => {
-    if (!allSummaries) return [];
+    if (!allSummaries || isProcessingCleanup) return [];
     let data = allSummaries;
     if (dateRange.start && dateRange.end) {
       const s = new Date(dateRange.start).getTime();
@@ -77,10 +80,11 @@ export default function ContributionAuditPage() {
       data = data.filter(item => item.particulars?.toLowerCase().includes(particularsSearch.toLowerCase()));
     }
     return data.sort((a, b) => new Date(b.summaryDate).getTime() - new Date(a.summaryDate).getTime());
-  }, [allSummaries, dateRange, particularsSearch]);
+  }, [allSummaries, dateRange, particularsSearch, isProcessingCleanup]);
 
   const stats = useMemo(() => {
     const s = { systemProfit: 0, manualEmp: 0, manualPbs: 0, totalEntries: filteredData.length };
+    if (isProcessingCleanup) return s;
     filteredData.forEach(item => {
       if (item.isSystemGenerated || item.particulars?.includes("Annual Profit")) {
         s.systemProfit += (Number(item.profitEmployee) || 0) + (Number(item.profitPbs) || 0);
@@ -91,7 +95,35 @@ export default function ContributionAuditPage() {
       }
     });
     return s;
-  }, [filteredData]);
+  }, [filteredData, isProcessingCleanup]);
+
+  const handleBulkDelete = async () => {
+    if (filteredData.length === 0) return;
+    showAlert({
+      title: "Institutional Cleanup",
+      description: `Permanently delete ${filteredData.length} records matching "${particularsSearch || 'All'}"?`,
+      type: "warning",
+      showCancel: true,
+      confirmText: "Delete Records",
+      onConfirm: async () => {
+        setIsDeleting(true);
+        setIsProcessingCleanup(true); // Freeze re-renders to prevent stacking
+        
+        // Execute deletions without blocking
+        for (const item of filteredData) {
+          deleteDocumentNonBlocking(doc(firestore, "members", item.memberId, "fundSummaries", item.id));
+        }
+
+        // Give Firestore listeners time to settle before unlocking the UI
+        setTimeout(() => {
+          setIsDeleting(false);
+          setIsProcessingCleanup(false);
+          setIsCleanupOpen(false);
+          showAlert({ title: "Audit Synchronized", description: "Batch deletion completed successfully.", type: "success" });
+        }, 1500);
+      }
+    });
+  };
 
   const exportToExcel = () => {
     if (filteredData.length === 0) return;
@@ -111,25 +143,6 @@ export default function ContributionAuditPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Contribution Audit");
     XLSX.writeFile(wb, `Contribution_Audit_${dateRange.start}.xlsx`);
     toast({ title: "Exported", description: "Audit data saved to Excel." });
-  };
-
-  const handleBulkDelete = async () => {
-    if (filteredData.length === 0) return;
-    showAlert({
-      title: "Institutional Cleanup",
-      description: `Permanently delete ${filteredData.length} records matching "${particularsSearch || 'All'}"?`,
-      type: "warning",
-      showCancel: true,
-      confirmText: "Delete Records",
-      onConfirm: async () => {
-        setIsDeleting(true);
-        for (const item of filteredData) {
-          deleteDocumentNonBlocking(doc(firestore, "members", item.memberId, "fundSummaries", item.id));
-        }
-        setIsDeleting(false); setIsCleanupOpen(false);
-        showAlert({ title: "Audit Synchronized", type: "success" });
-      }
-    });
   };
 
   return (
@@ -174,8 +187,18 @@ export default function ContributionAuditPage() {
         ))}
       </div>
 
-      <div className="bg-white border-2 border-black rounded-none shadow-xl overflow-hidden">
-        <Table className="font-black tabular-nums text-black">
+      <div className="relative bg-white border-2 border-black rounded-none shadow-xl overflow-hidden min-h-[400px]">
+        {isProcessingCleanup && (
+          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
+            <div className="p-8 bg-black rounded-3xl shadow-2xl flex flex-col items-center gap-4 border-4 border-white/20">
+               <Loader2 className="size-12 animate-spin text-white" />
+               <p className="text-white font-black uppercase tracking-[0.3em] text-xs">Purging Records...</p>
+               <p className="text-slate-400 text-[10px] font-bold">Synchronizing Subsidiary Ledger Clusters</p>
+            </div>
+          </div>
+        )}
+
+        <Table className="text-black font-black">
           <TableHeader className="bg-slate-100 border-b-2 border-black">
             <TableRow>
               <TableHead className="font-black uppercase text-[10px] py-4 text-black">Date</TableHead>
@@ -195,6 +218,9 @@ export default function ContributionAuditPage() {
                 <td className="text-right p-4 text-black">{(Number(item.profitEmployee||0)+Number(item.profitPbs||0)).toLocaleString()}</td>
               </TableRow>
             ))}
+            {filteredData.length === 0 && !isLoading && !isProcessingCleanup && (
+               <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-300 font-black uppercase tracking-widest italic">No matching records for audit</TableCell></TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
@@ -202,7 +228,10 @@ export default function ContributionAuditPage() {
       <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
         <DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden rounded-none shadow-2xl">
           <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black text-black">
-            <DialogTitle className="text-xl font-black uppercase text-rose-700">Cleanup Terminal</DialogTitle>
+            <DialogTitle className="text-xl font-black uppercase text-rose-700 flex items-center gap-3">
+              <ShieldAlert className="size-6" />
+              Institutional Cleanup Terminal
+            </DialogTitle>
             <DialogDescription className="sr-only">Cleanup Confirmation</DialogDescription>
           </DialogHeader>
           <div className="p-6 space-y-4">
@@ -218,7 +247,7 @@ export default function ContributionAuditPage() {
             <DialogFooter className="p-6 pt-2">
               <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl rounded-none">
                 {isDeleting ? <Loader2 className="animate-spin mr-2" /> : <Trash2 className="mr-2" />} 
-                Delete {filteredData.length} Matched Records
+                Confirm Purge of {filteredData.length} Records
               </Button>
             </DialogFooter>
           </div>

@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -85,6 +84,7 @@ export default function SpecialInterestDPPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
   
+  // Rule: Only process members with 'Active' status
   const activeMembers = useMemo(() => members?.filter(m => m.status === 'Active') || [], [members]);
 
   const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
@@ -127,12 +127,13 @@ export default function SpecialInterestDPPage() {
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
     
+    // Target calculation: Focus only on active members
     const targetMembers = selectedMember === "all" 
       ? activeMembers 
       : activeMembers.filter(m => m.id === selectedMember);
 
     if (targetMembers.length === 0 && selectedMember !== "all") {
-       toast({ title: "Ineligible Member", description: "Interest is only calculated for Active members.", variant: "destructive" });
+       toast({ title: "Ineligible Member", description: "Interest accrual is strictly restricted to Active personnel.", variant: "destructive" });
        setIsCalculating(false);
        return;
     }
@@ -166,10 +167,23 @@ export default function SpecialInterestDPPage() {
       allEntries.forEach((e: any) => { if (new Date(e.summaryDate).getTime() <= auditEnd.getTime()) { currentEmpFund += ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0)); currentPbsFund += ((Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)); } });
       const totalFund = currentEmpFund + currentPbsFund;
       
-      auditResults.push({ memberId: member.id, memberIdNumber: member.memberIdNumber, name: member.name, designation: member.designation, openingBalance, closingBalance: runningBalance, totalInterest, empProfit: totalFund > 0 ? (totalInterest * currentEmpFund) / totalFund : totalInterest / 2, pbsProfit: totalFund > 0 ? (totalInterest * currentPbsFund) / totalFund : totalInterest / 2, dailyLog, days: dailyLog.length });
+      auditResults.push({ 
+        memberId: member.id, 
+        memberIdNumber: member.memberIdNumber, 
+        name: member.name, 
+        designation: member.designation, 
+        openingBalance, 
+        closingBalance: runningBalance, 
+        totalInterest, 
+        empProfit: totalFund > 0 ? (totalInterest * currentEmpFund) / totalFund : totalInterest / 2, 
+        pbsProfit: totalFund > 0 ? (totalInterest * currentPbsFund) / totalFund : totalInterest / 2, 
+        dailyLog, 
+        days: dailyLog.length 
+      });
     }
     setResults(auditResults);
     setIsCalculating(false);
+    toast({ title: "Day-Product Audit Complete", description: `Calculated DP yield for ${auditResults.length} active members.` });
   };
 
   const handlePostAll = async () => {
@@ -177,12 +191,26 @@ export default function SpecialInterestDPPage() {
     setIsCalculating(true);
     for (const res of results) {
       if (res.totalInterest <= 0) continue;
-      const entry = { summaryDate: postingDate, particulars: `Annual Profit (DP Basis) ${dateRange.start} to ${dateRange.end}`, employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0, profitEmployee: Math.round(res.empProfit), profitLoan: 0, pbsContribution: 0, profitPbs: Math.round(res.pbsProfit), lastUpdateDate: new Date().toISOString(), createdAt: new Date().toISOString(), memberId: res.memberId, isSystemGenerated: true };
+      const entry = { 
+        summaryDate: postingDate, 
+        particulars: `Annual Profit (DP Basis) ${dateRange.start} to ${dateRange.end}`, 
+        employeeContribution: 0, 
+        loanWithdrawal: 0, 
+        loanRepayment: 0, 
+        profitEmployee: Math.round(res.empProfit), 
+        profitLoan: 0, 
+        pbsContribution: 0, 
+        profitPbs: Math.round(res.pbsProfit), // Map correctly to Column 9
+        lastUpdateDate: new Date().toISOString(), 
+        createdAt: new Date().toISOString(), 
+        memberId: res.memberId, 
+        isSystemGenerated: true 
+      };
       await addDocumentNonBlocking(collection(firestore, "members", res.memberId, "fundSummaries"), entry);
     }
     setIsCalculating(false);
     setResults([]);
-    toast({ title: "Posted", description: "Special interest distribution synchronized." });
+    toast({ title: "Sync Successful", description: "Special interest distribution recorded in all active ledgers." });
   };
 
   const exportToExcel = () => {
@@ -194,14 +222,14 @@ export default function SpecialInterestDPPage() {
       "Opening Balance": r.openingBalance.toFixed(2),
       "Closing Balance": r.closingBalance.toFixed(2),
       "Total DP Profit": r.totalInterest.toFixed(2),
-      "Emp Portion": r.empProfit.toFixed(2),
-      "PBS Portion": r.pbsProfit.toFixed(2)
+      "Emp Portion (Col 5)": r.empProfit.toFixed(2),
+      "PBS Portion (Col 9)": r.pbsProfit.toFixed(2)
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Special Interest");
+    XLSX.utils.book_append_sheet(wb, ws, "Special Interest Audit");
     XLSX.writeFile(wb, `Special_Profit_Audit_${dateRange.start}.xlsx`);
-    toast({ title: "Exported", description: "Audit data saved to Excel." });
+    toast({ title: "Exported", description: "Detailed yield matrix saved to Excel." });
   };
 
   const monthlyBreakdown = useMemo(() => {
@@ -221,7 +249,7 @@ export default function SpecialInterestDPPage() {
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
-          <Link href="/investments" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors"><ArrowLeft className="size-6" /></Link>
+          <Link href="/investments" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors"><ArrowLeft className="size-6 text-black" /></Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tight uppercase">Special Interest (Day-Product)</h1>
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Mid-month balance tracking • Fraction month settlement audit</p>
@@ -291,14 +319,14 @@ export default function SpecialInterestDPPage() {
             <Table className="text-black font-black">
               <TableHeader className="bg-slate-100 border-b-2 border-black">
                 <TableRow>
-                  <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest pl-6">ID No</TableHead>
-                  <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest">Details</TableHead>
-                  <TableHead className="text-right py-4 font-black uppercase text-[10px] tracking-widest">Days</TableHead>
-                  <TableHead className="text-right py-4 font-black uppercase text-[10px] tracking-widest">Total Interest</TableHead>
-                  <TableHead className="text-center py-4 font-black uppercase text-[10px] tracking-widest pr-6">Audit</TableHead>
+                  <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest pl-6 text-black">ID No</TableHead>
+                  <TableHead className="py-4 font-black uppercase text-[10px] tracking-widest text-black">Details</TableHead>
+                  <TableHead className="text-right py-4 font-black uppercase text-[10px] tracking-widest text-black">Days</TableHead>
+                  <TableHead className="text-right py-4 font-black uppercase text-[10px] tracking-widest text-black">Total Interest</TableHead>
+                  <TableHead className="text-center py-4 font-black uppercase text-[10px] tracking-widest pr-6 text-black">Audit</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="tabular-nums">
+              <TableBody className="tabular-nums font-black text-black">
                 {results.map((row, idx) => (
                   <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
                     <td className="font-mono text-xs pl-6">{row.memberIdNumber}</td>
@@ -352,21 +380,21 @@ export default function SpecialInterestDPPage() {
                 <Table className="font-black text-black tabular-nums">
                   <TableHeader className="bg-slate-100 border-b-2 border-black">
                     <TableRow>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6">Calendar Month</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 pr-6">Portion Accrual (৳)</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6 text-black">Calendar Month</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 pr-6 text-black">Portion Accrual (৳)</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="font-black text-black">
                     {monthlyBreakdown.map((month, i) => (
                       <TableRow key={i} className="hover:bg-slate-50 border-b border-black">
-                        <td className="font-black text-sm p-4 pl-6 uppercase">{month.label}</td>
+                        <td className="font-black text-sm p-4 pl-6 uppercase text-black">{month.label}</td>
                         <td className="text-right p-4 pr-6 font-black text-black">৳ {month.amount.toLocaleString(undefined, { minimumFractionDigits: 4 })}</td>
                       </TableRow>
                     ))}
                   </TableBody>
                   <TableFooter className="bg-slate-50 font-black border-t-2 border-black">
                     <TableRow className="h-14">
-                      <TableCell className="text-right uppercase tracking-widest text-[10px] pl-6">Sum of Monthly Portions:</TableCell>
+                      <TableCell className="text-right uppercase tracking-widest text-[10px] pl-6 text-black">Sum of Monthly Portions:</TableCell>
                       <TableCell className="text-right text-lg text-black underline decoration-double pr-6 font-black">৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
                     </TableRow>
                   </TableFooter>
@@ -383,13 +411,13 @@ export default function SpecialInterestDPPage() {
                 <Table className="font-black text-black tabular-nums">
                   <TableHeader className="bg-slate-100 border-b-2 border-black">
                     <TableRow>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6">Audit Date</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4">Day-End Balance (৳)</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4">Interest (৳)</TableHead>
-                      <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 pr-6">Activity</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6 text-black">Audit Date</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-black">Day-End Balance (৳)</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-black">Interest (৳)</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 pr-6 text-black">Activity</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
+                  <TableBody className="font-black text-black">
                     {viewingDetails?.dailyLog.map((day: any, i: number) => (
                       <TableRow key={i} className={cn("hover:bg-slate-50 border-b border-black", day.hasActivity && "bg-amber-50/20")}>
                         <td className="font-mono text-xs p-3 pl-6 text-black">{day.date}</td>
@@ -403,7 +431,7 @@ export default function SpecialInterestDPPage() {
                   </TableBody>
                   <TableFooter className="bg-slate-50 font-black border-t-2 border-black">
                     <TableRow className="h-14">
-                      <TableCell colSpan={2} className="text-right uppercase tracking-widest text-[10px] pl-6">Sum of Daily Portions:</TableCell>
+                      <TableCell colSpan={2} className="text-right uppercase tracking-widest text-[10px] pl-6 text-black">Sum of Daily Portions:</TableCell>
                       <TableCell className="text-right text-black font-mono text-xs pr-6" colSpan={2}>৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</TableCell>
                     </TableRow>
                   </TableFooter>
@@ -438,19 +466,15 @@ export default function SpecialInterestDPPage() {
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
-        <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums">
-          <thead><tr className="bg-slate-100 font-black"><th className="border border-black p-2 uppercase">ID No</th><th className="border border-black p-2 text-left uppercase">Name & Designation</th><th className="border border-black p-2 text-right uppercase">Days</th><th className="border border-black p-2 text-right uppercase">Opening Bal</th><th className="border border-black p-2 text-right uppercase">Total Interest</th></tr></thead>
-          <tbody>{results.map((r, i) => (<tr key={i} className="border-b border-black"><td className="border border-black p-2 text-center font-mono">{r.memberIdNumber}</td><td className="border border-black p-2 uppercase"><b>{r.name}</b><br/>{r.designation}</td><td className="border border-black p-2 text-right">{r.days}</td><td className="border border-black p-2 text-right">{r.openingBalance.toLocaleString()}</td><td className="border border-black p-2 text-right font-black">{r.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>))}</tbody>
-          <tfoot><tr className="bg-slate-50 font-black h-12"><td colSpan={4} className="border border-black p-2 text-right uppercase tracking-widest">Grand Total Special Interest:</td><td className="border border-black p-2 text-right text-lg underline decoration-double">৳ {results.reduce((s, r) => s + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr></tfoot>
+        <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums font-black text-black">
+          <thead><tr className="bg-slate-100 font-black text-black"><th className="border border-black p-2 uppercase text-black">ID No</th><th className="border border-black p-2 text-left uppercase text-black">Name & Designation</th><th className="border border-black p-2 text-right uppercase text-black">Days</th><th className="border border-black p-2 text-right uppercase text-black">Opening Bal</th><th className="border border-black p-2 text-right uppercase text-black">Total Interest</th></tr></thead>
+          <tbody className="font-black text-black">{results.map((r, i) => (<tr key={i} className="border-b border-black"><td className="border border-black p-2 text-center font-mono text-black">{r.memberIdNumber}</td><td className="border border-black p-2 uppercase text-black"><b>{r.name}</b><br/>{r.designation}</td><td className="border border-black p-2 text-right text-black">{r.days}</td><td className="border border-black p-2 text-right text-black">{r.openingBalance.toLocaleString()}</td><td className="border border-black p-2 text-right font-black text-black">{r.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>))}</tbody>
+          <tfoot><tr className="bg-slate-50 font-black h-12 text-black"><td colSpan={4} className="border border-black p-2 text-right uppercase tracking-widest text-black">Grand Total Special Interest:</td><td className="border border-black p-2 text-right text-lg underline decoration-double text-black font-black">৳ {results.reduce((s, r) => s + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr></tfoot>
         </table>
-        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest">
+        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest text-black">
           <div className="border-t-2 border-black pt-4">Prepared by</div>
           <div className="border-t-2 border-black pt-4">Checked by</div>
           <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
-        </div>
-        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-[0.3em]">
-          <span>Institutional Trust Registry v1.0</span>
-          <span className="italic">Form Generated via PBS CPF Software</span>
         </div>
       </div>
     </div>

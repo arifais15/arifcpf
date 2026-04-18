@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -116,7 +115,7 @@ export default function CPFInterestPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: rawMembers, isLoading: isMembersLoading } = useCollection(membersRef);
   
-  // Filter for calculations
+  // Filter for calculations: Only process Active members
   const activeMembers = useMemo(() => rawMembers?.filter(m => m.status === 'Active') || [], [rawMembers]);
 
   const calculateTieredAnnual = (balance: number) => {
@@ -220,6 +219,7 @@ export default function CPFInterestPage() {
     }
     setPreviewData(results);
     setIsCalculating(false);
+    toast({ title: "Audit Matrix Generated", description: `Processed ${results.length} active personnel.` });
   };
 
   const handlePostAllInterest = async () => {
@@ -248,7 +248,7 @@ export default function CPFInterestPage() {
     }
     setIsPosting(false);
     setPreviewData([]);
-    toast({ title: "Posted", description: "Interest distribution synchronized." });
+    toast({ title: "Posted", description: "Interest distribution synchronized to all active ledgers." });
   };
 
   const exportToExcel = () => {
@@ -259,13 +259,13 @@ export default function CPFInterestPage() {
       "Designation": item.designation, 
       "Profit (Emp)": item.employeeProfit.toFixed(2), 
       "Profit (PBS)": item.pbsProfit.toFixed(2), 
-      "Total": item.calculatedInterest.toFixed(2) 
+      "Total Profit": item.calculatedInterest.toFixed(2) 
     }));
     const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Annual Interest");
+    XLSX.utils.book_append_sheet(wb, ws, "Annual Interest Audit");
     XLSX.writeFile(wb, `CPF_Profit_Audit_${selectedFY || 'Custom'}.xlsx`);
-    toast({ title: "Exported", description: "Interest distribution data saved to Excel." });
+    toast({ title: "Exported", description: "Audit matrix saved to Excel." });
   };
 
   const totalCPFProfit = useMemo(() => previewData.reduce((sum, item) => sum + item.calculatedInterest, 0), [previewData]);
@@ -372,18 +372,18 @@ export default function CPFInterestPage() {
             </div>
           </div>
           <div className="max-h-[600px] overflow-y-auto">
-            <Table className="text-black font-black">
-              <TableHeader className="sticky top-0 bg-white z-10 border-b-2 border-black">
+            <Table>
+              <TableHeader className="sticky top-0 bg-white z-10 border-b-2 border-black font-black">
                 <TableRow>
-                  <TableHead className="text-[10px] uppercase font-black py-4 pl-6">ID No</TableHead>
-                  <TableHead className="text-[10px] uppercase font-black py-4">Name & Designation</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black py-4">Profit (Emp)</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black py-4">Profit (PBS)</TableHead>
-                  <TableHead className="text-right text-[10px] uppercase font-black py-4 bg-slate-50">Total Profit</TableHead>
-                  <TableHead className="text-center text-[10px] uppercase font-black py-4 pr-6">Status</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black py-4 pl-6 text-black">ID No</TableHead>
+                  <TableHead className="text-[10px] uppercase font-black py-4 text-black">Name & Designation</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black py-4 text-black">Profit (Emp)</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black py-4 text-black">Profit (PBS)</TableHead>
+                  <TableHead className="text-right text-[10px] uppercase font-black py-4 bg-slate-50 text-black">Total Profit</TableHead>
+                  <TableHead className="text-center text-[10px] uppercase font-black py-4 pr-6 text-black">Status</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="tabular-nums">
+              <TableBody className="tabular-nums font-black text-black">
                 {previewData.map((item) => (
                   <TableRow key={item.memberId} className={cn("hover:bg-slate-50 border-b border-black", item.isPosted && "bg-slate-100/50 opacity-60")}>
                     <td className="font-mono text-xs pl-6 py-4">{item.memberIdNumber}</td>
@@ -442,9 +442,9 @@ export default function CPFInterestPage() {
               <Table className="font-black text-black tabular-nums">
                 <TableHeader className="bg-slate-100 border-b-2 border-black">
                   <TableRow>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6">Audit Basis Point</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4">Basis Balance (৳)</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 pr-6">Monthly Portion (৳)</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6 text-black">Audit Basis Point</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-black">Basis Balance (৳)</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 pr-6 text-black">Monthly Portion (৳)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -479,7 +479,7 @@ export default function CPFInterestPage() {
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Institutional Audit Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-slate-400 font-bold uppercase italic">
-                  Profit is computed by aggregating 12 audit snapshots. Each snapshot captures the total cumulative fund value at the end of the basis month (Opening Balance + 11 monthly closings). The final amount represents the weighted annual profit share of the member based on real-time ledger contributions.
+                  Profit is computed by aggregating 12 audit snapshots for Active members only. Each snapshot captures the total cumulative fund value at the end of the basis month. The final amount represents the weighted annual profit share based on real-time ledger contributions.
                 </p>
               </div>
             </div>
@@ -501,37 +501,37 @@ export default function CPFInterestPage() {
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
-        <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums">
+        <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums font-black text-black">
           <thead>
             <tr className="bg-slate-100 border-b-2 border-black">
-              <th className="border border-black p-2 uppercase tracking-widest">ID No</th>
-              <th className="border border-black p-2 text-left uppercase tracking-widest">Member Details</th>
-              <th className="border border-black p-2 text-right uppercase tracking-widest">Profit (Emp)</th>
-              <th className="border border-black p-2 text-right uppercase tracking-widest">Profit (PBS)</th>
-              <th className="border border-black p-2 text-right uppercase tracking-widest">Total Profit</th>
+              <th className="border border-black p-2 uppercase tracking-widest text-black">ID No</th>
+              <th className="border border-black p-2 text-left uppercase tracking-widest text-black">Member Details</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest text-black">Profit (Emp)</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest text-black">Profit (PBS)</th>
+              <th className="border border-black p-2 text-right uppercase tracking-widest text-black">Total Profit</th>
             </tr>
           </thead>
           <tbody>
             {previewData.map((item, i) => (
               <tr key={i} className="border-b border-black">
-                <td className="border border-black p-2 text-center font-mono">{item.memberIdNumber}</td>
-                <td className="border border-black p-2 uppercase"><p className="font-black">{item.name}</p><p className="text-[7px] italic">{item.designation}</p></td>
-                <td className="border border-black p-2 text-right">{item.employeeProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-2 text-right">{item.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-2 text-right font-black">{item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-2 text-center font-mono text-black">{item.memberIdNumber}</td>
+                <td className="border border-black p-2 uppercase text-black"><p className="font-black">{item.name}</p><p className="text-[7px] italic">{item.designation}</p></td>
+                <td className="border border-black p-2 text-right text-black">{item.employeeProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-2 text-right text-black">{item.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-2 text-right font-black text-black">{item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               </tr>
             ))}
           </tbody>
           <tfoot>
             <tr className="bg-slate-50 font-black h-12 border-t-2 border-black">
-              <td colSpan={2} className="border border-black p-2 text-right uppercase tracking-widest">Consolidated Totals:</td>
-              <td className="border border-black p-2 text-right">{previewData.reduce((s, i) => s + i.employeeProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border border-black p-2 text-right">{previewData.reduce((s, i) => s + i.pbsProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border border-black p-2 text-right text-lg underline decoration-double">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td colSpan={2} className="border border-black p-2 text-right uppercase tracking-widest text-black">Consolidated Totals:</td>
+              <td className="border border-black p-2 text-right text-black">{previewData.reduce((s, i) => s + i.employeeProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border border-black p-2 text-right text-black">{previewData.reduce((s, i) => s + i.pbsProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border border-black p-2 text-right text-lg underline decoration-double text-black font-black">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
             </tr>
           </tfoot>
         </table>
-        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest">
+        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest text-black">
           <div className="border-t-2 border-black pt-4">Prepared by</div>
           <div className="border-t-2 border-black pt-4">Checked by</div>
           <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
