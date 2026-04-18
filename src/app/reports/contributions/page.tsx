@@ -1,10 +1,9 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, ArrowRightLeft, Trash2, DatabaseZap, Info, ArrowLeft } from "lucide-react";
+import { Printer, Loader2, ArrowRightLeft, Trash2, DatabaseZap, Info, ArrowLeft, FileSpreadsheet } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
@@ -14,10 +13,13 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
+import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
+import * as XLSX from "xlsx";
 
 export default function ContributionAuditPage() {
   const firestore = useFirestore();
+  const { toast } = useToast();
   const { showAlert } = useSweetAlert();
 
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
@@ -91,6 +93,26 @@ export default function ContributionAuditPage() {
     return s;
   }, [filteredData]);
 
+  const exportToExcel = () => {
+    if (filteredData.length === 0) return;
+    const exportRows = filteredData.map(item => ({
+      Date: item.summaryDate,
+      Particulars: item.particulars,
+      "Emp Contrib": Number(item.employeeContribution || 0),
+      "PBS Contrib": Number(item.pbsContribution || 0),
+      "Emp Profit": Number(item.profitEmployee || 0),
+      "PBS Profit": Number(item.profitPbs || 0),
+      "Loan Draw": Number(item.loanWithdrawal || 0),
+      "Loan Repay": Number(item.loanRepayment || 0)
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Contribution Audit");
+    XLSX.writeFile(wb, `Contribution_Audit_${dateRange.start}.xlsx`);
+    toast({ title: "Exported", description: "Audit data saved to Excel." });
+  };
+
   const handleBulkDelete = async () => {
     if (filteredData.length === 0) return;
     showAlert({
@@ -136,6 +158,7 @@ export default function ContributionAuditPage() {
             <Input placeholder="Filter..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[120px] text-xs text-black" />
           </div>
           <div className="flex gap-2 mt-4">
+            <Button variant="outline" onClick={exportToExcel} className="h-8 text-[10px] font-black border-black uppercase gap-1"><FileSpreadsheet className="size-3" /> Export</Button>
             <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase gap-1"><DatabaseZap className="size-3" /> Cleanup</Button>
             <Button onClick={() => window.print()} className="h-8 text-[10px] font-black uppercase bg-black text-white gap-1"><Printer className="size-3" /> Print</Button>
           </div>
