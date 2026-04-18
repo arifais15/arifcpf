@@ -150,6 +150,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <td className="border border-black p-1 text-right bg-slate-100 font-bold">{r.col11.toLocaleString()}</td>
               </tr>
             ))}
+            {/* Aggregate Footer - Defined inside the table but acts as Report Footer via logic */}
             <tr className="bg-slate-100 font-black h-10 border-t-2 border-black uppercase text-[8px]">
               <td colSpan={2} className="border border-black p-2 text-right">Aggregate All-Time Sums:</td>
               <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td>

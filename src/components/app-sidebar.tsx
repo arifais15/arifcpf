@@ -45,23 +45,23 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/", hoverBg: "hover:bg-blue-100", iconColor: "text-blue-600" },
-  { title: "জাবেদা এন্ট্রি", icon: ListTodo, url: "/transactions", hoverBg: "hover:bg-emerald-100", iconColor: "text-emerald-600" },
-  { title: "নতুন লেনদেন", icon: PlusCircle, url: "/transactions/new", hoverBg: "hover:bg-sky-100", iconColor: "text-sky-600" },
-  { title: "কন্ট্রোল লেজার", icon: BookText, url: "/reports/control-ledger", hoverBg: "hover:bg-indigo-100", iconColor: "text-indigo-600" },
-  { title: "সাবসিডিয়ারি কন্ট্রোল", icon: LayoutList, url: "/reports/subsidiary-control", hoverBg: "hover:bg-violet-100", iconColor: "text-violet-600" },
-  { title: "সিপিএফ-সাবসিডিয়ারি", icon: Users, url: "/members", hoverBg: "hover:bg-cyan-100", iconColor: "text-cyan-600" },
-  { title: "লেজার সারসংক্ষেপ", icon: ClipboardCheck, url: "/reports/ledger-summary", hoverBg: "hover:bg-teal-100", iconColor: "text-teal-600" },
-  { title: "বিনিয়োগ পোর্টফোলিও", icon: TrendingUp, url: "/investments", hoverBg: "hover:bg-blue-200", iconColor: "text-blue-700" },
-  { title: "মুনাফা হিসাব", icon: Percent, url: "/investments/member-interest", hoverBg: "hover:bg-orange-100", iconColor: "text-orange-600" },
-  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", hoverBg: "hover:bg-amber-100", iconColor: "text-amber-600" },
-  { title: "ফান্ড মুভমেন্ট", icon: Activity, url: "/investments/movements", hoverBg: "hover:bg-slate-200", iconColor: "text-slate-700" },
-  { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", hoverBg: "hover:bg-slate-200", iconColor: "text-slate-700" },
-  { title: "লেজার ব্যাচ প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", hoverBg: "hover:bg-purple-100", iconColor: "text-purple-600" },
-  { title: "ঋণ প্রতিবেদন", icon: HandCoins, url: "/reports/loans", hoverBg: "hover:bg-rose-100", iconColor: "text-rose-600" },
-  { title: "বদলিকৃত/অবসর তালিকা", icon: UserX, url: "/reports/settlements", hoverBg: "hover:bg-red-100", iconColor: "text-red-600" },
-  { title: "অডিট ও ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", hoverBg: "hover:bg-pink-100", iconColor: "text-pink-600" },
-  { title: "ব্যবহারকারী নির্দেশিকা", icon: HelpCircle, url: "/manual", hoverBg: "hover:bg-slate-100", iconColor: "text-slate-500" },
+  { title: "Executive Summary", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
+  { title: "Journal Entries", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
+  { title: "New Voucher", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
+  { title: "GL Control Ledger", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
+  { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
+  { title: "Personnel Registry", icon: Users, url: "/members", iconColor: "text-cyan-400" },
+  { title: "Ledger Matrix", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
+  { title: "Active Portfolio", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
+  { title: "Member Interest", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
+  { title: "Special Yield (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
+  { title: "Movement Audit", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
+  { title: "Financial Terminal", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
+  { title: "Ledger Batch Print", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
+  { title: "Loan Registry", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
+  { title: "Settlement Log", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
+  { title: "Audit Tracking", icon: PieChart, url: "/reports/contributions", iconColor: "text-pink-400" },
+  { title: "User Manual", icon: HelpCircle, url: "/manual", iconColor: "text-slate-400" },
 ]
 
 export function AppSidebar() {
@@ -73,12 +73,11 @@ export function AppSidebar() {
 
   const handleLogout = () => {
     showAlert({
-      title: "লগআউট নিশ্চিত করুন",
-      description: "আপনি কি আপনার সেশন শেষ করতে চান?",
+      title: "Logout Confirmation",
+      description: "Terminate current authorized session?",
       type: "warning",
       showCancel: true,
-      confirmText: "লগআউট",
-      cancelText: "বাতিল",
+      confirmText: "Logout",
       onConfirm: async () => {
         await signOut(auth)
         router.push("/login")
@@ -87,31 +86,26 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar variant="inset" collapsible="icon" className="font-bangla">
-      <SidebarHeader className="p-4 flex items-center justify-between">
+    <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar">
+      <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldCheck className="size-5" />
+          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary-foreground text-primary shadow-lg">
+            <ShieldCheck className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-            <span className="font-semibold text-primary">পিবিএস সিপিএফ</span>
-            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">ম্যানেজমেন্ট</span>
+            <span className="font-black text-white text-base tracking-tighter uppercase">PBS CPF System</span>
+            <span className="text-[9px] text-white/50 uppercase font-black tracking-widest">Gazipur PBS-2</span>
           </div>
+          {isMobile && (
+            <Button variant="ghost" size="icon" className="size-8 ml-auto text-white" onClick={() => setOpenMobile(false)}>
+              <X className="size-4" />
+            </Button>
+          )}
         </div>
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="size-8 md:hidden" 
-            onClick={() => setOpenMobile(false)}
-          >
-            <X className="size-4 text-muted-foreground" />
-          </Button>
-        )}
       </SidebarHeader>
-      <SidebarSeparator />
-      <SidebarContent>
-        <SidebarMenu className="px-2">
+      <SidebarSeparator className="bg-white/10 mx-4" />
+      <SidebarContent className="px-3 py-4">
+        <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -119,41 +113,35 @@ export function AppSidebar() {
                 isActive={pathname === item.url}
                 tooltip={item.title}
                 className={cn(
-                  "transition-all duration-200 text-sky-950 h-10",
-                  item.hoverBg,
-                  pathname === item.url && "bg-slate-100 font-extrabold"
+                  "h-10 px-4 transition-all duration-200 rounded-lg group",
+                  pathname === item.url 
+                    ? "bg-primary-foreground/10 text-white font-black" 
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
                 )}
               >
                 <Link href={item.url}>
-                  <item.icon className={cn("size-4 shrink-0", item.iconColor)} />
-                  <span className="font-bold text-[15px]">{item.title}</span>
+                  <item.icon className={cn("size-4 shrink-0 transition-colors", item.iconColor, pathname === item.url ? "opacity-100" : "opacity-60 group-hover:opacity-100")} />
+                  <span className="text-[13px] font-bold uppercase tracking-tight">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-2">
+      <SidebarFooter className="p-4 bg-black/20">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              asChild 
-              isActive={pathname === "/settings"} 
-              className="hover:bg-slate-100 text-sky-950 h-10"
-            >
+            <SidebarMenuButton asChild className="h-10 text-white/70 hover:bg-white/5 hover:text-white rounded-lg">
               <Link href="/settings">
-                <Settings className="size-4 shrink-0 text-slate-500" />
-                <span className="font-bold text-[15px]">সেটিংস</span>
+                <Settings className="size-4 opacity-60" />
+                <span className="font-bold text-[13px] uppercase tracking-tight">System Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              className="hover:bg-destructive/10 hover:text-destructive text-rose-600 h-10"
-              onClick={handleLogout}
-            >
-              <LogOut className="size-4 shrink-0" />
-              <span className="font-bold text-[15px]">লগআউট</span>
+            <SidebarMenuButton className="h-10 text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={handleLogout}>
+              <LogOut className="size-4" />
+              <span className="font-bold text-[13px] uppercase tracking-tight">Terminate Session</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

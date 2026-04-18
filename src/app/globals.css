@@ -23,15 +23,15 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.75rem;
+    --radius: 0.5rem;
     --sidebar-background: 222.2 47.4% 11.2%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 226.3 70.3% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-accent: 222.2 40% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222.2 47.4% 15%;
+    --sidebar-ring: 226.3 70.3% 55%;
   }
 }
 
@@ -41,7 +41,7 @@
     @apply bg-background text-foreground font-body text-[15px] antialiased;
   }
   h1, h2, h3, h4, h5, h6 { 
-    @apply font-black tracking-tight text-primary; 
+    @apply font-black tracking-tight text-primary uppercase; 
   }
 }
 
@@ -51,51 +51,48 @@
     margin: 8mm;
   }
 
-  [data-sidebar="sidebar"],
-  [data-sidebar="trigger"],
-  .no-print,
-  nav,
-  header,
-  footer,
-  aside,
-  button,
-  .TabsList {
-    display: none !important;
-  }
-
-  html, body {
-    width: 100% !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    background-color: white !important;
+  /* Force Pure Black for Audit Authority */
+  * {
     color: #000000 !important;
+    border-color: #000000 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
 
-  *, *::before, *::after {
-    background-color: transparent !important;
-    color: #000000 !important;
-    box-shadow: none !important;
-    border-color: #000000 !important;
+  [data-sidebar="sidebar"],
+  [data-sidebar="trigger"],
+  header,
+  nav,
+  footer,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   table {
     border-collapse: collapse !important;
     width: 100% !important;
     table-layout: fixed !important;
-    border: 1pt solid #000000 !important;
   }
 
   th, td {
-    border: 0.5pt solid #000000 !important;
-    color: #000000 !important;
     padding: 2pt !important;
-    word-wrap: break-word !important;
+    border: 0.5pt solid #000000 !important;
+  }
+
+  /* Prevent Footer Repetition on Every Page */
+  tfoot {
+    display: table-row-group !important;
   }
 
   .font-ledger {
-    font-family: 'Calibri', 'Times New Roman', sans-serif !important;
+    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif !important;
   }
 }

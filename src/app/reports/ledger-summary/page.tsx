@@ -1,10 +1,9 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Printer, Loader2, Search, ArrowLeft } from "lucide-react";
+import { Printer, Loader2, Search, ArrowLeft } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
@@ -95,7 +94,7 @@ export default function LedgerSummaryReportPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-none border-2 border-black overflow-hidden print-container shadow-2xl">
+      <div className="bg-white rounded-none border-2 border-black overflow-hidden shadow-2xl">
         <div className="p-2 border-b-2 border-black bg-slate-50 flex items-center justify-between no-print">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40 text-black" />
@@ -107,56 +106,56 @@ export default function LedgerSummaryReportPage() {
         <div className="overflow-x-auto">
           <Table className="w-full font-black tabular-nums border-collapse text-[8px] table-fixed text-[#000000]">
             <TableHeader className="bg-slate-100 border-b-2 border-black">
-              <tr className="uppercase text-[7px] leading-tight text-black">
-                <th className="border-r-2 border-black p-0.5 w-[40px]">ID No</th>
-                <th className="border-r-2 border-black p-0.5 text-left w-[110px]">Full Name</th>
-                <th className="text-right border-r p-0.5 w-[60px]">Emp(1)</th>
-                <th className="text-right border-r p-0.5 w-[60px]">Draw(2)</th>
-                <th className="text-right border-r p-0.5 w-[60px]">Repay(3)</th>
-                <th className="text-right border-r-2 p-0.5 w-[70px] bg-slate-200">L.Bal(4)</th>
-                <th className="text-right border-r p-0.5 w-[60px]">E.Profit(5)</th>
-                <th className="text-right border-r-2 p-0.5 w-[60px]">L.Int(6)</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-300">Equity(7)</th>
-                <th className="text-right border-r p-0.5 w-[60px]">PBS(8)</th>
-                <th className="text-right border-r-2 p-0.5 w-[60px]">P.Profit(9)</th>
-                <th className="text-right border-r-2 p-0.5 w-[75px] bg-slate-200">Office(10)</th>
-                <th className="text-right p-0.5 w-[90px] bg-black text-white">Total(11)</th>
-              </tr>
+              <TableRow className="uppercase text-[7px] leading-tight text-black border-b border-black">
+                <TableHead className="border-r-2 border-black p-0.5 w-[40px] font-black text-black h-8 text-center">ID No</TableHead>
+                <TableHead className="border-r-2 border-black p-0.5 text-left w-[110px] font-black text-black h-8">Full Name</TableHead>
+                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Emp(1)</TableHead>
+                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Draw(2)</TableHead>
+                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Repay(3)</TableHead>
+                <TableHead className="text-right border-r-2 p-0.5 w-[70px] bg-slate-200 font-black text-black h-8">L.Bal(4)</TableHead>
+                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">E.Profit(5)</TableHead>
+                <TableHead className="text-right border-r-2 p-0.5 w-[60px] font-black text-black h-8">L.Int(6)</TableHead>
+                <TableHead className="text-right border-r-2 p-0.5 w-[75px] bg-slate-300 font-black text-black h-8">Equity(7)</TableHead>
+                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">PBS(8)</TableHead>
+                <TableHead className="text-right border-r-2 p-0.5 w-[60px] font-black text-black h-8">P.Profit(9)</TableHead>
+                <TableHead className="text-right border-r-2 p-0.5 w-[75px] bg-slate-200 font-black text-black h-8">Office(10)</TableHead>
+                <TableHead className="text-right p-0.5 w-[90px] bg-black text-white font-black h-8">Total(11)</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody>
               {reportData.map((r, i) => (
                 <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-8 transition-colors">
-                  <td className="p-0.5 border-r-2 border-black font-mono text-center text-black">{r.id}</td>
-                  <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none font-black text-black">{r.name}</td>
-                  <td className="p-0.5 text-right border-r text-black">{r.c1.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r text-black">{r.c2.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r text-black">{r.c3.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c4.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r text-black">{r.c5.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 text-black">{r.c6.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-100 font-bold text-black">{r.c7.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r text-black">{r.c8.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 text-black">{r.c9.toLocaleString()}</td>
-                  <td className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c10.toLocaleString()}</td>
-                  <td className="p-0.5 text-right bg-slate-200 font-black text-black"> {r.c11.toLocaleString()}</td>
+                  <TableCell className="p-0.5 border-r-2 border-black font-mono text-center text-black">{r.id}</TableCell>
+                  <TableCell className="p-0.5 border-r-2 border-black uppercase truncate leading-none font-black text-black">{r.name}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r text-black">{r.c1.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r text-black">{r.c2.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r text-black">{r.c3.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c4.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r text-black">{r.c5.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r-2 text-black">{r.c6.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r-2 bg-slate-100 font-bold text-black">{r.c7.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r text-black">{r.c8.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r-2 text-black">{r.c9.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right border-r-2 bg-slate-50 font-bold text-black">{r.c10.toLocaleString()}</TableCell>
+                  <TableCell className="p-0.5 text-right bg-slate-200 font-black text-black">{r.c11.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter className="bg-black text-white font-black text-[7px] tracking-tight">
-              <TableRow className="h-10 border-t-2 border-white/20">
-                <td colSpan={2} className="text-right pr-2 uppercase">Institutional Aggregates:</td>
-                <td className="text-right border-l border-white/10">{stats.c1.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10">{stats.c2.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10">{stats.c3.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10 bg-white/5">{stats.c4.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10">{stats.c5.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10">{stats.c6.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10 bg-white/10">{stats.c7.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10">{stats.c8.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10">{stats.c9.toLocaleString()}</td>
-                <td className="text-right border-l border-white/10 bg-white/5">{stats.c10.toLocaleString()}</td>
-                <td className="text-right bg-white text-black font-black text-[9px]">৳ {stats.c11.toLocaleString()}</td>
-              </tr>
+              <TableRow className="h-10 border-t-2 border-white/20 hover:bg-black">
+                <TableCell colSpan={2} className="text-right pr-2 uppercase font-black text-white">Institutional Aggregates:</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c1.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c2.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c3.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 bg-white/5 font-black text-white">{stats.c4.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c5.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c6.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 bg-white/10 font-black text-white">{stats.c7.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c8.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 font-black text-white">{stats.c9.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-l border-white/10 bg-white/5 font-black text-white">{stats.c10.toLocaleString()}</TableCell>
+                <TableCell className="text-right bg-white text-black font-black text-[9px]">৳ {stats.c11.toLocaleString()}</TableCell>
+              </TableRow>
             </TableFooter>
           </Table>
         </div>
