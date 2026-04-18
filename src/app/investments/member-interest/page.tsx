@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -155,6 +156,13 @@ export default function CPFInterestPage() {
 
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
+      
+      // SKIP INACTIVE MEMBERS PER INSTITUTIONAL RULE
+      if (member.status !== 'Active') {
+        setProgress(Math.round(((i + 1) / members.length) * 100));
+        continue;
+      }
+
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
       const snapshot = await getDocs(q);
@@ -235,7 +243,7 @@ export default function CPFInterestPage() {
         profitEmployee: Math.round(item.employeeProfit), 
         profitLoan: 0, 
         pbsContribution: 0, 
-        profitPbs: Math.round(item.pbsProfit), 
+        profitPbs: Math.round(item.pbsProfit), // CORRECTED: MAP TO COLUMN 9
         lastUpdateDate: new Date().toISOString(), 
         createdAt: new Date().toISOString(), 
         memberId: item.memberId 
@@ -254,6 +262,7 @@ export default function CPFInterestPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Interest");
     XLSX.writeFile(wb, `CPF_Profit_${selectedFY}.xlsx`);
+    toast({ title: "Exported", description: "Interest distribution data saved to Excel." });
   };
 
   const totalCPFProfit = useMemo(() => previewData.reduce((sum, item) => sum + item.calculatedInterest, 0), [previewData]);
@@ -311,7 +320,7 @@ export default function CPFInterestPage() {
       <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
           <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-black">Audit Scope</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-black">{members?.length || 0} Members</div></CardContent>
+          <CardContent><div className="text-2xl font-black">{members?.filter(m => m.status === 'Active').length || 0} Active Members</div></CardContent>
         </Card>
         <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white">
           <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-black">Computed Profit</CardTitle></CardHeader>
@@ -329,7 +338,7 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="max-w-md mx-auto text-center space-y-4 no-print py-12">
-          <p className="text-xs font-black uppercase tracking-[0.2em]">Processing Institutional Personnel Ledger Volume...</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em]">Auditing Active Personnel Ledger Volume...</p>
           <Progress value={progress} className="h-3 border-2 border-black bg-slate-100 rounded-none" />
           <p className="text-[10px] font-black uppercase">{progress}% Complete</p>
         </div>

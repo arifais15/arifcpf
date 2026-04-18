@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -123,7 +124,12 @@ export default function SpecialInterestDPPage() {
     setPostingDate(dateRange.end);
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
-    const targetMembers = selectedMember === "all" ? (members || []) : (members?.filter(m => m.id === selectedMember) || []);
+    
+    // INSTITUTIONAL RULE: ONLY ACTIVE MEMBERS ARE ELIGIBLE FOR INTEREST CALCULATION
+    const targetMembers = selectedMember === "all" 
+      ? (members?.filter(m => m.status === 'Active') || []) 
+      : (members?.filter(m => m.id === selectedMember && m.status === 'Active') || []);
+
     const auditResults = [];
     for (const member of targetMembers) {
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
@@ -152,6 +158,9 @@ export default function SpecialInterestDPPage() {
     }
     setResults(auditResults);
     setIsCalculating(false);
+    if (auditResults.length === 0 && selectedMember !== "all") {
+      toast({ title: "Ineligible Member", description: "Interest is only calculated for Active members.", variant: "destructive" });
+    }
   };
 
   const handlePostAll = async () => {
@@ -205,12 +214,14 @@ export default function SpecialInterestDPPage() {
       <div className="bg-white p-6 rounded-2xl border-2 border-black shadow-xl flex flex-col gap-6 no-print">
         <div className="grid gap-6 md:grid-cols-3 items-end">
           <div className="space-y-1.5">
-            <Label className="text-[10px] uppercase font-black text-black ml-1">Member Focus</Label>
+            <Label className="text-[10px] uppercase font-black text-black ml-1">Active Member Focus</Label>
             <Select value={selectedMember} onValueChange={setSelectedMember}>
               <SelectTrigger className="h-11 font-black border-black border-2"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-[300px]">
-                <SelectItem value="all">All Institutional Personnel</SelectItem>
-                {members?.map(m => <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name} ({m.designation})</SelectItem>)}
+                <SelectItem value="all">All Active Institutional Personnel</SelectItem>
+                {members?.filter(m => m.status === 'Active').map(m => (
+                  <SelectItem key={m.id} value={m.id} className="font-black text-xs uppercase">{m.memberIdNumber} - {m.name} ({m.designation})</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -376,7 +387,7 @@ export default function SpecialInterestDPPage() {
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Day-Product Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-slate-400 font-black italic uppercase">
-                  This calculation captures exact fund utilization. Interest is computed daily using the formula: (Daily Balance * Annual Tiered Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual. The monthly summary above is the sum of these daily portions.
+                  This calculation captures exact fund utilization for Active members. Interest is computed daily using the formula: (Daily Balance * Annual Tiered Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual.
                 </p>
               </div>
             </div>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -175,6 +176,12 @@ export default function CPFInterestPage() {
     for (let i = 0; i < members.length; i++) {
       const member = members[i];
       
+      // INSTITUTIONAL RULE: ONLY ACTIVE MEMBERS GET INTEREST
+      if (member.status !== 'Active') {
+        setProgress(Math.round(((i + 1) / members.length) * 100));
+        continue;
+      }
+      
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
       const snapshot = await getDocs(q);
@@ -319,7 +326,7 @@ export default function CPFInterestPage() {
         profitEmployee: Math.round(item.employeeProfit),
         profitLoan: 0,
         pbsContribution: 0,
-        profitPbs: Math.round(item.pbsProfit),
+        profitPbs: Math.round(item.pbsProfit), // ENSURE COLUMN 9 POSTING
         lastUpdateDate: new Date().toISOString(),
         createdAt: new Date().toISOString(),
         memberId: item.memberId
@@ -424,7 +431,7 @@ export default function CPFInterestPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold text-primary tracking-tight">CPF Interest Accrual</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Opening Balance Focused + 11 Monthly Closing Balances (Captures Last-Day Entries)</p>
+          <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-bold">Rule: Only Active members calculated • Opening Balance Focused + 11 Monthly Closing Balances</p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white p-3 rounded-2xl border shadow-sm">
           <Tabs value={calculationMode} onValueChange={(v: any) => setCalculationMode(v)} className="w-full sm:w-auto">
@@ -472,10 +479,10 @@ export default function CPFInterestPage() {
       <div className="grid gap-6 md:grid-cols-3 no-print">
         <Card className="border-none shadow-sm bg-primary/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest opacity-60">Subsidiary Accounts</CardTitle>
+            <CardTitle className="text-[10px] font-bold uppercase text-primary tracking-widest opacity-60">Audit Scope</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{members?.length || 0} Members Registry</div>
+            <div className="text-2xl font-bold">{members?.filter(m => m.status === 'Active').length || 0} Active Members</div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm bg-accent/5">
@@ -511,16 +518,10 @@ export default function CPFInterestPage() {
           <div className="p-4 bg-slate-900 rounded-2xl border border-white/10 shadow-2xl mb-4">
             <p className="text-xs font-black uppercase tracking-widest text-primary mb-2 flex items-center justify-center gap-2">
               <Loader2 className="size-3 animate-spin" />
-              Auditing Institutional Volume...
+              Auditing Active Personnel...
             </p>
             <Progress value={progress} className="h-2 bg-white/10" />
             <p className="text-[10px] font-bold text-slate-400 mt-2">{progress}% COMPLETE • PROCESSING PERSONNEL {Math.round((progress/100) * (members?.length || 0))}/{members?.length}</p>
-          </div>
-          <div className="bg-amber-50 p-3 rounded-lg border border-amber-100 flex items-start gap-2 text-left">
-            <Info className="size-4 text-amber-600 shrink-0 mt-0.5" />
-            <p className="text-[9px] text-amber-700 leading-tight">
-              <b>Performance Tip:</b> Large datasets (800+ members) require a few minutes. Please keep this tab active until the audit completes. To speed up future audits, ensure all prior years have an "Opening Balance" entry.
-            </p>
           </div>
         </div>
       )}
@@ -586,13 +587,13 @@ export default function CPFInterestPage() {
                         <span className="text-[9px] text-muted-foreground uppercase">{item.designation}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right text-xs font-medium">
+                    <td className="text-right text-xs font-medium">
                       {item.employeeProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell className="text-right text-xs font-medium">
+                    </td>
+                    <td className="text-right text-xs font-medium">
                       {item.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell 
+                    </td>
+                    <td 
                       className="text-right font-black text-accent cursor-pointer hover:bg-accent/5 transition-colors group"
                       onClick={() => setViewingDetails(item)}
                     >
@@ -600,14 +601,14 @@ export default function CPFInterestPage() {
                         <span>৳ {item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                         <Info className="size-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
                       </div>
-                    </TableCell>
-                    <TableCell className="text-center">
+                    </td>
+                    <td className="text-center">
                       {item.isPosted ? (
                         <Badge variant="outline" className="border-emerald-500 text-emerald-600 text-[9px] uppercase">Posted to Ledger</Badge>
                       ) : (
                         <Badge variant="outline" className="text-[9px] uppercase">Audit Verified</Badge>
                       )}
-                    </TableCell>
+                    </td>
                   </TableRow>
                 ))}
               </TableBody>
@@ -695,7 +696,7 @@ export default function CPFInterestPage() {
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase text-blue-700 tracking-wider">Audit Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-blue-600">
-                  This tiered profit is computed by aggregating 12 audit snapshots. Each snapshot captures the total cumulative fund value at the end of the basis month (Opening Balance + 11 monthly closings). The final amount represents the weighted annual profit share of the member based on their real-time ledger contributions.
+                  This tiered profit is computed by aggregating 12 audit snapshots for Active members only. Each snapshot captures the total cumulative fund value at the end of the basis month. The final amount represents the weighted annual profit share based on real-time ledger contributions.
                 </p>
               </div>
             </div>
