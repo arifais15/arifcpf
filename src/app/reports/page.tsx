@@ -65,7 +65,11 @@ export default function ReportsPage() {
     if (availableFYs.length > 0 && !selectedFiscalYear) handleFYChange(availableFYs[0]);
   }, [availableFYs, selectedFiscalYear]);
 
-  // Helper to get balance for an account or group at a specific point in time
+  /**
+   * REUSABLE CALCULATION ENGINE
+   */
+
+  // 1. Balance Sheet Engine: Gets total balance as of a specific date
   const getBalanceAtDate = (targetDateStr: string, codes: string | string[]) => {
     if (!entries || !targetDateStr) return 0;
     const cutOff = new Date(`${targetDateStr}T23:59:59`).getTime();
@@ -73,8 +77,11 @@ export default function ReportsPage() {
 
     let total = 0;
     entries.forEach(entry => {
-      if (new Date(entry.entryDate).getTime() > cutOff) return;
+      const entryTime = new Date(entry.entryDate).getTime();
+      if (entryTime > cutOff) return;
+
       (entry.lines || []).forEach((line: any) => {
+        // Match exact code or parent category (prefix)
         const isMatch = codeList.some(code => 
           line.accountCode === code || 
           (code.endsWith('.00.0000') && line.accountCode.startsWith(code.split('.')[0]))
@@ -83,25 +90,28 @@ export default function ReportsPage() {
         if (isMatch) {
           const coa = activeCOA.find(a => a.code === line.accountCode);
           if (!coa) return;
-          const amt = coa.balance === 'Debit' ? (Number(line.debit) - Number(line.credit)) : (Number(line.credit) - Number(line.debit));
-          total += amt;
+          // Apply Normal Balance rules (Debit vs Credit)
+          const amount = coa.balance === 'Debit' 
+            ? (Number(line.debit) - Number(line.credit)) 
+            : (Number(line.credit) - Number(line.debit));
+          total += amount;
         }
       });
     });
     return total;
   };
 
-  // Helper to get periodic movement (Income/Expense/Receipt/Payment)
-  const getMovementForPeriod = (startStr: string, endStr: string, codes: string | string[], flowType?: 'Receipt' | 'Payment') => {
+  // 2. Income/Movement Engine: Gets movement strictly within a date range
+  const getMovementForPeriod = (startStr: string, endStr: string, codes: string | string[], cashFlowType?: 'Receipt' | 'Payment') => {
     if (!entries || !startStr || !endStr) return 0;
-    const s = new Date(`${startStr}T00:00:00`).getTime();
-    const e = new Date(`${endStr}T23:59:59`).getTime();
+    const sTime = new Date(`${startStr}T00:00:00`).getTime();
+    const eTime = new Date(`${endStr}T23:59:59`).getTime();
     const codeList = Array.isArray(codes) ? codes : [codes];
 
     let total = 0;
     entries.forEach(entry => {
       const t = new Date(entry.entryDate).getTime();
-      if (t < s || t > e) return;
+      if (t < sTime || t > eTime) return;
 
       const lines = entry.lines || [];
       const hasBankDebit = lines.some((l: any) => l.accountCode === '131.10.0000' && Number(l.debit) > 0);
@@ -114,15 +124,20 @@ export default function ReportsPage() {
         );
 
         if (isMatch) {
-          if (flowType === 'Receipt') {
+          if (cashFlowType === 'Receipt') {
+            // Receipt = Entry has Bank DEBIT, we sum the CREDIT of the matched account
             if (hasBankDebit) total += (Number(line.credit) || 0);
-          } else if (flowType === 'Payment') {
+          } else if (cashFlowType === 'Payment') {
+            // Payment = Entry has Bank CREDIT, we sum the DEBIT of the matched account
             if (hasBankCredit) total += (Number(line.debit) || 0);
           } else {
+            // Standard Accounting Movement
             const coa = activeCOA.find(a => a.code === line.accountCode);
             if (!coa) return;
-            const amt = coa.balance === 'Debit' ? (Number(line.debit) - Number(line.credit)) : (Number(line.credit) - Number(line.debit));
-            total += amt;
+            const amount = coa.balance === 'Debit' 
+              ? (Number(line.debit) - Number(line.credit)) 
+              : (Number(line.credit) - Number(line.debit));
+            total += amount;
           }
         }
       });
@@ -130,6 +145,9 @@ export default function ReportsPage() {
     return total;
   };
 
+  /**
+   * COMPARATIVE LOGIC DATA PREP
+   */
   const prevYearEnd = useMemo(() => {
     if (!dateRange.end) return "";
     try { return format(subYears(parseISO(dateRange.end), 1), 'yyyy-MM-dd'); } catch { return ""; }
@@ -148,17 +166,32 @@ export default function ReportsPage() {
     return new Intl.NumberFormat('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);
   };
 
-  const calculateTotalReceipts = (start: string, end: string) => {
-    return [
-      '200.10', '200.20', '400.50', '105.20', '400.40', '101.20', '400.20', '101.10', '400.10', '107', '410.20'
-    ].reduce((sum, prefix) => sum + getMovementForPeriod(start, end, prefix + '.00.0000', 'Receipt'), 0);
-  };
+  // Receipt & Payment Aggregates
+  const receiptItems = [
+    { sl: '3', label: "Members' Own Subscriptions (10%)", code: '200.10.0000' },
+    { sl: '4', label: "PBS's Contribution (8.33% / Matching)", code: '200.20.0000' },
+    { sl: '5', label: 'Interest from Saving Accounts', code: '400.50.0000' },
+    { sl: '6', label: 'CPF Loan & Interest Realized', code: ['105.20.0000', '400.40.0000'] },
+    { sl: '7', label: 'Encashment Savings Certificate', code: '101.20.0000' },
+    { sl: '8', label: 'Encashment Savings Certificate Interest (Net)', code: '400.20.0000' },
+    { sl: '9', label: 'FDR Encashment', code: '101.10.0000' },
+    { sl: '10', label: 'FDR Interest Encashment (Net)', code: '400.10.0000' },
+    { sl: '11', label: 'Other Receipt', code: ['107.20.0000', '410.10.0000'] },
+    { sl: '12', label: 'PBS Subsidy', code: '410.20.0000' },
+    { sl: '13', label: 'Recovery of Excess CPF Loan', code: '105.20.0000' },
+  ];
 
-  const calculateTotalPayments = (start: string, end: string) => {
-    return [
-      '200.50', '105.10', '101.10', '101.20', '500.30', '500.20', '500.10', '500.40', '500.50', '108'
-    ].reduce((sum, prefix) => sum + getMovementForPeriod(start, end, prefix + '.00.0000', 'Payment'), 0);
-  };
+  const paymentItems = [
+    { sl: '14', label: 'Benefits Paid (Final Settlements)', code: '200.50.0000' },
+    { sl: '15', label: 'CPF Loan Payments', code: '105.10.0000' },
+    { sl: '16', label: 'New Investment in FDR', code: '101.10.0000' },
+    { sl: '17', label: 'New Investment in Savings Certificate', code: '101.20.0000' },
+    { sl: '18', label: 'Administrative & Audit Expenses', code: ['500.30.0000', '500.20.0000'] },
+    { sl: '19', label: 'Bank Charge & Others on Savings Accounts', code: '500.10.0000' },
+    { sl: '20', label: 'Other payment', code: '500.40.0000' },
+    { sl: '21', label: 'Tax Paid with Return', code: '500.50.0000' },
+    { sl: '22', label: 'Advance Tax Payment', code: '108.00.0000' },
+  ];
 
   if (isCoaLoading || isEntriesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
@@ -208,6 +241,7 @@ export default function ReportsPage() {
           <TabsTrigger value="receipt" className="rounded-xl font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white">Receipt & Payment</TabsTrigger>
         </TabsList>
 
+        {/* --- STATEMENT OF FINANCIAL POSITION --- */}
         <TabsContent value="position" className="animate-in fade-in duration-500">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
             <div className="text-center mb-10 text-black">
@@ -309,6 +343,7 @@ export default function ReportsPage() {
           </Card>
         </TabsContent>
 
+        {/* --- INCOME STATEMENT --- */}
         <TabsContent value="income">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
             <div className="text-center mb-10 text-black">
@@ -484,6 +519,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Opening Cash Balance */}
                   <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-b border-black uppercase text-[10px]">Opening Balance:</td></tr>
                   <tr className="border-b border-black hover:bg-slate-50/50">
                     <td className="border-r border-black p-2 text-center">1</td>
@@ -492,20 +528,9 @@ export default function ReportsPage() {
                     <td className="p-2 text-right pr-4">{formatValue(getBalanceAtDate(prevYearStart, '131.10.0000'))}</td>
                   </tr>
 
+                  {/* Receipts List */}
                   <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-y border-black uppercase text-[10px]">RECEIPTS:</td></tr>
-                  {[
-                    { sl: '3', label: "Members' Own Subscriptions (10%)", code: '200.10.0000' },
-                    { sl: '4', label: "PBS's Contribution (8.33% / Matching)", code: '200.20.0000' },
-                    { sl: '5', label: 'Interest from Saving Accounts', code: '400.50.0000' },
-                    { sl: '6', label: 'CPF Loan & Interest Realized', code: ['105.20.0000', '400.40.0000'] },
-                    { sl: '7', label: 'Encashment Savings Certificate', code: '101.20.0000' },
-                    { sl: '8', label: 'Encashment Savings Certificate Interest (Net)', code: '400.20.0000' },
-                    { sl: '9', label: 'FDR Encashment', code: '101.10.0000' },
-                    { sl: '10', label: 'FDR Interest Encashment (Net)', code: '400.10.0000' },
-                    { sl: '11', label: 'Other Receipt', code: ['107.20.0000', '410.10.0000'] },
-                    { sl: '12', label: 'PBS Subsidy', code: '410.20.0000' },
-                    { sl: '13', label: 'Recovery of Excess CPF Loan', code: '105.20.0000' },
-                  ].map((row) => (
+                  {receiptItems.map((row) => (
                     <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50">
                       <td className="border-r border-black p-2 text-center">{row.sl}</td>
                       <td className="border-r border-black p-2 pl-4">{row.label}</td>
@@ -517,35 +542,26 @@ export default function ReportsPage() {
                     <td className="border-r border-black"></td>
                     <td className="border-r border-black p-2 pl-4 uppercase">Total RECEIPTS</td>
                     <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(calculateTotalReceipts(dateRange.start, dateRange.end))}
+                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Receipt'), 0))}
                     </td>
                     <td className="p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(calculateTotalReceipts(prevYearStart, prevYearEnd))}
+                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Receipt'), 0))}
                     </td>
                   </tr>
                   <tr className="bg-black text-white font-black h-10 border-b-2 border-black">
                     <td className="border-r border-white/20"></td>
                     <td className="border-r border-white/20 p-2 pl-4 uppercase">Total Receipts with Opening Balance (A)</td>
                     <td className="border-r border-white/20 p-2 text-right pr-4">
-                      {formatValue(calculateTotalReceipts(dateRange.start, dateRange.end) + getBalanceAtDate(dateRange.start, '131.10.0000'))}
+                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Receipt'), 0) + getBalanceAtDate(dateRange.start, '131.10.0000'))}
                     </td>
                     <td className="p-2 text-right pr-4">
-                      {formatValue(calculateTotalReceipts(prevYearStart, prevYearEnd) + getBalanceAtDate(prevYearStart, '131.10.0000'))}
+                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Receipt'), 0) + getBalanceAtDate(prevYearStart, '131.10.0000'))}
                     </td>
                   </tr>
 
+                  {/* Payments List */}
                   <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-y border-black uppercase text-[10px]">Payment:</td></tr>
-                  {[
-                    { sl: '14', label: 'Benefits Paid (Final Settlements)', code: '200.50.0000' },
-                    { sl: '15', label: 'CPF Loan Payments', code: '105.10.0000' },
-                    { sl: '16', label: 'New Investment in FDR', code: '101.10.0000' },
-                    { sl: '17', label: 'New Investment in Savings Certificate', code: '101.20.0000' },
-                    { sl: '18', label: 'Administrative & Audit Expenses', code: ['500.30.0000', '500.20.0000'] },
-                    { sl: '19', label: 'Bank Charge & Others on Savings Accounts', code: '500.10.0000' },
-                    { sl: '20', label: 'Other payment', code: '500.40.0000' },
-                    { sl: '21', label: 'Tax Paid with Return', code: '500.50.0000' },
-                    { sl: '22', label: 'Advance Tax Payment', code: '108.00.0000' },
-                  ].map((row) => (
+                  {paymentItems.map((row) => (
                     <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50">
                       <td className="border-r border-black p-2 text-center">{row.sl}</td>
                       <td className="border-r border-black p-2 pl-4">{row.label}</td>
@@ -557,20 +573,28 @@ export default function ReportsPage() {
                     <td className="border-r border-black"></td>
                     <td className="border-r border-black p-2 pl-4 uppercase">Total Payment: (B)</td>
                     <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(calculateTotalPayments(dateRange.start, dateRange.end))}
+                      {formatValue(paymentItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Payment'), 0))}
                     </td>
                     <td className="p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(calculateTotalPayments(prevYearStart, prevYearEnd))}
+                      {formatValue(paymentItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Payment'), 0))}
                     </td>
                   </tr>
+
+                  {/* Final Reconciliation */}
                   <tr className="bg-black text-white font-black h-12">
                     <td className="border-r border-white/20"></td>
                     <td className="border-r border-white/20 p-2 pl-4 uppercase tracking-widest">Net Assets Available at End of Year</td>
                     <td className="border-r border-white/20 p-2 text-right pr-4 underline decoration-double">
-                      {formatValue((calculateTotalReceipts(dateRange.start, dateRange.end) + getBalanceAtDate(dateRange.start, '131.10.0000')) - calculateTotalPayments(dateRange.start, dateRange.end))}
+                      {formatValue(
+                        (receiptItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Receipt'), 0) + getBalanceAtDate(dateRange.start, '131.10.0000')) - 
+                        paymentItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Payment'), 0)
+                      )}
                     </td>
                     <td className="p-2 text-right pr-4 underline decoration-double">
-                      {formatValue((calculateTotalReceipts(prevYearStart, prevYearEnd) + getBalanceAtDate(prevYearStart, '131.10.0000')) - calculateTotalPayments(prevYearStart, prevYearEnd))}
+                      {formatValue(
+                        (receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Receipt'), 0) + getBalanceAtDate(prevYearStart, '131.10.0000')) - 
+                        paymentItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Payment'), 0)
+                      )}
                     </td>
                   </tr>
                 </tbody>
