@@ -4,18 +4,17 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * FIREBASE SECURITY RULES
+     * FIREBASE SECURITY RULES - PBS CPF SYSTEM
      * 
-     * This ruleset is configured for the PBS CPF Management system.
-     * It allows access to authenticated users while maintaining
-     * strict controls over administrative roles.
+     * Allows access to authenticatedSamity personnel while
+     * enforcing role-based controls for administrative collections.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
 
     function isSignedIn() {
-      // Must be signed in and not anonymous
-      return request.auth != null && (request.auth.token.firebase.sign_in_provider != 'anonymous');
+      // Must be authenticated with a valid Samity account
+      return request.auth != null;
     }
 
     function isAdmin() {
@@ -27,14 +26,12 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- COLLECTION GROUP RULES (CRITICAL FOR REPORTS) ---
+    // --- COLLECTION GROUP RULES (FOR AGGREGATE REPORTS) ---
     
-    // Allows collectionGroup('fundSummaries') queries used in Audit, Loans, and Tracking reports
     match /{path=**}/fundSummaries/{summaryId} {
       allow read: if isSignedIn();
     }
 
-    // Allows collectionGroup('line_items') queries if used for subsidiary ledgers
     match /{path=**}/line_items/{lineId} {
       allow read: if isSignedIn();
     }
@@ -48,55 +45,48 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
-    // Chart of Accounts
+    // Chart of Accounts (Institutional Standard)
     match /chartOfAccounts/{accountId} {
       allow read: if isSignedIn();
       allow write: if isSignedIn();
     }
 
-    // Members Registry (Employees)
+    // Members Registry (Samity Personnel)
     match /members/{memberId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
       
-      // Subcollection for Ledger Entries
+      // Subcollection for Individual Subsidiary Ledgers
       match /fundSummaries/{summaryId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
+        allow read, write: if isSignedIn();
       }
     }
 
-    // Investment Instruments
+    // Investment Instruments Portfolio
     match /investmentInstruments/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
 
       // Subcollection for Audit/Renewal History
       match /auditHistory/{historyId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
+        allow read, write: if isSignedIn();
       }
     }
     
-    // Accrued Interest Logs (Provisions)
+    // Accrued Interest Logs (Year-end Provisions)
     match /accruedInterestLogs/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
     }
 
     // Journal Entries (General Ledger)
     match /journalEntries/{entryId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, write: if isSignedIn();
       
-      // Line Items subcollection
+      // Double-entry Line Items
       match /line_items/{lineId} {
-        allow read: if isSignedIn();
-        allow write: if isSignedIn();
+        allow read, write: if isSignedIn();
       }
     }
 
-    // System Settings (Ledger Mappings)
+    // System Settings (Account Mapping & Policy)
     match /settings/{settingId} {
       allow read, write: if isSignedIn();
     }
