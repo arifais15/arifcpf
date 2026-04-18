@@ -3,10 +3,24 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, ArrowRightLeft, Calculator, ShieldCheck, TrendingUp, TrendingDown, Wallet, HandCoins } from "lucide-react";
+import { 
+  Printer, 
+  ArrowLeft, 
+  Loader2, 
+  Plus, 
+  ArrowRightLeft, 
+  Calculator, 
+  ShieldCheck, 
+  TrendingUp, 
+  TrendingDown, 
+  Wallet, 
+  HandCoins,
+  Edit2,
+  Trash2
+} from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
-import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
+import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -23,6 +37,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const { showAlert } = useSweetAlert();
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any>(null);
   const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
@@ -46,7 +61,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const now = new Date();
     const curYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
+    const startYear = currentMonth >= 7 ? curYear : currentYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -68,9 +83,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const sorted = [...summaries].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
     let rL = 0, rE = 0, rO = 0;
     
-    // Total counters for report-end sums
-    let sC1=0, sC2=0, sC3=0, sC5=0, sC6=0, sC8=0, sC9=0;
-
     const allC = sorted.map(row => {
       const v = { 
         c1:Number(row.employeeContribution)||0, 
@@ -98,7 +110,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       return t >= s && t <= e; 
     });
 
-    // Opening Balance Row
     const lastP = pre[pre.length-1] || { col4:0, col7:0, col10:0, col11:0 };
     const pSums = pre.reduce((acc, r) => ({ 
       c1:acc.c1+r.c1, c2:acc.c2+r.c2, c3:acc.c3+r.c3, c5:acc.c5+r.c5, c6:acc.c6+r.c6, c8:acc.c8+r.c8, c9:acc.c9+r.c9 
@@ -123,7 +134,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       }];
     }
 
-    // Final sums of all transactions in view (including BF)
     const viewSums = rows.reduce((acc, r) => ({
       c1: acc.c1 + (r.isOpening ? 0 : r.c1),
       c2: acc.c2 + (r.isOpening ? 0 : r.c2),
@@ -157,6 +167,35 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setManualVals(prev => ({ ...prev, [key]: Number(val) || 0 }));
   };
 
+  const handleEditEntry = (entry: any) => {
+    setEditingEntry(entry);
+    setManualVals({
+      c1: entry.c1,
+      c2: entry.c2,
+      c3: entry.c3,
+      c5: entry.c5,
+      c6: entry.c6,
+      c8: entry.c8,
+      c9: entry.c9
+    });
+    setIsEntryOpen(true);
+  };
+
+  const handleDeleteEntry = (id: string) => {
+    showAlert({
+      title: "Remove Entry?",
+      description: "Permanently delete this transaction from the subsidiary ledger?",
+      type: "warning",
+      showCancel: true,
+      confirmText: "Delete",
+      onConfirm: () => {
+        const docRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", id);
+        deleteDocumentNonBlocking(docRef);
+        showAlert({ title: "Deleted", type: "success" });
+      }
+    });
+  };
+
   const handleManualSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
@@ -170,13 +209,22 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       profitLoan: manualVals.c6, 
       pbsContribution: manualVals.c8, 
       profitPbs: manualVals.c9, 
-      memberId: resolvedParams.id, 
-      createdAt: new Date().toISOString() 
+      memberId: resolvedParams.id,
+      updatedAt: new Date().toISOString()
     }; 
-    addDocumentNonBlocking(summariesRef, d); 
+
+    if (editingEntry && editingEntry.id) {
+      const docRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id);
+      updateDocumentNonBlocking(docRef, d);
+      showAlert({ title: "Ledger Updated", type: "success" });
+    } else {
+      addDocumentNonBlocking(summariesRef, { ...d, createdAt: new Date().toISOString() }); 
+      showAlert({ title: "Ledger Synchronized", type: "success" });
+    }
+
     setIsEntryOpen(false); 
+    setEditingEntry(null);
     setManualVals({ c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
-    showAlert({ title: "Ledger Synchronized", type: "success" });
   };
 
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12 text-primary" /></div>;
@@ -201,13 +249,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </PageHeaderActions>
 
       <div className="bg-white p-4 md:p-10 shadow-2xl border-2 border-black max-w-[1400px] mx-auto w-full print-container text-black overflow-x-auto">
-        <div className="text-center border-b-2 border-black pb-4 mb-6 min-w-[850px]">
+        <div className="text-center border-b-2 border-black pb-4 mb-6 min-w-[950px]">
           <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
           <h2 className="text-lg md:text-xl font-black uppercase tracking-[0.3em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
         {/* COMPACT 2-ROW MEMBER PROFILE MATRIX */}
-        <div className="grid grid-cols-3 gap-y-4 gap-x-8 mb-6 text-[10px] font-black border-b-2 border-black pb-4 min-w-[850px] uppercase">
+        <div className="grid grid-cols-3 gap-y-4 gap-x-8 mb-6 text-[10px] font-black border-b-2 border-black pb-4 min-w-[950px] uppercase">
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>NAME:</span><span className="flex-1 truncate">{member?.name}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>POSITION:</span><span className="flex-1 truncate">{member?.designation}</span></div>
@@ -217,7 +265,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>JOIN DATE:</span><span className="flex-1">{member?.dateJoined}</span></div>
         </div>
 
-        <table className="w-full text-[9px] border-collapse border-2 border-black font-black tabular-nums min-w-[850px]">
+        <table className="w-full text-[9px] border-collapse border-2 border-black font-black tabular-nums min-w-[950px]">
           <thead className="bg-slate-50 border-b-2 border-black uppercase text-[8px] text-black">
             <tr className="h-10">
               <th rowSpan={2} className="border border-black p-1 w-[70px]">Date</th>
@@ -233,13 +281,14 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <th className="border border-black p-1">Profit P(9)</th>
               <th className="border border-black p-1 bg-slate-200">Net Off(10)</th>
               <th className="border border-black p-1 bg-black text-white">Total(11)</th>
+              <th className="border border-black p-1 no-print">Actions</th>
             </tr>
           </thead>
           <tbody className="text-black">
             {ledgerLogic.rows.map((r: any, idx: number) => (
               <tr key={idx} className={cn("border-b border-black h-8", r.isOpening && "bg-slate-50 italic")}>
                 <td className="border border-black p-1 text-center font-mono">{r.summaryDate}</td>
-                <td className="border border-black p-1 uppercase truncate max-w-[200px]">{r.particulars}</td>
+                <td className="border border-black p-1 uppercase truncate max-w-[150px]">{r.particulars}</td>
                 <td className="border border-black p-1 text-right">{r.c1.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{r.c2.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right">{r.c3.toLocaleString()}</td>
@@ -251,6 +300,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <td className="border border-black p-1 text-right">{r.c9.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-50">{r.col10.toLocaleString()}</td>
                 <td className="border border-black p-1 text-right bg-slate-100 font-bold">{r.col11.toLocaleString()}</td>
+                <td className="border border-black p-1 text-center no-print">
+                  {!r.isOpening && (
+                    <div className="flex gap-1 justify-center">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditEntry(r)}>
+                        <Edit2 className="size-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600 hover:bg-rose-50" onClick={() => handleDeleteEntry(r.id)}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -268,21 +329,28 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td>
               <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td>
               <td className="border border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString()}</td>
+              <td className="border border-black p-1 no-print"></td>
             </tr>
           </tfoot>
         </table>
         
-        <div className="mt-12 pt-6 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-widest no-print min-w-[850px]">
+        <div className="mt-12 pt-6 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-widest no-print min-w-[950px]">
           <div className="flex items-center gap-2"><ShieldCheck className="size-4" /><span>System Synchronized v1.0</span></div>
           <span>Institutional Trust Registry</span>
         </div>
       </div>
 
-      <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
+      <Dialog open={isEntryOpen} onOpenChange={(open) => { 
+        setIsEntryOpen(open); 
+        if(!open) {
+          setEditingEntry(null);
+          setManualVals({ c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+        }
+      }}>
         <DialogContent className="max-w-4xl bg-white p-0 rounded-2xl shadow-2xl border-4 border-black overflow-hidden max-h-[95vh] flex flex-col">
           <DialogHeader className="bg-slate-50 p-6 md:p-8 border-b-4 border-black shrink-0">
             <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3 text-black">
-              <Calculator className="size-6 md:size-8 text-black" /> Voucher Entry Terminal
+              <Calculator className="size-6 md:size-8 text-black" /> {editingEntry ? "Modify Ledger Entry" : "Voucher Entry Terminal"}
             </DialogTitle>
             <DialogDescription className="text-[10px] font-black uppercase opacity-60 text-black">Manual Ledger Synchronization</DialogDescription>
           </DialogHeader>
@@ -290,11 +358,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase ml-1">Posting Date</Label>
-                <Input name="summaryDate" type="date" max="9999-12-31" required className="h-11 border-black border-2 font-black text-black" />
+                <Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="h-11 border-black border-2 font-black text-black" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase ml-1">Voucher Particulars</Label>
-                <Input name="particulars" placeholder="e.g. Monthly Salary Sync" required className="h-11 border-black border-2 font-black text-black" />
+                <Input name="particulars" placeholder="e.g. Monthly Salary Sync" defaultValue={editingEntry?.particulars} required className="h-11 border-black border-2 font-black text-black" />
               </div>
             </div>
             
@@ -346,7 +414,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <div className="bg-white/10 rounded-xl p-2"><p className="text-[8px] uppercase font-black text-white/80">TOTAL NET IMPACT</p><p className="text-lg font-black text-emerald-400">৳ {rowVerification.total.toLocaleString()}</p></div>
               </div>
             </div>
-            <Button type="submit" className="w-full h-14 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-2 border-white/10">Commit to Ledger</Button>
+            <Button type="submit" className="w-full h-14 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-2 border-white/10">
+              {editingEntry ? "Update Ledger Entry" : "Commit to Ledger"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
