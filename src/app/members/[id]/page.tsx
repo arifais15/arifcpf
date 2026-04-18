@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, ArrowRightLeft, Calculator, ShieldCheck, TrendingUp, TrendingDown } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, ArrowRightLeft, Calculator, ShieldCheck, TrendingUp, TrendingDown, Wallet, HandCoins } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
@@ -45,8 +45,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const fys = [];
     const now = new Date();
     const curYear = now.getFullYear();
-    const curMonth = now.getMonth() + 1;
-    const startYear = curMonth >= 7 ? curYear : curYear - 1;
+    const currentMonth = now.getMonth() + 1;
+    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -164,10 +164,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12 text-primary" /></div>;
 
   return (
-    <div className="p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
+    <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
       <PageHeaderActions>
         <Link href="/members" className="p-2 hover:bg-slate-100 rounded-full border border-black no-print"><ArrowLeft className="size-5 text-black" /></Link>
-        <div className="flex items-center gap-3 bg-slate-50 p-2 border border-black rounded-xl no-print">
+        <div className="hidden md:flex items-center gap-3 bg-slate-50 p-2 border border-black rounded-xl no-print">
           <Select value={selectedFY} onValueChange={(fy) => { setSelectedFY(fy); if(fy==="all") setDateRange({start:"2010-01-01", end:new Date().toISOString().split('T')[0]}); else { const s = parseInt(fy.split("-")[0]); setDateRange({start:`${s}-07-01`, end:`${s+1}-06-30`}); } }}>
             <SelectTrigger className="h-8 w-[100px] font-black text-[10px] uppercase border-black text-black"><SelectValue /></SelectTrigger>
             <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}<SelectItem value="all" className="font-black text-xs">ALL TIME</SelectItem></SelectContent>
@@ -178,18 +178,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
         <div className="flex gap-2 ml-auto no-print">
           <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px] text-black"><Plus className="size-4 mr-2" /> Manual Sync</Button>
-          <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8"><Printer className="size-4 mr-2" /> Print Ledger</Button>
+          <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-4 md:px-8"><Printer className="size-4 mr-2" /> Print Ledger</Button>
         </div>
       </PageHeaderActions>
 
-      <div className="bg-white p-12 shadow-2xl border-2 border-black max-w-[1400px] mx-auto w-full print-container text-black">
-        <div className="text-center border-b-2 border-black pb-4 mb-8">
-          <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-          <h2 className="text-xl font-black uppercase tracking-[0.3em] mt-3">Provident Fund Subsidiary Ledger</h2>
+      <div className="bg-white p-4 md:p-12 shadow-2xl border-2 border-black max-w-[1400px] mx-auto w-full print-container text-black overflow-x-auto">
+        <div className="text-center border-b-2 border-black pb-4 mb-8 min-w-[800px]">
+          <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
+          <h2 className="text-lg md:text-xl font-black uppercase tracking-[0.3em] mt-3">Provident Fund Subsidiary Ledger</h2>
           <p className="text-[10px] font-black uppercase tracking-widest mt-2 opacity-60">Report Basis: {dateRange.start} to {dateRange.end}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-x-8 gap-y-4 mb-8 text-[11px] font-black border-b-2 border-black pb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-4 mb-8 text-[11px] font-black border-b-2 border-black pb-6 min-w-[800px]">
           <div className="flex gap-2"><span>NAME:</span><span className="uppercase">{member?.name}</span></div>
           <div className="flex gap-2"><span>DESIGNATION:</span><span className="uppercase">{member?.designation}</span></div>
           <div className="flex gap-2"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
@@ -198,7 +198,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <div className="flex gap-2"><span>OFFICE:</span><span className="uppercase">{member?.zonalOffice || "HO"}</span></div>
         </div>
 
-        <table className="w-full text-[9px] border-collapse border-2 border-black font-black tabular-nums">
+        <table className="w-full text-[9px] border-collapse border-2 border-black font-black tabular-nums min-w-[800px]">
           <thead className="bg-slate-50 border-b-2 border-black uppercase text-[8px] text-black">
             <tr className="h-10">
               <th rowSpan={2} className="border border-black p-1 w-[70px]">Date</th>
@@ -251,100 +251,115 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </tbody>
         </table>
         
-        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-widest no-print">
+        <div className="mt-20 pt-8 border-t-2 border-black flex justify-between items-center text-[10px] font-black uppercase tracking-widest no-print min-w-[800px]">
           <div className="flex items-center gap-2"><ShieldCheck className="size-4" /><span>System Synchronized v1.0</span></div>
           <span>Institutional Trust Registry</span>
         </div>
       </div>
 
       <Dialog open={isEntryOpen} onOpenChange={setIsEntryOpen}>
-        <DialogContent className="max-w-4xl bg-white p-0 rounded-2xl shadow-2xl overflow-hidden border-4 border-black">
-          <DialogHeader className="bg-slate-50 p-8 border-b-4 border-black">
-            <DialogTitle className="text-2xl font-black uppercase flex items-center gap-3 text-black">
-              <Calculator className="size-8 text-black" /> Voucher Entry terminal
+        <DialogContent className="max-w-4xl bg-white p-0 rounded-2xl shadow-2xl border-4 border-black overflow-hidden max-h-[95vh] flex flex-col">
+          <DialogHeader className="bg-slate-50 p-6 md:p-8 border-b-4 border-black shrink-0">
+            <DialogTitle className="text-xl md:text-2xl font-black uppercase flex items-center gap-3 text-black">
+              <Calculator className="size-6 md:size-8 text-black" /> Voucher Entry Terminal
             </DialogTitle>
-            <DialogDescription className="text-xs font-black uppercase opacity-60 text-black">Personnel Ledger Manual Synchronization</DialogDescription>
+            <DialogDescription className="text-[10px] font-black uppercase opacity-60 text-black">Personnel Ledger Manual Synchronization</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleManualSubmit} className="p-8 space-y-8 text-black">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" required className="h-11 border-black border-2 font-black text-black" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Voucher Particulars</Label><Input name="particulars" placeholder="e.g. Monthly Salary Sync" required className="h-11 border-black border-2 font-black text-black" /></div>
+          <form onSubmit={handleManualSubmit} className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 text-black">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase ml-1">Posting Date</Label>
+                <Input name="summaryDate" type="date" max="9999-12-31" required className="h-11 border-black border-2 font-black text-black" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase ml-1">Voucher Particulars</Label>
+                <Input name="particulars" placeholder="e.g. Monthly Salary Sync" required className="h-11 border-black border-2 font-black text-black" />
+              </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-8 bg-slate-50 p-8 rounded-2xl border-2 border-black">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-4 md:p-8 rounded-2xl border-2 border-black">
               <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase underline tracking-widest">Contributions</h3>
+                <h3 className="text-[11px] font-black uppercase underline tracking-widest flex items-center gap-2">
+                  <Wallet className="size-3.5" /> Contributions
+                </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <Label className="text-[10px] uppercase font-bold">Col 1: Emp Contribution</Label>
-                    <Input name="c1" type="number" step="0.01" value={manualVals.c1} onChange={(e) => updateManualVal('c1', e.target.value)} className="w-32 border-black border-2 text-right font-black text-black" />
+                    <Input name="c1" type="number" step="0.01" value={manualVals.c1 || ''} onChange={(e) => updateManualVal('c1', e.target.value)} className="w-full sm:w-32 border-black border-2 text-right font-black text-black h-10" />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <Label className="text-[10px] uppercase font-bold">Col 8: PBS Contribution</Label>
-                    <Input name="c8" type="number" step="0.01" value={manualVals.c8} onChange={(e) => updateManualVal('c8', e.target.value)} className="w-32 border-black border-2 text-right font-black text-black" />
+                    <Input name="c8" type="number" step="0.01" value={manualVals.c8 || ''} onChange={(e) => updateManualVal('c8', e.target.value)} className="w-full sm:w-32 border-black border-2 text-right font-black text-black h-10" />
                   </div>
                 </div>
               </div>
+              
               <div className="space-y-4">
-                <h3 className="text-xs font-black uppercase underline tracking-widest text-rose-600">Loan Activity</h3>
+                <h3 className="text-[11px] font-black uppercase underline tracking-widest text-rose-600 flex items-center gap-2">
+                  <HandCoins className="size-3.5" /> Loan Activity
+                </h3>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <Label className="text-[10px] uppercase font-bold text-rose-600">Col 2: Loan Disbursement</Label>
-                    <Input name="c2" type="number" step="0.01" value={manualVals.c2} onChange={(e) => updateManualVal('c2', e.target.value)} className="w-32 border-rose-600 border-2 text-right font-black text-rose-600" />
+                    <Input name="c2" type="number" step="0.01" value={manualVals.c2 || ''} onChange={(e) => updateManualVal('c2', e.target.value)} className="w-full sm:w-32 border-rose-600 border-2 text-right font-black text-rose-600 h-10" />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <Label className="text-[10px] uppercase font-bold text-emerald-600">Col 3: Loan Repayment</Label>
-                    <Input name="c3" type="number" step="0.01" value={manualVals.c3} onChange={(e) => updateManualVal('c3', e.target.value)} className="w-32 border-emerald-600 border-2 text-right font-black text-emerald-600" />
+                    <Input name="c3" type="number" step="0.01" value={manualVals.c3 || ''} onChange={(e) => updateManualVal('c3', e.target.value)} className="w-full sm:w-32 border-emerald-600 border-2 text-right font-black text-emerald-600 h-10" />
                   </div>
                 </div>
               </div>
-              <div className="col-span-2 space-y-4 pt-4 border-t-2 border-black/10">
-                <h3 className="text-xs font-black uppercase underline tracking-widest">Interest Accruals</h3>
-                <div className="grid grid-cols-3 gap-6">
+
+              <div className="col-span-1 md:col-span-2 space-y-4 pt-4 border-t-2 border-black/10">
+                <h3 className="text-[11px] font-black uppercase underline tracking-widest flex items-center gap-2">
+                  <TrendingUp className="size-3.5" /> Interest Accruals
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
                   <div className="space-y-1">
                     <Label className="text-[9px] uppercase font-bold">Col 5: Profit Employee</Label>
-                    <Input name="c5" type="number" step="0.01" value={manualVals.c5} onChange={(e) => updateManualVal('c5', e.target.value)} className="border-black border-2 text-right font-black text-black" />
+                    <Input name="c5" type="number" step="0.01" value={manualVals.c5 || ''} onChange={(e) => updateManualVal('c5', e.target.value)} className="border-black border-2 text-right font-black text-black h-10" />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[9px] uppercase font-bold">Col 9: Profit PBS</Label>
-                    <Input name="c9" type="number" step="0.01" value={manualVals.c9} onChange={(e) => updateManualVal('c9', e.target.value)} className="border-black border-2 text-right font-black text-black" />
+                    <Input name="c9" type="number" step="0.01" value={manualVals.c9 || ''} onChange={(e) => updateManualVal('c9', e.target.value)} className="border-black border-2 text-right font-black text-black h-10" />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-[9px] uppercase font-bold">Col 6: Profit Loan</Label>
-                    <Input name="c6" type="number" step="0.01" value={manualVals.c6} onChange={(e) => updateManualVal('c6', e.target.value)} className="border-black border-2 text-right font-black text-black" />
+                    <Input name="c6" type="number" step="0.01" value={manualVals.c6 || ''} onChange={(e) => updateManualVal('c6', e.target.value)} className="border-black border-2 text-right font-black text-black h-10" />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* REAL-TIME ROW VERIFICATION MATRIX */}
-            <div className="p-6 bg-black text-white rounded-2xl flex flex-col gap-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 text-center border-b border-white/20 pb-2">Row Net Impact Verification</p>
-              <div className="grid grid-cols-4 gap-4 text-center">
+            <div className="p-4 md:p-6 bg-black text-white rounded-2xl flex flex-col gap-4 border-2 border-white/20">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60 text-center border-b border-white/20 pb-2">Verification Matrix (Live Calculation)</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div className="space-y-1">
                   <p className="text-[8px] uppercase font-black opacity-50">Emp Fund Effect</p>
-                  <p className="text-lg font-black tabular-nums">{rowVerification.netEmp.toLocaleString()}</p>
+                  <p className="text-base md:text-lg font-black tabular-nums">{rowVerification.netEmp.toLocaleString()}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[8px] uppercase font-black opacity-50">Office Fund Effect</p>
-                  <p className="text-lg font-black tabular-nums">{rowVerification.netOff.toLocaleString()}</p>
+                  <p className="text-base md:text-lg font-black tabular-nums">{rowVerification.netOff.toLocaleString()}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[8px] uppercase font-black opacity-50">Loan Bal Effect</p>
-                  <p className={cn("text-lg font-black tabular-nums", rowVerification.loanEffect > 0 ? "text-rose-400" : rowVerification.loanEffect < 0 ? "text-emerald-400" : "")}>{rowVerification.loanEffect.toLocaleString()}</p>
+                  <p className={cn("text-base md:text-lg font-black tabular-nums", rowVerification.loanEffect > 0 ? "text-rose-400" : rowVerification.loanEffect < 0 ? "text-emerald-400" : "")}>{rowVerification.loanEffect.toLocaleString()}</p>
                 </div>
-                <div className="space-y-1 bg-white/10 rounded-xl p-2">
-                  <p className="text-[8px] uppercase font-black text-white/80">TOTAL FUND GROWTH</p>
-                  <p className="text-xl font-black text-emerald-400">৳ {rowVerification.total.toLocaleString()}</p>
+                <div className="space-y-1 bg-white/10 rounded-xl p-2 border border-white/10">
+                  <p className="text-[8px] uppercase font-black text-white/80">TOTAL NET IMPACT</p>
+                  <p className="text-lg md:text-xl font-black text-emerald-400">৳ {rowVerification.total.toLocaleString()}</p>
                 </div>
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-14 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-black/90">Commit to Ledger</Button>
+            <Button type="submit" className="w-full h-14 md:h-16 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-2 border-white/10 text-xs md:text-sm">
+              Commit to Ledger
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
