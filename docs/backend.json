@@ -24,8 +24,10 @@
         "memberIdNumber": { "type": "string" },
         "name": { "type": "string" },
         "designation": { "type": "string" },
-        "status": { "type": "string", "enum": ["Active", "Retired", "Transferred", "InActive"] },
+        "status": { "type": "string", "enum": ["Active", "Retired", "Transferred", "Dismissed", "InActive"] },
         "dateJoined": { "type": "string", "format": "date" },
+        "settlementDate": { "type": "string", "format": "date" },
+        "settledAmount": { "type": "number" },
         "zonalOffice": { "type": "string" },
         "permanentAddress": { "type": "string" }
       },
@@ -50,6 +52,7 @@
         "contributionSource": { "type": "string" },
         "isSystemGenerated": { "type": "boolean" },
         "isManual": { "type": "boolean" },
+        "isSettlement": { "type": "boolean" },
         "createdAt": { "type": "string" }
       }
     },

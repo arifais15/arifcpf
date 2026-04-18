@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -15,13 +16,15 @@ import {
   Wallet, 
   HandCoins,
   Edit2,
-  Trash2
+  Trash2,
+  UserX,
+  CheckCircle2
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -36,6 +39,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const { showAlert } = useSweetAlert();
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
+  const [isSettlementOpen, setIsSettlementOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any>(null);
   const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -142,6 +146,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       c9: acc.c9 + (r.isOpening ? 0 : r.c9)
     }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
 
+    const totalSums = allC.reduce((acc, r) => ({
+      c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3,
+      c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9
+    }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
+
     const last = rows[rows.length-1] || { col4:0, col7:0, col10:0, col11:0 };
     
     return { 
@@ -149,7 +158,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       grand: { 
         c1:viewSums.c1, c2:viewSums.c2, c3:viewSums.c3, c5:viewSums.c5, c6:viewSums.c6, c8:viewSums.c8, c9:viewSums.c9, 
         c4:last.col4, c7:last.col7, c10:last.col10, c11:last.col11 
-      } 
+      },
+      totalAllTime: totalSums
     };
   }, [summaries, dateRange]);
 
@@ -225,6 +235,44 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setManualVals({ c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
   };
 
+  const handleFinalSettlement = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const f = new FormData(e.currentTarget);
+    const reason = f.get("reason") as string;
+    const sDate = f.get("settlementDate") as string;
+    
+    // Create zeroing entry
+    const settlementEntry = {
+      summaryDate: sDate,
+      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}`,
+      employeeContribution: -ledgerLogic.totalAllTime.c1,
+      loanWithdrawal: -ledgerLogic.totalAllTime.c2,
+      loanRepayment: -ledgerLogic.totalAllTime.c3,
+      profitEmployee: -ledgerLogic.totalAllTime.c5,
+      profitLoan: -ledgerLogic.totalAllTime.c6,
+      pbsContribution: -ledgerLogic.totalAllTime.c8,
+      profitPbs: -ledgerLogic.totalAllTime.c9,
+      memberId: resolvedParams.id,
+      isSettlement: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    // Add entry
+    addDocumentNonBlocking(summariesRef, settlementEntry);
+
+    // Update Member status
+    updateDocumentNonBlocking(memberRef, {
+      status: reason,
+      settlementDate: sDate,
+      settledAmount: ledgerLogic.grand.c11,
+      updatedAt: new Date().toISOString()
+    });
+
+    showAlert({ title: "Settlement Confirmed", description: `Member has been ${reason} and ledger balances zeroed.`, type: "success" });
+    setIsSettlementOpen(false);
+  };
+
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
@@ -241,6 +289,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black" />
         </div>
         <div className="flex gap-2 ml-auto no-print">
+          <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[10px]"><UserX className="size-4 mr-2" /> Final Settlement</Button>
           <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px] text-black"><Plus className="size-4 mr-2" /> Manual Sync</Button>
           <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8"><Printer className="size-4 mr-2" /> Print</Button>
         </div>
@@ -258,7 +307,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>POSITION:</span><span className="flex-1 truncate">{member?.designation}</span></div>
           
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>OFFICE:</span><span className="flex-1 truncate">{member?.zonalOffice || "HEAD OFFICE"}</span></div>
-          <div className="flex gap-2 border-b border-black/10 pb-1"><span>STATUS:</span><span className="flex-1">{member?.status || "Active"}</span></div>
+          <div className="flex gap-2 border-b border-black/10 pb-1"><span>STATUS:</span><span className={cn("flex-1", member?.status !== 'Active' && "text-rose-600 font-black")}>{member?.status || "Active"}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>JOIN DATE:</span><span className="flex-1">{member?.dateJoined}</span></div>
         </div>
 
@@ -283,7 +332,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </thead>
           <tbody className="text-black">
             {ledgerLogic.rows.map((r: any, idx: number) => (
-              <tr key={idx} className={cn("border-b border-black h-8", r.isOpening && "bg-slate-50 italic")}>
+              <tr key={idx} className={cn("border-b border-black h-8", r.isOpening && "bg-slate-50 italic", r.isSettlement && "bg-rose-50")}>
                 <td className="border border-black p-1 text-center font-mono">{r.summaryDate}</td>
                 <td className="border border-black p-1 uppercase truncate max-w-[150px]">{r.particulars}</td>
                 <td className="border border-black p-1 text-right">{r.c1.toLocaleString()}</td>
@@ -337,6 +386,55 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      {/* FINAL SETTLEMENT DIALOG */}
+      <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
+        <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden shadow-2xl rounded-none">
+          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
+            <DialogTitle className="text-xl font-black uppercase flex items-center gap-3 text-rose-700">
+              <UserX className="size-6" /> Institutional Final Settlement
+            </DialogTitle>
+            <DialogDescription className="text-[10px] font-black uppercase text-rose-600">Close subsidiary account and zero ledger balances</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleFinalSettlement} className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase">Settlement Category</Label>
+                <Select name="reason" defaultValue="Retired">
+                  <SelectTrigger className="h-11 border-2 border-black font-black uppercase text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Retired">RETIRED</SelectItem>
+                    <SelectItem value="Transferred">TRANSFERRED</SelectItem>
+                    <SelectItem value="Dismissed">DISMISSED</SelectItem>
+                    <SelectItem value="InActive">INACTIVE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase">Date of Settlement</Label>
+                <Input name="settlementDate" type="date" required max="9999-12-31" defaultValue={new Date().toISOString().split('T')[0]} className="h-11 border-2 border-black font-black" />
+              </div>
+            </div>
+
+            <div className="bg-slate-900 text-white p-4 rounded-lg space-y-2">
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Verification Matrix: Settlement Sum</p>
+              <div className="flex justify-between items-end">
+                <span className="text-[9px] uppercase font-bold">Consolidated Trust Fund:</span>
+                <span className="text-xl font-black text-emerald-400">৳ {ledgerLogic.grand.c11.toLocaleString()}</span>
+              </div>
+              <p className="text-[8px] italic opacity-40 leading-tight border-t border-white/10 pt-2">System will insert reversal entries for all 7 ledger columns to finalize the account at zero balance.</p>
+            </div>
+
+            <DialogFooter className="pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsSettlementOpen(false)} className="border-2 border-black font-black uppercase text-xs">Cancel</Button>
+              <Button type="submit" className="bg-rose-700 hover:bg-rose-800 text-white font-black uppercase text-xs px-8 shadow-xl">Confirm & Close Account</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MANUAL ENTRY DIALOG */}
       <Dialog open={isEntryOpen} onOpenChange={(open) => { 
         setIsEntryOpen(open); 
         if(!open) {

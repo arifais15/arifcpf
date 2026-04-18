@@ -225,7 +225,7 @@ export default function MembersPage() {
                 <td className="text-sm uppercase">{m.name}</td>
                 <td className="text-[10px] uppercase opacity-60">{m.designation}</td>
                 <td className="text-center">
-                  <Badge variant="outline" className={cn("text-[9px] uppercase font-black border-black", m.status === 'Active' ? "bg-emerald-50 text-emerald-700" : "bg-slate-100")}>
+                  <Badge variant="outline" className={cn("text-[9px] uppercase font-black border-black", m.status === 'Active' ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
                     {m.status || "Active"}
                   </Badge>
                 </td>
@@ -267,6 +267,7 @@ export default function MembersPage() {
                     <SelectItem value="Active">Active</SelectItem>
                     <SelectItem value="Retired">Retired</SelectItem>
                     <SelectItem value="Transferred">Transferred</SelectItem>
+                    <SelectItem value="Dismissed">Dismissed</SelectItem>
                     <SelectItem value="InActive">InActive</SelectItem>
                   </SelectContent>
                 </Select>
@@ -311,4 +312,3 @@ export default function MembersPage() {
     </div>
   );
 }
-
