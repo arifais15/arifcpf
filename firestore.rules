@@ -29,11 +29,11 @@ service cloud.firestore {
     // --- COLLECTION GROUP RULES (FOR AGGREGATE REPORTS) ---
     
     match /{path=**}/fundSummaries/{summaryId} {
-      allow read: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     match /{path=**}/line_items/{lineId} {
-      allow read: if isSignedIn();
+      allow read, list: if isSignedIn();
     }
 
     // --- COLLECTION RULES ---
@@ -47,8 +47,7 @@ service cloud.firestore {
 
     // Chart of Accounts (Institutional Standard)
     match /chartOfAccounts/{accountId} {
-      allow read, list: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read, list, write: if isSignedIn();
     }
 
     // Members Registry (Samity Personnel)

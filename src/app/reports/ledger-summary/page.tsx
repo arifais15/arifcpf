@@ -91,7 +91,7 @@ export default function LedgerSummaryReportPage() {
     toast({ title: "Exported", description: "Ledger summary matrix saved to Excel." });
   };
 
-  if (isMembersLoading || isSummariesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-primary" /></div>;
+  if (isMembersLoading || isSummariesLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
     <div className="p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">

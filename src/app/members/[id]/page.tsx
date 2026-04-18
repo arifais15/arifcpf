@@ -12,14 +12,13 @@ import {
   UserX,
   Edit2,
   Trash2,
-  Calendar,
   ShieldCheck
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -92,7 +91,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     let rows = inR;
     if (pre.length > 0) rows = [{ summaryDate: dateRange.start, particulars: "Opening Balance Brought Forward", ...pSums, col4:lastP.col4, col7:lastP.col7, col10:lastP.col10, col11:lastP.col11, isOpening: true }, ...inR];
     
-    // Aggregate View Sums includes Opening + Period Entries
     const viewSums = rows.reduce((acc, r) => ({ 
       c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
     }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
@@ -114,7 +112,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const handleManualSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const d = { summaryDate: f.get("summaryDate"), particulars: f.get("particulars"), employeeContribution: manualVals.c1, loanWithdrawal: manualVals.c2, loanRepayment: manualVals.c3, profitEmployee: manualVals.c5, profitLoan: manualVals.c6, pbsContribution: manualVals.c8, profitPbs: manualVals.c9, memberId: resolvedParams.id, updatedAt: new Date().toISOString() }; 
+    const d = { 
+      summaryDate: f.get("summaryDate"), 
+      particulars: f.get("particulars"), 
+      employeeContribution: manualVals.c1, 
+      loanWithdrawal: manualVals.c2, 
+      loanRepayment: manualVals.c3, 
+      profitEmployee: manualVals.c5, 
+      profitLoan: manualVals.c6, 
+      pbsContribution: manualVals.c8, 
+      profitPbs: manualVals.c9, 
+      memberId: resolvedParams.id, 
+      updatedAt: new Date().toISOString() 
+    }; 
     if (editingEntry) updateDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id), d);
     else addDocumentNonBlocking(summariesRef, { ...d, createdAt: new Date().toISOString() }); 
     setIsEntryOpen(false); setEditingEntry(null);
@@ -129,13 +139,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const sDate = f.get("settlementDate") as string;
     const currentLoanBal = (ledgerLogic.totalAllTime.c2 || 0) - (ledgerLogic.totalAllTime.c3 || 0);
     
-    // Settlement reversal entry to zero out ALL columns
     const entry = { 
       summaryDate: sDate, 
-      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ' (LOAN BAL ADJUSTED)' : ''}`, 
+      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ` (LOAN BAL ${currentLoanBal.toLocaleString()} ADJUSTED)` : ''}`, 
       employeeContribution: -(ledgerLogic.totalAllTime.c1 || 0), 
       loanWithdrawal: 0, 
-      loanRepayment: currentLoanBal > 0 ? currentLoanBal : 0, // Fill recovery to balance draw
+      loanRepayment: currentLoanBal > 0 ? currentLoanBal : 0,
       profitEmployee: -(ledgerLogic.totalAllTime.c5 || 0), 
       profitLoan: -(ledgerLogic.totalAllTime.c6 || 0), 
       pbsContribution: -(ledgerLogic.totalAllTime.c8 || 0), 
@@ -151,7 +160,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     toast({ title: "Settlement Confirmed" });
   };
 
-  // Header Actions - Memoized for stability
   const headerActions = useMemo(() => (
     <div className="flex gap-2 ml-auto no-print">
       <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[10px]">
@@ -166,18 +174,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     </div>
   ), [ledgerLogic.grand.c11]);
 
-  if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12" /></div>;
+  if (isMemberLoading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-black">
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
-      {/* BODY TOOLBAR: Fiscal Year and Date Range filters */}
-      <div className="bg-white p-4 border-2 border-black shadow-xl flex flex-col md:flex-row items-center justify-between no-print animate-in slide-in-from-top duration-500 gap-4">
+      <div className="bg-white p-4 border-2 border-black shadow-xl flex flex-col md:flex-row items-center justify-between no-print gap-4">
         <Link href="/members" className="p-2 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5" /></Link>
         <div className="flex flex-wrap items-center gap-4 bg-slate-50 p-2 border border-black rounded-xl">
           <div className="grid gap-1">
-            <Label className="text-[9px] font-black uppercase text-black ml-1">Analysis Period</Label>
+            <Label className="text-[9px] font-black uppercase text-black ml-1">Period Filter</Label>
             <Select 
               value={selectedFY} 
               onValueChange={(fy) => { 
@@ -207,7 +214,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h2 className="text-lg md:text-xl font-black uppercase tracking-[0.3em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        {/* 2-ROW INSTITUTIONAL PROFILE MATRIX */}
         <div className="grid grid-cols-3 border-2 border-black mb-6 text-[10px] font-black min-w-[950px] uppercase tabular-nums">
           <div className="border-r border-b border-black p-2 flex gap-2"><span>NAME:</span><span className="flex-1 truncate">{member?.name}</span></div>
           <div className="border-r border-b border-black p-2 flex gap-2"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
@@ -231,84 +237,78 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <td className="border border-black p-1 text-center font-mono">{r.summaryDate}</td>
                 <td className="border border-black p-1 uppercase truncate max-w-[150px]">{r.particulars}</td>
                 <td className="border border-black p-1 text-right">{r.c1.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c2.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c3.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-50">{r.col4.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c5.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c6.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-50">{r.col7.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c8.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c9.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-50">{r.col10.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-100 font-bold">{r.col11.toLocaleString()}</td>
-                <td className="border border-black p-1 text-center no-print">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => showAlert({ title:"Remove?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
+                <td className="border border-black p-1 text-center no-print">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => showAlert({ title:"Remove Record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
               </tr>
             ))}
           </tbody>
           <tfoot className="bg-slate-100 font-black border-t-4 border-black text-[9px] uppercase">
             <tr className="h-10">
               <td colSpan={2} className="border border-black p-2 text-right">Aggregate Period Totals:</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c4.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c7.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString()}</td>
+              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c4.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c7.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td><td className="border border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString()}</td>
               <td className="border border-black p-1 no-print"></td>
             </tr>
           </tfoot>
         </table>
       </div>
 
-      {/* Manual Entry Dialog: Optimized for PC/Mobile and Live Verification */}
       <Dialog open={isEntryOpen} onOpenChange={(o) => { setIsEntryOpen(o); if(!o) setEditingEntry(null); }}>
-        <DialogContent className="max-w-4xl bg-white p-0 rounded-2xl shadow-2xl border-4 border-black overflow-hidden max-h-[95vh] flex flex-col">
-          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black shrink-0"><DialogTitle className="text-xl font-black uppercase">Voucher Matrix Terminal</DialogTitle></DialogHeader>
-          <form onSubmit={handleManualSubmit} className="flex-1 overflow-y-auto p-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="h-12 border-black border-4 font-black" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="h-12 border-black border-4 font-black" /></div>
+        <DialogContent className="max-w-6xl bg-white p-0 rounded-2xl shadow-2xl border-4 border-black overflow-hidden max-h-[95vh] flex flex-col">
+          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black shrink-0"><DialogTitle className="text-xl font-black uppercase">Manual Individual Ledger Posting Terminal</DialogTitle></DialogHeader>
+          <form onSubmit={handleManualSubmit} className="flex-1 overflow-y-auto p-8 space-y-8 text-black">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-b-2 border-black pb-6">
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase ml-1">Posting Date</Label><Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="h-12 border-black border-4 font-black" /></div>
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase ml-1">Voucher Particulars</Label><Input name="particulars" defaultValue={editingEntry?.particulars} required className="h-12 border-black border-4 font-black" /></div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 bg-slate-50 p-6 rounded-2xl border-2 border-black shadow-inner">
-              <div className="space-y-4">
-                <h3 className="text-[11px] font-black uppercase underline tracking-widest text-primary">Contributions</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 1: Emp</Label><Input type="number" step="0.01" value={manualVals.c1||''} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="w-full sm:w-32 border-black border-2 text-right font-black" /></div>
-                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 8: PBS</Label><Input type="number" step="0.01" value={manualVals.c8||''} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="w-full sm:w-32 border-black border-2 text-right font-black" /></div>
-                </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-7 gap-1 px-1 no-print">
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 1: Emp</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 2: Draw</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 3: Repay</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 5: P.E</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 6: P.L</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 8: PBS</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">Col 9: P.P</div>
               </div>
-              <div className="space-y-4">
-                <h3 className="text-[11px] font-black uppercase underline tracking-widest text-rose-600">Loan Activity</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 2: Draw</Label><Input type="number" step="0.01" value={manualVals.c2||''} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="w-full sm:w-32 border-rose-600 border-2 text-right font-black" /></div>
-                  <div className="flex items-center justify-between gap-4"><Label className="text-[10px] uppercase">Col 3: Repay</Label><Input type="number" step="0.01" value={manualVals.c3||''} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="w-full sm:w-32 border-emerald-600 border-2 text-right font-black" /></div>
-                </div>
+              <div className="grid grid-cols-7 gap-2 bg-slate-100 p-2 border-2 border-black rounded-xl">
+                 <Input type="number" step="0.01" placeholder="Col 1" value={manualVals.c1||''} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-10 border-black border-2 font-black text-center" />
+                 <Input type="number" step="0.01" placeholder="Col 2" value={manualVals.c2||''} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="h-10 border-rose-600 border-2 font-black text-center text-rose-700" />
+                 <Input type="number" step="0.01" placeholder="Col 3" value={manualVals.c3||''} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="h-10 border-emerald-600 border-2 font-black text-center text-emerald-700" />
+                 <Input type="number" step="0.01" placeholder="Col 5" value={manualVals.c5||''} onChange={e=>setManualVals({...manualVals, c5:Number(e.target.value)})} className="h-10 border-orange-600 border-2 font-black text-center text-orange-700" />
+                 <Input type="number" step="0.01" placeholder="Col 6" value={manualVals.c6||''} onChange={e=>setManualVals({...manualVals, c6:Number(e.target.value)})} className="h-10 border-orange-600 border-2 font-black text-center text-orange-700" />
+                 <Input type="number" step="0.01" placeholder="Col 8" value={manualVals.c8||''} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="h-10 border-blue-600 border-2 font-black text-center text-blue-700" />
+                 <Input type="number" step="0.01" placeholder="Col 9" value={manualVals.c9||''} onChange={e=>setManualVals({...manualVals, c9:Number(e.target.value)})} className="h-10 border-blue-600 border-2 font-black text-center text-blue-700" />
               </div>
             </div>
-            <div className="p-6 bg-black text-white rounded-2xl flex flex-col gap-4 border-4 border-white/20">
-              <p className="text-[11px] font-black uppercase tracking-[0.4em] opacity-60 text-center border-b border-white/20 pb-2">Entry Impact Verification</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div className="p-2 border border-white/10 rounded-xl"><p className="text-[9px] uppercase font-black opacity-50">Emp Fund Effect</p><p className="text-lg font-black">{rowVerification.netEmp.toLocaleString()}</p></div>
-                <div className="p-2 border border-white/10 rounded-xl"><p className="text-[9px] uppercase font-black opacity-50">Office Fund Effect</p><p className="text-lg font-black">{rowVerification.netOff.toLocaleString()}</p></div>
+
+            <div className="p-6 bg-black text-white rounded-2xl border-4 border-white/20">
+              <p className="text-[11px] font-black uppercase tracking-[0.4em] opacity-60 text-center border-b border-white/20 pb-2 mb-4">Entry Impact Matrix</p>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-center">
+                <div className="p-2 border border-white/10 rounded-xl"><p className="text-[9px] uppercase font-black opacity-50">Emp Fund Effect</p><p className="text-base font-black">{rowVerification.netEmp.toLocaleString()}</p></div>
+                <div className="p-2 border border-white/10 rounded-xl"><p className="text-[9px] uppercase font-black opacity-50">Office Fund Effect</p><p className="text-base font-black">{rowVerification.netOff.toLocaleString()}</p></div>
+                <div className="p-2 border border-white/10 rounded-xl"><p className="text-[9px] uppercase font-black opacity-50 text-rose-400">Loan Bal Delta</p><p className="text-base font-black text-rose-300">{rowVerification.loanEffect.toLocaleString()}</p></div>
                 <div className="bg-white/10 rounded-xl p-2 border border-emerald-500/50"><p className="text-[10px] uppercase font-black">TOTAL NET IMPACT</p><p className="text-xl font-black text-emerald-400">৳ {rowVerification.total.toLocaleString()}</p></div>
               </div>
             </div>
-            <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] bg-black text-white shadow-2xl hover:bg-slate-900">Commit Matrix to Ledger</Button>
+            <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] bg-black text-white shadow-2xl hover:bg-slate-900 border-2 border-white/10">Commit Matrix to Ledger</Button>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
         <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden shadow-2xl rounded-none">
-          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
-            <DialogTitle className="text-xl font-black uppercase text-rose-700 flex items-center gap-3"><UserX className="size-6" /> Final Settlement</DialogTitle>
-          </DialogHeader>
+          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase text-rose-700 flex items-center gap-3"><UserX className="size-6" /> Final Settlement</DialogTitle></DialogHeader>
           <form onSubmit={handleFinalSettlement} className="p-6 space-y-6">
             <div className="space-y-4">
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Category</Label><Select name="reason" defaultValue="Retired"><SelectTrigger className="h-11 border-2 border-black font-black uppercase text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Retired">RETIRED</SelectItem><SelectItem value="Transferred">TRANSFERRED</SelectItem><SelectItem value="Dismissed">DISMISSED</SelectItem><SelectItem value="InActive">INACTIVE</SelectItem></SelectContent></Select></div>
-              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Date</Label><Input name="settlementDate" type="date" required max="9999-12-31" defaultValue={new Date().toISOString().split('T')[0]} className="h-11 border-2 border-black font-black" /></div>
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Settlement Category</Label><Select name="reason" defaultValue="Retired"><SelectTrigger className="h-11 border-2 border-black font-black uppercase text-xs"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Retired">RETIRED</SelectItem><SelectItem value="Transferred">TRANSFERRED</SelectItem><SelectItem value="Dismissed">DISMISSED</SelectItem><SelectItem value="InActive">INACTIVE</SelectItem></SelectContent></Select></div>
+              <div className="space-y-1.5"><Label className="text-[10px] font-black uppercase">Closure Date</Label><Input name="settlementDate" type="date" required max="9999-12-31" defaultValue={new Date().toISOString().split('T')[0]} className="h-11 border-2 border-black font-black" /></div>
             </div>
             <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
                <p className="text-[9px] font-black uppercase opacity-40">Closure Impact Audit</p>
                <p className="text-xs font-black">Net Pay-out: ৳ {ledgerLogic.grand.c11.toLocaleString()}</p>
-               <p className="text-[9px] text-slate-500 font-bold uppercase italic leading-tight">Zeroing all columns. Outstanding loans will be adjusted via positive repayment.</p>
+               <p className="text-[9px] text-slate-500 font-bold uppercase italic leading-tight">Full reversal of equity columns. Outstanding loans will be adjusted via positive repayment.</p>
             </div>
-            <DialogFooter><Button type="button" variant="outline" className="border-2 border-black font-black uppercase text-xs" onClick={() => setIsSettlementOpen(false)}>Cancel</Button><Button type="submit" className="bg-rose-700 text-white font-black uppercase text-xs px-8">Confirm Settlement</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" className="border-2 border-black font-black uppercase text-xs" onClick={() => setIsSettlementOpen(false)}>Cancel</Button><Button type="submit" className="bg-rose-700 text-white font-black uppercase text-xs px-8">Confirm Payout</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
