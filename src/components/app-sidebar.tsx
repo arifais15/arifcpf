@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -46,12 +47,12 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { title: "Executive Summary", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
-  { title: "Journal Entries", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
-  { title: "New Voucher", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
+  { title: "Dashboard Summary", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
+  { title: "Transaction Ledger", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
+  { title: "Post New Voucher", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
   { title: "GL Control Ledger", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
   { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
-  { title: "Trial Balance", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
+  { title: "Trial Balance Matrix", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
   { title: "Personnel Registry", icon: Users, url: "/members", iconColor: "text-cyan-400" },
   { title: "Ledger Matrix", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
   { title: "Active Portfolio", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
@@ -91,7 +92,7 @@ export function AppSidebar() {
     <Sidebar variant="inset" collapsible="icon" className="border-r-0 bg-sidebar">
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-3">
-          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary-foreground text-primary shadow-lg">
+          <div className="flex aspect-square size-9 items-center justify-center rounded-xl bg-primary text-white shadow-lg">
             <ShieldCheck className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
@@ -117,7 +118,7 @@ export function AppSidebar() {
                 className={cn(
                   "h-10 px-4 transition-all duration-200 rounded-lg group",
                   pathname === item.url 
-                    ? "bg-primary-foreground/10 text-white font-black" 
+                    ? "bg-white/10 text-white font-black" 
                     : "text-white/70 hover:bg-white/5 hover:text-white"
                 )}
               >
@@ -136,7 +137,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild className="h-10 text-white/70 hover:bg-white/5 hover:text-white rounded-lg">
               <Link href="/settings">
                 <Settings className="size-4 opacity-60" />
-                <span className="font-bold text-[13px] uppercase tracking-tight">System Settings</span>
+                <span className="font-bold text-[13px] uppercase tracking-tight">System Configuration</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
