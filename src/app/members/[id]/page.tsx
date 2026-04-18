@@ -81,7 +81,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [availableFYs, selectedFY]);
 
   const ledgerLogic = useMemo(() => {
-    if (!summaries) return { rows: [], grand: { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0, c4:0, c7:0, c10:0, c11:0 } };
+    if (!summaries) return { rows: [], grand: { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0, c4:0, c7:0, c10:0, c11:0 }, totalAllTime: { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 } };
     const sorted = [...summaries].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
     let rL = 0, rE = 0, rO = 0;
     
@@ -136,14 +136,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       }];
     }
 
+    // viewSums must include the Opening Balance to zero out correctly after settlement
     const viewSums = rows.reduce((acc, r) => ({
-      c1: acc.c1 + (r.isOpening ? 0 : r.c1),
-      c2: acc.c2 + (r.isOpening ? 0 : r.c2),
-      c3: acc.c3 + (r.isOpening ? 0 : r.c3),
-      c5: acc.c5 + (r.isOpening ? 0 : r.c5),
-      c6: acc.c6 + (r.isOpening ? 0 : r.c6),
-      c8: acc.c8 + (r.isOpening ? 0 : r.c8),
-      c9: acc.c9 + (r.isOpening ? 0 : r.c9)
+      c1: acc.c1 + r.c1,
+      c2: acc.c2 + r.c2,
+      c3: acc.c3 + r.c3,
+      c5: acc.c5 + r.c5,
+      c6: acc.c6 + r.c6,
+      c8: acc.c8 + r.c8,
+      c9: acc.c9 + r.c9
     }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
 
     const totalSums = allC.reduce((acc, r) => ({
@@ -241,7 +242,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const reason = f.get("reason") as string;
     const sDate = f.get("settlementDate") as string;
     
-    // Create zeroing entry
+    // Create reversal entry using total history sum to zero out the account
     const settlementEntry = {
       summaryDate: sDate,
       particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}`,
@@ -258,10 +259,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       updatedAt: new Date().toISOString()
     };
 
-    // Add entry
     addDocumentNonBlocking(summariesRef, settlementEntry);
 
-    // Update Member status
     updateDocumentNonBlocking(memberRef, {
       status: reason,
       settlementDate: sDate,
@@ -386,7 +385,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* FINAL SETTLEMENT DIALOG */}
       <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
         <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden shadow-2xl rounded-none">
           <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
