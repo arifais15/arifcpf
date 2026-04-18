@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -23,6 +22,7 @@ import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase
 import { collection, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data";
@@ -179,7 +179,7 @@ export default function ControlAccountLedgerPage() {
               <TableRow className="bg-slate-50/50 italic border-b-2 border-black h-12">
                 <td className="p-4 pl-6 font-mono text-xs text-slate-500">{dateRange.start}</td>
                 <td className="p-4 text-center">—</td>
-                <td className="p-4 uppercase text-[11px] font-black tracking-widest">Opening Balance</td>
+                <td className="p-4 uppercase text-[11px] font-black tracking-widest">Opening Balance Brought Forward</td>
                 <td className="text-right p-4">—</td>
                 <td className="text-right p-4">—</td>
                 <td className="text-right p-4 pr-6 font-black bg-slate-100/50">৳ {ledgerResult.opening.toLocaleString()}</td>

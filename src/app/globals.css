@@ -4,34 +4,34 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
+    --background: 210 15% 95%; /* #F0F2F4 - Very light desaturated blue */
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 226.3 70.3% 35.5%; /* Deep Indigo */
+    --primary: 210 60% 35%; /* #24598F - Professional blue */
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 226.3 70.3% 90%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 240 71% 60%; /* #5252E0 - Deep Indigo */
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 226.3 70.3% 35.5%;
+    --ring: 210 60% 35%;
     --radius: 0.75rem;
     --sidebar-background: 222.2 47.4% 11.2%; /* Deep Slate */
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 226.3 70.3% 55%;
+    --sidebar-primary: 240 71% 60%; /* Indigo */
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222.2 40% 18%;
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 222.2 47.4% 15%;
-    --sidebar-ring: 226.3 70.3% 55%;
+    --sidebar-ring: 240 71% 60%;
   }
 }
 
