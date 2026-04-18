@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -124,18 +125,17 @@ export default function ReportsPage() {
       } else {
         const val = balancesMap[acc.code] || 0;
         if (val !== 0) {
-          if (!currentGroup) currentGroup = { header: { code: '', name: 'Miscellaneous', type: '', balance: '', isHeader: true }, items: [], total: 0 };
+          if (!currentGroup) currentGroup = { header: { code: '', name: 'General', type: '', balance: '', isHeader: true }, items: [], total: 0 };
           currentGroup.items.push(acc);
           currentGroup.total += val;
         }
       }
     });
     if (currentGroup && currentGroup.items.length > 0) groups.push(currentGroup);
-
     if (groups.length === 0) return null;
 
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 text-[#000000]">
         <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">{title}</h3>
         {groups.map((g, i) => (
           <div key={i} className="space-y-1">
@@ -163,7 +163,7 @@ export default function ReportsPage() {
   };
 
   const ReportHeader = ({ title, subtitle }: { title: string, subtitle: string }) => (
-    <div className="text-center mb-10 border-b-4 border-black pb-6">
+    <div className="text-center mb-10 border-b-4 border-black pb-6 text-[#000000]">
       <h1 className="text-3xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
       <p className="text-sm font-black uppercase tracking-[0.2em] mt-1 text-black">Contributory Provident Fund</p>
       <h2 className="text-xl font-black mt-4 uppercase text-black">{title}</h2>
@@ -179,23 +179,23 @@ export default function ReportsPage() {
       
       <div className="flex flex-col gap-4 no-print max-w-4xl mx-auto w-full bg-white p-6 rounded-2xl border-2 border-black shadow-xl">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4"><div className="bg-black p-2 rounded-xl"><ShieldCheck className="size-6 text-white" /></div><div><h1 className="text-xl font-black uppercase text-black">Trust Financials</h1><p className="text-[10px] font-black uppercase tracking-widest text-black">{selectedFiscalYear === 'all' ? 'Consolidated Period' : `FY ${selectedFiscalYear}`}</p></div></div>
-          <Button onClick={() => window.print()} className="h-9 gap-2 font-black px-6 bg-black text-white rounded-lg uppercase text-[10px]"><Printer className="size-3.5" /> Print Statement</Button>
+          <div className="flex items-center gap-4"><div className="bg-black p-2 rounded-xl"><ShieldCheck className="size-6 text-white" /></div><div><h1 className="text-xl font-black uppercase text-black">Trust Financials</h1><p className="text-[10px] font-black uppercase tracking-widest text-black">{selectedFiscalYear === 'all' ? 'All Time' : `FY ${selectedFiscalYear}`}</p></div></div>
+          <Button onClick={() => window.print()} className="h-9 gap-2 font-black px-6 bg-black text-white rounded-lg uppercase text-[10px]"><Printer className="size-3.5" /> Print Report</Button>
         </div>
         
         <div className="grid grid-cols-2 gap-6 p-4 bg-slate-50 border-2 border-black rounded-xl">
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-500">Quick Range</Label>
+            <Label className="text-[10px] font-black uppercase text-slate-500">Target period</Label>
             <Select value={selectedFiscalYear} onValueChange={handleFYChange}>
               <SelectTrigger className="h-10 font-black border-2 border-black focus:ring-0 text-black"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black">FY {fy}</SelectItem>)}
-                <SelectItem value="all" className="font-black text-rose-600">ALL TIME CONSOLIDATED</SelectItem>
+                <SelectItem value="all" className="font-black">ALL CONSOLIDATED</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-[10px] font-black uppercase text-slate-500">Manual Selection</Label>
+            <Label className="text-[10px] font-black uppercase text-slate-500">Custom selection</Label>
             <div className="flex items-center gap-2">
               <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-10 font-black border-2 border-black text-black" />
               <ArrowRightLeft className="size-4 opacity-30 text-black" />
@@ -229,7 +229,7 @@ export default function ReportsPage() {
         <TabsContent value="income">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
             <ReportHeader title="Income & Expenditure Account" subtitle={`Period: ${dateRange.start} to ${dateRange.end}`} />
-            <div className="space-y-12">
+            <div className="space-y-12 text-black">
               <div>
                 <h3 className="text-sm font-black border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Revenue</h3>
                 <div className="space-y-1 pl-4 mt-4">
@@ -274,15 +274,15 @@ export default function ReportsPage() {
             <ReportHeader title="Institutional Trial Balance" subtitle={`As of ${dateRange.end}`} />
             <div className="border-2 border-black overflow-hidden">
               <table className="w-full text-xs font-black tabular-nums text-black">
-                <thead className="bg-slate-100 border-b-2 border-black">
-                  <tr className="text-black">
+                <thead className="bg-slate-100 border-b-2 border-black text-black">
+                  <tr>
                     <th className="p-2 text-left border-r w-[100px]">Code</th>
                     <th className="p-2 text-left border-r">Account Description</th>
                     <th className="p-2 text-right border-r w-[120px]">Debit</th>
                     <th className="p-2 text-right w-[120px]">Credit</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y border-black">
+                <tbody className="divide-y border-black text-black">
                   {activeCOA.filter(a => !a.isHeader && (balances[a.code] !== 0 || periodBalances[a.code] !== 0)).map(acc => { 
                     const v = balances[acc.code] || 0; 
                     const isDr = acc.balance === 'Debit' ? v > 0 : v < 0; 
@@ -307,7 +307,7 @@ export default function ReportsPage() {
         <TabsContent value="receipts">
           <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-10 print:p-0">
             <ReportHeader title="Institutional Cash Flow" subtitle={`Year Ended ${dateRange.end}`} />
-            <div className="space-y-8">
+            <div className="space-y-8 text-black">
               <div>
                 <h4 className="font-black text-sm border-b-2 border-black pb-1 uppercase tracking-widest text-black">Operating Receipts</h4>
                 <div className="space-y-1 mt-4">

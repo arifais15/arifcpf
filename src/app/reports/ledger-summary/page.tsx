@@ -2,23 +2,9 @@
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow,
-  TableFooter
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { 
-  FileSpreadsheet, 
-  Printer, 
-  Loader2, 
-  Search,
-  ArrowLeft
-} from "lucide-react";
+import { FileSpreadsheet, Printer, Loader2, Search, ArrowLeft } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
@@ -71,27 +57,17 @@ export default function LedgerSummaryReportPage() {
       const c10 = c8 + c9; 
       const c11 = c7 + c10;
       return { 
-          memberIdNumber: m.memberIdNumber, 
-          name: m.name, 
-          designation: m.designation, 
+          id: m.memberIdNumber, name: m.name, 
           c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 
       };
     })
-    .filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.memberIdNumber?.includes(search))
-    .sort((a,b) => (a.memberIdNumber||"").localeCompare(b.memberIdNumber||""));
+    .filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.id?.includes(search))
+    .sort((a,b) => (a.id||"").localeCompare(b.id||""));
   }, [members, allSummaries, asOfDate, search]);
 
   const stats = useMemo(() => reportData.reduce((a,c) => ({ 
       c1:a.c1+c.c1, c2:a.c2+c.c2, c3:a.c3+c.c3, c4:a.c4+c.c4, c5:a.c5+c.c5, c6:a.c6+c.c6, c7:a.c7+c.c7, c8:a.c8+c.c8, c9:a.c9+c.c9, c10:a.c10+c.c10, c11:a.c11+c.c11 
   }), {c1:0,c2:0,c3:0,c4:0,c5:0,c6:0,c7:0,c8:0,c9:0,c10:0,c11:0}), [reportData]);
-
-  const exportToExcel = () => {
-    if (reportData.length === 0) return;
-    const ws = XLSX.utils.json_to_sheet(reportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Ledger Matrix");
-    XLSX.writeFile(wb, `CPF_Ledger_Matrix_${asOfDate}.xlsx`);
-  };
 
   const StandardFooter = () => (
     <div className="mt-10 pt-2 border-t border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
@@ -108,15 +84,11 @@ export default function LedgerSummaryReportPage() {
           <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border-2 border-black transition-colors"><ArrowLeft className="size-5 text-black" /></Link>
           <h1 className="text-2xl font-black tracking-tighter uppercase text-black">Ledger Summary Matrix</h1>
         </div>
-        
         <div className="flex items-center gap-3 bg-white p-2 rounded-xl border-2 border-black shadow-lg">
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase text-black">Statement Cut-off</Label>
             <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black text-black focus:ring-0" />
           </div>
-          <Button variant="outline" onClick={exportToExcel} className="h-8 font-black px-3 border-black text-[9px] gap-1 text-black uppercase tracking-widest hover:bg-slate-50">
-            <FileSpreadsheet className="size-3" /> Excel
-          </Button>
           <Button onClick={() => window.print()} className="h-8 font-black px-4 bg-black text-white text-[9px] gap-1 uppercase tracking-widest hover:bg-slate-900">
             <Printer className="size-3" /> Commit Print
           </Button>
@@ -154,7 +126,7 @@ export default function LedgerSummaryReportPage() {
             <TableBody>
               {reportData.map((r, i) => (
                 <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-8 transition-colors">
-                  <td className="p-0.5 border-r-2 border-black font-mono text-center text-black">{r.memberIdNumber}</td>
+                  <td className="p-0.5 border-r-2 border-black font-mono text-center text-black">{r.id}</td>
                   <td className="p-0.5 border-r-2 border-black uppercase truncate leading-none font-black text-black">{r.name}</td>
                   <td className="p-0.5 text-right border-r text-black">{r.c1.toLocaleString()}</td>
                   <td className="p-0.5 text-right border-r text-black">{r.c2.toLocaleString()}</td>
@@ -184,13 +156,9 @@ export default function LedgerSummaryReportPage() {
                 <td className="text-right border-l border-white/10">{stats.c9.toLocaleString()}</td>
                 <td className="text-right border-l border-white/10 bg-white/5">{stats.c10.toLocaleString()}</td>
                 <td className="text-right bg-white text-black font-black text-[9px]">৳ {stats.c11.toLocaleString()}</td>
-              </TableRow>
+              </tr>
             </TableFooter>
           </Table>
-        </div>
-        <div className="p-4 bg-slate-50 border-t-2 border-black flex justify-between items-center no-print">
-            <p className="text-[9px] font-black uppercase text-slate-500 italic">Audit Summary verified via automated ledger synchronization.</p>
-            <StandardFooter />
         </div>
         <div className="hidden print:block">
             <StandardFooter />
@@ -199,4 +167,3 @@ export default function LedgerSummaryReportPage() {
     </div>
   );
 }
-

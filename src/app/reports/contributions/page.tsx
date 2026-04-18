@@ -1,37 +1,17 @@
+
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { 
-  Printer, 
-  Loader2, 
-  ArrowRightLeft,
-  Trash2,
-  DatabaseZap,
-  Info,
-  ArrowLeft
-} from "lucide-react";
+import { Printer, Loader2, ArrowRightLeft, Trash2, DatabaseZap, Info, ArrowLeft } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc, deleteDocumentNonBlocking } from "@/firebase";
 import { collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import Link from "next/link";
@@ -114,7 +94,7 @@ export default function ContributionAuditPage() {
   const handleBulkDelete = async () => {
     if (filteredData.length === 0) return;
     showAlert({
-      title: "Confirm Institutional Cleanup",
+      title: "Institutional Cleanup",
       description: `Permanently delete ${filteredData.length} records matching "${particularsSearch || 'All'}"?`,
       type: "warning",
       showCancel: true,
@@ -153,7 +133,7 @@ export default function ContributionAuditPage() {
           <div className="grid gap-1"><Label className="text-[9px] font-black uppercase text-black">End</Label><Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-black border-2 font-black text-black" /></div>
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase text-black">Particulars</Label>
-            <Input placeholder="Filter keyword..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[150px] text-xs text-black" />
+            <Input placeholder="Filter..." value={particularsSearch} onChange={(e) => setParticularsSearch(e.target.value)} className="h-8 border-black border-2 font-black w-[120px] text-xs text-black" />
           </div>
           <div className="flex gap-2 mt-4">
             <Button variant="destructive" onClick={() => setIsCleanupOpen(true)} className="h-8 text-[10px] font-black uppercase gap-1"><DatabaseZap className="size-3" /> Cleanup</Button>
@@ -198,8 +178,9 @@ export default function ContributionAuditPage() {
 
       <Dialog open={isCleanupOpen} onOpenChange={setIsCleanupOpen}>
         <DialogContent className="border-4 border-black max-w-xl p-0 overflow-hidden rounded-none shadow-2xl">
-          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black">
+          <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black text-black">
             <DialogTitle className="text-xl font-black uppercase text-rose-700">Cleanup Terminal</DialogTitle>
+            <DialogDescription className="sr-only">Cleanup Confirmation</DialogDescription>
           </DialogHeader>
           <div className="p-6 space-y-4">
             <div className="bg-slate-50 p-4 border-2 border-black space-y-2">
@@ -209,7 +190,7 @@ export default function ContributionAuditPage() {
             </div>
             <div className="flex gap-4 items-start p-4 bg-amber-50 border-2 border-amber-200 text-amber-800">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] leading-relaxed font-bold uppercase">To prevent accidental deletion of valid data, ensure your "Particulars" search is specific (e.g. "Opening Balance (Imported)"). Verify the record count in the list below before committing to delete.</p>
+              <p className="text-[10px] leading-relaxed font-bold uppercase">To prevent accidental deletion, ensure your "Particulars" search is specific (e.g. "Salary July-2024"). Verify the record count before committing.</p>
             </div>
             <DialogFooter className="p-6 pt-2">
               <Button variant="destructive" onClick={handleBulkDelete} disabled={isDeleting || filteredData.length === 0} className="w-full font-black uppercase h-12 tracking-widest shadow-xl rounded-none">

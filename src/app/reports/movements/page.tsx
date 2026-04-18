@@ -48,13 +48,8 @@ export default function FundMovementReportPage() {
       ms.forEach(s => {
         const d = new Date(s.summaryDate).getTime();
         const v = { 
-            c1: Number(s.employeeContribution)||0, 
-            c2: Number(s.loanWithdrawal)||0, 
-            c3: Number(s.loanRepayment)||0, 
-            c5: Number(s.profitEmployee)||0, 
-            c6: Number(s.profitLoan)||0, 
-            c8: Number(s.pbsContribution)||0, 
-            c9: Number(s.profitPbs)||0 
+            c1: Number(s.employeeContribution)||0, c2: Number(s.loanWithdrawal)||0, c3: Number(s.loanRepayment)||0, 
+            c5: Number(s.profitEmployee)||0, c6: Number(s.profitLoan)||0, c8: Number(s.pbsContribution)||0, c9: Number(s.profitPbs)||0 
         };
         if (d < start) { 
             opE += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6); 
@@ -69,8 +64,7 @@ export default function FundMovementReportPage() {
       const clE = opE + addE + adjE; 
       const clP = opP + addP + adjP;
       return { 
-          id: m.memberIdNumber, 
-          name: m.name, 
+          id: m.memberIdNumber, name: m.name, 
           opE, addE, adjE, clE, 
           opP, addP, adjP, clP, 
           total: clE + clP 
@@ -102,12 +96,12 @@ export default function FundMovementReportPage() {
         <div className="flex items-center gap-4 bg-white p-2 rounded-xl border-2 border-black shadow-lg">
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase text-black ml-1">Period Start</Label>
-            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black font-black text-[10px] focus:ring-0" />
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black font-black text-[10px] focus:ring-0 text-black" />
           </div>
           <ArrowRightLeft className="size-3 text-black opacity-30 mt-3" />
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase text-black ml-1">Period End</Label>
-            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black font-black text-[10px] focus:ring-0" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black font-black text-[10px] focus:ring-0 text-black" />
           </div>
           <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-8 uppercase tracking-widest shadow-md hover:bg-slate-900 transition-colors">
             <Printer className="size-3.5 mr-2" /> Commit Print
@@ -172,10 +166,6 @@ export default function FundMovementReportPage() {
             </TableFooter>
           </Table>
         </div>
-        <div className="p-4 bg-slate-50 border-t-2 border-black flex justify-between items-center no-print">
-            <p className="text-[9px] font-black uppercase text-slate-500 italic">Analysis captures opening position and period activities for personal and matching funds.</p>
-            <StandardFooter />
-        </div>
         <div className="hidden print:block">
             <StandardFooter />
         </div>
@@ -183,4 +173,3 @@ export default function FundMovementReportPage() {
     </div>
   );
 }
-

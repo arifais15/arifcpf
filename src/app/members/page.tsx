@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, CalendarDays, Info } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, Info } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, getDocs } from "firebase/firestore";
@@ -97,8 +97,10 @@ export default function MembersPage() {
   const handleAddMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const memberIdNumber = (formData.get("memberIdNumber") as string).trim();
+    
     const memberData = {
-      memberIdNumber: formData.get("memberIdNumber") as string,
+      memberIdNumber,
       name: formData.get("name") as string,
       designation: formData.get("designation") as string,
       dateJoined: formData.get("dateJoined") as string,
@@ -109,9 +111,23 @@ export default function MembersPage() {
     };
 
     if (editingMember) {
+      // Check if new ID is taken by someone else
+      if (editingMember.memberIdNumber !== memberIdNumber) {
+        const check = await getDocs(query(collection(firestore, "members"), where("memberIdNumber", "==", memberIdNumber)));
+        if (!check.empty) {
+          showAlert({ title: "ID Conflict", description: `The ID ${memberIdNumber} is already registered to another member.`, type: "error" });
+          return;
+        }
+      }
       updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
       showAlert({ title: "Profile Updated", type: "success" });
     } else {
+      // Check for unique ID before creating
+      const check = await getDocs(query(collection(firestore, "members"), where("memberIdNumber", "==", memberIdNumber)));
+      if (!check.empty) {
+        showAlert({ title: "Duplicate Entry", description: `A member with ID ${memberIdNumber} is already in the registry. Use search to find them.`, type: "error" });
+        return;
+      }
       setDocumentNonBlocking(doc(collection(firestore, "members")), { ...memberData, createdAt: new Date().toISOString() }, { merge: true });
       showAlert({ title: "Personnel Registered", type: "success" });
     }
@@ -122,7 +138,7 @@ export default function MembersPage() {
   const handleDeleteMember = (id: string, name: string) => {
     showAlert({
       title: "Delete Personnel?",
-      description: `Permanently remove ${name} from registry? All historical ledger data for this member will remain archived but hidden from active lists.`,
+      description: `Permanently remove ${name} from registry? This action is irreversible.`,
       type: "warning",
       showCancel: true,
       confirmText: "Delete Records",
@@ -143,6 +159,7 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
+        // Optimize by getting all existing members once
         const allMembersSnap = await getDocs(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach(d => { existingMembersMap[d.data().memberIdNumber] = d.id; });
@@ -169,7 +186,7 @@ export default function MembersPage() {
               updatedAt: new Date().toISOString() 
             }, { merge: true });
           } else {
-            // Update existing profile with latest metadata from salary sheet
+            // Synchronize existing profile with latest metadata
             updateDocumentNonBlocking(doc(firestore, "members", memberDocId), { 
               designation: String(entry["Designation"] || ""), 
               zonalOffice: String(entry["ZonalOffice"] || "Head Office"), 
@@ -177,9 +194,10 @@ export default function MembersPage() {
             });
           }
 
+          // Append monthly ledger record
           const ledgerEntry = {
             summaryDate: String(entry["PostingDate"] || new Date().toISOString().split('T')[0]),
-            particulars: String(entry["Particulars"] || "Monthly Salary Contribution"),
+            particulars: String(entry["Particulars"] || "Monthly Salary contribution"),
             employeeContribution: Number(entry["Emp_Contrib"] || 0),
             loanWithdrawal: Number(entry["Loan_Disbursed"] || 0),
             loanRepayment: Number(entry["Loan_Repaid"] || 0),
@@ -191,9 +209,9 @@ export default function MembersPage() {
             createdAt: new Date().toISOString()
           };
 
-          setDocumentNonBlocking(doc(collection(firestore, "members", memberDocId, "fundSummaries")), ledgerEntry, { merge: true });
+          addDocumentNonBlocking(collection(firestore, "members", memberDocId, "fundSummaries"), ledgerEntry);
         }
-        showAlert({ title: "Batch Import Complete", type: "success" });
+        showAlert({ title: "Batch Sync Complete", type: "success" });
       } catch (err) {
         toast({ title: "Import Failed", variant: "destructive" });
       } finally {
@@ -228,7 +246,7 @@ export default function MembersPage() {
           )}
         </div>
         <div className="flex gap-2 ml-auto">
-          <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-4 shadow-sm hover:bg-slate-50 transition-colors"><Upload className="size-3.5" /> Monthly Salary Import</Button>
+          <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 font-black text-[10px] uppercase gap-1.5 px-4 shadow-sm hover:bg-slate-50 transition-colors"><Upload className="size-3.5" /> Monthly Matrix Import</Button>
           <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white font-black text-[10px] uppercase gap-1.5 px-6 shadow-xl hover:bg-slate-900 transition-colors"><Plus className="size-3.5" /> Register Personnel</Button>
         </div>
       </PageHeaderActions>
@@ -240,9 +258,9 @@ export default function MembersPage() {
               <TableHead className="w-[100px] font-black uppercase text-[10px] pl-6 py-5">ID No</TableHead>
               <TableHead className="font-black uppercase text-[10px] py-5">Full Legal Name</TableHead>
               <TableHead className="font-black uppercase text-[10px] py-5">Designation</TableHead>
-              <TableHead className="font-black uppercase text-[10px] py-5">Zonal Office</TableHead>
+              <TableHead className="font-black uppercase text-[10px] py-5">Office</TableHead>
               <TableHead className="font-black uppercase text-[10px] py-5">Status</TableHead>
-              <TableHead className="text-right font-black uppercase text-[10px] pr-6 py-5">Institutional Audit</TableHead>
+              <TableHead className="text-right font-black uppercase text-[10px] pr-6 py-5">Audit</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="tabular-nums text-[#000000]">
@@ -255,14 +273,12 @@ export default function MembersPage() {
                 <td className="font-mono text-base pl-6 font-black py-4">{m.memberIdNumber}</td>
                 <td className="text-sm font-black uppercase py-4">{m.name}</td>
                 <td className="text-[10px] font-black uppercase py-4 opacity-70">{m.designation}</td>
-                <td className="text-[10px] font-black uppercase py-4 opacity-70">{m.zonalOffice || "Head Office"}</td>
+                <td className="text-[10px] font-black uppercase py-4 opacity-70">{m.zonalOffice || "HO"}</td>
                 <td className="py-4">
                   <Badge variant="outline" className={cn(
-                    "text-[9px] uppercase font-black px-3 border-black rounded-none transition-all",
+                    "text-[9px] uppercase font-black px-3 border-black rounded-none",
                     m.status === 'Active' ? "bg-black text-white" : "bg-white text-black"
-                  )}>
-                    {m.status || "Active"}
-                  </Badge>
+                  )}>{m.status || "Active"}</Badge>
                 </td>
                 <td className="text-right pr-6 py-4">
                   <div className="flex justify-end gap-2">
@@ -277,19 +293,18 @@ export default function MembersPage() {
         </Table>
       </div>
 
-      {/* REGISTRATION TERMINAL */}
       <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if (!o) setEditingMember(null); }}>
         <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <DialogTitle className="font-black uppercase text-2xl flex items-center gap-3">
                 <UserCircle className="size-6" /> Personnel Registry Terminal
             </DialogTitle>
-            <DialogDescription className="text-xs font-black uppercase opacity-60">Synchronize official trust profiles with institutional data</DialogDescription>
+            <DialogDescription className="text-xs font-black uppercase opacity-60">Synchronize official trust profiles. ID must be unique.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Member ID No</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Member ID No (Unique)</Label>
                 <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
@@ -297,7 +312,7 @@ export default function MembersPage() {
                 <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Official Designation</Label>
+                <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Designation</Label>
                 <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
@@ -306,14 +321,12 @@ export default function MembersPage() {
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Zonal Office</Label>
-                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} placeholder="e.g. Head Office / Office-1" className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
+                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} placeholder="e.g. Head Office" className="h-11 border-2 border-black font-black rounded-none focus:ring-0" />
               </div>
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Account Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
-                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none focus:ring-0">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none focus:ring-0"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Active" className="font-black uppercase">Active</SelectItem>
                     <SelectItem value="Retired" className="font-black uppercase">Retired</SelectItem>
@@ -334,54 +347,36 @@ export default function MembersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* MONTHLY BATCH IMPORT TERMINAL */}
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="border-4 border-black max-w-lg bg-white rounded-none p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <DialogTitle className="text-xl font-black uppercase flex items-center gap-3">
-                <FileSpreadsheet className="size-5" /> Institutional Batch Importer
+                <FileSpreadsheet className="size-5" /> Institutional Matrix Importer
             </DialogTitle>
-            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Append transactions and synchronize personnel profiles from salary matrices</DialogDescription>
+            <DialogDescription className="text-[10px] uppercase font-black opacity-60">Append monthly salary transactions and sync personnel profiles</DialogDescription>
           </DialogHeader>
           <div className="p-8 space-y-6">
             <div className="bg-slate-50 p-10 border-2 border-black border-dashed text-center space-y-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => fileInputRef.current?.click()}>
               <FileSpreadsheet className="size-12 mx-auto text-black opacity-20" />
-              <p className="text-xs font-black uppercase tracking-widest">Select Monthly Matrix (XLSX)</p>
+              <p className="text-xs font-black uppercase tracking-widest">Select Salary Matrix (XLSX)</p>
               <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx" onChange={handleExcelUpload} />
               {isUploading && <Loader2 className="size-8 animate-spin mx-auto text-black" />}
             </div>
             <div className="bg-amber-50 p-4 border-2 border-amber-200 text-amber-800 flex gap-3 items-start shadow-inner">
               <Info className="size-5 shrink-0 mt-0.5" />
-              <p className="text-[10px] font-black uppercase leading-tight">Profiles are updated by ID. Designations are synced to latest; ledger entries are appended as new unique records.</p>
+              <p className="text-[10px] font-black uppercase leading-tight">System identifies members by unique ID. Profiles are updated to latest Designation/Office; financial records are appended as new unique ledger entries.</p>
             </div>
             <Button variant="outline" onClick={() => {
               const ws = XLSX.utils.json_to_sheet([{ 
-                  "ID": "5001", 
-                  "Name": "MD. ARIFUL ISLAM", 
-                  "Designation": "AGMF", 
-                  "ZonalOffice": "Head Office", 
-                  "Status": "Active",
-                  "JoinedDate": "2020-01-01",
-                  "Particulars": "Salary July-2024", 
-                  "PostingDate": "2024-07-31", 
-                  "Emp_Contrib": 5000, 
-                  "Loan_Disbursed": 0, 
-                  "Loan_Repaid": 0, 
-                  "Employee_Profit": 0, 
-                  "Loan_Profit": 0, 
-                  "PBS_Contribution": 5000, 
-                  "PBS_Profit": 0 
+                  "ID": "5001", "Name": "MD. ARIFUL ISLAM", "Designation": "AGMF", "ZonalOffice": "Head Office", "Status": "Active", "JoinedDate": "2020-01-01", "Address": "GAZIPUR",
+                  "Particulars": "Salary July-2024", "PostingDate": "2024-07-31", 
+                  "Emp_Contrib": 5000, "Loan_Disbursed": 0, "Loan_Repaid": 0, "Employee_Profit": 0, "Loan_Profit": 0, "PBS_Contribution": 5000, "PBS_Profit": 0 
               }]);
-              const wb = XLSX.utils.book_new(); 
-              XLSX.utils.book_append_sheet(wb, ws, "MonthlyMatrix"); 
-              XLSX.writeFile(wb, "Institutional_Salary_Import_Template.xlsx");
-            }} className="w-full border-2 border-black font-black uppercase text-[10px] h-11 tracking-widest hover:bg-slate-50">
-                Download Standard Template
-            </Button>
+              const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "MonthlyAppend"); XLSX.writeFile(wb, "Institutional_Monthly_Sync_Template.xlsx");
+            }} className="w-full border-2 border-black font-black uppercase text-[10px] h-11 tracking-widest hover:bg-slate-50">Download Standard Template</Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
-
