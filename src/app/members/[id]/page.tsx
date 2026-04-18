@@ -136,7 +136,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       }];
     }
 
-    // viewSums must include the Opening Balance to zero out correctly after settlement
     const viewSums = rows.reduce((acc, r) => ({
       c1: acc.c1 + r.c1,
       c2: acc.c2 + r.c2,
@@ -242,17 +241,22 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const reason = f.get("reason") as string;
     const sDate = f.get("settlementDate") as string;
     
-    // Create reversal entry using total history sum to zero out the account
+    // Calculate current loan balance to fulfill the "LoanBal into LoanRepay" instruction
+    const currentLoanBal = (ledgerLogic.totalAllTime.c2 || 0) - (ledgerLogic.totalAllTime.c3 || 0);
+
+    // Create settlement reversal entry. 
+    // All fund columns are reversed using all-time sums to zero them.
+    // Loans are zeroed by reversing withdrawals and matching repayments to them.
     const settlementEntry = {
       summaryDate: sDate,
-      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}`,
-      employeeContribution: -ledgerLogic.totalAllTime.c1,
-      loanWithdrawal: -ledgerLogic.totalAllTime.c2,
-      loanRepayment: -ledgerLogic.totalAllTime.c3,
-      profitEmployee: -ledgerLogic.totalAllTime.c5,
-      profitLoan: -ledgerLogic.totalAllTime.c6,
-      pbsContribution: -ledgerLogic.totalAllTime.c8,
-      profitPbs: -ledgerLogic.totalAllTime.c9,
+      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ` (LOAN BAL ${currentLoanBal.toLocaleString()} ADJUSTED)` : ""}`,
+      employeeContribution: -(ledgerLogic.totalAllTime.c1 || 0),
+      loanWithdrawal: -(ledgerLogic.totalAllTime.c2 || 0),
+      loanRepayment: -(ledgerLogic.totalAllTime.c3 || 0),
+      profitEmployee: -(ledgerLogic.totalAllTime.c5 || 0),
+      profitLoan: -(ledgerLogic.totalAllTime.c6 || 0),
+      pbsContribution: -(ledgerLogic.totalAllTime.c8 || 0),
+      profitPbs: -(ledgerLogic.totalAllTime.c9 || 0),
       memberId: resolvedParams.id,
       isSettlement: true,
       createdAt: new Date().toISOString(),
@@ -268,7 +272,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       updatedAt: new Date().toISOString()
     });
 
-    showAlert({ title: "Settlement Confirmed", description: `Member has been ${reason} and ledger balances zeroed.`, type: "success" });
+    showAlert({ 
+      title: "Settlement Confirmed", 
+      description: `Account for ${member?.name} has been closed. Loan balance and fund equity zeroed.`, 
+      type: "success" 
+    });
     setIsSettlementOpen(false);
   };
 
@@ -432,7 +440,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </DialogContent>
       </Dialog>
 
-      {/* MANUAL ENTRY DIALOG */}
       <Dialog open={isEntryOpen} onOpenChange={(open) => { 
         setIsEntryOpen(open); 
         if(!open) {
