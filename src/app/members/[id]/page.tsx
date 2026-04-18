@@ -209,12 +209,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="bg-white p-4 md:p-10 shadow-2xl border-2 border-black max-w-[1400px] mx-auto w-full print-container overflow-x-auto">
-        <div className="text-center border-b-2 border-black pb-4 mb-6 min-w-[950px]">
+        <div className="text-center border-b-2 border-black pb-4 mb-6 min-w-[1050px]">
           <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
           <h2 className="text-lg md:text-xl font-black uppercase tracking-[0.3em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 border-2 border-black mb-6 text-[10px] font-black min-w-[950px] uppercase tabular-nums">
+        <div className="grid grid-cols-3 border-2 border-black mb-6 text-[10px] font-black min-w-[1050px] uppercase tabular-nums">
           <div className="border-r border-b border-black p-2 flex gap-2"><span>NAME:</span><span className="flex-1 truncate">{member?.name}</span></div>
           <div className="border-r border-b border-black p-2 flex gap-2"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
           <div className="border-b border-black p-2 flex gap-2"><span>POSITION:</span><span className="flex-1 truncate">{member?.designation}</span></div>
@@ -223,29 +223,79 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <div className="p-2 flex gap-2"><span>JOIN DATE:</span><span className="flex-1">{member?.dateJoined}</span></div>
         </div>
 
-        <table className="w-full text-[9px] border-collapse border-2 border-black font-black tabular-nums min-w-[950px]">
-          <thead className="bg-slate-50 border-b-2 border-black uppercase text-[8px]">
-            <tr>
-              <th rowSpan={2} className="border border-black p-1 w-[70px]">Date</th>
-              <th rowSpan={2} className="border border-black p-1">Particulars</th>
-              <th className="border border-black p-1">Emp(1)</th><th className="border border-black p-1">Draw(2)</th><th className="border border-black p-1">Repay(3)</th><th className="border border-black p-1 bg-slate-200">L.Bal(4)</th><th className="border border-black p-1">P.E(5)</th><th className="border border-black p-1">P.L(6)</th><th className="border border-black p-1 bg-slate-200">Net.E(7)</th><th className="border border-black p-1">PBS(8)</th><th className="border border-black p-1">P.P(9)</th><th className="border border-black p-1 bg-slate-200">Net.O(10)</th><th className="border border-black p-1 bg-black text-white">Total(11)</th><th className="border border-black p-1 no-print">Action</th>
+        <table className="w-full text-[8.5px] border-collapse border-2 border-black font-black tabular-nums min-w-[1050px]">
+          <thead className="bg-slate-50 border-b-2 border-black uppercase text-center font-black">
+            <tr className="border-b border-black">
+              <th rowSpan={2} className="border-r border-black p-1 w-[70px]">Date</th>
+              <th rowSpan={2} className="border-r border-black p-1">Particulars</th>
+              <th rowSpan={2} className="border-r border-black p-1">Employee<br/>Contribution</th>
+              <th rowSpan={2} className="border-r border-black p-1">Amount<br/>Withdraws as Loan</th>
+              <th rowSpan={2} className="border-r border-black p-1">Loan Principal<br/>repayment</th>
+              <th rowSpan={2} className="border-r border-black p-1 bg-slate-200/50">Balance of<br/>outstanding loan</th>
+              <th colSpan={2} className="border-r border-black p-1 bg-slate-100">Profit on</th>
+              <th rowSpan={2} className="border-r border-black p-1 bg-slate-200">Total Employee's<br/>Fund</th>
+              <th rowSpan={2} className="border-r border-black p-1">PBS<br/>Contribution</th>
+              <th rowSpan={2} className="border-r border-black p-1">Profit on PBS<br/>Contribution</th>
+              <th rowSpan={2} className="border-r border-black p-1 bg-slate-200">Total Office<br/>Contribution</th>
+              <th rowSpan={2} className="border-r border-black p-1 bg-black text-white">Cumulative<br/>Fund Balance</th>
+              <th rowSpan={2} className="p-1 no-print">Action</th>
+            </tr>
+            <tr className="border-b border-black">
+              <th className="border-r border-black p-1">Employee<br/>Contribution</th>
+              <th className="border-r border-black p-1">CPF Loan</th>
+            </tr>
+            <tr className="bg-slate-100/50 text-[7px] border-b-2 border-black">
+              <th className="border-r border-black">—</th>
+              <th className="border-r border-black">—</th>
+              <th className="border-r border-black">1</th>
+              <th className="border-r border-black">2</th>
+              <th className="border-r border-black">3</th>
+              <th className="border-r border-black">4</th>
+              <th className="border-r border-black">5</th>
+              <th className="border-r border-black">6</th>
+              <th className="border-r border-black text-[6px]">7=Prev+1-2+3+5+6</th>
+              <th className="border-r border-black">8</th>
+              <th className="border-r border-black">9</th>
+              <th className="border-r border-black text-[6px]">10=(8+9)</th>
+              <th className="border-r border-black text-[6px]">11=(7+10)</th>
+              <th className="no-print"></th>
             </tr>
           </thead>
           <tbody>
             {ledgerLogic.rows.map((r: any, idx: number) => (
               <tr key={idx} className={cn("border-b border-black h-8", r.isOpening && "bg-slate-50 italic")}>
-                <td className="border border-black p-1 text-center font-mono">{r.summaryDate}</td>
-                <td className="border border-black p-1 uppercase truncate max-w-[150px]">{r.particulars}</td>
-                <td className="border border-black p-1 text-right">{r.c1.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c2.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c3.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-50">{r.col4.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c5.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c6.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-50">{r.col7.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c8.toLocaleString()}</td><td className="border border-black p-1 text-right">{r.c9.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-50">{r.col10.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-100 font-bold">{r.col11.toLocaleString()}</td>
-                <td className="border border-black p-1 text-center no-print">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => showAlert({ title:"Remove Record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
+                <td className="border-r border-black p-1 text-center font-mono">{r.summaryDate}</td>
+                <td className="border-r border-black p-1 uppercase truncate max-w-[150px]">{r.particulars}</td>
+                <td className="border-r border-black p-1 text-right">{r.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right">{r.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right">{r.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right bg-slate-50/50">{r.col4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right">{r.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right">{r.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right bg-slate-50/50">{r.col7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right">{r.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right">{r.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right bg-slate-50/50">{r.col10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black p-1 text-right bg-slate-100 font-bold">{r.col11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="p-1 text-center no-print">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600" onClick={() => showAlert({ title:"Remove Record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
               </tr>
             ))}
           </tbody>
           <tfoot className="bg-slate-100 font-black border-t-4 border-black text-[9px] uppercase">
             <tr className="h-10">
-              <td colSpan={2} className="border border-black p-2 text-right">Aggregate Period Totals:</td>
-              <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c4.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c7.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString()}</td><td className="border border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString()}</td><td className="border border-black p-1 text-right bg-slate-200">{ledgerLogic.grand.c10.toLocaleString()}</td><td className="border border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString()}</td>
-              <td className="border border-black p-1 no-print"></td>
+              <td colSpan={2} className="border-r border-black p-2 text-right">Aggregate Period Totals:</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right bg-slate-200/50">{ledgerLogic.grand.c4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right bg-slate-200/50">{ledgerLogic.grand.c7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right">{ledgerLogic.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right bg-slate-200/50">{ledgerLogic.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r border-black p-1 text-right bg-black text-white text-[11px]">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="no-print"></td>
             </tr>
           </tfoot>
         </table>
@@ -262,13 +312,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
             <div className="space-y-4">
               <div className="grid grid-cols-7 gap-1 px-1 no-print">
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 1: Emp</div>
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 2: Draw</div>
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 3: Repay</div>
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 5: P.E</div>
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 6: P.L</div>
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 8: PBS</div>
-                 <div className="text-[9px] font-black uppercase text-center truncate">Col 9: P.P</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">1: Emp Contrib</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">2: Loan Draw</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">3: Loan Repay</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">5: Profit (Emp)</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">6: Profit (Loan)</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">8: PBS Contrib</div>
+                 <div className="text-[9px] font-black uppercase text-center truncate">9: Profit (PBS)</div>
               </div>
               <div className="grid grid-cols-7 gap-2 bg-slate-100 p-2 border-2 border-black rounded-xl">
                  <Input type="number" step="0.01" placeholder="Col 1" value={manualVals.c1||''} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-10 border-black border-2 font-black text-center" />
