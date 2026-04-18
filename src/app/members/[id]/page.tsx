@@ -21,7 +21,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const { showAlert } = useSweetAlert();
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
-  const [editingEntry, setEditingEntry] = useState<any>(null);
   const [selectedFY, setSelectedFY] = useState("");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
 
@@ -58,7 +57,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [availableFYs, selectedFY]);
 
   const ledgerLogic = useMemo(() => {
-    if (!summaries) return { rows: [], totals: { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0 }, grand: { c1:0, c2:0, c3:0, c4:0, c5:0, c6:0, c7:0, c8:0, c9:0, c10:0, c11:0 } };
+    if (!summaries) return { rows: [], grand: { c1:0, c2:0, c3:0, c4:0, c5:0, c6:0, c7:0, c8:0, c9:0, c10:0, c11:0 } };
     
     const sorted = [...summaries].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
 
@@ -131,17 +130,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <tr className="h-8">
               <th rowSpan={2} className="border border-black p-1 w-[70px]">Date</th>
               <th rowSpan={2} className="border border-black p-1">Particulars</th>
-              <th className="border border-black p-1 bg-slate-200/50">Emp Cont(1)</th>
-              <th className="border border-black p-1">Loan Draw(2)</th>
-              <th className="border border-black p-1">Loan Repay(3)</th>
-              <th className="border border-black p-1 bg-slate-200">Loan Bal(4)</th>
-              <th className="border border-black p-1">Profit Emp(5)</th>
-              <th className="border border-black p-1">Profit Loan(6)</th>
-              <th className="border border-black p-1 bg-slate-200">Net Emp(7)</th>
-              <th className="border border-black p-1">PBS Cont(8)</th>
-              <th className="border border-black p-1">Profit PBS(9)</th>
-              <th className="border border-black p-1 bg-slate-200">Net Off(10)</th>
-              <th className="border border-black p-1 bg-black text-white">Total(11)</th>
+              <th className="border border-black p-1">Emp. Contrib (1)</th>
+              <th className="border border-black p-1">Loan Drawal (2)</th>
+              <th className="border border-black p-1">Loan Repay (3)</th>
+              <th className="border border-black p-1 bg-slate-200">Loan Balance (4)</th>
+              <th className="border border-black p-1">Profit Emp (5)</th>
+              <th className="border border-black p-1">Profit Loan (6)</th>
+              <th className="border border-black p-1 bg-slate-200">Net Emp (7)</th>
+              <th className="border border-black p-1">PBS Contrib (8)</th>
+              <th className="border border-black p-1">Profit PBS (9)</th>
+              <th className="border border-black p-1 bg-slate-200">Net Office (10)</th>
+              <th className="border border-black p-1 bg-black text-white">Total Fund (11)</th>
             </tr>
           </thead>
           <tbody>
@@ -165,7 +164,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </tbody>
           <tfoot className="bg-slate-100 font-black border-t-4 border-black text-[9px]">
             <tr className="h-10 uppercase">
-              <td colSpan={2} className="border border-black p-2 text-right tracking-widest">Aggregate Institutional Sums:</td>
+              <td colSpan={2} className="border border-black p-2 text-right">Aggregate Institutional Sums:</td>
               <td className="border border-black p-1 text-right">{ledgerLogic.grand.c1.toLocaleString()}</td>
               <td className="border border-black p-1 text-right">{ledgerLogic.grand.c2.toLocaleString()}</td>
               <td className="border border-black p-1 text-right">{ledgerLogic.grand.c3.toLocaleString()}</td>

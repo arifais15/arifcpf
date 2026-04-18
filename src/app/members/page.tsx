@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
 import * as XLSX from "xlsx";
@@ -144,7 +145,6 @@ export default function MembersPage() {
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach(d => { existingMembersMap[d.data().memberIdNumber] = d.id; });
 
-        let count = 0;
         for (const entry of data as any[]) {
           const memberIdNumber = String(entry["ID"] || entry.memberIdNumber || "").trim();
           const name = String(entry["Name"] || "");
@@ -155,9 +155,9 @@ export default function MembersPage() {
             const newRef = doc(collection(firestore, "members"));
             memberDocId = newRef.id;
             existingMembersMap[memberIdNumber] = memberDocId;
-            setDocumentNonBlocking(newRef, { memberIdNumber, name, designation: String(entry["Designation"] || ""), dateJoined: String(entry["JoinedDate"] || ""), status: String(entry["Status"] || "Active"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+            setDocumentNonBlocking(newRef, { memberIdNumber, name, designation: String(entry["Designation"] || ""), dateJoined: String(entry["JoinedDate"] || ""), zonalOffice: String(entry["ZonalOffice"] || "Head Office"), permanentAddress: String(entry["Address"] || ""), status: String(entry["Status"] || "Active"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
           } else {
-            updateDocumentNonBlocking(doc(firestore, "members", memberDocId), { designation: String(entry["Designation"] || ""), updatedAt: new Date().toISOString() });
+            updateDocumentNonBlocking(doc(firestore, "members", memberDocId), { designation: String(entry["Designation"] || ""), zonalOffice: String(entry["ZonalOffice"] || "Head Office"), updatedAt: new Date().toISOString() });
           }
 
           const ledgerEntry = {
@@ -175,9 +175,8 @@ export default function MembersPage() {
           };
 
           setDocumentNonBlocking(doc(collection(firestore, "members", memberDocId, "fundSummaries")), ledgerEntry, { merge: true });
-          count++;
         }
-        showAlert({ title: "Import Success", description: `Processed ${count} records.`, type: "success" });
+        showAlert({ title: "Import Success", type: "success" });
       } catch (err) {
         toast({ title: "Import Failed", variant: "destructive" });
       } finally {
@@ -254,14 +253,48 @@ export default function MembersPage() {
         <DialogContent className="border-4 border-black max-w-2xl bg-white p-0 rounded-none shadow-2xl">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <DialogTitle className="font-black uppercase text-2xl">Personnel Registration</DialogTitle>
-            <DialogDescription className="text-xs uppercase font-black opacity-60">Synchronize official trust profiles</DialogDescription>
+            <DialogDescription className="text-xs font-black uppercase opacity-60">Synchronize official trust profiles</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-6">
             <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Member ID No</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Joined Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none" /></div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Member ID No</Label>
+                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-11 border-2 border-black font-black rounded-none" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Full Legal Name</Label>
+                <Input name="name" defaultValue={editingMember?.name} required className="h-11 border-2 border-black font-black rounded-none" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Designation</Label>
+                <Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-2 border-black font-black rounded-none" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Joining Date</Label>
+                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-2 border-black font-black rounded-none" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Zonal Office</Label>
+                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} placeholder="e.g. Head Office" className="h-11 border-2 border-black font-black rounded-none" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase">Account Status</Label>
+                <Select name="status" defaultValue={editingMember?.status || "Active"}>
+                  <SelectTrigger className="h-11 border-2 border-black font-black rounded-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active" className="font-black">Active</SelectItem>
+                    <SelectItem value="Retired" className="font-black">Retired</SelectItem>
+                    <SelectItem value="Transferred" className="font-black">Transferred</SelectItem>
+                    <SelectItem value="InActive" className="font-black">InActive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label className="text-[10px] font-black uppercase">Permanent Address</Label>
+                <Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-2 border-black font-black rounded-none min-h-[100px]" />
+              </div>
             </div>
             <Button type="submit" className="w-full bg-black text-white font-black h-14 uppercase tracking-[0.3em] rounded-none">Save Personnel Profile</Button>
           </form>
@@ -286,7 +319,7 @@ export default function MembersPage() {
               <p className="text-[10px] font-black uppercase leading-tight">Importer will link by ID. Profiles are updated with new designations; new transactions are appended to historical ledger.</p>
             </div>
             <Button variant="outline" onClick={() => {
-              const ws = XLSX.utils.json_to_sheet([{ "ID": "5001", "Name": "MD. ARIFUL ISLAM", "Designation": "AGMF", "Particulars": "Salary July-2024", "PostingDate": "2024-07-31", "Employee_Contribution": 5000, "Loan_Disbursed": 0, "Loan_Repaid": 0, "Employee_Profit": 0, "Loan_Profit": 0, "PBS_Contribution": 5000, "PBS_Profit": 0 }]);
+              const ws = XLSX.utils.json_to_sheet([{ "ID": "5001", "Name": "MD. ARIFUL ISLAM", "Designation": "AGMF", "ZonalOffice": "Head Office", "Particulars": "Salary July-2024", "PostingDate": "2024-07-31", "Employee_Contribution": 5000, "Loan_Disbursed": 0, "Loan_Repaid": 0, "Employee_Profit": 0, "Loan_Profit": 0, "PBS_Contribution": 5000, "PBS_Profit": 0 }]);
               const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Monthly"); XLSX.writeFile(wb, "Monthly_Append_Template.xlsx");
             }} className="w-full border-2 border-black font-black uppercase text-[10px] h-10">Download Excel Template</Button>
           </div>
