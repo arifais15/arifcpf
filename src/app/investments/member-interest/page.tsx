@@ -226,7 +226,20 @@ export default function CPFInterestPage() {
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
-      const entryData = { summaryDate: postingDate, particulars: `Annual Profit ${modeLabel} (Tiered)`, employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0, profitEmployee: Math.round(item.employeeProfit), profitLoan: 0, pbsContribution: 0, profitPbs: Math.round(item.profitPbs), lastUpdateDate: new Date().toISOString(), createdAt: new Date().toISOString(), memberId: item.memberId };
+      const entryData = { 
+        summaryDate: postingDate, 
+        particulars: `Annual Profit ${modeLabel} (Tiered)`, 
+        employeeContribution: 0, 
+        loanWithdrawal: 0, 
+        loanRepayment: 0, 
+        profitEmployee: Math.round(item.employeeProfit), 
+        profitLoan: 0, 
+        pbsContribution: 0, 
+        profitPbs: Math.round(item.pbsProfit), 
+        lastUpdateDate: new Date().toISOString(), 
+        createdAt: new Date().toISOString(), 
+        memberId: item.memberId 
+      };
       addDocumentNonBlocking(collection(firestore, "members", item.memberId, "fundSummaries"), entryData);
     }
     setIsPosting(false);
@@ -288,7 +301,7 @@ export default function CPFInterestPage() {
             </div>
           )}
 
-          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isMembersLoading} className="gap-2 font-black uppercase text-[10px] h-9 px-6 bg-black text-white hover:bg-black/90 shadow-lg">
+          <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-black uppercase text-[10px] h-9 px-6 bg-black text-white hover:bg-black/90 shadow-lg">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
             Run Audit
           </Button>
