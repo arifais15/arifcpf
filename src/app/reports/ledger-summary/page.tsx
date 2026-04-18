@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -111,7 +112,7 @@ export default function LedgerSummaryReportPage() {
 
       <div className="bg-white rounded-none border border-black overflow-hidden shadow-2xl">
         <div className="p-2 border-b border-black bg-slate-50 flex items-center justify-between no-print">
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 max-xs">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
             <Input className="pl-7 h-8 border-black font-black text-[10px] bg-white" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>

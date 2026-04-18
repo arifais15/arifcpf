@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -56,19 +56,15 @@ export default function COAPage() {
     if (editingAccount && editingAccount.id) {
       const docRef = doc(firestore, "chartOfAccounts", editingAccount.id);
       updateDocumentNonBlocking(docRef, accountData);
-      showAlert({
-        title: "Success",
-        description: `${accountData.accountName} updated. Page will reload.`,
-        type: "success",
-        onConfirm: () => window.location.reload()
+      toast({
+        title: "Account Updated",
+        description: `${accountData.accountName} has been synchronized.`,
       });
     } else {
       addDocumentNonBlocking(coaRef, accountData);
-      showAlert({
-        title: "Added",
-        description: `${accountData.accountName} added to registry. Page will reload.`,
-        type: "success",
-        onConfirm: () => window.location.reload()
+      toast({
+        title: "Account Added",
+        description: `${accountData.accountName} added to the Chart of Accounts.`,
       });
     }
     setIsAddOpen(false);
@@ -85,11 +81,9 @@ export default function COAPage() {
       onConfirm: () => {
         const docRef = doc(firestore, "chartOfAccounts", id);
         deleteDocumentNonBlocking(docRef);
-        showAlert({
-          title: "Deleted",
-          description: "The account has been removed. Reloading...",
-          type: "success",
-          onConfirm: () => window.location.reload()
+        toast({
+          title: "Account Deleted",
+          description: `${name} removed from registry.`,
         });
       }
     });

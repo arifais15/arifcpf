@@ -32,11 +32,13 @@ import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MemberLedgerPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = React.use(params);
   const firestore = useFirestore();
   const { showAlert } = useSweetAlert();
+  const { toast } = useToast();
   
   const [isEntryOpen, setIsEntryOpen] = useState(false);
   const [isSettlementOpen, setIsSettlementOpen] = useState(false);
@@ -199,7 +201,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       onConfirm: () => {
         const docRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", id);
         deleteDocumentNonBlocking(docRef);
-        showAlert({ title: "Deleted", type: "success" });
+        toast({ title: "Ledger Entry Deleted" });
       }
     });
   };
@@ -224,10 +226,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     if (editingEntry && editingEntry.id) {
       const docRef = doc(firestore, "members", resolvedParams.id, "fundSummaries", editingEntry.id);
       updateDocumentNonBlocking(docRef, d);
-      showAlert({ title: "Ledger Updated", type: "success" });
+      toast({ title: "Ledger Updated" });
     } else {
       addDocumentNonBlocking(summariesRef, { ...d, createdAt: new Date().toISOString() }); 
-      showAlert({ title: "Ledger Synchronized", type: "success" });
+      toast({ title: "Ledger Synchronized" });
     }
 
     setIsEntryOpen(false); 
@@ -240,13 +242,8 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const f = new FormData(e.currentTarget);
     const reason = f.get("reason") as string;
     const sDate = f.get("settlementDate") as string;
-    
-    // Calculate current loan balance (Col 4)
     const currentLoanBal = (ledgerLogic.totalAllTime.c2 || 0) - (ledgerLogic.totalAllTime.c3 || 0);
 
-    // Create settlement reversal entry. 
-    // To make LoanDraw and LoanRepay equal and Balance zero:
-    // We insert currentLoanBal into loanRepay as positive.
     const settlementEntry = {
       summaryDate: sDate,
       particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ` (LOAN BAL ${currentLoanBal.toLocaleString()} ADJUSTED)` : ""}`,
@@ -263,14 +260,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       updatedAt: new Date().toISOString()
     };
 
-    // If there was an overpayment (negative balance), we'd need to adjust withdrawal instead
     if (currentLoanBal < 0) {
       settlementEntry.loanWithdrawal = Math.abs(currentLoanBal);
       settlementEntry.loanRepayment = 0;
     }
 
     addDocumentNonBlocking(summariesRef, settlementEntry);
-
     updateDocumentNonBlocking(memberRef, {
       status: reason,
       settlementDate: sDate,
@@ -278,35 +273,35 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       updatedAt: new Date().toISOString()
     });
 
-    showAlert({ 
-      title: "Settlement Confirmed", 
-      description: `Account for ${member?.name} closed. Loan balance and fund equity zeroed.`, 
-      type: "success" 
-    });
+    toast({ title: "Settlement Confirmed" });
     setIsSettlementOpen(false);
   };
+
+  const headerActionsContent = useMemo(() => (
+    <>
+      <Link href="/members" className="p-2 hover:bg-slate-100 rounded-full border border-black no-print"><ArrowLeft className="size-5 text-black" /></Link>
+      <div className="flex items-center gap-3 bg-slate-50 p-2 border border-black rounded-xl no-print">
+        <Select value={selectedFY} onValueChange={(fy) => { setSelectedFY(fy); if(fy==="all") setDateRange({start:"2010-01-01", end:new Date().toISOString().split('T')[0]}); else { const s = parseInt(fy.split("-")[0]); setDateRange({start:`${s}-07-01`, end:`${s+1}-06-30`}); } }}>
+          <SelectTrigger className="h-8 w-[100px] font-black text-[10px] uppercase border-black text-black"><SelectValue /></SelectTrigger>
+          <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}<SelectItem value="all" className="font-black text-xs">ALL TIME</SelectItem></SelectContent>
+        </Select>
+        <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black" />
+        <ArrowRightLeft className="size-3 opacity-30 text-black" />
+        <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black" />
+      </div>
+      <div className="flex gap-2 ml-auto no-print">
+        <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[10px]"><UserX className="size-4 mr-2" /> Final Settlement</Button>
+        <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px] text-black"><Plus className="size-4 mr-2" /> Manual Sync</Button>
+        <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8"><Printer className="size-4 mr-2" /> Print</Button>
+      </div>
+    </>
+  ), [selectedFY, dateRange, availableFYs]);
 
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
     <div className="p-4 md:p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
-      <PageHeaderActions>
-        <Link href="/members" className="p-2 hover:bg-slate-100 rounded-full border border-black no-print"><ArrowLeft className="size-5 text-black" /></Link>
-        <div className="flex items-center gap-3 bg-slate-50 p-2 border border-black rounded-xl no-print">
-          <Select value={selectedFY} onValueChange={(fy) => { setSelectedFY(fy); if(fy==="all") setDateRange({start:"2010-01-01", end:new Date().toISOString().split('T')[0]}); else { const s = parseInt(fy.split("-")[0]); setDateRange({start:`${s}-07-01`, end:`${s+1}-06-30`}); } }}>
-            <SelectTrigger className="h-8 w-[100px] font-black text-[10px] uppercase border-black text-black"><SelectValue /></SelectTrigger>
-            <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}<SelectItem value="all" className="font-black text-xs">ALL TIME</SelectItem></SelectContent>
-          </Select>
-          <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black" />
-          <ArrowRightLeft className="size-3 opacity-30 text-black" />
-          <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end:e.target.value})} className="h-8 w-32 border-black text-[10px] font-black text-black" />
-        </div>
-        <div className="flex gap-2 ml-auto no-print">
-          <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[10px]"><UserX className="size-4 mr-2" /> Final Settlement</Button>
-          <Button variant="outline" onClick={() => setIsEntryOpen(true)} className="h-10 border-black font-black uppercase text-[10px] text-black"><Plus className="size-4 mr-2" /> Manual Sync</Button>
-          <Button onClick={() => window.print()} className="h-10 bg-black text-white font-black uppercase text-[10px] px-8"><Printer className="size-4 mr-2" /> Print</Button>
-        </div>
-      </PageHeaderActions>
+      <PageHeaderActions>{headerActionsContent}</PageHeaderActions>
 
       <div className="bg-white p-4 md:p-10 shadow-2xl border-2 border-black max-w-[1400px] mx-auto w-full print-container text-black overflow-x-auto">
         <div className="text-center border-b-2 border-black pb-4 mb-6 min-w-[950px]">
@@ -318,7 +313,6 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>NAME:</span><span className="flex-1 truncate">{member?.name}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>POSITION:</span><span className="flex-1 truncate">{member?.designation}</span></div>
-          
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>OFFICE:</span><span className="flex-1 truncate">{member?.zonalOffice || "HEAD OFFICE"}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>STATUS:</span><span className={cn("flex-1", member?.status !== 'Active' && "text-rose-600 font-black")}>{member?.status || "Active"}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>JOIN DATE:</span><span className="flex-1">{member?.dateJoined}</span></div>
@@ -532,4 +526,3 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
-
