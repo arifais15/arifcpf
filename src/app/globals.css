@@ -1,54 +1,47 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    --background: 210 40% 98%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
-    --secondary-foreground: 0 0% 0%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 0 0% 0%;
-    --accent: 0 0% 0%;
-    --accent-foreground: 0 0% 100%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 0%;
-    --input: 0 0% 0%;
-    --ring: 0 0% 0%;
-    --radius: 0.5rem;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.75rem;
+    --sidebar-background: 222.2 47.4% 11.2%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground font-body text-[15px] antialiased;
-    color: #000000 !important;
   }
   h1, h2, h3, h4, h5, h6 { 
-    @apply font-black text-black; 
-    color: #000000 !important;
-  }
-
-  input::-webkit-outer-spin-button,
-  input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-
-  input[type=number] {
-    -moz-appearance: textfield;
+    @apply font-black tracking-tight text-primary; 
   }
 }
 
@@ -66,8 +59,7 @@
   footer,
   aside,
   button,
-  .TabsList,
-  .no-print * {
+  .TabsList {
     display: none !important;
   }
 
@@ -79,57 +71,31 @@
     overflow: visible !important;
     background-color: white !important;
     color: #000000 !important;
-    -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    text-rendering: optimizeLegibility;
   }
 
   *, *::before, *::after {
     background-color: transparent !important;
     color: #000000 !important;
     box-shadow: none !important;
-    text-shadow: none !important;
     border-color: #000000 !important;
-  }
-
-  .print-container {
-    width: 100% !important;
-    max-width: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    position: static !important;
-    display: block !important;
   }
 
   table {
     border-collapse: collapse !important;
     width: 100% !important;
-    page-break-inside: auto;
     table-layout: fixed !important;
-    border: 0.75pt solid black !important;
-  }
-
-  tr {
-    page-break-inside: avoid;
-    page-break-after: auto;
+    border: 1pt solid #000000 !important;
   }
 
   th, td {
-    border: 0.5pt solid black !important;
+    border: 0.5pt solid #000000 !important;
     color: #000000 !important;
-    background-color: transparent !important;
-    padding: 1pt 1pt !important;
+    padding: 2pt !important;
     word-wrap: break-word !important;
-    overflow: visible !important;
-  }
-  
-  tfoot {
-    display: table-row-group !important;
   }
 
   .font-ledger {
-    font-family: 'Calibri', 'Times New Roman', 'Segoe UI', 'Arial', sans-serif !important;
+    font-family: 'Calibri', 'Times New Roman', sans-serif !important;
   }
 }
