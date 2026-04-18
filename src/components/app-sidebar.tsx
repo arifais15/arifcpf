@@ -23,6 +23,7 @@ import {
   Printer,
   HelpCircle,
   Activity,
+  Scale,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -50,6 +51,7 @@ const navItems = [
   { title: "New Voucher", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
   { title: "GL Control Ledger", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
   { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
+  { title: "Trial Balance", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
   { title: "Personnel Registry", icon: Users, url: "/members", iconColor: "text-cyan-400" },
   { title: "Ledger Matrix", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
   { title: "Active Portfolio", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },

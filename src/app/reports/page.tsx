@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useState, useEffect } from "react";
@@ -7,12 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CHART_OF_ACCOUNTS as INITIAL_COA, type COAEntry } from "@/lib/coa-data";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck, Scale, ArrowRightLeft, History } from "lucide-react";
+import { Loader2, Printer, Wallet, TrendingUp, ArrowDownUp, ShieldCheck, Scale, ArrowRightLeft, History, FileStack } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 export default function ReportsPage() {
   const firestore = useFirestore();
@@ -140,7 +140,12 @@ export default function ReportsPage() {
               <p className="text-xs font-black uppercase tracking-widest text-slate-400">Institutional Compliance Terminal</p>
             </div>
           </div>
-          <Button onClick={() => window.print()} className="h-12 gap-2 font-black px-10 bg-black text-white rounded-xl uppercase text-xs tracking-widest shadow-xl hover:bg-slate-900 transition-all"><Printer className="size-4" /> Commit to Print</Button>
+          <div className="flex gap-3">
+            <Button variant="outline" asChild className="h-12 gap-2 font-black px-8 border-2 border-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg">
+              <Link href="/reports/trial-balance"><Scale className="size-4" /> Trial Balance</Link>
+            </Button>
+            <Button onClick={() => window.print()} className="h-12 gap-2 font-black px-10 bg-black text-white rounded-xl uppercase text-[10px] tracking-widest shadow-xl hover:bg-slate-900 transition-all"><Printer className="size-4" /> Print</Button>
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-8 p-6 bg-slate-50 border-2 border-black rounded-2xl">
           <div className="space-y-2">
