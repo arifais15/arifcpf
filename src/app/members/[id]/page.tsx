@@ -164,7 +164,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [summaries, dateRange]);
 
   const rowVerification = useMemo(() => {
-    const netEmp = manualVals.c1 - manualVals.c2 + manualVals.c3 + manualVals.c5 + manualVals.c6;
+    const netEmp = (manualVals.c1 - manualVals.c2 + manualVals.c3 + manualVals.c5 + manualVals.c6);
     const netOff = manualVals.c8 + manualVals.c9;
     const total = netEmp + netOff;
     const loanEffect = manualVals.c2 - manualVals.c3;
@@ -241,18 +241,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const reason = f.get("reason") as string;
     const sDate = f.get("settlementDate") as string;
     
-    // Calculate current loan balance to fulfill the "LoanBal into LoanRepay" instruction
+    // Calculate current loan balance (Col 4)
     const currentLoanBal = (ledgerLogic.totalAllTime.c2 || 0) - (ledgerLogic.totalAllTime.c3 || 0);
 
     // Create settlement reversal entry. 
-    // All fund columns are reversed using all-time sums to zero them.
-    // Loans are zeroed by reversing withdrawals and matching repayments to them.
+    // To make LoanDraw and LoanRepay equal and Balance zero:
+    // We insert currentLoanBal into loanRepay as positive.
     const settlementEntry = {
       summaryDate: sDate,
       particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ` (LOAN BAL ${currentLoanBal.toLocaleString()} ADJUSTED)` : ""}`,
       employeeContribution: -(ledgerLogic.totalAllTime.c1 || 0),
-      loanWithdrawal: -(ledgerLogic.totalAllTime.c2 || 0),
-      loanRepayment: -(ledgerLogic.totalAllTime.c3 || 0),
+      loanWithdrawal: 0, 
+      loanRepayment: currentLoanBal > 0 ? currentLoanBal : 0, 
       profitEmployee: -(ledgerLogic.totalAllTime.c5 || 0),
       profitLoan: -(ledgerLogic.totalAllTime.c6 || 0),
       pbsContribution: -(ledgerLogic.totalAllTime.c8 || 0),
@@ -262,6 +262,12 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+
+    // If there was an overpayment (negative balance), we'd need to adjust withdrawal instead
+    if (currentLoanBal < 0) {
+      settlementEntry.loanWithdrawal = Math.abs(currentLoanBal);
+      settlementEntry.loanRepayment = 0;
+    }
 
     addDocumentNonBlocking(summariesRef, settlementEntry);
 
@@ -274,7 +280,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
     showAlert({ 
       title: "Settlement Confirmed", 
-      description: `Account for ${member?.name} has been closed. Loan balance and fund equity zeroed.`, 
+      description: `Account for ${member?.name} closed. Loan balance and fund equity zeroed.`, 
       type: "success" 
     });
     setIsSettlementOpen(false);
@@ -308,7 +314,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h2 className="text-lg md:text-xl font-black uppercase tracking-[0.3em] mt-2">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-y-4 gap-x-8 mb-6 text-[10px] font-black border-b-2 border-black pb-4 min-w-[950px] uppercase">
+        <div className="grid grid-cols-3 gap-y-2 gap-x-8 mb-6 text-[10px] font-black border-b-2 border-black pb-4 min-w-[950px] uppercase">
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>NAME:</span><span className="flex-1 truncate">{member?.name}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>ID NO:</span><span className="font-mono">{member?.memberIdNumber}</span></div>
           <div className="flex gap-2 border-b border-black/10 pb-1"><span>POSITION:</span><span className="flex-1 truncate">{member?.designation}</span></div>
@@ -429,7 +435,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <span className="text-[9px] uppercase font-bold">Consolidated Trust Fund:</span>
                 <span className="text-xl font-black text-emerald-400">৳ {ledgerLogic.grand.c11.toLocaleString()}</span>
               </div>
-              <p className="text-[8px] italic opacity-40 leading-tight border-t border-white/10 pt-2">System will insert reversal entries for all 7 ledger columns to finalize the account at zero balance.</p>
+              <p className="text-[8px] italic opacity-40 leading-tight border-t border-white/10 pt-2">System will insert reversal entries for fund columns and adjust loan balance to zero.</p>
             </div>
 
             <DialogFooter className="pt-4">
@@ -526,3 +532,4 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     </div>
   );
 }
+
