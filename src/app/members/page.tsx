@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, FilterX, Info } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, getDocs } from "firebase/firestore";
@@ -79,27 +79,13 @@ export default function MembersPage() {
     return rawMembers.slice(0, displayLimit);
   }, [rawMembers, pageSize]);
 
-  const isNextDisabled = pageSize === -1 || !rawMembers || rawMembers.length <= pageSize;
-
-  const handleNextPage = () => {
-    if (snapshot && snapshot.docs.length > pageSize) {
-      setLastVisible(snapshot.docs[pageSize - 1]);
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    setCurrentPage(1);
-    setLastVisible(null);
-  };
-
   const handleAddMember = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const memberIdNumber = (formData.get("memberIdNumber") as string).trim();
+    const idNum = (formData.get("memberIdNumber") as string).trim();
     
     const memberData = {
-      memberIdNumber,
+      memberIdNumber: idNum,
       name: formData.get("name") as string,
       designation: formData.get("designation") as string,
       dateJoined: formData.get("dateJoined") as string,
@@ -110,19 +96,12 @@ export default function MembersPage() {
     };
 
     if (editingMember) {
-      if (editingMember.memberIdNumber !== memberIdNumber) {
-        const check = await getDocs(query(collection(firestore, "members"), where("memberIdNumber", "==", memberIdNumber)));
-        if (!check.empty) {
-          showAlert({ title: "ID Conflict", description: "This ID is already registered.", type: "error" });
-          return;
-        }
-      }
       updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
       showAlert({ title: "Updated", type: "success" });
     } else {
-      const check = await getDocs(query(collection(firestore, "members"), where("memberIdNumber", "==", memberIdNumber)));
+      const check = await getDocs(query(collection(firestore, "members"), where("memberIdNumber", "==", idNum)));
       if (!check.empty) {
-        showAlert({ title: "Duplicate ID", description: "A personnel record with this ID already exists.", type: "error" });
+        showAlert({ title: "Duplicate ID", description: "ID already registered.", type: "error" });
         return;
       }
       addDocumentNonBlocking(collection(firestore, "members"), { ...memberData, createdAt: new Date().toISOString() });
@@ -130,17 +109,6 @@ export default function MembersPage() {
     }
     setIsAddOpen(false);
     setEditingMember(null);
-  };
-
-  const handleDeleteMember = (id: string, name: string) => {
-    showAlert({
-      title: "Delete Personnel?",
-      description: `Permanently remove ${name}?`,
-      type: "warning",
-      showCancel: true,
-      confirmText: "Delete",
-      onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", id))
-    });
   };
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,27 +197,25 @@ export default function MembersPage() {
               <TableHead className="w-[100px] uppercase text-[10px] font-black pl-6">ID No</TableHead>
               <TableHead className="uppercase text-[10px] font-black">Full Legal Name</TableHead>
               <TableHead className="uppercase text-[10px] font-black">Designation</TableHead>
-              <TableHead className="uppercase text-[10px] font-black">Office</TableHead>
               <TableHead className="uppercase text-[10px] font-black">Status</TableHead>
               <TableHead className="text-right uppercase text-[10px] font-black pr-6">Audit</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="text-[#000000]">
             {isLoading && members.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-primary" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-32 text-slate-400 font-black uppercase italic">No records found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase italic">No records found</TableCell></TableRow>
             ) : members.map((m) => (
               <TableRow key={m.id} className="hover:bg-slate-50 transition-colors">
                 <td className="font-mono text-base pl-6 font-black">{m.memberIdNumber}</td>
                 <td className="text-sm font-black uppercase">{m.name}</td>
                 <td className="text-[10px] font-black uppercase opacity-60">{m.designation}</td>
-                <td className="text-[10px] font-black uppercase opacity-60">{m.zonalOffice || "HO"}</td>
-                <td><Badge variant="outline" className={cn("text-[9px] uppercase font-black px-3 rounded-lg", m.status === 'Active' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50 text-slate-500")}>{m.status || "Active"}</Badge></td>
+                <td><Badge variant="outline" className={cn("text-[9px] uppercase font-black", m.status === 'Active' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-slate-50")}>{m.status || "Active"}</Badge></td>
                 <td className="text-right pr-6">
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDeleteMember(m.id, m.name)}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => showAlert({ title: "Delete Personnel?", description: `Permanently remove ${m.name}?`, type: "warning", showCancel: true, confirmText: "Delete", onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-4" /></Button>
                     <Button variant="outline" size="sm" asChild className="h-8 border-slate-200 font-black uppercase text-[10px]"><Link href={`/members/${m.id}`}>Ledger Terminal</Link></Button>
                   </div>
                 </td>
@@ -273,9 +239,9 @@ export default function MembersPage() {
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-11 border-slate-200 font-black" /></div>
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-11 border-slate-200 font-black" /></div>
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-11 border-slate-200 font-black" /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} placeholder="e.g. Head Office" className="h-11 border-slate-200 font-black" /></div>
+              <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Zonal Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-11 border-slate-200 font-black" /></div>
               <div className="space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Account Status</Label><Select name="status" defaultValue={editingMember?.status || "Active"}><SelectTrigger className="h-11 border-slate-200 font-black"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Active" className="font-black">Active</SelectItem><SelectItem value="Retired" className="font-black">Retired</SelectItem><SelectItem value="Transferred" className="font-black">Transferred</SelectItem><SelectItem value="InActive" className="font-black">InActive</SelectItem></SelectContent></Select></div>
-              <div className="col-span-2 space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Permanent Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-slate-200 font-black min-h-[100px]" /></div>
+              <div className="col-span-2 space-y-2"><Label className="text-[10px] font-black uppercase ml-1">Permanent Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-slate-200 font-black" /></div>
             </div>
             <Button type="submit" className="w-full h-14 font-black uppercase tracking-[0.2em] shadow-xl">Commit Profile</Button>
           </form>

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Printer, ArrowLeft, Loader2, Plus, ArrowRightLeft, Calculator, ShieldCheck } from "lucide-react";
+import { Printer, ArrowLeft, Loader2, Plus, ArrowRightLeft, Calculator } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
 import { useDoc, useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from "@/firebase";
