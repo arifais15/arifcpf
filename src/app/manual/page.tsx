@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,7 +20,9 @@ import {
   Monitor,
   Terminal,
   Save,
-  HardDrive
+  HardDrive,
+  Power,
+  RefreshCw
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -87,7 +88,7 @@ export default function UserManualPage() {
             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Standalone Portable Edition Setup Guide</p>
           </div>
         </div>
-        <CardContent className="p-8 grid md:grid-cols-3 gap-8">
+        <CardContent className="p-8 grid md:grid-cols-3 gap-8 text-black">
           <div className="space-y-4">
             <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-lg border-2 border-black">1</div>
             <h4 className="font-black text-sm uppercase">Node.js ইন্সটল করুন</h4>
@@ -108,6 +109,35 @@ export default function UserManualPage() {
             <p className="text-[13px] text-slate-600 leading-relaxed">
               cmd-তে লিখুন: <code>npm run dev</code>। এরপর ব্রাউজারে গিয়ে <code>http://localhost:9002</code> ওপেন করুন। ইউজার আইডি: <b>arif</b>, পাসওয়ার্ড: <b>123123</b>।
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* RESTART & DAILY USAGE SECTION */}
+      <Card className="border-4 border-amber-500 shadow-[12px_12px_0px_0px_rgba(245,158,11,1)] bg-white overflow-hidden">
+        <div className="bg-amber-500 text-white p-8 flex items-center gap-6">
+          <Power className="size-10" />
+          <div>
+            <h2 className="text-2xl font-black uppercase tracking-tight">পিসি বন্ধ করার পর পুনরায় চালু করার নিয়ম</h2>
+            <p className="text-amber-100 text-xs font-bold uppercase tracking-widest mt-1">Daily Usage & Server Startup Guide</p>
+          </div>
+        </div>
+        <CardContent className="p-8 space-y-6 text-black">
+          <div className="flex gap-6 items-start">
+             <div className="bg-amber-100 p-4 rounded-2xl shrink-0">
+               <RefreshCw className="size-8 text-amber-600" />
+             </div>
+             <div className="space-y-3">
+               <h4 className="text-lg font-black uppercase">প্রতিদিন সকালে যা করতে হবে:</h4>
+               <p className="text-sm text-slate-700 leading-relaxed">
+                 পিসি শাটডাউন দিলে আপনার সফটওয়্যারের "ইঞ্জিন" বন্ধ হয়ে যায়। পুনরায় ব্যবহার করার জন্য আপনাকে <b>cmd</b> ওপেন করে আবার <code>npm run dev</code> লিখতে হবে। 
+                 সফটওয়্যার রান না করে সরাসরি <code>localhost:9002</code> এ গেলে পেজটি আসবে না।
+               </p>
+               <div className="bg-slate-50 border-2 border-slate-200 p-4 rounded-xl flex items-center gap-3">
+                 <Badge className="bg-amber-600">গুরুত্বপূর্ণ</Badge>
+                 <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">ডাটা হারাবে না: আপনার জমানো সব ডাটা পিসির মেমোরিতে সংরক্ষিত থাকবে।</span>
+               </div>
+             </div>
           </div>
         </CardContent>
       </Card>

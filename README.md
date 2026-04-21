@@ -19,6 +19,7 @@ Management Accounting Software for Contributory Provident Fund (CPF). Specially 
 ## 🛡️ Data Resilience & Persistence
 This application uses a **Local Persistence Engine**. All transactions, member ledgers, and settings are saved directly to your browser's persistent storage on your PC. 
 - **Sudden Shutdown**: Data is saved instantly upon every "Commit" or "Save". Even if the PC restarts, your data remains intact.
+- **Starting After Reboot**: Every time you restart your PC, you must re-open the terminal in the project folder and run `npm run dev` to access `http://localhost:9002`.
 - **Backups**: Go to **Settings > Data Portability** to download a `.json` backup of your entire database.
 
 ## Key Features
