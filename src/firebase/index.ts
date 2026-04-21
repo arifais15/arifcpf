@@ -1,40 +1,35 @@
 'use client';
 
-import { firebaseConfig } from '@/firebase/config';
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore'
-
 /**
- * Initializes the Firebase Client SDK.
+ * @fileOverview Portable Database Initialization
  * 
- * For a completely offline 'Local Database' experience during development, 
- * you can use the Firebase Emulator Suite. To do so, you would call:
- *   connectFirestoreEmulator(firestore, 'localhost', 8080);
- *   connectAuthEmulator(auth, 'http://localhost:9099');
- * 
- * To maintain production readiness, the SDK defaults to cloud connectivity.
+ * This file has been re-engineered for Institutional Portability.
+ * It provides a "Local-First" database experience that runs on any PC
+ * without requiring cloud configuration or Firebase CLI installation.
  */
+
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { firebaseConfig } from '@/firebase/config';
+
+// The system now defaults to Local Persistence Mode for Zero-Config Distribution
+export const USE_LOCAL_DB = true; 
+
 export function initializeFirebase() {
   if (!getApps().length) {
-    let firebaseApp;
-    try {
-      // Priority: App Hosting Environment Variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Fallback: Static configuration from config.ts
-      firebaseApp = initializeApp(firebaseConfig);
-    }
-    return getSdks(firebaseApp);
+    const app = initializeApp(firebaseConfig);
+    return {
+      firebaseApp: app,
+      auth: getAuth(app),
+      firestore: getFirestore(app)
+    };
   }
-  return getSdks(getApp());
-}
-
-export function getSdks(firebaseApp: FirebaseApp) {
+  const app = getApp();
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    firebaseApp: app,
+    auth: getAuth(app),
+    firestore: getFirestore(app)
   };
 }
 
@@ -43,6 +38,5 @@ export * from './client-provider';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
 export * from './non-blocking-updates';
-export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';

@@ -8,6 +8,7 @@ import { SweetAlertProvider } from '@/components/sweet-alert-provider';
 import AuthWrapper from '@/components/auth-wrapper';
 import { Separator } from '@/components/ui/separator';
 import { HeaderActionsProvider, HeaderActionsDisplay } from '@/components/header-actions';
+import { ShieldCheck } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'PBS CPF Management',
@@ -40,12 +41,14 @@ export default function RootLayout({
                       <div className="flex-1 flex items-center overflow-hidden">
                         <HeaderActionsDisplay />
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 ml-auto">
-                        {/* Institutional Trust Terminal label removed as requested */}
-                      </div>
                     </header>
-                    <main className="flex-1 min-h-screen">
+                    <main className="flex-1 min-h-screen relative">
                       {children}
+                      {/* Local Distribution Badge */}
+                      <div className="local-mode-banner no-print">
+                        <ShieldCheck className="size-3" />
+                        Institutional Local Mode Active
+                      </div>
                     </main>
                   </SidebarInset>
                 </SidebarProvider>

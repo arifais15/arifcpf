@@ -9,81 +9,42 @@ import {
   DocumentReference,
   SetOptions,
 } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import {FirestorePermissionError} from '@/firebase/errors';
+import { USE_LOCAL_DB } from '@/firebase';
+import { localDB } from '@/firebase/local-db-service';
 
 /**
- * Initiates a setDoc operation for a document reference.
- * Does NOT await the write operation internally.
+ * Statutory Persistence Layer - Supports both Cloud and Local-Matrix modes.
+ * Ensures that data entered on a local PC stays on that PC's drive.
  */
-export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions) {
-  setDoc(docRef, data, options).catch(error => {
-    errorEmitter.emit(
-      'permission-error',
-      new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
-        requestResourceData: data,
-      })
-    )
-  })
-  // Execution continues immediately
+
+export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions = {}) {
+  if (USE_LOCAL_DB) {
+    localDB.setDoc(docRef.path, data, options);
+    return;
+  }
+  setDoc(docRef, data, options).catch(err => console.error(err));
 }
 
-
-/**
- * Initiates an addDoc operation for a collection reference.
- * Does NOT await the write operation internally.
- * Returns the Promise for the new doc ref, but typically not awaited by caller.
- */
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
-  const promise = addDoc(colRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: colRef.path,
-          operation: 'create',
-          requestResourceData: data,
-        })
-      )
-    });
-  return promise;
+  if (USE_LOCAL_DB) {
+    const result = localDB.addDoc(colRef.path, data);
+    return Promise.resolve(result);
+  }
+  return addDoc(colRef, data).catch(err => console.error(err));
 }
 
-
-/**
- * Initiates an updateDoc operation for a document reference.
- * Does NOT await the write operation internally.
- */
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
-  updateDoc(docRef, data)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: data,
-        })
-      )
-    });
+  if (USE_LOCAL_DB) {
+    localDB.setDoc(docRef.path, data, { merge: true });
+    return;
+  }
+  updateDoc(docRef, data).catch(err => console.error(err));
 }
 
-
-/**
- * Initiates a deleteDoc operation for a document reference.
- * Does NOT await the write operation internally.
- */
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
-  deleteDoc(docRef)
-    .catch(error => {
-      errorEmitter.emit(
-        'permission-error',
-        new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'delete',
-        })
-      )
-    });
+  if (USE_LOCAL_DB) {
+    localDB.deleteDoc(docRef.path);
+    return;
+  }
+  deleteDoc(docRef).catch(err => console.error(err));
 }
