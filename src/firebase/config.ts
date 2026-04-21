@@ -1,3 +1,12 @@
+/**
+ * @fileOverview Firebase Client Configuration
+ * 
+ * To connect to your own database on your local machine:
+ * 1. Create a project in the Firebase Console.
+ * 2. Add a Web App and copy the config object.
+ * 3. Replace the values below with your specific project details.
+ */
+
 export const firebaseConfig = {
   "projectId": "pbs-cpf-management-2-055-6bd6c",
   "appId": "1:911168480152:web:c291f9590d60405a11c1ed",
