@@ -18,7 +18,10 @@ import {
   ServerCrash,
   Coins,
   Globe,
-  Monitor
+  Monitor,
+  Terminal,
+  Save,
+  HardDrive
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,7 +33,7 @@ export default function UserManualPage() {
       color: "text-blue-600",
       content: [
         "সদস্যদের প্রোফাইল যোগ, এডিট এবং ডিলিট করা যায়।",
-        "প্রতি পেইজে ৫ জন সদস্যকে দেখা যাবে, যা সিস্টেমের স্পিড বজায় রাখে।",
+        "প্রতি পেইজে ১০ জন সদস্যকে দেখা যাবে, যা সিস্টেমের স্পিড বজায় রাখে।",
         "সদস্যের নাম বা আইডি নম্বর দিয়ে সার্চ করে দ্রুত খুঁজে পাওয়া সম্ভব।",
         "'Ledger' বাটনে ক্লিক করে নির্দিষ্ট সদস্যের বিস্তারিত হিসাব দেখা যায়।"
       ]
@@ -65,31 +68,55 @@ export default function UserManualPage() {
         "সকল সদস্যের লেজার একসাথে প্রিন্ট করার জন্য 'Batch Print' অপশন রয়েছে।",
         "ভুলবশত বাল্ক পোস্টিং হলে 'Audit & Tracking' থেকে ডেট এবং Particulars ফিল্টার করে ডিলিট করা যায়।"
       ]
-    },
-    {
-      title: "নিরাপত্তা ও সেটিংস (Security & Settings)",
-      icon: ShieldCheck,
-      color: "text-rose-600",
-      content: [
-        "সেটিংস পেজের গুরুত্বপূর্ণ বাটনগুলো ডিফল্টভাবে লক করা থাকে।",
-        "লক খোলার কোড: Arif@PBS2। এই কোডটি দিয়ে 'Authorization' বক্সে এন্টার দিলে সব সেটিংস এডিট করা যাবে।",
-        "এখান থেকে চার্ট অফ অ্যাকাউন্টস এবং লেজার কলাম ম্যাপিং পরিবর্তন করা সম্ভব।"
-      ]
     }
   ];
 
   return (
     <div className="p-10 flex flex-col gap-10 bg-background min-h-screen font-bangla">
       <div className="flex flex-col gap-2 border-b pb-6">
-        <h1 className="text-4xl font-black text-primary tracking-tight">ব্যবহারকারী নির্দেশিকা</h1>
-        <p className="text-muted-foreground font-bold uppercase tracking-wider text-sm">পিবিএস সিপিএফ ম্যানেজমেন্ট সফটওয়্যার • ইউজার ম্যানুয়াল</p>
+        <h1 className="text-4xl font-black text-primary tracking-tight uppercase">ব্যবহারকারী নির্দেশিকা ও সেটআপ</h1>
+        <p className="text-muted-foreground font-bold uppercase tracking-wider text-sm">পিবিএস সিপিএফ ম্যানেজমেন্ট সফটওয়্যার • ইন্সটলেশন ও ইউজার ম্যানুয়াল</p>
       </div>
+
+      {/* FIRST TIME SETUP SECTION */}
+      <Card className="border-4 border-black shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] bg-white overflow-hidden">
+        <div className="bg-black text-white p-8 flex items-center gap-6">
+          <Terminal className="size-10" />
+          <div>
+            <h2 className="text-2xl font-black uppercase tracking-tight">প্রথমবার ব্যবহারের নিয়ম (First-Time Setup)</h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1">Standalone Portable Edition Setup Guide</p>
+          </div>
+        </div>
+        <CardContent className="p-8 grid md:grid-cols-3 gap-8">
+          <div className="space-y-4">
+            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-lg border-2 border-black">1</div>
+            <h4 className="font-black text-sm uppercase">Node.js ইন্সটল করুন</h4>
+            <p className="text-[13px] text-slate-600 leading-relaxed">
+              সফটওয়্যারটি চালানোর জন্য আপনার পিসিতে <b>Node.js (LTS Version)</b> ইন্সটল থাকতে হবে। nodejs.org থেকে এটি ডাউনলোড করে নিন।
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-lg border-2 border-black">2</div>
+            <h4 className="font-black text-sm uppercase">ডিপেন্ডেন্সি সেটআপ</h4>
+            <p className="text-[13px] text-slate-600 leading-relaxed">
+              প্রজেক্ট ফোল্ডারে গিয়ে Command Prompt (cmd) ওপেন করুন এবং লিখুন: <code>npm install</code>। এটি সফটওয়্যারের প্রয়োজনীয় ফাইলগুলো গুছিয়ে নেবে।
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="h-10 w-10 rounded-full bg-black text-white flex items-center justify-center font-black text-lg border-2 border-black">3</div>
+            <h4 className="font-black text-sm uppercase">সফটওয়্যার চালু করুন</h4>
+            <p className="text-[13px] text-slate-600 leading-relaxed">
+              cmd-তে লিখুন: <code>npm run dev</code>। এরপর ব্রাউজারে গিয়ে <code>http://localhost:9002</code> ওপেন করুন। ইউজার আইডি: <b>arif</b>, পাসওয়ার্ড: <b>123123</b>।
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-8 lg:grid-cols-2">
         {sections.map((section, idx) => (
-          <Card key={idx} className="border-none shadow-lg bg-white overflow-hidden group hover:shadow-xl transition-all">
+          <Card key={idx} className="border-none shadow-lg bg-white overflow-hidden group hover:shadow-xl transition-all border-2 border-slate-100">
             <CardHeader className="bg-slate-50/50 border-b flex flex-row items-center gap-4">
-              <div className={`p-3 rounded-2xl bg-white shadow-sm ${section.color}`}>
+              <div className={`p-3 rounded-2xl bg-white shadow-sm border border-slate-100 ${section.color}`}>
                 <section.icon className="size-6" />
               </div>
               <div>
@@ -111,113 +138,51 @@ export default function UserManualPage() {
         ))}
       </div>
 
-      {/* SCALE & PERFORMANCE SECTION */}
+      {/* DATA SAVING & RECOVERY */}
       <Card className="border-none shadow-2xl bg-slate-900 text-white overflow-hidden">
-        <div className="bg-primary/20 p-8 border-b border-white/10 flex items-center gap-6">
-          <div className="bg-white/10 p-4 rounded-3xl">
-            <ServerCrash className="size-10 text-white" />
+        <div className="bg-emerald-600/20 p-8 border-b border-white/10 flex items-center gap-6">
+          <div className="bg-emerald-600 p-4 rounded-3xl shadow-xl">
+            <Save className="size-10 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-black">বড় ডাটা ও পারফরম্যান্স গাইড (Scaling)</h2>
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mt-1">৮০০+ সদস্য এবং ২০ বছরের ডাটা ম্যানেজমেন্ট</p>
+            <h2 className="text-2xl font-black uppercase">ডাটা সেভ ও রিকভারি (Auto-Save)</h2>
+            <p className="text-emerald-400 text-sm font-bold uppercase tracking-widest mt-1">পিসি বন্ধ হয়ে গেলেও ডাটা হারাবে না</p>
           </div>
         </div>
         <CardContent className="p-8 grid md:grid-cols-2 gap-10">
           <div className="space-y-6">
             <div className="flex gap-4">
-              <div className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                <Coins className="size-4 text-emerald-400" />
+              <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                <HardDrive className="size-4 text-emerald-400" />
               </div>
               <div className="space-y-2">
-                <h4 className="font-bold text-emerald-400 uppercase text-xs tracking-wider">কোটা এবং খরচ (Quotas)</h4>
+                <h4 className="font-bold text-emerald-400 uppercase text-xs tracking-wider">ইন্সট্যান্ট ডিস্ক রাইট (Local Storage)</h4>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  ৮০০ জন কর্মচারীর ২০ বছরের মুনাফা হিসাব করলে প্রায় ২ লক্ষ রেকর্ড রিড হবে। ফায়ারবেস ফ্রি প্ল্যানে প্রতিদিন ৫০,০০০ রিড সম্ভব। বড় ডাটা নিয়ে কাজ করতে <b>Blaze Plan (Pay-as-you-go)</b> ব্যবহার করা বাধ্যতামূলক। এতে প্রতি ১ লক্ষ রিডে খরচ মাত্র ৫-৬ টাকা, যা প্রাতিষ্ঠানিক ক্ষেত্রে নগণ্য।
+                  সফটওয়্যারটি <b>Local-First Architecture</b> ব্যবহার করে। আপনি যখনই কোনো ভাউচার সেভ করেন বা মুনাফা পোস্টিং করেন, সেটি সাথে সাথেই আপনার পিসির হার্ড ড্রাইভের (Browser Storage) মেমোরিতে সেভ হয়ে যায়।
                 </p>
               </div>
             </div>
             <div className="flex gap-4">
-              <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                <Calculator className="size-4 text-blue-400" />
+              <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                <ServerCrash className="size-4 text-orange-400" />
               </div>
               <div className="space-y-2">
-                <h4 className="font-bold text-blue-400 uppercase text-xs tracking-wider">ওপেনিং ব্যালেন্স কৌশল</h4>
+                <h4 className="font-bold text-orange-400 uppercase text-xs tracking-wider">বিদ্যুৎ বিভ্রাট সুরক্ষা</h4>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  পুরো ২০ বছরের ডাটা বারবার রিড না করে, প্রতি বছর মুনাফা পোস্টিং করার পর একটি "Opening Balance" এন্ট্রি দিয়ে রাখুন। এতে পরবর্তী বছর মুনাফা হিসাব করার সময় সিস্টেমকে শুধুমাত্র ১ বছরের ডাটা রিড করতে হবে, যা গতি বহুগুণ বাড়িয়ে দেবে।
+                  হঠাৎ পিসি বন্ধ হয়ে গেলে বা কারেন্ট চলে গেলেও আপনার ডাটা নষ্ট হবে না। পুনরায় সফটওয়্যার চালু করলে আগের সব তথ্য ঠিকভাবেই পাওয়া যাবে।
                 </p>
               </div>
             </div>
           </div>
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 space-y-4">
-            <h4 className="font-bold text-primary flex items-center gap-2">
-              <ShieldCheck className="size-4" /> ডাটা এন্ট্রি টিপস
+            <h4 className="font-bold text-emerald-500 flex items-center gap-2 uppercase text-xs tracking-widest">
+              <ShieldCheck className="size-4" /> ব্যাকআপ নেওয়ার নিয়ম
             </h4>
             <p className="text-xs text-slate-400 leading-relaxed italic">
-              "৮০০ জন কর্মচারীর ২০ বছরের তথ্য ইনপুট দেওয়ার ক্ষেত্রে সরাসরি বাল্ক আপলোড (Excel Upload) ব্যবহার করুন। ছোট ছোট ব্যাচে (যেমন ২০০ জন করে) ডাটা আপলোড করলে সিস্টেমের ওপর চাপ কম পড়বে এবং অডিট ট্রেইল চেক করা সহজ হবে।"
+              "প্রতি সপ্তাহে অন্তত একবার 'Settings' থেকে 'Download Backup' বাটন ব্যবহার করে একটি ডাটা ফাইল পেনড্রাইভে সেভ করে রাখুন। এতে পিসি নষ্ট হয়ে গেলেও অন্য পিসিতে সফটওয়্যারটি আগের ডাটা নিয়ে চালানো যাবে।"
             </p>
             <div className="pt-4 border-t border-white/10">
-              <Badge variant="outline" className="text-white border-white/20">Blaze Plan Recommended</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* SERVER & FREE USAGE INFO */}
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card className="border-none shadow-lg bg-blue-600 text-white">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Globe className="size-6" />
-              <CardTitle className="text-lg">ক্লাউড বনাম লোকাল ব্যবহার</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm leading-relaxed opacity-90">
-              ফায়ারবেস সার্ভার ছাড়া এই সফটওয়্যারটি <b>Firebase Emulator Suite</b> ব্যবহার করে আপনার কম্পিউটারে সম্পূর্ণ ফ্রিতে চালানো সম্ভব। এতে কোনো ডাটা লিমিট বা বিল আসবে না। তবে এই ডাটা শুধুমাত্র আপনার কম্পিউটারেই থাকবে, অফিসের অন্য কেউ দেখতে পারবে না।
-            </p>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Local: Free & Private</Badge>
-              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Cloud: Multi-User & Secure</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-lg bg-emerald-600 text-white">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Monitor className="size-6" />
-              <CardTitle className="text-lg">সাশ্রয়ী ব্যবহারের পরামর্শ</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm leading-relaxed opacity-90">
-              ফায়ারবেসের ফ্রি লিমিট শেষ হয়ে গেলেও <b>Blaze Plan</b>-এ প্রতি ১ লক্ষ ডাটা রিডে খরচ মাত্র কয়েক টাকা। প্রফেশনাল অ্যাকাউন্টিং সফটওয়্যারের ক্ষেত্রে এই খরচ অত্যন্ত নগণ্য। ডাটাবেজ ব্যাকআপ নেওয়ার জন্য মাঝেমধ্যে Excel Export ফিচারটি ব্যবহার করুন।
-            </p>
-            <div className="flex gap-2">
-              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Pay-as-you-go</Badge>
-              <Badge variant="outline" className="text-white border-white/30 bg-white/10">Excel Backup</Badge>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-2 border-dashed bg-slate-50/50">
-        <CardContent className="p-8">
-          <div className="flex items-start gap-6">
-            <div className="bg-primary/10 p-4 rounded-full">
-              <Printer className="size-10 text-primary" />
-            </div>
-            <div className="space-y-4">
-              <h3 className="text-2xl font-black text-primary">প্রিন্টিং ও এক্সপোর্ট টিপস</h3>
-              <p className="text-slate-600 leading-relaxed">
-                প্রতিটি লেজার এবং রিপোর্ট **A4 Landscape** ওরিয়েন্টেশনে প্রিন্ট করার জন্য অপ্টিমাইজ করা হয়েছে। 
-                ব্রাউজারের প্রিন্ট ডায়ালগ বক্স থেকে 'Margins' অপশনটি 'None' বা 'Minimum' সেট করলে কলামগুলো সুন্দরভাবে ফিট হবে। 
-                এছাড়া সকল রিপোর্ট এক্সেল (Excel) ফাইলে ডাউনলোড করা যায় যা অডিট কাজে সহায়ক।
-              </p>
-              <div className="flex gap-3">
-                <Badge variant="outline" className="bg-white border-primary/20">Landscape Mode</Badge>
-                <Badge variant="outline" className="bg-white border-primary/20">A4 Paper</Badge>
-                <Badge variant="outline" className="bg-white border-primary/20">Excel Sync</Badge>
-              </div>
+              <Badge variant="outline" className="text-white border-white/20">Institutional Safety Active</Badge>
             </div>
           </div>
         </CardContent>
@@ -226,7 +191,7 @@ export default function UserManualPage() {
       <div className="mt-auto pt-10 border-t flex flex-col md:flex-row justify-between items-center gap-4 text-[13px] font-bold text-slate-400 uppercase tracking-widest">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4" />
-          <span>Institutional Version 1.0</span>
+          <span>Local Distribution Version 1.2</span>
         </div>
         <p className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</p>
       </div>
