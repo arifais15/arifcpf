@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -32,9 +31,10 @@ import {
   useFirestore, 
   useMemoFirebase, 
   addDocumentNonBlocking,
-  useDoc
+  useDoc,
+  getDocuments
 } from "@/firebase";
-import { collection, getDocs, query, orderBy, doc } from "firebase/firestore";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import { 
   Select, 
   SelectContent, 
@@ -184,10 +184,10 @@ export default function CPFInterestPage() {
       
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
-      const snapshot = await getDocs(q);
-      const summaries = snapshot.docs.map(doc => doc.data());
+      const snapshot = await getDocuments(q);
+      const summaries = snapshot.docs.map((doc: any) => doc.data());
 
-      const isAlreadyPosted = summaries.some(s => 
+      const isAlreadyPosted = summaries.some((s: any) => 
         s.particulars?.includes(`Annual Profit ${modeLabel}`)
       );
 

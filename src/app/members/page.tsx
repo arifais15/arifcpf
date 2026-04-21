@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -7,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck } from "lucide-react";
 import Link from "next/link";
-import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint, getDocs } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
+import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -65,7 +64,7 @@ export default function MembersPage() {
     if (pageSize !== -1) {
       constraints.push(limit(pageSize + 1));
     } else {
-      constraints.push(limit(5000)); // Reasonable upper bound for "All"
+      constraints.push(limit(5000));
     }
 
     if (lastVisible && currentPage > 1 && pageSize !== -1) {
@@ -109,7 +108,7 @@ export default function MembersPage() {
       updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
       toast({ title: "Profile Updated" });
     } else {
-      const check = await getDocs(query(collection(firestore, "members"), where("memberIdNumber", "==", idNum)));
+      const check = await getDocuments(query(collection(firestore, "members"), where("memberIdNumber", "==", idNum)));
       if (!check.empty) {
         showAlert({ title: "Registration Denied", description: `Member ID ${idNum} is already assigned.`, type: "error" });
         return;
@@ -132,34 +131,69 @@ export default function MembersPage() {
         const workbook = XLSX.read(bstr, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-        const allMembersSnap = await getDocs(collection(firestore, "members"));
+        
+        // Institutional Local-Safe Retrieval
+        const allMembersSnap = await getDocuments(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
-        allMembersSnap.forEach(d => { existingMembersMap[d.data().memberIdNumber] = d.id; });
+        allMembersSnap.forEach((d: any) => { existingMembersMap[d.data().memberIdNumber] = d.id; });
 
         for (const entry of data as any[]) {
           const idNum = String(entry["ID"] || entry.memberIdNumber || "").trim();
           const name = String(entry["Name"] || "");
           if (!idNum || !name) continue;
+          
           let mDocId = existingMembersMap[idNum];
           if (!mDocId) {
             const newRef = doc(collection(firestore, "members"));
             mDocId = newRef.id;
             existingMembersMap[idNum] = mDocId;
-            setDocumentNonBlocking(newRef, { memberIdNumber: idNum, name, designation: String(entry["Designation"] || ""), dateJoined: String(entry["JoinedDate"] || ""), zonalOffice: String(entry["ZonalOffice"] || "HO"), permanentAddress: String(entry["Address"] || ""), status: String(entry["Status"] || "Active"), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+            setDocumentNonBlocking(newRef, { 
+              memberIdNumber: idNum, 
+              name, 
+              designation: String(entry["Designation"] || ""), 
+              dateJoined: String(entry["JoinedDate"] || ""), 
+              zonalOffice: String(entry["ZonalOffice"] || "HO"), 
+              permanentAddress: String(entry["Address"] || ""), 
+              status: String(entry["Status"] || "Active"), 
+              createdAt: new Date().toISOString(), 
+              updatedAt: new Date().toISOString() 
+            }, { merge: true });
           } else {
-            updateDocumentNonBlocking(doc(firestore, "members", mDocId), { designation: String(entry["Designation"] || ""), zonalOffice: String(entry["ZonalOffice"] || "HO"), status: String(entry["Status"] || "Active"), updatedAt: new Date().toISOString() });
+            updateDocumentNonBlocking(doc(firestore, "members", mDocId), { 
+              designation: String(entry["Designation"] || ""), 
+              zonalOffice: String(entry["ZonalOffice"] || "HO"), 
+              status: String(entry["Status"] || "Active"), 
+              updatedAt: new Date().toISOString() 
+            });
           }
-          const ledgerEntry = { summaryDate: String(entry["PostingDate"] || new Date().toISOString().split('T')[0]), particulars: String(entry["Particulars"] || "Monthly Matrix Append"), employeeContribution: Number(entry["Emp_Contrib"] || 0), loanWithdrawal: Number(entry["Loan_Disbursed"] || 0), loanRepayment: Number(entry["Loan_Repaid"] || 0), profitEmployee: Number(entry["Employee_Profit"] || 0), profitLoan: Number(entry["Loan_Profit"] || 0), pbsContribution: Number(entry["PBS_Contribution"] || 0), profitPbs: Number(entry["PBS_Profit"] || 0), memberId: mDocId, createdAt: new Date().toISOString() };
+          
+          const ledgerEntry = { 
+            summaryDate: String(entry["PostingDate"] || new Date().toISOString().split('T')[0]), 
+            particulars: String(entry["Particulars"] || "Monthly Matrix Append"), 
+            employeeContribution: Number(entry["Emp_Contrib"] || 0), 
+            loanWithdrawal: Number(entry["Loan_Disbursed"] || 0), 
+            loanRepayment: Number(entry["Loan_Repaid"] || 0), 
+            profitEmployee: Number(entry["Employee_Profit"] || 0), 
+            profitLoan: Number(entry["Loan_Profit"] || 0), 
+            pbsContribution: Number(entry["PBS_Contribution"] || 0), 
+            profitPbs: Number(entry["PBS_Profit"] || 0), 
+            memberId: mDocId, 
+            createdAt: new Date().toISOString() 
+          };
           addDocumentNonBlocking(collection(firestore, "members", mDocId, "fundSummaries"), ledgerEntry);
         }
         showAlert({ title: "Synchronization Complete", type: "success" });
-      } catch (err) { toast({ title: "Import Failed", variant: "destructive" }); }
-      finally { setIsUploading(false); setIsBulkOpen(false); }
+      } catch (err) { 
+        console.error("Import Error:", err);
+        toast({ title: "Import Failed", description: "Verify Excel structure and local drive permissions.", variant: "destructive" }); 
+      } finally { 
+        setIsUploading(false); 
+        setIsBulkOpen(false); 
+      }
     };
     reader.readAsBinaryString(file);
   };
 
-  // Header Actions - Memoized for stability to prevent focus/interactivity loss
   const headerActions = useMemo(() => (
     <div className="flex gap-2 ml-auto no-print">
       <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-black border-2 uppercase text-[10px] font-black text-black">
@@ -175,9 +209,8 @@ export default function MembersPage() {
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
-      {/* BODY TOOLBAR: Search and Filters moved here for stability */}
-      <div className="bg-white p-6 border-2 border-black shadow-xl flex items-center justify-between no-print animate-in slide-in-from-top duration-500">
-        <div className="relative flex-1 max-w-md">
+      <div className="bg-white p-6 border-2 border-black shadow-xl flex items-center justify-between no-print">
+        <div className="relative flex-1 max-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
           <Input 
             className="pl-10 h-12 bg-slate-50 border-black border-2 font-black text-lg" 

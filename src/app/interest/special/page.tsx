@@ -30,9 +30,10 @@ import {
   useFirestore, 
   useMemoFirebase, 
   useDoc,
-  addDocumentNonBlocking
+  addDocumentNonBlocking,
+  getDocuments
 } from "@/firebase";
-import { collection, query, orderBy, doc, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -133,10 +134,13 @@ export default function SpecialInterestDPPage() {
     const auditResults = [];
 
     for (const member of targetMembers) {
+      // ONLY ACTIVE MEMBERS GET INTEREST
+      if (member.status !== 'Active') continue;
+
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
       const q = query(summariesRef, orderBy("summaryDate", "asc"));
-      const snapshot = await getDocs(q);
-      const allEntries = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+      const snapshot = await getDocuments(q);
+      const allEntries = snapshot.docs.map((d: any) => ({ ...d.data(), id: d.id }));
 
       let totalInterest = 0;
       let dailyLog = [];
@@ -147,7 +151,7 @@ export default function SpecialInterestDPPage() {
       
       let runningBalance = allEntries
         .filter((e: any) => new Date(e.summaryDate) <= openingRefDate)
-        .reduce((sum, e: any) => {
+        .reduce((sum: number, e: any) => {
           const v = { 
             c1: Number(e.employeeContribution)||0, 
             c2: Number(e.loanWithdrawal)||0, 
@@ -333,7 +337,7 @@ export default function SpecialInterestDPPage() {
               </SelectTrigger>
               <SelectContent className="max-h-[300px]">
                 <SelectItem value="all">All Institutional Personnel</SelectItem>
-                {members?.map(m => (
+                {members?.filter(m => m.status === 'Active').map(m => (
                   <SelectItem key={m.id} value={m.id}>{m.memberIdNumber} - {m.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -376,7 +380,6 @@ export default function SpecialInterestDPPage() {
                 <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest opacity-60 mb-1">Personnel Processed</p>
                 <div className="text-2xl font-black text-emerald-700">{results.length} Members</div>
               </CardContent>
-            </Card>
 
             <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center justify-between no-print h-full">
               <div className="space-y-1">
