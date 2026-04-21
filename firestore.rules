@@ -1,94 +1,132 @@
+/**
+ * CPF Management Accounting System - Security Rules
+ *
+ * Core Philosophy:
+ * This ruleset implements a robust Role-Based Access Control (RBAC) model. Access to sensitive 
+ * financial data—including the Chart of Accounts, Employee records, Investments, and Journal 
+ * Entries—is strictly limited to users whose UID exists within the '/roles_admin' collection.
+ * 
+ * Data Structure:
+ * - /roles_admin/{uid}: Mapping of Firebase Auth UIDs to administrative status.
+ * - /accounts, /employees, /investments, /journalEntries: Top-level collections for primary entities.
+ * - /journalEntries/{journalEntryId}/lineItems/{lineItemId}: Subcollection for granular transaction details.
+ *
+ * Key Security Decisions:
+ * 1. Role-Based Perimeter: All financial collections are protected by a central 'isAdmin' check.
+ * 2. Authorization Independence: By using a dedicated roles collection, the rules avoid 
+ *    complex document-level ownership checks (e.g., ownerId) that are unnecessary for an 
+ *    internal administrative system.
+ * 3. Relational Integrity: On creation, documents must align their internal 'id' or 
+ *    parent reference fields with the Firestore path to ensure data consistency.
+ * 4. Immutability: Critical relational links (like account IDs or parent journal entry IDs) 
+ *    are enforced as immutable during updates.
+ */
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * FIREBASE SECURITY RULES - PBS CPF SYSTEM
-     * 
-     * Allows access to authenticated Samity personnel while
-     * enforcing role-based controls for administrative collections.
-     */
-
     // --- GLOBAL HELPER FUNCTIONS ---
 
+    /** @description Checks if a user is authenticated with Firebase Auth. */
     function isSignedIn() {
-      // Must be authenticated with a valid Samity account
       return request.auth != null;
     }
 
+    /** @description Checks if the authenticated user's UID exists in the admin roles collection. */
     function isAdmin() {
-      // Check if user has an entry in roles_admin collection
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    // --- COLLECTION GROUP RULES (FOR AGGREGATE REPORTS) ---
-    
-    match /{path=**}/fundSummaries/{summaryId} {
-      allow read, list, write: if isSignedIn();
-    }
-
-    match /{path=**}/line_items/{lineId} {
-      allow read, list: if isSignedIn();
+    /** @description Combines admin check with existence check for state-changing operations. */
+    function isExistingAdmin() {
+      return isAdmin() && resource != null;
     }
 
     // --- COLLECTION RULES ---
 
-    // Admin Roles Registry
-    match /roles_admin/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
+    /**
+     * @description Controls administrative privileges. The existence of a UID here grants system-wide access.
+     * @path /roles_admin/{uid}
+     * @allow (get) Any authenticated user can check their own role status via the isAdmin helper.
+     * @deny (write) Only existing admins can manage the admin list.
+     * @principle Role-Based Access Control (RBAC) bootstrapping.
+     */
+    match /roles_admin/{uid} {
+      allow get: if isSignedIn();
       allow list: if isAdmin();
-      allow create, update, delete: if isAdmin();
+      allow create: if isAdmin();
+      allow update, delete: if isExistingAdmin();
     }
 
-    // Chart of Accounts (Institutional Standard)
-    match /chartOfAccounts/{accountId} {
-      allow read, list, write: if isSignedIn();
+    /**
+     * @description Secures the Chart of Accounts. 
+     * @path /accounts/{accountId}
+     * @allow (create) An admin creating an account where data.id matches the document path.
+     * @deny (list) Any non-authenticated or non-admin user.
+     * @principle Relational integrity and role-restricted access.
+     */
+    match /accounts/{accountId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.id == accountId;
+      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingAdmin();
     }
 
-    // Members Registry (Samity Personnel)
-    match /members/{memberId} {
-      allow read, list, write: if isSignedIn();
-      
-      // Subcollection for Individual Subsidiary Ledgers
-      match /fundSummaries/{summaryId} {
-        allow read, list, write: if isSignedIn();
+    /**
+     * @description Secures Employee profile information used for subsidiary ledgers.
+     * @path /employees/{employeeId}
+     * @allow (update) An admin modifying employee details while preserving the immutable ID.
+     * @deny (delete) A request targeting a document that does not exist.
+     * @principle Path-to-data consistency and state-change robustness.
+     */
+    match /employees/{employeeId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.id == employeeId;
+      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Secures investment records (FDRs, certificates).
+     * @path /investments/{investmentId}
+     * @allow (list) An admin viewing all investments.
+     * @deny (create) A user without an admin record in /roles_admin.
+     * @principle Centralized role-based perimeter.
+     */
+    match /investments/{investmentId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.id == investmentId;
+      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingAdmin();
+    }
+
+    /**
+     * @description Secures Journal Entry headers.
+     * @path /journalEntries/{journalEntryId}
+     * @allow (get) An admin retrieving a specific voucher.
+     * @deny (update) Changing the unique identifier of a recorded transaction.
+     * @principle Financial record integrity.
+     */
+    match /journalEntries/{journalEntryId} {
+      allow get, list: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.id == journalEntryId;
+      allow update: if isExistingAdmin() && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingAdmin();
+
+      /**
+       * @description Secures the line items belonging to a specific Journal Entry.
+       * @path /journalEntries/{journalEntryId}/lineItems/{lineItemId}
+       * @allow (create) An admin adding a line item where the internal journalEntryId matches the parent path.
+       * @deny (list) Listing line items for a journal entry without being an admin.
+       * @principle Hierarchical consistency and inherited administrative security.
+       */
+      match /lineItems/{lineItemId} {
+        allow get, list: if isAdmin();
+        allow create: if isAdmin() && request.resource.data.journalEntryId == journalEntryId;
+        allow update: if isExistingAdmin() && request.resource.data.journalEntryId == resource.data.journalEntryId;
+        allow delete: if isExistingAdmin();
       }
     }
-
-    // Investment Instruments Portfolio
-    match /investmentInstruments/{id} {
-      allow read, list, write: if isSignedIn();
-
-      // Subcollection for Audit/Renewal History
-      match /auditHistory/{historyId} {
-        allow read, list, write: if isSignedIn();
-      }
-    }
-    
-    // Accrued Interest Logs (Year-end Provisions)
-    match /accruedInterestLogs/{id} {
-      allow read, list, write: if isSignedIn();
-    }
-
-    // Journal Entries (General Ledger)
-    match /journalEntries/{entryId} {
-      allow read, list, write: if isSignedIn();
-      
-      // Double-entry Line Items
-      match /line_items/{lineId} {
-        allow read, list: if isSignedIn();
-      }
-    }
-
-    // System Settings (Account Mapping & Policy)
-    match /settings/{settingId} {
-      allow read, write: if isSignedIn();
-    }
-
   }
 }
