@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword, 
   sendPasswordResetEmail
 } from "firebase/auth"
-import { useAuth, useUser } from "@/firebase"
+import { useAuth, useUser, USE_LOCAL_DB } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -25,17 +25,49 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
-  // Redirect if already logged in
+  // Check for existing local session on mount
   useEffect(() => {
-    if (user && !isUserLoading) {
-      router.push("/")
+    if (USE_LOCAL_DB) {
+      const localSession = localStorage.getItem('pbs_cpf_auth_session');
+      if (localSession === 'authorized') {
+        router.push("/");
+      }
+    } else if (user && !isUserLoading) {
+      router.push("/");
     }
-  }, [user, isUserLoading, router])
+  }, [user, isUserLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
+    // LOCAL AUTH LOGIC FOR PORTABLE DISTRIBUTION
+    if (USE_LOCAL_DB) {
+      setTimeout(() => {
+        if (idOrEmail.toLowerCase() === "arif" && password === "123123") {
+          localStorage.setItem('pbs_cpf_auth_session', 'authorized');
+          localStorage.setItem('pbs_cpf_user_data', JSON.stringify({ uid: 'admin-local', email: 'arif.ais15@gmail.com', displayName: 'Ariful Islam' }));
+          
+          showAlert({
+            title: "Access Granted",
+            description: "Institutional Local Mode Active. Session synchronized.",
+            type: "success"
+          });
+          router.push("/");
+          window.dispatchEvent(new Event('storage')); // Trigger auth check
+        } else {
+          showAlert({
+            title: "Access Denied",
+            description: "Incorrect password or user does not exist in local registry.",
+            type: "error"
+          });
+          setIsLoading(false);
+        }
+      }, 800);
+      return;
+    }
+
+    // CLOUD AUTH LOGIC
     const emailToUse = idOrEmail.toLowerCase() === "arif" 
       ? "arif.ais15@gmail.com" 
       : idOrEmail
@@ -49,8 +81,6 @@ export default function LoginPage() {
       })
       router.push("/")
     } catch (error: any) {
-      console.warn("Authentication failed:", error.code)
-      
       let title = "Access Denied"
       let message = "Invalid credentials. Please check your entry."
       
@@ -70,72 +100,57 @@ export default function LoginPage() {
   }
 
   const handleForgotPassword = async () => {
-    const email = idOrEmail.toLowerCase() === "arif" ? "arif.ais15@gmail.com" : idOrEmail
-    
-    if (!email || !email.includes("@")) {
+    if (USE_LOCAL_DB) {
       showAlert({
-        title: "Email Required",
-        description: "Please enter your email address to reset your password.",
+        title: "Local Mode",
+        description: "Password reset is handled via System Settings in Local Mode.",
         type: "info"
-      })
-      return
+      });
+      return;
+    }
+
+    const email = idOrEmail.toLowerCase() === "arif" ? "arif.ais15@gmail.com" : idOrEmail
+    if (!email || !email.includes("@")) {
+      showAlert({ title: "Email Required", description: "Enter email address to reset.", type: "info" });
+      return;
     }
 
     setIsResetting(true)
     try {
       await sendPasswordResetEmail(auth, email)
-      showAlert({
-        title: "Reset Link Sent",
-        description: `A password reset link has been sent to ${email}.`,
-        type: "success"
-      })
+      showAlert({ title: "Reset Link Sent", description: `Sent to ${email}.`, type: "success" });
     } catch (error: any) {
-      showAlert({
-        title: "Reset Failed",
-        description: "Failed to send reset email. Ensure the email is registered.",
-        type: "error"
-      })
+      showAlert({ title: "Reset Failed", type: "error" });
     } finally {
       setIsResetting(false)
     }
   }
 
-  if (isUserLoading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-50 font-ledger">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="size-10 animate-spin text-primary" />
-          <p className="text-sm font-medium text-muted-foreground">Verifying Session...</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-50 p-4 font-ledger">
       <Card className="w-full max-w-md border-none shadow-2xl overflow-hidden">
-        <div className="h-2 bg-primary" />
+        <div className="h-2 bg-black" />
         <CardHeader className="space-y-2 text-center pb-8">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary/10 p-4 rounded-3xl">
-              <ShieldCheck className="size-10 text-primary" />
+            <div className="bg-black/5 p-4 rounded-3xl">
+              <ShieldCheck className="size-10 text-black" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight text-primary uppercase">PBS CPF Management</CardTitle>
-          <CardDescription>
-            Authorized Personnel Only • Secure Terminal
+          <CardTitle className="text-2xl font-black tracking-tight text-black uppercase">PBS CPF System</CardTitle>
+          <CardDescription className="font-bold text-[10px] uppercase tracking-widest text-slate-400">
+            Institutional Local Access Matrix
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="idOrEmail" className="text-xs font-bold uppercase tracking-wider text-slate-500">User ID or Email</Label>
+              <Label htmlFor="idOrEmail" className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">User Identification</Label>
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
                 <Input 
                   id="idOrEmail" 
-                  placeholder="Enter arif or email" 
-                  className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                  placeholder="Enter arif" 
+                  className="pl-10 h-11 bg-white border-2 border-slate-100 font-black"
                   value={idOrEmail}
                   onChange={(e) => setIdOrEmail(e.target.value)}
                   required 
@@ -145,24 +160,24 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-slate-500">Password</Label>
+                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-wider text-slate-500 ml-1">Security Pin</Label>
                 <Button 
                   type="button" 
                   variant="link" 
-                  className="px-0 font-bold h-auto text-[10px] uppercase text-primary"
+                  className="px-0 font-black h-auto text-[9px] uppercase text-slate-400"
                   onClick={handleForgotPassword}
                   disabled={isResetting}
                 >
-                  {isResetting ? "Processing..." : "Reset Password"}
+                  {isResetting ? "Processing..." : "Recovery"}
                 </Button>
               </div>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-300" />
                 <Input 
                   id="password" 
                   type="password" 
                   placeholder="••••••••" 
-                  className="pl-10 h-11 bg-slate-50 border-slate-200 focus:bg-white"
+                  className="pl-10 h-11 bg-white border-2 border-slate-100 font-black"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
@@ -170,24 +185,21 @@ export default function LoginPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4 pb-8">
-            <Button type="submit" className="w-full h-12 text-sm font-bold uppercase tracking-widest" disabled={isLoading}>
+          <CardFooter className="flex flex-col gap-4 pb-10">
+            <Button type="submit" className="w-full h-14 text-xs font-black uppercase tracking-[0.3em] bg-black text-white shadow-xl hover:bg-slate-900" disabled={isLoading}>
               {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Verifying...
-                </>
+                <Loader2 className="mr-2 size-5 animate-spin" />
               ) : (
                 <>
-                  <LogIn className="mr-2 size-4" />
-                  Sign In to System
+                  <LogIn className="mr-3 size-5" />
+                  Enter System
                 </>
               )}
             </Button>
             
             <div className="text-center pt-2">
-              <p className="text-[16px] text-primary uppercase italic tracking-wider font-extrabold">
-                Developed by: Ariful Islam,AGMF,Gazipur PBS-2
+              <p className="text-[11px] text-slate-400 uppercase tracking-widest font-black italic">
+                Developed by: Ariful Islam, AGMF, Gazipur PBS-2
               </p>
             </div>
           </CardFooter>

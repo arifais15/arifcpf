@@ -29,7 +29,7 @@ import {
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "firebase/auth"
-import { useAuth } from "@/firebase"
+import { useAuth, USE_LOCAL_DB } from "@/firebase"
 
 import {
   Sidebar,
@@ -83,8 +83,14 @@ export function AppSidebar() {
       showCancel: true,
       confirmText: "Logout",
       onConfirm: async () => {
-        await signOut(auth)
-        router.push("/login")
+        if (USE_LOCAL_DB) {
+          localStorage.removeItem('pbs_cpf_auth_session');
+          window.dispatchEvent(new Event('storage'));
+          router.push("/login");
+        } else {
+          await signOut(auth);
+          router.push("/login");
+        }
       }
     })
   }
