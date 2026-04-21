@@ -5,6 +5,7 @@
  * 
  * Implements a virtual Firestore environment using browser LocalStorage.
  * Designed for portable PBS CPF distribution where internet/cloud access is restricted.
+ * Features automated disk persistence and portability export/import.
  */
 
 const DB_KEY = 'pbs_cpf_local_matrix_v1';
@@ -25,7 +26,7 @@ class LocalDatabaseService {
   private saveDB(db: LocalDB) {
     if (typeof window === 'undefined') return;
     localStorage.setItem(DB_KEY, JSON.stringify(db));
-    // Trigger a storage event for multi-tab synchronization
+    // Trigger a storage event for multi-tab synchronization and UI updates
     window.dispatchEvent(new Event('storage'));
   }
 
@@ -43,10 +44,9 @@ class LocalDatabaseService {
     const existing = db[collection][docId] || {};
     db[collection][docId] = options.merge ? { ...existing, ...data } : data;
     
-    // Handle subcollections (e.g., journalEntries/ID/lineItems/ID)
+    // Handle subcollections (e.g., members/ID/fundSummaries/ID)
     if (parts.length > 2) {
       const subPath = parts.slice(2).join('/');
-      // Simplified nested logic for CPF structure
       if (!db[collection][docId]._sub) db[collection][docId]._sub = {};
       db[collection][docId]._sub[subPath] = data;
     }
@@ -65,11 +65,11 @@ class LocalDatabaseService {
   deleteDoc(path: string) {
     const parts = path.split('/').filter(Boolean);
     const db = this.getDB();
-    const collection = parts[0];
+    const collectionName = parts[0];
     const docId = parts[1];
     
-    if (db[collection] && db[collection][docId]) {
-      delete db[collection][docId];
+    if (db[collectionName] && db[collectionName][docId]) {
+      delete db[collectionName][docId];
       this.saveDB(db);
     }
   }
@@ -79,7 +79,7 @@ class LocalDatabaseService {
     const db = this.getDB();
     const parts = path.split('/').filter(Boolean);
     
-    // Support for collectionGroup (flat scan)
+    // Support for collectionGroup (flat scan across all members)
     if (path.includes('fundSummaries')) {
       const all: any[] = [];
       Object.values(db['members'] || {}).forEach((member: any) => {
@@ -98,7 +98,7 @@ class LocalDatabaseService {
       return Object.values(db[parts[0]] || []);
     }
     
-    // Subcollection reading (e.g., members/ID/fundSummaries)
+    // Subcollection reading
     if (parts.length === 3) {
       const parentCol = parts[0];
       const parentId = parts[1];
@@ -118,6 +118,25 @@ class LocalDatabaseService {
     const parts = path.split('/').filter(Boolean);
     const db = this.getDB();
     return db[parts[0]]?.[parts[1]] || null;
+  }
+
+  // PORTABILITY API
+  exportDatabase(): string {
+    return JSON.stringify(this.getDB());
+  }
+
+  importDatabase(jsonString: string) {
+    try {
+      const parsed = JSON.parse(jsonString);
+      if (typeof parsed === 'object') {
+        localStorage.setItem(DB_KEY, jsonString);
+        window.dispatchEvent(new Event('storage'));
+        return true;
+      }
+    } catch (e) {
+      console.error("Institutional Data Import Failed:", e);
+    }
+    return false;
   }
 }
 

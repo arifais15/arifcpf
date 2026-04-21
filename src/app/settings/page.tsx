@@ -22,6 +22,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from "@/firebase"
+import { localDB } from "@/firebase/local-db-service"
 import { collection, doc } from "firebase/firestore"
 import { 
   Loader2, 
@@ -39,7 +40,11 @@ import {
   Lock,
   Unlock,
   KeyRound,
-  Coins
+  Coins,
+  Download,
+  Upload,
+  Database,
+  RefreshCw
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -256,6 +261,40 @@ export default function SettingsPage() {
     });
   };
 
+  // --- LOCAL DB PORTABILITY HANDLERS ---
+  const handleExportDB = () => {
+    const data = localDB.exportDatabase();
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `PBS_CPF_DATABASE_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Database Exported", description: "Storage file saved to downloads." });
+  };
+
+  const handleImportDB = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = localDB.importDatabase(event.target?.result as string);
+      if (result) {
+        showAlert({
+          title: "Import Successful",
+          description: "Institutional registry has been synchronized. System will now reload.",
+          type: "success",
+          onConfirm: () => window.location.reload()
+        });
+      } else {
+        toast({ title: "Import Failed", description: "Invalid database file.", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+  };
+
   if (isLedgerLoading || isInterestLoading || isCoaLoading || isGeneralLoading) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>
   }
@@ -329,6 +368,9 @@ export default function SettingsPage() {
           </TabsTrigger>
           <TabsTrigger value="branding" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
             <Building className="size-4" /> General
+          </TabsTrigger>
+          <TabsTrigger value="database" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+            <Database className="size-4" /> Data Portability
           </TabsTrigger>
         </TabsList>
 
@@ -626,6 +668,57 @@ export default function SettingsPage() {
               <div className="space-y-2">
                 <Label htmlFor="pbsName">Full Institutional Name</Label>
                 <Input id="pbsName" value={pbsName} disabled={!isUnlocked} onChange={(e) => setPbsName(e.target.value)} className="h-11 text-lg font-semibold" />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="database" className="space-y-8 animate-in fade-in duration-500">
+          <Card className="max-w-3xl border-none shadow-sm overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b">
+              <CardTitle className="text-lg flex items-center gap-2"><Database className="size-5 text-primary" /> Database Portability Terminal</CardTitle>
+              <CardDescription>Export your entire institutional registry for backup or transfer between PCs.</CardDescription>
+            </CardHeader>
+            <CardContent className="p-8 space-y-10">
+              <div className="grid md:grid-cols-2 gap-8">
+                <div className="p-6 bg-slate-50 border-2 border-black rounded-2xl space-y-4">
+                   <div className="flex items-center gap-3">
+                     <Download className="size-6 text-primary" />
+                     <h4 className="font-black uppercase text-sm">Download Backup</h4>
+                   </div>
+                   <p className="text-[11px] text-muted-foreground leading-relaxed">Encapsulates all Member Ledgers, Transactions, and Settings into a portable JSON file.</p>
+                   <Button onClick={handleExportDB} className="w-full h-11 font-black uppercase tracking-widest text-[10px]">Generate Archive</Button>
+                </div>
+
+                <div className="p-6 bg-slate-50 border-2 border-black rounded-2xl space-y-4">
+                   <div className="flex items-center gap-3">
+                     <Upload className="size-6 text-emerald-600" />
+                     <h4 className="font-black uppercase text-sm">Synchronize Drive</h4>
+                   </div>
+                   <p className="text-[11px] text-muted-foreground leading-relaxed">Import a database file from another machine. <span className="text-rose-600 font-bold">WARNING: This overwrites all current local data.</span></p>
+                   <div className="relative">
+                     <Input 
+                       type="file" 
+                       accept=".json" 
+                       onChange={handleImportDB}
+                       className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10"
+                       disabled={!isUnlocked}
+                     />
+                     <Button variant="outline" disabled={!isUnlocked} className="w-full h-11 font-black border-2 border-black uppercase tracking-widest text-[10px] bg-white">
+                        {isUnlocked ? "Select Registry File" : "Unlock Terminal First"}
+                     </Button>
+                   </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-start gap-4">
+                 <Info className="size-6 text-amber-600 mt-0.5 shrink-0" />
+                 <div className="space-y-1">
+                    <p className="text-xs font-black uppercase text-amber-900 tracking-wider">Institutional Safety Protocol</p>
+                    <p className="text-[11px] leading-relaxed text-amber-800">
+                      The local database is stored in your browser's persistence layer. Clearing browser cookies or cache may remove local data. **Perform a "Download Backup" weekly** and store the file on an external institutional drive for definitive safety.
+                    </p>
+                 </div>
               </div>
             </CardContent>
           </Card>

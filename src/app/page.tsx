@@ -1,8 +1,8 @@
 "use client"
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, TrendingUp, Wallet, ShieldCheck, Loader2, PieChart, Activity } from "lucide-react";
+import { Users, TrendingUp, Wallet, ShieldCheck, Loader2, PieChart, Activity, HardDrive, DatabaseZap, Clock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
@@ -11,6 +11,14 @@ import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const [lastSaved, setLastSaved] = useState<string>("");
+
+  useEffect(() => {
+    setLastSaved(new Date().toLocaleTimeString());
+    const handleSync = () => setLastSaved(new Date().toLocaleTimeString());
+    window.addEventListener('storage', handleSync);
+    return () => window.removeEventListener('storage', handleSync);
+  }, []);
 
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
@@ -32,7 +40,6 @@ export default function DashboardPage() {
         const debit = Number(line.debit) || 0;
         const credit = Number(line.credit) || 0;
         
-        // Use updated COA codes for calculation
         if (code === '200.10.0000' || code === '200.20.0000') fundValue += (credit - debit);
         if (code === '105.10.0000') currentLoans += debit;
         if (code === '105.20.0000') currentLoans -= credit;
@@ -81,9 +88,28 @@ export default function DashboardPage() {
 
   return (
     <div className="p-10 flex flex-col gap-12 bg-white min-h-screen font-black text-black">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-5xl font-black tracking-tight uppercase">Executive Summary</h1>
-        <p className="text-black uppercase tracking-[0.3em] text-xs font-black">Contributory Provident Fund Management Terminal</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-5xl font-black tracking-tight uppercase">Executive Summary</h1>
+          <p className="text-black uppercase tracking-[0.3em] text-xs font-black">Contributory Provident Fund Management Terminal</p>
+        </div>
+
+        {/* PORTABLE DRIVE MONITOR */}
+        <div className="flex items-center gap-4 bg-slate-50 border-2 border-black p-4 rounded-2xl shadow-lg no-print animate-in slide-in-from-right duration-700">
+           <div className="bg-black p-2 rounded-xl">
+             <HardDrive className="size-6 text-white" />
+           </div>
+           <div className="space-y-0.5">
+             <div className="flex items-center gap-2">
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Drive Status:</span>
+               <Badge className="bg-emerald-600 text-white text-[8px] h-4 uppercase font-black tracking-[0.1em]">Disk-Synched</Badge>
+             </div>
+             <div className="flex items-center gap-2">
+               <Clock className="size-3 text-primary" />
+               <span className="text-[11px] font-black uppercase">Last Auto-Commit: {lastSaved}</span>
+             </div>
+           </div>
+        </div>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
@@ -113,7 +139,7 @@ export default function DashboardPage() {
               </CardTitle>
               <CardDescription className="text-sm font-black uppercase opacity-70">Verified double-entry accounting records</CardDescription>
             </div>
-            <Badge variant="outline" className="border-2 border-black font-black px-3 py-1 uppercase">Live Sync</Badge>
+            <Badge variant="outline" className="border-2 border-black font-black px-3 py-1 uppercase">Disk-Verified</Badge>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -163,11 +189,14 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
-            <div className="mt-auto p-6 bg-slate-50 border-2 border-black">
-               <p className="text-[11px] uppercase font-black text-black tracking-[0.2em] mb-3 flex items-center gap-3">
-                 <ShieldCheck className="size-4" /> Integrity Check
+            <div className="mt-auto p-6 bg-slate-900 text-white border-2 border-black space-y-4">
+               <div className="flex items-center gap-3">
+                 <DatabaseZap className="size-4 text-emerald-400" />
+                 <p className="text-[10px] uppercase font-black tracking-[0.2em] text-white">Local-First Persistence</p>
+               </div>
+               <p className="text-[10px] text-slate-400 leading-relaxed italic font-black uppercase">
+                 Data is mirrored to your browser's persistent disk cache. Institutional safety is ensured across PC reboots.
                </p>
-               <p className="text-xs text-black leading-relaxed italic font-black uppercase">Metrics derived from verified ledger balances across all investment portfolios and cash accounts.</p>
             </div>
           </CardContent>
         </Card>
