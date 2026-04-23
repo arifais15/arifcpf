@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -55,7 +56,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const now = new Date();
     const curYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
+    const startYear = currentMonth >= 7 ? curYear : currentYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -73,7 +74,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   }, [availableFYs, selectedFY]);
 
   const ledgerLogic = useMemo(() => {
-    if (!summaries) return { rows: [], grand: { c1:0, c2:0, c3:0, c5:0, c6:0, c8:0, c9:0, c4:0, c7:0, c10:0, c11:0 }, totalAllTime: { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 } };
+    if (!summaries) return { rows: [], grand: { c1:0, c2:0, c3:0, c4:0, c5:0, c6:0, c7:0, c8:0, c9:0, c10:0, c11:0 }, totalAllTime: { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 } };
     const sorted = [...summaries].sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
     let rL = 0, rE = 0, rO = 0;
     const allC = sorted.map(row => {
@@ -97,7 +98,19 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const lastRow = rows[rows.length-1] || { col4:0, col7:0, col10:0, col11:0 };
     return { 
       rows, 
-      grand: { c1:viewSums.c1, c2:viewSums.c2, c3:viewSums.c3, c5:viewSums.c5, c6:viewSums.c6, c8:viewSums.c8, c9:viewSums.c9, c4:lastRow.col4, c7:lastRow.col7, col10:lastRow.col10, col11:lastRow.col11 }, 
+      grand: { 
+        c1: viewSums.c1, 
+        c2: viewSums.c2, 
+        c3: viewSums.c3, 
+        c4: lastRow.col4,
+        c5: viewSums.c5, 
+        c6: viewSums.c6, 
+        c7: lastRow.col7,
+        c8: viewSums.c8, 
+        c9: viewSums.c9, 
+        c10: lastRow.col10, 
+        c11: lastRow.col11 
+      }, 
       totalAllTime: allC.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 }) 
     };
   }, [summaries, dateRange]);
