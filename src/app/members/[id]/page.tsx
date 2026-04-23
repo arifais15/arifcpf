@@ -359,7 +359,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                <span className="text-xs font-black uppercase tracking-widest">Mathematical Consistency Verified</span>
             </div>
           </div>
-          <p className="text-[9px] font-black uppercase text-slate-300">Subsidiary Terminal v2.4 • Zero-Config Local Mode</p>
+          <p className="text-[9px] font-black uppercase text-slate-300">Developed by Ariful Islam, AGM Finance,Gazipur PBS-2</p>
         </div>
       </div>
 
