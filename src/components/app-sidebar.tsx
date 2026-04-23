@@ -104,7 +104,7 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
             <span className="font-black text-white text-base tracking-tighter uppercase">PBS CPF System</span>
-            <span className="text-[9px] text-white/50 uppercase font-black tracking-widest">Gazipur PBS-2</span>
+            <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">Institutional Mode</span>
           </div>
           {isMobile && (
             <Button variant="ghost" size="icon" className="size-8 ml-auto text-white" onClick={() => setOpenMobile(false)}>
@@ -113,7 +113,7 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarHeader>
-      <SidebarSeparator className="bg-white/10 mx-4" />
+      <SidebarSeparator className="bg-white/5 mx-4" />
       <SidebarContent className="px-3 py-4">
         <SidebarMenu>
           {navItems.map((item) => (
@@ -126,32 +126,32 @@ export function AppSidebar() {
                   "h-10 px-4 transition-all duration-200 rounded-lg group",
                   pathname === item.url 
                     ? "bg-white/10 text-white font-black" 
-                    : "text-white/70 hover:bg-white/5 hover:text-white"
+                    : "text-white/60 hover:bg-white/5 hover:text-white"
                 )}
               >
                 <Link href={item.url}>
-                  <item.icon className={cn("size-4 shrink-0 transition-colors", item.iconColor, pathname === item.url ? "opacity-100" : "opacity-60 group-hover:opacity-100")} />
-                  <span className="text-[13px] font-bold uppercase tracking-tight">{item.title}</span>
+                  <item.icon className={cn("size-4 shrink-0 transition-colors", item.iconColor, pathname === item.url ? "opacity-100" : "opacity-40 group-hover:opacity-100")} />
+                  <span className="text-[12px] font-bold uppercase tracking-tight">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4 bg-black/20">
+      <SidebarFooter className="p-4 bg-black/10">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild className="h-10 text-white/70 hover:bg-white/5 hover:text-white rounded-lg">
+            <SidebarMenuButton asChild className="h-10 text-white/50 hover:bg-white/5 hover:text-white rounded-lg">
               <Link href="/settings">
-                <Settings className="size-4 opacity-60" />
-                <span className="font-bold text-[13px] uppercase tracking-tight">System Configuration</span>
+                <Settings className="size-4 opacity-50" />
+                <span className="font-bold text-[12px] uppercase tracking-tight">Configuration</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-10 text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={handleLogout}>
               <LogOut className="size-4" />
-              <span className="font-bold text-[13px] uppercase tracking-tight">Terminate Session</span>
+              <span className="font-bold text-[12px] uppercase tracking-tight">Logout</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
