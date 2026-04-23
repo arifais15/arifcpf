@@ -40,32 +40,54 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-const navItems = [
-  { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
-  { title: "জাবেদা বই", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
-  { title: "নতুন ভাউচার এন্ট্রি", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
-  { title: "সাধারণ খতিয়ান", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
-  { title: "নিয়ন্ত্রণ খতিয়ান", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
-  { title: "রেওয়ামিল ম্যাট্রিক্স", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
-  { title: "সদস্য রেজিস্টার", icon: Users, url: "/members", iconColor: "text-cyan-400" },
-  { title: "লেজার সামারি", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
-  { title: "বিনিয়োগ পোর্টফোলিও", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
-  { title: "সদস্য মুনাফা", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
-  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
-  { title: "ফান্ডের গতিবিধি", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
-  { title: "মুনাফার মুভমেন্ট", icon: Coins, url: "/reports/interest-movements", iconColor: "text-emerald-500" },
-  { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
-  { title: "ব্যাচ লেজার প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
-  { title: "ঋণ রেজিস্টার", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
-  { title: "নিষ্পত্তি লগ", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
-  { title: "অডিট ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", iconColor: "text-pink-400" },
-  { title: "ব্যবহারকারী নির্দেশিকা", icon: HelpCircle, url: "/manual", iconColor: "text-slate-400" },
+const navigationGroups = [
+  {
+    label: "মূল মেনু",
+    items: [
+      { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
+      { title: "জাবেদা বই", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
+      { title: "নতুন ভাউচার এন্ট্রি", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
+    ]
+  },
+  {
+    label: "সদস্য লেজার",
+    items: [
+      { title: "সদস্য রেজিস্টার", icon: Users, url: "/members", iconColor: "text-cyan-400" },
+      { title: "লেজার সামারি", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
+      { title: "ঋণ রেজিস্টার", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
+      { title: "নিষ্পত্তি লগ", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
+      { title: "ব্যাচ লেজার প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
+    ]
+  },
+  {
+    label: "বিনিয়োগ ব্যবস্থাপনা",
+    items: [
+      { title: "বিনিয়োগ পোর্টফোলিও", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
+      { title: "সদস্য মুনাফা", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
+      { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
+    ]
+  },
+  {
+    label: "আর্থিক প্রতিবেদন",
+    items: [
+      { title: "আর্থিক প্রতিবেদন (হোম)", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
+      { title: "রেওয়ামিল ম্যাট্রিক্স", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
+      { title: "সাধারণ খতিয়ান", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
+      { title: "নিয়ন্ত্রণ খতিয়ান", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
+      { title: "ফান্ডের গতিবিধি", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
+      { title: "মুনাফার মুভমেন্ট", icon: Coins, iconColor: "text-emerald-500", url: "/reports/interest-movements" },
+      { title: "অডিট ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", iconColor: "text-pink-400" },
+    ]
+  }
 ]
 
 export function AppSidebar() {
@@ -115,29 +137,64 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
       <SidebarSeparator className="bg-white/5 mx-4" />
-      <SidebarContent className="px-3 py-4">
-        <SidebarMenu>
-          {navItems.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname === item.url}
-                tooltip={item.title}
-                className={cn(
-                  "h-10 px-4 transition-all duration-200 rounded-lg group",
-                  pathname === item.url 
-                    ? "bg-white/10 text-white font-black" 
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
-                )}
-              >
-                <Link href={item.url}>
-                  <item.icon className={cn("size-4 shrink-0 transition-colors", item.iconColor, pathname === item.url ? "opacity-100" : "opacity-40 group-hover:opacity-100")} />
-                  <span className="text-[14px] font-bold tracking-tight">{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
+      <SidebarContent className="px-3 py-4 space-y-4">
+        {navigationGroups.map((group) => (
+          <SidebarGroup key={group.label} className="p-0">
+            <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-4 mb-2">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={pathname === item.url}
+                      tooltip={item.title}
+                      className={cn(
+                        "h-9 px-4 transition-all duration-200 rounded-lg group",
+                        pathname === item.url 
+                          ? "bg-white/10 text-white font-black" 
+                          : "text-white/60 hover:bg-white/5 hover:text-white"
+                      )}
+                    >
+                      <Link href={item.url}>
+                        <item.icon className={cn("size-4 shrink-0 transition-colors", item.iconColor, pathname === item.url ? "opacity-100" : "opacity-40 group-hover:opacity-100")} />
+                        <span className="text-[13px] font-bold tracking-tight">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
+
+        <SidebarGroup className="p-0">
+          <SidebarGroupLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 px-4 mb-2">সহায়তা</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/manual"}
+                  tooltip="ব্যবহারকারী নির্দেশিকা"
+                  className={cn(
+                    "h-9 px-4 transition-all duration-200 rounded-lg group",
+                    pathname === "/manual" 
+                      ? "bg-white/10 text-white font-black" 
+                      : "text-white/60 hover:bg-white/5 hover:text-white"
+                  )}
+                >
+                  <Link href="/manual">
+                    <HelpCircle className="size-4 shrink-0 opacity-40 text-slate-400 group-hover:opacity-100" />
+                    <span className="text-[13px] font-bold tracking-tight">ব্যবহারকারী নির্দেশিকা</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="p-4 bg-black/10">
         <SidebarMenu>
