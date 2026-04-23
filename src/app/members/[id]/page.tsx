@@ -241,10 +241,10 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="bg-white p-4 md:p-12 shadow-[20px_20px_0px_0px_rgba(0,0,0,0.05)] border-4 border-black max-w-[1500px] mx-auto w-full print-container overflow-x-auto rounded-none">
-        <div className="text-center border-b-4 border-black pb-8 mb-10 min-w-[1050px] relative">
-          <div className="absolute top-0 left-0 bg-slate-100 border border-black px-4 py-1 font-black text-[10px] uppercase tracking-widest text-black">Institutional Vault Registry</div>
-          <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-black">{pbsName}</h1>
-          <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.4em] mt-3 underline underline-offset-8 decoration-4 text-black">Provident Fund Subsidiary Ledger</h2>
+        <div className="text-center min-w-[1050px] relative mb-1 pb-1">
+          <div className="absolute top-0 left-0 bg-slate-100 border border-black px-4 py-0.5 font-black text-[9px] uppercase tracking-widest text-black">Institutional Vault Registry</div>
+          <h1 className="text-2xl font-black uppercase tracking-tight text-black leading-none">{pbsName}</h1>
+          <h2 className="text-sm font-black uppercase tracking-[0.2em] mt-1 text-black">Provident Fund Subsidiary Ledger</h2>
         </div>
 
         <div className="grid grid-cols-3 border-4 border-black mb-2 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
@@ -373,7 +373,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   <p className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mt-1">Direct Vault Modification Interface</p>
                </div>
             </div>
-            {editingEntry && <Badge className="bg-emerald-500 text-black font-black uppercase tracking-widest px-4 h-8 rounded-none">Editing Record</Badge>}
+            {editingEntry && <Badge className="bg-emerald-500 text-black font-black uppercase tracking-widest px-4 h-8 rounded-none border-2 border-black">Editing Record</Badge>}
           </DialogHeader>
 
           <form onSubmit={handleManualSubmit} className="flex-1 overflow-y-auto p-8 space-y-8 text-black bg-white custom-scrollbar">
@@ -451,37 +451,37 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </div>
             </div>
 
-            <div className="p-8 bg-slate-900 text-white border-[6px] border-emerald-500/20 shadow-2xl relative shrink-0">
-              <div className="absolute top-0 right-10 -translate-y-1/2 bg-emerald-500 text-black px-6 py-1.5 font-black uppercase text-[10px] tracking-widest shadow-xl">Audit Result</div>
+            <div className="p-8 bg-slate-50 text-black border-[6px] border-black/10 shadow-inner relative shrink-0">
+              <div className="absolute top-0 right-10 -translate-y-1/2 bg-white border-2 border-black text-black px-6 py-1.5 font-black uppercase text-[10px] tracking-widest shadow-xl">Entry Impact Audit</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                <div className="space-y-1 border-r-2 border-white/10 pr-6">
+                <div className="space-y-1 border-r-2 border-black/5 pr-6">
                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Employee Fund Δ</p>
-                   <p className={cn("text-xl font-black tabular-nums", rowVerification.netEmp >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                   <p className={cn("text-xl font-black tabular-nums", rowVerification.netEmp >= 0 ? "text-emerald-600" : "text-rose-600")}>
                       {rowVerification.netEmp >= 0 ? "+" : ""}{rowVerification.netEmp.toLocaleString()}
                    </p>
                 </div>
-                <div className="space-y-1 border-r-2 border-white/10 pr-6">
+                <div className="space-y-1 border-r-2 border-black/5 pr-6">
                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Office Fund Δ</p>
-                   <p className={cn("text-xl font-black tabular-nums", rowVerification.netOff >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                   <p className={cn("text-xl font-black tabular-nums", rowVerification.netOff >= 0 ? "text-emerald-600" : "text-rose-600")}>
                       {rowVerification.netOff >= 0 ? "+" : ""}{rowVerification.netOff.toLocaleString()}
                    </p>
                 </div>
-                <div className="space-y-1 border-r-2 border-white/10 pr-6">
+                <div className="space-y-1 border-r-2 border-black/5 pr-6">
                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Loan Balance Δ</p>
-                   <p className={cn("text-xl font-black tabular-nums", rowVerification.loanEffect >= 0 ? "text-rose-400" : "text-emerald-400")}>
+                   <p className={cn("text-xl font-black tabular-nums", rowVerification.loanEffect >= 0 ? "text-rose-600" : "text-emerald-600")}>
                       {rowVerification.loanEffect >= 0 ? "+" : ""}{rowVerification.loanEffect.toLocaleString()}
                    </p>
                 </div>
                 <div className="space-y-1">
-                   <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">TOTAL IMPACT</p>
-                   <p className="text-2xl font-black tabular-nums underline decoration-double decoration-emerald-500/30">৳ {rowVerification.total.toLocaleString()}</p>
+                   <p className="text-[9px] font-black uppercase tracking-widest text-primary">TOTAL IMPACT</p>
+                   <p className="text-2xl font-black tabular-nums underline decoration-double decoration-black/10">৳ {rowVerification.total.toLocaleString()}</p>
                 </div>
               </div>
             </div>
 
             <Button type="submit" className="w-full h-20 font-black uppercase tracking-[0.4em] bg-black text-white shadow-2xl hover:bg-slate-900 border-4 border-white/10 text-lg transition-all group shrink-0">
               <Save className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
-              Commit Voucher to Vault
+              Commit Voucher to Ledger
             </Button>
           </form>
         </DialogContent>
