@@ -21,7 +21,8 @@ import {
   ChevronsUpDown, 
   Search as SearchIcon,
   ShieldCheck,
-  Calculator
+  Calculator,
+  BookOpen
 } from "lucide-react";
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,88 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 
 interface LineItem { id: string; accountCode: string; debit: number; credit: number; memo: string; memberId?: string; }
+
+function AccountSearchSelector({ value, onValueChange, accounts }: any) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const selectedAccount = useMemo(() => accounts?.find((a: any) => a.code === value), [accounts, value]);
+
+  const filteredAccounts = useMemo(() => {
+    if (!search) return accounts || [];
+    const term = search.toLowerCase();
+    return accounts?.filter((a: any) => 
+      (a.name || '').toLowerCase().includes(term) || 
+      (a.code || '').includes(search)
+    ) || [];
+  }, [accounts, search]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between border-none shadow-none h-10 font-black text-[11px] uppercase bg-transparent hover:bg-slate-50 px-4 focus:ring-0"
+        >
+          <span className="truncate text-left max-w-[300px] text-black">
+            {value ? `${value} — ${selectedAccount?.name || 'MANUAL INPUT'}` : "SELECT ACCOUNT..."}
+          </span>
+          <ChevronsUpDown className="ml-1 h-3.5 w-3.5 shrink-0 opacity-30 text-black" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[450px] p-0 border-2 border-black rounded-none shadow-2xl overflow-hidden font-ledger" align="start">
+        <div className="flex items-center border-b border-black px-3 bg-slate-50">
+          <SearchIcon className="mr-2 h-4 w-4 shrink-0 opacity-40 text-black" />
+          <Input
+            placeholder="Search Code or Account Head..."
+            className="h-12 border-none bg-transparent focus-visible:ring-0 font-black text-sm text-black"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <ScrollArea className="h-[300px] bg-white">
+          <div className="p-1">
+             {/* Support for direct user input/manual code */}
+             {search && !accounts.find((a:any) => a.code === search) && (
+               <Button
+                 variant="ghost"
+                 className="w-full justify-start font-black text-[11px] h-11 rounded-none uppercase mb-1 text-indigo-600 hover:bg-indigo-50 border-b border-indigo-100"
+                 onClick={() => {
+                   onValueChange(search);
+                   setOpen(false);
+                   setSearch("");
+                 }}
+               >
+                 <Plus className="mr-2 h-4 w-4" />
+                 USE MANUAL CODE: "{search}"
+               </Button>
+             )}
+            {filteredAccounts.map((a: any) => (
+              <Button
+                key={a.code}
+                variant="ghost"
+                className="w-full justify-start font-black text-[11px] h-auto py-2.5 text-left rounded-none uppercase transition-colors text-black hover:bg-slate-100"
+                onClick={() => {
+                  onValueChange(a.code);
+                  setOpen(false);
+                  setSearch("");
+                }}
+              >
+                <Check className={cn("mr-2 h-4 w-4 shrink-0", value === a.code ? "opacity-100" : "opacity-0")} />
+                <div className="flex flex-col gap-0.5 overflow-hidden">
+                   <span className="truncate">{a.code} — {a.name}</span>
+                   <span className="text-[9px] opacity-40 tracking-wider font-bold">{a.type} | {a.balance}</span>
+                </div>
+              </Button>
+            ))}
+          </div>
+        </ScrollArea>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function MemberSearchSelector({ value, onValueChange, members }: any) {
   const [open, setOpen] = useState(false);
@@ -105,7 +188,7 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
               >
                 <Check className={cn("mr-2 h-3.5 w-3.5 shrink-0", value === m.id ? "opacity-100" : "opacity-0")} />
                 <div className="flex flex-col gap-0 overflow-hidden">
-                   <span className="truncate">{m.memberIdNumber} - {m.name}</span>
+                   <span className="truncate">{m.memberIdNumber} — {m.name}</span>
                    <span className="text-[8px] opacity-40 tracking-wider font-bold">{m.designation}</span>
                 </div>
               </Button>
@@ -214,7 +297,7 @@ function TransactionForm() {
       createdAt: existingTransaction?.createdAt || new Date().toISOString(), 
       lines: lines.map(l => ({ 
         accountCode: l.accountCode, 
-        accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "", 
+        accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "MANUAL INPUT", 
         debit: Number(l.debit) || 0, 
         credit: Number(l.credit) || 0, 
         memo: l.memo, 
@@ -290,18 +373,11 @@ function TransactionForm() {
               {lines.map((l) => (
                 <tr key={l.id} className="border-b border-black hover:bg-slate-50/50 transition-colors h-11">
                   <td className="border-r border-black p-0">
-                    <Select value={l.accountCode} onValueChange={(v) => updateLine(l.id, { accountCode: v })}>
-                      <SelectTrigger className="border-none shadow-none font-black h-10 w-full rounded-none bg-transparent px-4 focus:ring-0 uppercase text-xs">
-                        <SelectValue placeholder="SELECT ACCOUNT..." />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[400px] border-2 border-black rounded-none shadow-2xl">
-                        {activeCOA.filter(a => !a.isHeader).map(a => (
-                          <SelectItem key={a.code} value={a.code} className="font-black text-xs uppercase py-2">
-                            {a.code} — {a.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <AccountSearchSelector 
+                      value={l.accountCode} 
+                      onValueChange={(v: string) => updateLine(l.id, { accountCode: v })}
+                      accounts={activeCOA.filter(a => !a.isHeader)}
+                    />
                   </td>
                   <td className="border-r border-black p-0">
                     <MemberSearchSelector 
