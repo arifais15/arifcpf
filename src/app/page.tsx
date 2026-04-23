@@ -124,7 +124,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-black text-black tracking-tight uppercase">সারসংক্ষেপ</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[11px] font-bold">সমন্বিত সিপিএফ ম্যানেজমেন্ট টার্মিনাল • প্রাতিষ্ঠানিক ড্যাশবোর্ড</p>
+          <p className="text-black uppercase tracking-widest text-[11px] font-black bg-black text-white px-3 py-1 rounded inline-block">সমন্বিত সিপিএফ ম্যানেজমেন্ট টার্মিনাল • প্রাতিষ্ঠানিক ড্যাশবোর্ড</p>
         </div>
 
         <div className="flex items-center gap-4 bg-white border-2 border-black p-4 rounded-2xl shadow-lg no-print">
@@ -133,12 +133,12 @@ export default function DashboardPage() {
            </div>
            <div className="space-y-0.5">
              <div className="flex items-center gap-2">
-               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">ডেটাবেস ইঞ্জিন:</span>
-               <Badge className="bg-black text-white text-[8px] h-4 uppercase font-bold border-none rounded-none px-2 tracking-widest">Local Matrix Active</Badge>
+               <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">ডেটাবেস ইঞ্জিন:</span>
+               <Badge className="bg-emerald-600 text-white text-[10px] h-5 uppercase font-black border-none rounded-none px-3 tracking-widest">Local Matrix Active</Badge>
              </div>
              <div className="flex items-center gap-2">
-               <Clock className="size-3 text-slate-400" />
-               <span className="text-[11px] font-bold text-slate-600">সিঙ্ক সময়: {lastSaved}</span>
+               <Clock className="size-3.5 text-indigo-600" />
+               <span className="text-[12px] font-black text-indigo-700 uppercase tracking-tight">সিঙ্ক সময়: {lastSaved}</span>
              </div>
            </div>
         </div>
@@ -148,14 +148,14 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <Card key={stat.title} className={cn("border-2 shadow-xl hover:scale-[1.02] transition-all overflow-hidden rounded-2xl", stat.bg, stat.border)}>
             <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+              <CardTitle className={cn("text-xs font-black uppercase tracking-widest", stat.color)}>
                 {stat.title}
               </CardTitle>
               <stat.icon className={cn("h-6 w-6", stat.color)} />
             </CardHeader>
             <CardContent>
               <div className={cn("text-3xl font-black tracking-tight tabular-nums", stat.color)}>{stat.value}</div>
-              <p className="text-[10px] font-bold uppercase mt-2 tracking-wider text-slate-400 border-t border-black/5 pt-2">{stat.sub}</p>
+              <p className={cn("text-[11px] font-black uppercase mt-2 tracking-wider border-t border-black/5 pt-2 opacity-60")}>{stat.sub}</p>
             </CardContent>
           </Card>
         ))}
@@ -165,34 +165,34 @@ export default function DashboardPage() {
         <Card className="lg:col-span-8 border-2 border-black shadow-2xl rounded-none overflow-hidden bg-white">
           <CardHeader className="bg-slate-50 border-b-2 border-black flex flex-row items-center justify-between py-5 px-6">
             <div>
-              <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-black">
-                <ShieldCheck className="size-5" />
+              <CardTitle className="text-xl font-black uppercase flex items-center gap-3 text-black">
+                <ShieldCheck className="size-6 text-emerald-600" />
                 অডিট লগ: সাম্প্রতিক কার্যক্রম
               </CardTitle>
-              <CardDescription className="text-[11px] font-bold uppercase tracking-wider text-slate-500">যাচাইকৃত দ্বৈত-প্রবেশ হিসাব বিবরণী (Local Drive Archive)</CardDescription>
+              <CardDescription className="text-xs font-black uppercase tracking-widest text-indigo-600 mt-1">যাচাইকৃত দ্বৈত-প্রবেশ হিসাব বিবরণী (Local Drive Archive)</CardDescription>
             </div>
-            <Badge variant="outline" className="border-black border-2 font-black px-4 py-1.5 uppercase text-[9px] tracking-widest bg-white shadow-sm">রিয়েল-টাইম ডাটা</Badge>
+            <Badge variant="outline" className="border-black border-2 font-black px-4 py-1.5 uppercase text-[10px] tracking-widest bg-white shadow-sm text-black">রিয়েল-টাইম ডাটা</Badge>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-100 border-b-2 border-black">
-                    <TableHead className="font-black py-4 pl-6 text-black uppercase text-[10px] border-r border-black/10">তারিখ</TableHead>
-                    <TableHead className="font-black py-4 text-black uppercase text-[10px] border-r border-black/10">বিবরণ</TableHead>
-                    <TableHead className="font-black py-4 text-black uppercase text-[10px] border-r border-black/10">রেফারেন্স</TableHead>
-                    <TableHead className="text-right font-black py-4 pr-6 text-black uppercase text-[10px]">পরিমাণ (৳)</TableHead>
+                    <TableHead className="font-black py-4 pl-6 text-indigo-700 uppercase text-[11px] border-r border-black/10 tracking-widest">তারিখ</TableHead>
+                    <TableHead className="font-black py-4 text-blue-700 uppercase text-[11px] border-r border-black/10 tracking-widest">বিবরণ</TableHead>
+                    <TableHead className="font-black py-4 text-amber-700 uppercase text-[11px] border-r border-black/10 tracking-widest">রেফারেন্স</TableHead>
+                    <TableHead className="text-right font-black py-4 pr-6 text-emerald-700 uppercase text-[11px] tracking-widest">পরিমাণ (৳)</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentEntries.length === 0 ? (
-                    <TableRow><TableCell colSpan={4} className="text-center py-24 text-slate-400 font-bold uppercase text-xs">কোনো তথ্য পাওয়া যায়নি।</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center py-24 text-slate-400 font-black uppercase text-sm italic">কোনো তথ্য পাওয়া যায়নি।</TableCell></TableRow>
                   ) : recentEntries.map((entry) => (
                     <TableRow key={entry.id} className="hover:bg-slate-50 transition-colors border-b border-black/10 last:border-0 h-[29px]">
-                      <td className="font-mono text-[11px] font-bold pl-6 border-r border-black/5">{entry.entryDate}</td>
-                      <td className="text-[11px] font-bold uppercase text-slate-700 truncate max-w-[250px] border-r border-black/5">{entry.description}</td>
-                      <td className="border-r border-black/5"><Badge variant="outline" className="text-[9px] uppercase font-bold tracking-widest px-2 border-black/20 rounded-none bg-slate-50">{entry.referenceNumber || "স্বয়ংক্রিয়"}</Badge></td>
-                      <td className="text-right font-black text-black pr-6 tabular-nums">৳ {(entry.totalAmount || 0).toLocaleString('bn-BD', { minimumFractionDigits: 2 })}</td>
+                      <td className="font-mono text-[11px] font-black pl-6 border-r border-black/5 text-indigo-700">{entry.entryDate}</td>
+                      <td className="text-[12px] font-black uppercase text-black truncate max-w-[250px] border-r border-black/5">{entry.description}</td>
+                      <td className="border-r border-black/5"><Badge variant="outline" className="text-[10px] uppercase font-black tracking-widest px-2 border-black/20 rounded-none bg-slate-50 text-amber-800">{entry.referenceNumber || "স্বয়ংক্রিয়"}</Badge></td>
+                      <td className="text-right font-black text-black pr-6 tabular-nums text-sm">৳ {(entry.totalAmount || 0).toLocaleString('bn-BD', { minimumFractionDigits: 2 })}</td>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -203,21 +203,21 @@ export default function DashboardPage() {
 
         <Card className="lg:col-span-4 border-2 border-black shadow-2xl bg-white rounded-none flex flex-col overflow-hidden">
           <CardHeader className="py-5 px-6 border-b-2 border-black bg-slate-50">
-            <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-black">
-              <PieChart className="size-5" />
+            <CardTitle className="text-xl font-black uppercase flex items-center gap-3 text-black">
+              <PieChart className="size-6 text-indigo-600" />
               সম্পদ বন্টন
             </CardTitle>
-            <CardDescription className="text-[11px] font-bold uppercase tracking-wider text-slate-500">পোর্টফোলিও ঝুঁকি ও বিন্যাস ম্যাট্রিক্স</CardDescription>
+            <CardDescription className="text-xs font-black uppercase tracking-widest text-slate-500 mt-1">পোর্টফোলিও ঝুঁকি ও বিন্যাস ম্যাট্রিক্স</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-8 p-8">
             <div className="space-y-8">
               {allocation.map((item) => (
                 <div key={item.label} className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">
+                  <div className="flex justify-between text-[11px] font-black uppercase tracking-[0.2em] text-black">
                     <span>{item.label}</span>
                     <span className="tabular-nums font-black text-black">{item.value.toLocaleString('bn-BD')}%</span>
                   </div>
-                  <div className="h-4 w-full bg-slate-100 rounded-none overflow-hidden shadow-inner border border-black/10">
+                  <div className="h-5 w-full bg-slate-100 rounded-none overflow-hidden shadow-inner border border-black/10">
                     <div className={cn("h-full transition-all duration-1000 ease-in-out shadow-sm", item.color)} style={{ width: `${item.value}%` }} />
                   </div>
                 </div>
@@ -229,14 +229,14 @@ export default function DashboardPage() {
                   <DatabaseZap className="size-20" />
                </div>
                <div className="flex items-center gap-2 relative z-10">
-                 <DatabaseZap className="size-4 text-emerald-400" />
-                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">ডিস্ক পারসিস্টেন্স মনিটর</p>
+                 <DatabaseZap className="size-5 text-emerald-400" />
+                 <p className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400">ডিস্ক পারসিস্টেন্স মনিটর</p>
                </div>
-               <p className="text-[12px] text-slate-300 leading-relaxed font-bold italic relative z-10 border-l-2 border-emerald-500 pl-4">
+               <p className="text-[13px] text-slate-300 leading-relaxed font-black italic relative z-10 border-l-4 border-emerald-500 pl-4">
                  "ডাটা সরাসরি হোস্ট মেশিনের ড্রাইভে সংরক্ষিত হয়। জিরো ক্লাউড এক্সপোজার উচ্চ গোপনীয়তা নিশ্চিত করে। প্রাতিষ্ঠানিক গোপনীয়তা বজায় রাখতে আমরা এই লোকাল ইঞ্জিন ব্যবহার করি।"
                </p>
-               <div className="flex items-center gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest relative z-10 pt-2 border-t border-white/5">
-                 <ShieldCheck className="size-3" />
+               <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest relative z-10 pt-3 border-t border-white/5">
+                 <ShieldCheck className="size-4 text-emerald-600" />
                  ইন্ডাস্ট্রি স্ট্যান্ডার্ড এনক্রিপশন সক্রিয়
                </div>
             </div>

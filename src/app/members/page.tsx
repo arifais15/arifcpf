@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -194,33 +195,33 @@ export default function MembersPage() {
   };
 
   const headerActions = useMemo(() => (
-    <div className="flex gap-2 ml-auto no-print">
-      <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-9 border border-black uppercase text-[10px] font-black text-black">
-        <Upload className="size-3.5 mr-2" /> Monthly Matrix
+    <div className="flex gap-3 ml-auto no-print">
+      <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-2 border-black uppercase text-[11px] font-black text-black rounded-xl px-6 bg-white hover:bg-slate-50 shadow-md">
+        <Upload className="size-4 mr-2" /> Monthly Matrix
       </Button>
-      <Button onClick={() => setIsAddOpen(true)} className="h-9 bg-black text-white uppercase text-[10px] font-black">
-        <Plus className="size-3.5 mr-2" /> Register Personnel
+      <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white uppercase text-[11px] font-black rounded-xl px-8 shadow-xl">
+        <Plus className="size-4 mr-2" /> Register Personnel
       </Button>
     </div>
   ), []);
 
   return (
-    <div className="p-8 flex flex-col gap-6 bg-background min-h-screen font-ledger text-black">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
-      <div className="bg-white p-4 border border-black shadow-lg flex items-center justify-between no-print">
-        <div className="relative flex-1 max-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
+      <div className="bg-white p-6 border-2 border-black shadow-2xl flex items-center justify-between no-print rounded-2xl">
+        <div className="relative flex-1 max-w-xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
           <Input 
-            className="pl-9 h-10 bg-slate-50 border border-black font-black text-base" 
-            placeholder="Search Personnel (ID/Name)..." 
+            className="pl-12 h-12 bg-slate-50 border-2 border-black font-black text-lg focus:bg-white transition-all shadow-inner" 
+            placeholder="Search Institutional Personnel (ID/Name)..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
           />
         </div>
-        <div className="flex items-center gap-4 border-l border-slate-200 pl-6 ml-6">
-          <div className="flex items-center gap-2">
-            <Label className="text-[10px] font-black uppercase text-slate-400">Rows</Label>
+        <div className="flex items-center gap-6 border-l-2 border-black/10 pl-8 ml-8">
+          <div className="flex items-center gap-3">
+            <Label className="text-[11px] font-black uppercase text-slate-500 tracking-widest">Display Rows</Label>
             <Select 
               value={pageSize.toString()} 
               onValueChange={(v) => { 
@@ -229,51 +230,54 @@ export default function MembersPage() {
                 setCurrentPage(1); 
               }}
             >
-              <SelectTrigger className="h-9 w-20 border border-black font-black text-xs">
+              <SelectTrigger className="h-10 w-24 border-2 border-black font-black text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">5</SelectItem>
-                <SelectItem value="10">10</SelectItem>
-                <SelectItem value="25">25</SelectItem>
-                <SelectItem value="-1">All</SelectItem>
+                <SelectItem value="5" className="font-black">5 Rows</SelectItem>
+                <SelectItem value="10" className="font-black">10 Rows</SelectItem>
+                <SelectItem value="25" className="font-black">25 Rows</SelectItem>
+                <SelectItem value="-1" className="font-black">All</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          <Badge className="bg-black text-white px-4 py-2 font-black uppercase text-[10px] tracking-[0.2em] rounded-none shadow-lg">
+            {members.length} Personnel Listed
+          </Badge>
         </div>
       </div>
 
-      <div className="bg-white rounded-none border border-black shadow-xl overflow-hidden">
+      <div className="bg-white rounded-none border-2 border-black shadow-2xl overflow-hidden">
         <Table className="text-black font-black">
-          <TableHeader className="bg-slate-50 border-b border-black">
+          <TableHeader className="bg-slate-100 border-b-2 border-black">
             <TableRow>
-              <TableHead className="w-[120px] uppercase text-[10px] font-black pl-6 text-black border-r border-black">ID Number</TableHead>
-              <TableHead className="uppercase text-[10px] font-black text-black border-r border-black">Legal Name</TableHead>
-              <TableHead className="uppercase text-[10px] font-black text-black border-r border-black">Position</TableHead>
-              <TableHead className="uppercase text-[10px] font-black text-black text-center border-r border-black">Status</TableHead>
-              <TableHead className="text-right uppercase text-[10px] font-black pr-6 text-black">Operational Actions</TableHead>
+              <TableHead className="w-[150px] uppercase text-[11px] font-black pl-8 text-amber-800 border-r border-black tracking-[0.1em]">Vault ID</TableHead>
+              <TableHead className="uppercase text-[11px] font-black text-blue-800 border-r border-black tracking-[0.1em]">Legal Name</TableHead>
+              <TableHead className="uppercase text-[11px] font-black text-slate-600 border-r border-black tracking-[0.1em]">Designation</TableHead>
+              <TableHead className="uppercase text-[11px] font-black text-indigo-700 text-center border-r border-black tracking-[0.1em]">Status</TableHead>
+              <TableHead className="text-right uppercase text-[11px] font-black pr-8 text-black tracking-[0.1em]">Operations</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow key="loading"><TableCell colSpan={5} className="text-center py-20 h-[29px]"><Loader2 className="size-6 animate-spin mx-auto text-black" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-24"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow key="empty"><TableCell colSpan={5} className="text-center py-16 text-slate-400 font-black uppercase italic h-[29px]">No institutional records found</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase text-xl italic opacity-20">No institutional records synchronized</TableCell></TableRow>
             ) : members.map((m) => (
-              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black h-[29px] bg-transparent">
-                <td className="font-mono text-base pl-6 py-0 border-r border-black">{m.memberIdNumber}</td>
-                <td className="text-sm uppercase py-0 border-r border-black">{m.name}</td>
-                <td className="text-[10px] uppercase opacity-60 py-0 border-r border-black">{m.designation}</td>
+              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black h-[29px] transition-colors group">
+                <td className="font-mono text-base pl-8 py-0 border-r border-black text-amber-900">{m.memberIdNumber}</td>
+                <td className="text-[13px] uppercase font-black py-0 border-r border-black text-black group-hover:text-blue-700">{m.name}</td>
+                <td className="text-[10px] uppercase font-black opacity-50 py-0 border-r border-black">{m.designation}</td>
                 <td className="text-center py-0 border-r border-black">
-                  <Badge variant="outline" className={cn("text-[9px] uppercase font-black border-black h-4 px-1.5", m.status === 'Active' ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
+                  <Badge variant="outline" className={cn("text-[9px] uppercase font-black border-black h-5 px-2 rounded-none", m.status === 'Active' ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
                     {m.status || "Active"}
                   </Badge>
                 </td>
-                <td className="text-right pr-6 py-0">
-                  <div className="flex justify-end gap-1 items-center h-full">
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-black" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-3" /></Button>
-                    <Button variant="ghost" size="icon" className="h-5 w-5 text-rose-600 hover:bg-rose-50" onClick={() => showAlert({ title: "Remove Personnel?", description: `Permanently delete ${m.name}?`, type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-3" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-5 px-1.5 border-black border font-black uppercase text-[8px] text-black"><Link href={`/members/${m.id}`}>Ledger</Link></Button>
+                <td className="text-right pr-8 py-0">
+                  <div className="flex justify-end gap-2 items-center h-full">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-black hover:bg-black hover:text-white transition-all" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-white hover:bg-rose-600 transition-all" onClick={() => showAlert({ title: "Irreversible Purge?", description: `Remove ${m.name} from vault?`, type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-3.5" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-6 px-4 border-black border-2 font-black uppercase text-[10px] text-black bg-white hover:bg-black hover:text-white rounded-none transition-all tracking-widest ml-2"><Link href={`/members/${m.id}`}>Open Ledger</Link></Button>
                   </div>
                 </td>
               </TableRow>
@@ -283,24 +287,41 @@ export default function MembersPage() {
       </div>
 
       <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if (!o) setEditingMember(null); }}>
-        <DialogContent className="max-w-2xl bg-white p-0 rounded-lg shadow-2xl overflow-hidden border-2 border-black">
-          <DialogHeader className="bg-slate-50 p-5 border-b-2 border-black">
-            <DialogTitle className="font-black uppercase text-xl flex items-center gap-3 text-black"><UserCircle className="size-6" /> Personnel Registration Matrix</DialogTitle>
+        <DialogContent className="max-w-2xl bg-white p-0 rounded-none shadow-2xl overflow-hidden border-4 border-black font-ledger">
+          <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
+            <DialogTitle className="font-black uppercase text-2xl flex items-center gap-4 text-black">
+              <UserCircle className="size-8 text-blue-700" /> 
+              Personnel Registration Matrix
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddMember} className="p-6 space-y-6 text-black">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-1"><Label className="text-[9px] font-black uppercase ml-1">Member ID No</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-10 border-black border font-black text-black" disabled={!!editingMember} /></div>
-              <div className="space-y-1"><Label className="text-[9px] font-black uppercase ml-1">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-10 border-black border font-black text-black" /></div>
-              <div className="space-y-1"><Label className="text-[9px] font-black uppercase ml-1">Official Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-10 border-black border font-black text-black" /></div>
-              <div className="space-y-1"><Label className="text-[9px] font-black uppercase ml-1">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-10 border-black border font-black text-black" /></div>
-              <div className="space-y-1"><Label className="text-[9px] font-black uppercase ml-1">Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-10 border-black border font-black text-black" /></div>
-              <div className="space-y-1">
-                <Label className="text-[9px] font-black uppercase ml-1">Status</Label>
-                <Select name="status" defaultValue={editingMember?.status || "Active"}><SelectTrigger className="h-10 border-black border font-black text-black"><SelectValue /></SelectTrigger><SelectContent className="text-black font-black"><SelectItem value="Active">Active</SelectItem><SelectItem value="Retired">Retired</SelectItem><SelectItem value="Transferred">Transferred</SelectItem><SelectItem value="Dismissed">Dismissed</SelectItem><SelectItem value="InActive">InActive</SelectItem></SelectContent></Select>
+          <form onSubmit={handleAddMember} className="p-8 space-y-8 text-black bg-white">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-amber-700 ml-1 tracking-widest">Vault ID Number</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
+              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-blue-700 ml-1 tracking-widest">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
+              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-slate-500 ml-1 tracking-widest">Official Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
+              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-indigo-700 ml-1 tracking-widest">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-12 border-black border-2 font-black text-black" /></div>
+              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-slate-500 ml-1 tracking-widest">Assigned Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-12 border-black border-2 font-black text-black" /></div>
+              <div className="space-y-2">
+                <Label className="text-[11px] font-black uppercase text-rose-700 ml-1 tracking-widest">Operational Status</Label>
+                <Select name="status" defaultValue={editingMember?.status || "Active"}>
+                  <SelectTrigger className="h-12 border-black border-2 font-black text-black uppercase">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="font-black uppercase">
+                    <SelectItem value="Active" className="text-emerald-700">Active</SelectItem>
+                    <SelectItem value="Retired" className="text-rose-700">Retired</SelectItem>
+                    <SelectItem value="Transferred" className="text-slate-600">Transferred</SelectItem>
+                    <SelectItem value="Dismissed" className="text-red-900 font-bold">Dismissed</SelectItem>
+                    <SelectItem value="InActive" className="text-slate-400 italic">InActive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="col-span-2 space-y-1"><Label className="text-[9px] font-black uppercase ml-1">Permanent Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border font-black text-black min-h-[60px]" /></div>
+              <div className="col-span-2 space-y-2"><Label className="text-[11px] font-black uppercase text-slate-500 ml-1 tracking-widest">Permanent Registry Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[80px] uppercase text-xs" /></div>
             </div>
-            <Button type="submit" className="w-full h-14 font-black uppercase tracking-[0.3em] shadow-xl bg-black text-white hover:bg-black/90">Commit Profile to System</Button>
+            <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group">
+              <Plus className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
+              Commit Profile to Local Vault
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
