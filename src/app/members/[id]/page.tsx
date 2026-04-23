@@ -252,7 +252,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <span className="text-xs flex-1 truncate">{member?.name}</span>
           </div>
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">VAULT ID:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">EmpID:</span>
             <span className="text-xs font-mono flex-1">{member?.memberIdNumber}</span>
           </div>
           <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">

@@ -28,8 +28,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UserManualPage() {
+  const { toast } = useToast();
+
+  const handlePdfDownload = () => {
+    toast({
+      title: "Generating Institutional PDF",
+      description: "Please select 'Save as PDF' in the destination menu for high-fidelity output.",
+    });
+    window.print();
+  };
+
   const sections = [
     {
       title: "সদস্য ব্যবস্থাপনা (Member Registry)",
@@ -96,7 +107,11 @@ export default function UserManualPage() {
           <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs">পিবিএস সিপিএফ ম্যানেজমেন্ট সফটওয়্যার • প্রাতিষ্ঠানিক ইউজার ম্যানুয়াল</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="gap-2 font-black border-2 border-black h-11 px-6 uppercase text-[11px] tracking-widest shadow-lg">
+          <Button 
+            variant="outline" 
+            onClick={handlePdfDownload}
+            className="gap-2 font-black border-2 border-black h-11 px-6 uppercase text-[11px] tracking-widest shadow-lg"
+          >
             <FileDown className="size-4" /> Download PDF
           </Button>
           <Button onClick={() => window.print()} className="gap-2 bg-black text-white font-black h-11 px-8 uppercase text-[11px] tracking-widest shadow-xl">
@@ -137,7 +152,7 @@ export default function UserManualPage() {
 
           {/* DAILY USAGE GUIDE */}
           <Card className="border-2 border-amber-500 shadow-[8px_8px_0px_0px_rgba(245,158,11,1)] bg-white overflow-hidden rounded-none">
-            <div className="bg-amber-500 text-white p-6 flex items-center gap-6">
+            <div className="bg-amber-50 text-white p-6 flex items-center gap-6">
               <div className="bg-white/20 p-3 rounded-2xl">
                 <Power className="size-8" />
               </div>
