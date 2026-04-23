@@ -247,29 +247,29 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           <h2 className="text-xl md:text-2xl font-black uppercase tracking-[0.4em] mt-3 underline underline-offset-8 decoration-4">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 border-4 border-black mb-10 text-[11px] font-black min-w-[1050px] uppercase tabular-nums bg-slate-50">
-          <div className="border-r-2 border-b-2 border-black p-4 flex gap-4 items-center">
-            <span className="text-slate-400 text-[10px]">PERSONNEL:</span>
-            <span className="text-base flex-1 truncate">{member?.name}</span>
+        <div className="grid grid-cols-3 border-4 border-black mb-10 text-[11px] font-black min-w-[1050px] tabular-nums bg-slate-50">
+          <div className="border-r-2 border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">PERSONNEL:</span>
+            <span className="text-sm flex-1 truncate">{member?.name}</span>
           </div>
-          <div className="border-r-2 border-b-2 border-black p-4 flex gap-4 items-center bg-white">
-            <span className="text-slate-400 text-[10px]">VAULT ID:</span>
-            <span className="text-base font-mono bg-black text-white px-2 py-0.5">{member?.memberIdNumber}</span>
+          <div className="border-r-2 border-b-2 border-black py-1 px-4 flex gap-4 items-center bg-white h-[21px]">
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">VAULT ID:</span>
+            <span className="text-sm font-mono flex-1">{member?.memberIdNumber}</span>
           </div>
-          <div className="border-b-2 border-black p-4 flex gap-4 items-center">
-            <span className="text-slate-400 text-[10px]">DESIGNATION:</span>
-            <span className="text-base flex-1 truncate">{member?.designation}</span>
+          <div className="border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">POSITION:</span>
+            <span className="text-sm flex-1 truncate">{member?.designation}</span>
           </div>
-          <div className="border-r-2 border-black p-4 flex gap-4 items-center bg-white">
-            <span className="text-slate-400 text-[10px]">ZONAL OFFICE:</span>
-            <span className="text-sm flex-1 truncate">{member?.zonalOffice || "HEAD OFFICE"}</span>
+          <div className="border-r-2 border-black py-1 px-4 flex gap-4 items-center bg-white h-[21px]">
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">OFFICE:</span>
+            <span className="text-sm flex-1 truncate">{member?.zonalOffice || "Head Office"}</span>
           </div>
-          <div className="border-r-2 border-black p-4 flex gap-4 items-center">
-            <span className="text-slate-400 text-[10px]">STATUS:</span>
-            <span className={cn("text-sm font-black px-3 py-1 rounded-full border-2", member?.status === 'Active' ? "border-emerald-600 text-emerald-700 bg-emerald-50" : "border-rose-600 text-rose-700 bg-rose-50")}>{member?.status || "Active"}</span>
+          <div className="border-r-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">STATUS:</span>
+            <span className={cn("text-xs font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
-          <div className="p-4 flex gap-4 items-center bg-white">
-            <span className="text-slate-400 text-[10px]">INCEPTION:</span>
+          <div className="py-1 px-4 flex gap-4 items-center bg-white h-[21px]">
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">INCEPTION:</span>
             <span className="text-sm flex-1">{member?.dateJoined}</span>
           </div>
         </div>
