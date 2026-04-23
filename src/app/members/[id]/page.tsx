@@ -17,7 +17,8 @@ import {
   Info,
   TrendingUp,
   Landmark,
-  HandCoins
+  HandCoins,
+  Percent
 } from "lucide-react";
 import Link from "next/link";
 import * as React from "react";
@@ -485,7 +486,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isSettlementOpen} onOpenChange={setIsSettlementOpen}>
+      <Dialog open={isSettlementOpen} onOpenChange={(o) => { setIsSettlementOpen(o); if(!o) setEditingEntry(null); }}>
         <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden shadow-2xl rounded-none">
           <DialogHeader className="bg-rose-50 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase text-rose-700 flex items-center gap-3"><UserX className="size-6" /> Final Settlement</DialogTitle></DialogHeader>
           <form onSubmit={handleFinalSettlement} className="p-6 space-y-6">
