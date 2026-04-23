@@ -109,7 +109,6 @@ export default function MembersPage() {
       updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
       toast({ title: "Profile Updated" });
     } else {
-      // Check for uniqueness in local or cloud DB
       const check = await getDocuments(query(collection(firestore, "members"), where("memberIdNumber", "==", idNum)));
       if (!check.empty) {
         showAlert({ title: "Registration Denied", description: `Member ID ${idNum} is already assigned.`, type: "error" });
@@ -134,7 +133,6 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // Fetch existing records for reconciliation
         const allMembersSnap = await getDocuments(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach((d: any) => { existingMembersMap[d.data().memberIdNumber] = d.id; });
@@ -259,24 +257,24 @@ export default function MembersPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow key="loading"><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
+              <TableRow key="loading"><TableCell colSpan={5} className="text-center py-20 h-[29px]"><Loader2 className="size-6 animate-spin mx-auto text-black" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow key="empty"><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase italic">No institutional records found</TableCell></TableRow>
+              <TableRow key="empty"><TableCell colSpan={5} className="text-center py-16 text-slate-400 font-black uppercase italic h-[29px]">No institutional records found</TableCell></TableRow>
             ) : members.map((m) => (
-              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black">
-                <td className="font-mono text-base pl-6">{m.memberIdNumber}</td>
-                <td className="text-sm uppercase">{m.name}</td>
-                <td className="text-[10px] uppercase opacity-60">{m.designation}</td>
-                <td className="text-center">
-                  <Badge variant="outline" className={cn("text-[9px] uppercase font-black border-black", m.status === 'Active' ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
+              <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black h-[29px] bg-transparent">
+                <td className="font-mono text-base pl-6 py-0">{m.memberIdNumber}</td>
+                <td className="text-sm uppercase py-0">{m.name}</td>
+                <td className="text-[10px] uppercase opacity-60 py-0">{m.designation}</td>
+                <td className="text-center py-0">
+                  <Badge variant="outline" className={cn("text-[9px] uppercase font-black border-black h-5", m.status === 'Active' ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700")}>
                     {m.status || "Active"}
                   </Badge>
                 </td>
-                <td className="text-right pr-6">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-black" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-50" onClick={() => showAlert({ title: "Remove Personnel?", description: `Permanently delete ${m.name}?`, type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-4" /></Button>
-                    <Button variant="outline" size="sm" asChild className="h-8 border-black border-2 font-black uppercase text-[10px] text-black"><Link href={`/members/${m.id}`}>Ledger Terminal</Link></Button>
+                <td className="text-right pr-6 py-0">
+                  <div className="flex justify-end gap-2 items-center h-full">
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-black" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-3" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-600 hover:bg-rose-50" onClick={() => showAlert({ title: "Remove Personnel?", description: `Permanently delete ${m.name}?`, type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-3" /></Button>
+                    <Button variant="outline" size="sm" asChild className="h-6 px-2 border-black border font-black uppercase text-[8px] text-black"><Link href={`/members/${m.id}`}>Ledger</Link></Button>
                   </div>
                 </td>
               </TableRow>

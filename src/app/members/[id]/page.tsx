@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -202,7 +203,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         <UserX className="size-4 mr-3" /> Final Settlement
       </Button>
     </div>
-  ), []);
+  ), [ledgerLogic.grand.c11, summariesRef, memberRef, resolvedParams.id]);
 
   if (isMemberLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
@@ -313,38 +314,38 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </thead>
           <tbody>
             {ledgerLogic.rows.map((r: any, idx: number) => (
-              <tr key={idx} className={cn("border-b-2 border-black h-12 hover:bg-slate-50 transition-colors", r.isOpening && "bg-slate-100/50 italic")}>
-                <td className="border-r-2 border-black p-2 text-center font-mono text-xs">{r.summaryDate}</td>
-                <td className="border-r-2 border-black p-2 uppercase truncate max-w-[200px] leading-tight">{r.particulars}</td>
-                <td className="border-r-2 border-black p-2 text-right">{r.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right text-rose-600">{r.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right text-emerald-600">{r.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right bg-slate-900 text-white font-mono">{r.col4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right">{r.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right">{r.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right bg-slate-100 font-bold">{r.col7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right">{r.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right">{r.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right bg-slate-100 font-bold">{r.col10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r-2 border-black p-2 text-right bg-black text-white text-base underline decoration-white/20 underline-offset-4">৳ {r.col11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="p-2 text-center no-print bg-slate-50">{!r.isOpening && <div className="flex gap-2 justify-center"><Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-black hover:text-white" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-4" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-rose-600 hover:bg-rose-600 hover:text-white" onClick={() => showAlert({ title:"Irreversible Purge?", description: "Remove this voucher from subsidiary record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-4" /></Button></div>}</td>
+              <tr key={idx} className={cn("border-b-2 border-black h-[21px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-100/50 italic")}>
+                <td className="border-r-2 border-black p-0.5 text-center font-mono text-[9px]">{r.summaryDate}</td>
+                <td className="border-r-2 border-black p-0.5 uppercase truncate max-w-[200px] leading-none text-[9px]">{r.particulars}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-[9px]">{r.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-rose-600 text-[9px]">{r.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-emerald-600 text-[9px]">{r.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right bg-slate-900 text-white font-mono text-[9px]">{r.col4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-[9px]">{r.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-[9px]">{r.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right bg-slate-100 font-bold text-[9px]">{r.col7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-[9px]">{r.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right text-[9px]">{r.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right bg-slate-100 font-bold text-[9px]">{r.col10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r-2 border-black p-0.5 text-right bg-black text-white text-[10px] underline decoration-white/20 underline-offset-2">৳ {r.col11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="p-0.5 text-center no-print bg-slate-50">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-black hover:text-white" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-5 w-5 text-rose-600 hover:bg-rose-600 hover:text-white" onClick={() => showAlert({ title:"Irreversible Purge?", description: "Remove this voucher from subsidiary record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
               </tr>
             ))}
           </tbody>
           <tfoot className="bg-slate-200 font-black border-t-4 border-black text-[10px] uppercase tabular-nums">
-            <tr className="h-16">
+            <tr className="h-12">
               <td colSpan={2} className="border-r-2 border-black p-4 text-right bg-slate-900 text-white tracking-[0.2em]">Institutional Grand Totals:</td>
-              <td className="border-r-2 border-black p-2 text-right">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right text-rose-700">{ledgerLogic.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right text-emerald-700">{ledgerLogic.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right bg-slate-900 text-white text-sm border-y-4 border-white/10">{ledgerLogic.grand.c4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right">{ledgerLogic.grand.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right">{ledgerLogic.grand.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right bg-white text-base border-y-4 border-black/5">{ledgerLogic.grand.c7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right">{ledgerLogic.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right">{ledgerLogic.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right bg-white text-base border-y-4 border-black/5">{ledgerLogic.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-2 text-right bg-black text-white text-xl underline decoration-double decoration-white/30 px-4">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right text-rose-700">{ledgerLogic.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right text-emerald-700">{ledgerLogic.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right bg-slate-900 text-white text-[11px] border-y-4 border-white/10">{ledgerLogic.grand.c4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/5">{ledgerLogic.grand.c7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/5">{ledgerLogic.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-black p-0.5 text-right bg-black text-white text-base underline decoration-double decoration-white/30 px-4">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               <td className="no-print bg-slate-900"></td>
             </tr>
           </tfoot>
@@ -363,123 +364,123 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <Dialog open={isEntryOpen} onOpenChange={(o) => { setIsEntryOpen(o); if(!o) setEditingEntry(null); }}>
-        <DialogContent className="max-w-[1000px] bg-white p-0 rounded-none shadow-2xl border-[6px] border-black overflow-hidden max-h-[95vh] flex flex-col font-ledger">
-          <DialogHeader className="bg-black text-white p-8 border-b-4 border-black shrink-0 flex flex-row items-center justify-between">
+        <DialogContent className="max-w-[1000px] w-[95vw] bg-white p-0 rounded-none shadow-2xl border-[6px] border-black overflow-hidden max-h-[95vh] flex flex-col font-ledger">
+          <DialogHeader className="bg-black text-white p-6 border-b-4 border-black shrink-0 flex flex-row items-center justify-between">
             <div className="flex items-center gap-4">
-               <Calculator className="size-10 text-emerald-400" />
+               <Calculator className="size-8 text-emerald-400" />
                <div>
-                  <DialogTitle className="text-2xl font-black uppercase tracking-tighter">Manual Individual Ledger Posting Terminal</DialogTitle>
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 mt-1">Direct Vault Modification Interface</p>
+                  <DialogTitle className="text-xl font-black uppercase tracking-tighter">Manual Individual Ledger Posting Terminal</DialogTitle>
+                  <p className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40 mt-1">Direct Vault Modification Interface</p>
                </div>
             </div>
             {editingEntry && <Badge className="bg-emerald-500 text-black font-black uppercase tracking-widest px-4 h-8 rounded-none">Editing Record</Badge>}
           </DialogHeader>
 
-          <form onSubmit={handleManualSubmit} className="flex-1 overflow-y-auto p-10 space-y-10 text-black bg-white">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-slate-50 p-8 border-4 border-black">
+          <form onSubmit={handleManualSubmit} className="flex-1 overflow-y-auto p-8 space-y-8 text-black bg-white custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-6 border-4 border-black">
               <div className="space-y-2">
-                 <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                     <TrendingUp className="size-3" /> Ledger Posting Date
                  </Label>
-                 <Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="h-14 border-black border-4 font-black text-xl px-6 bg-white focus:bg-emerald-50 transition-colors" />
+                 <Input name="summaryDate" type="date" max="9999-12-31" defaultValue={editingEntry?.summaryDate} required className="h-12 border-black border-4 font-black text-lg px-6 bg-white focus:bg-emerald-50 transition-colors" />
               </div>
               <div className="space-y-2">
-                 <Label className="text-[11px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                     <Info className="size-3" /> Voucher Particulars / Memo
                  </Label>
-                 <Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="E.g. SALARY CONTRIBUTION JULY-2024" className="h-14 border-black border-4 font-black text-sm px-6 bg-white uppercase focus:bg-emerald-50 transition-colors" />
+                 <Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="E.g. SALARY CONTRIBUTION JULY-2024" className="h-12 border-black border-4 font-black text-xs px-6 bg-white uppercase focus:bg-emerald-50 transition-colors" />
               </div>
             </div>
 
             <div className="space-y-6">
               <div className="grid grid-cols-3 gap-6">
                  {/* GROUP 1: MEMBERSHIP EQUITY */}
-                 <div className="space-y-4 border-4 border-black p-6 bg-slate-50">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-center border-b-2 border-black pb-2 flex items-center justify-center gap-2">
-                       <Landmark className="size-4" /> Membership Equity
+                 <div className="space-y-4 border-4 border-black p-5 bg-slate-50">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-center border-b-2 border-black pb-2 flex items-center justify-center gap-2">
+                       <Landmark className="size-3.5" /> Membership Equity
                     </h4>
                     <div className="space-y-4">
                        <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-slate-400">EMP CONTRIB (COL 1)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c1||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-11 border-black border-2 font-mono font-black text-right text-lg" />
+                          <Label className="text-[9px] font-black text-slate-400">EMP CONTRIB (COL 1)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c1||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-10 border-black border-2 font-mono font-black text-right text-base" />
                        </div>
                        <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-slate-400">OFFICE CONTRIB (COL 8)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c8||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="h-11 border-black border-2 font-mono font-black text-right text-lg" />
+                          <Label className="text-[9px] font-black text-slate-400">OFFICE CONTRIB (COL 8)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c8||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="h-10 border-black border-2 font-mono font-black text-right text-base" />
                        </div>
                     </div>
                  </div>
 
                  {/* GROUP 2: LOAN ACTIVITY */}
-                 <div className="space-y-4 border-4 border-black p-6 bg-slate-50">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-center border-b-2 border-black pb-2 flex items-center justify-center gap-2">
-                       <HandCoins className="size-4" /> Loan Activity
+                 <div className="space-y-4 border-4 border-black p-5 bg-slate-50">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-center border-b-2 border-black pb-2 flex items-center justify-center gap-2">
+                       <HandCoins className="size-3.5" /> Loan Activity
                     </h4>
                     <div className="space-y-4">
                        <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-rose-600">DISBURSEMENT (COL 2)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c2||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="h-11 border-rose-600 border-2 font-mono font-black text-right text-lg text-rose-700 bg-white" />
+                          <Label className="text-[9px] font-black text-rose-600">DISBURSEMENT (COL 2)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c2||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="h-10 border-rose-600 border-2 font-mono font-black text-right text-base text-rose-700 bg-white" />
                        </div>
                        <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-emerald-600">REPAYMENT (COL 3)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c3||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="h-11 border-emerald-600 border-2 font-mono font-black text-right text-lg text-emerald-700 bg-white" />
+                          <Label className="text-[9px] font-black text-emerald-600">REPAYMENT (COL 3)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c3||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="h-10 border-emerald-600 border-2 font-mono font-black text-right text-base text-emerald-700 bg-white" />
                        </div>
                     </div>
                  </div>
 
                  {/* GROUP 3: YIELD DISTRIBUTIONS */}
-                 <div className="space-y-4 border-4 border-black p-6 bg-slate-50">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-center border-b-2 border-black pb-2 flex items-center justify-center gap-2">
-                       <Percent className="size-4" /> Yield Distributions
+                 <div className="space-y-4 border-4 border-black p-5 bg-slate-50">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-center border-b-2 border-black pb-2 flex items-center justify-center gap-2">
+                       <Percent className="size-3.5" /> Yield Distributions
                     </h4>
-                    <div className="space-y-4">
-                       <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-orange-600">PROFIT EMP (COL 5)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c5||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c5:Number(e.target.value)})} className="h-11 border-orange-600 border-2 font-mono font-black text-right text-lg text-orange-700 bg-white" />
+                    <div className="space-y-3">
+                       <div className="space-y-1">
+                          <Label className="text-[9px] font-black text-orange-600">PROFIT EMP (COL 5)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c5||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c5:Number(e.target.value)})} className="h-9 border-orange-600 border-2 font-mono font-black text-right text-base text-orange-700 bg-white" />
                        </div>
-                       <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-orange-600">PROFIT LOAN (COL 6)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c6||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c6:Number(e.target.value)})} className="h-11 border-orange-600 border-2 font-mono font-black text-right text-lg text-orange-700 bg-white" />
+                       <div className="space-y-1">
+                          <Label className="text-[9px] font-black text-orange-600">PROFIT LOAN (COL 6)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c6||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c6:Number(e.target.value)})} className="h-9 border-orange-600 border-2 font-mono font-black text-right text-base text-orange-700 bg-white" />
                        </div>
-                       <div className="space-y-1.5">
-                          <Label className="text-[10px] font-black text-indigo-600">PROFIT PBS (COL 9)</Label>
-                          <Input type="number" step="0.01" value={manualVals.c9||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c9:Number(e.target.value)})} className="h-11 border-indigo-600 border-2 font-mono font-black text-right text-lg text-indigo-700 bg-white" />
+                       <div className="space-y-1">
+                          <Label className="text-[9px] font-black text-indigo-600">PROFIT PBS (COL 9)</Label>
+                          <Input type="number" step="0.01" value={manualVals.c9||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c9:Number(e.target.value)})} className="h-9 border-indigo-600 border-2 font-mono font-black text-right text-base text-indigo-700 bg-white" />
                        </div>
                     </div>
                  </div>
               </div>
             </div>
 
-            <div className="p-10 bg-black text-white border-[6px] border-emerald-500/20 shadow-2xl relative">
-              <div className="absolute top-0 right-10 -translate-y-1/2 bg-emerald-500 text-black px-6 py-2 font-black uppercase text-[11px] tracking-widest shadow-xl">Audit Result</div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
-                <div className="space-y-2 border-r-2 border-white/10 pr-6">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Employee Fund Δ</p>
-                   <p className={cn("text-2xl font-black tabular-nums", rowVerification.netEmp >= 0 ? "text-emerald-400" : "text-rose-400")}>
+            <div className="p-8 bg-black text-white border-[6px] border-emerald-500/20 shadow-2xl relative shrink-0">
+              <div className="absolute top-0 right-10 -translate-y-1/2 bg-emerald-500 text-black px-6 py-1.5 font-black uppercase text-[10px] tracking-widest shadow-xl">Audit Result</div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                <div className="space-y-1 border-r-2 border-white/10 pr-6">
+                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Employee Fund Δ</p>
+                   <p className={cn("text-xl font-black tabular-nums", rowVerification.netEmp >= 0 ? "text-emerald-400" : "text-rose-400")}>
                       {rowVerification.netEmp >= 0 ? "+" : ""}{rowVerification.netEmp.toLocaleString()}
                    </p>
                 </div>
-                <div className="space-y-2 border-r-2 border-white/10 pr-6">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Office Fund Δ</p>
-                   <p className={cn("text-2xl font-black tabular-nums", rowVerification.netOff >= 0 ? "text-emerald-400" : "text-rose-400")}>
+                <div className="space-y-1 border-r-2 border-white/10 pr-6">
+                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Office Fund Δ</p>
+                   <p className={cn("text-xl font-black tabular-nums", rowVerification.netOff >= 0 ? "text-emerald-400" : "text-rose-400")}>
                       {rowVerification.netOff >= 0 ? "+" : ""}{rowVerification.netOff.toLocaleString()}
                    </p>
                 </div>
-                <div className="space-y-2 border-r-2 border-white/10 pr-6">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loan Balance Δ</p>
-                   <p className={cn("text-2xl font-black tabular-nums", rowVerification.loanEffect >= 0 ? "text-rose-400" : "text-emerald-400")}>
+                <div className="space-y-1 border-r-2 border-white/10 pr-6">
+                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Loan Balance Δ</p>
+                   <p className={cn("text-xl font-black tabular-nums", rowVerification.loanEffect >= 0 ? "text-rose-400" : "text-emerald-400")}>
                       {rowVerification.loanEffect >= 0 ? "+" : ""}{rowVerification.loanEffect.toLocaleString()}
                    </p>
                 </div>
-                <div className="space-y-2">
-                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">TOTAL NET FUND IMPACT</p>
-                   <p className="text-3xl font-black tabular-nums underline decoration-double decoration-emerald-500/30">৳ {rowVerification.total.toLocaleString()}</p>
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">TOTAL IMPACT</p>
+                   <p className="text-2xl font-black tabular-nums underline decoration-double decoration-emerald-500/30">৳ {rowVerification.total.toLocaleString()}</p>
                 </div>
               </div>
             </div>
 
-            <Button type="submit" className="w-full h-24 font-black uppercase tracking-[0.5em] bg-black text-white shadow-2xl hover:bg-slate-900 border-4 border-white/10 text-xl transition-all group">
-              <Save className="size-8 mr-6 group-hover:scale-125 transition-transform text-emerald-400" />
+            <Button type="submit" className="w-full h-20 font-black uppercase tracking-[0.4em] bg-black text-white shadow-2xl hover:bg-slate-900 border-4 border-white/10 text-lg transition-all group shrink-0">
+              <Save className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
               Commit Voucher to Vault
             </Button>
           </form>
