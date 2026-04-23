@@ -241,23 +241,23 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
       <div className="bg-white p-4 md:p-10 shadow-[10px_10px_0px_0px_rgba(0,0,0,0.05)] border-2 border-black max-w-[1500px] mx-auto w-full print-container overflow-x-auto rounded-none">
         <div className="text-center min-w-[1050px] relative mb-4">
-          <div className="absolute top-0 left-0 bg-slate-50 border border-black px-3 py-0.5 font-black text-[8px] uppercase tracking-widest text-black">Institutional Vault Registry</div>
+          <div className="absolute top-0 left-0 bg-slate-50 border border-black px-3 py-0.5 font-black text-[8px] uppercase tracking-widest text-black">BREB Form-224</div>
           <h1 className="text-xl font-black uppercase tracking-tight text-black leading-none">{pbsName}</h1>
           <h2 className="text-sm font-black uppercase tracking-[0.2em] mt-1 text-black">Provident Fund Subsidiary Ledger</h2>
         </div>
 
         <div className="grid grid-cols-3 border border-black mb-2 text-[10px] font-black min-w-[1050px] tabular-nums bg-white text-black">
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">PERSONNEL:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Name:</span>
             <span className="text-xs flex-1 truncate">{member?.name}</span>
+          </div>
+          <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Designation:</span>
+            <span className="text-xs flex-1 truncate">{member?.designation}</span>
           </div>
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">EmpID:</span>
             <span className="text-xs font-mono flex-1">{member?.memberIdNumber}</span>
-          </div>
-          <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">POSITION:</span>
-            <span className="text-xs flex-1 truncate">{member?.designation}</span>
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">OFFICE:</span>
@@ -268,7 +268,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <span className={cn("text-[10px] font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
           <div className="py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">INCEPTION:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Date of Regular:</span>
             <span className="text-xs flex-1">{member?.dateJoined}</span>
           </div>
         </div>

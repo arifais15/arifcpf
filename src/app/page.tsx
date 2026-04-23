@@ -14,8 +14,8 @@ export default function DashboardPage() {
   const [lastSaved, setLastSaved] = useState<string>("");
 
   useEffect(() => {
-    setLastSaved(new Date().toLocaleTimeString());
-    const handleSync = () => setLastSaved(new Date().toLocaleTimeString());
+    setLastSaved(new Date().toLocaleTimeString('bn-BD'));
+    const handleSync = () => setLastSaved(new Date().toLocaleTimeString('bn-BD'));
     window.addEventListener('storage', handleSync);
     return () => window.removeEventListener('storage', handleSync);
   }, []);
@@ -63,10 +63,10 @@ export default function DashboardPage() {
     const bondsTotal = investments.filter(i => i.instrumentType === 'Govt. Treasury Bond').reduce((sum, i) => sum + (Number(i.principalAmount) || 0), 0);
     const total = fdrTotal + bondsTotal + statsData.currentLoans + cashBalance || 1;
     return [
-      { label: "Fixed Deposits (FDR)", value: Math.round((fdrTotal / total) * 100), color: "bg-primary" },
-      { label: "Treasury Bonds", value: Math.round((bondsTotal / total) * 100), color: "bg-accent" },
-      { label: "Member Loans", value: Math.round((statsData.currentLoans / total) * 100), color: "bg-slate-500" },
-      { label: "Cash Equivalents", value: Math.round((cashBalance / total) * 100), color: "bg-slate-300" },
+      { label: "স্থায়ী আমানত (FDR)", value: Math.round((fdrTotal / total) * 100), color: "bg-primary" },
+      { label: "ট্রেজারি বন্ড", value: Math.round((bondsTotal / total) * 100), color: "bg-accent" },
+      { label: "সদস্য ঋণ", value: Math.round((statsData.currentLoans / total) * 100), color: "bg-slate-500" },
+      { label: "নগদ সমতুল্য", value: Math.round((cashBalance / total) * 100), color: "bg-slate-300" },
     ].sort((a, b) => b.value - a.value);
   }, [investments, entries, statsData.currentLoans]);
 
@@ -76,36 +76,36 @@ export default function DashboardPage() {
   }, [entries]);
 
   if (isMembersLoading || isEntriesLoading || isInvestmentsLoading) {
-    return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="size-10 animate-spin text-primary" /></div>;
+    return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="size-10 animate-spin text-black" /></div>;
   }
 
   const stats = [
-    { title: "Member Registry", value: members?.length.toLocaleString() || "0", icon: Users, sub: "Registered Personnel", color: "text-blue-600" },
-    { title: "Total Fund Equity", value: `৳ ${(statsData.fundValue / 1000000).toFixed(2)}M`, icon: Wallet, sub: "Accumulated Principal", color: "text-emerald-600" },
-    { title: "Outstanding Loans", value: `৳ ${(statsData.currentLoans / 1000).toFixed(1)}K`, icon: TrendingUp, sub: "Current Receivables", color: "text-rose-600" },
-    { title: "Profit Accrued", value: `৳ ${(statsData.profitDistributed / 1000).toFixed(1)}K`, icon: Activity, sub: "Member Distribution", color: "text-amber-600" },
+    { title: "সদস্য রেজিস্টার", value: members?.length.toLocaleString('bn-BD') || "০", icon: Users, sub: "নিবন্ধিত কর্মকর্তা-কর্মচারী", color: "text-blue-600" },
+    { title: "মোট ফান্ড ইকুইটি", value: `৳ ${(statsData.fundValue / 1000000).toLocaleString('bn-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`, icon: Wallet, sub: "পুঞ্জীভূত মূলধন", color: "text-emerald-600" },
+    { title: "বকেয়া ঋণ", value: `৳ ${(statsData.currentLoans / 1000).toLocaleString('bn-BD', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`, icon: TrendingUp, sub: "বর্তমান পাওনা", color: "text-rose-600" },
+    { title: "অর্জিত মুনাফা", value: `৳ ${(statsData.profitDistributed / 1000).toLocaleString('bn-BD', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`, icon: Activity, sub: "সদস্য বন্টন", color: "text-amber-600" },
   ];
 
   return (
-    <div className="p-10 flex flex-col gap-10 bg-slate-50 min-h-screen">
+    <div className="p-10 flex flex-col gap-10 bg-slate-50 min-h-screen font-bangla">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-4xl font-black text-primary tracking-tight uppercase">Executive Summary</h1>
-          <p className="text-muted-foreground uppercase tracking-widest text-[11px] font-bold">Consolidated CPF Management Terminal • Version 1.2</p>
+          <h1 className="text-4xl font-black text-black tracking-tight uppercase">সারসংক্ষেপ</h1>
+          <p className="text-muted-foreground uppercase tracking-widest text-[11px] font-bold">সমন্বিত সিপিএফ ম্যানেজমেন্ট টার্মিনাল • ভার্সন ১.২</p>
         </div>
 
-        <div className="flex items-center gap-4 bg-white border border-slate-200 p-4 rounded-xl shadow-sm no-print">
-           <div className="bg-slate-100 p-2 rounded-lg">
+        <div className="flex items-center gap-4 bg-white border-2 border-black p-4 rounded-xl shadow-sm no-print">
+           <div className="bg-slate-100 p-2 rounded-lg border border-black/10">
              <HardDrive className="size-5 text-slate-600" />
            </div>
            <div className="space-y-0.5">
              <div className="flex items-center gap-2">
-               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Database Engine:</span>
-               <Badge className="bg-emerald-100 text-emerald-700 text-[8px] h-4 uppercase font-bold border-none">Local Matrix v1</Badge>
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">ডেটাবেস ইঞ্জিন:</span>
+               <Badge className="bg-black text-white text-[8px] h-4 uppercase font-bold border-none rounded-none px-2">Local Matrix v1</Badge>
              </div>
              <div className="flex items-center gap-2">
                <Clock className="size-3 text-slate-400" />
-               <span className="text-[11px] font-bold text-slate-600">Sync Time: {lastSaved}</span>
+               <span className="text-[11px] font-bold text-slate-600">সিঙ্ক সময়: {lastSaved}</span>
              </div>
            </div>
         </div>
@@ -113,8 +113,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="border-none shadow-sm hover:shadow-md transition-shadow group overflow-hidden bg-white">
-            <div className={cn("h-1 w-full bg-slate-100", stat.color.replace('text-', 'bg-'))} />
+          <Card key={stat.title} className="border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group overflow-hidden bg-white rounded-none">
             <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
               <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">
                 {stat.title}
@@ -122,7 +121,7 @@ export default function DashboardPage() {
               <stat.icon className={cn("h-5 w-5", stat.color)} />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black tracking-tight text-primary">{stat.value}</div>
+              <div className="text-3xl font-black tracking-tight text-black tabular-nums">{stat.value}</div>
               <p className="text-[10px] font-bold uppercase mt-2 tracking-wider text-slate-400">{stat.sub}</p>
             </CardContent>
           </Card>
@@ -130,36 +129,36 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-12">
-        <Card className="lg:col-span-8 border-none shadow-sm rounded-xl overflow-hidden bg-white">
-          <CardHeader className="bg-white border-b flex flex-row items-center justify-between py-5 px-6">
+        <Card className="lg:col-span-8 border-2 border-black shadow-xl rounded-none overflow-hidden bg-white">
+          <CardHeader className="bg-slate-50 border-b-2 border-black flex flex-row items-center justify-between py-5 px-6">
             <div>
-              <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-primary">
+              <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-black">
                 <ShieldCheck className="size-5" />
-                Audit Log: Recent Activity
+                অডিট লগ: সাম্প্রতিক কার্যক্রম
               </CardTitle>
-              <CardDescription className="text-[11px] font-bold uppercase tracking-wider">Verified double-entry accounting records</CardDescription>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-wider text-slate-500">যাচাইকৃত দ্বৈত-প্রবেশ হিসাব বিবরণী</CardDescription>
             </div>
-            <Badge variant="outline" className="border-slate-200 font-bold px-3 py-1 uppercase text-[9px] tracking-widest">Live Sync</Badge>
+            <Badge variant="outline" className="border-black border-2 font-black px-3 py-1 uppercase text-[9px] tracking-widest bg-white">লাইভ সিঙ্ক</Badge>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 border-b">
-                  <TableHead className="font-black py-4 pl-6 text-slate-500 uppercase text-[10px]">Date</TableHead>
-                  <TableHead className="font-black py-4 text-slate-500 uppercase text-[10px]">Particulars</TableHead>
-                  <TableHead className="font-black py-4 text-slate-500 uppercase text-[10px]">Reference</TableHead>
-                  <TableHead className="text-right font-black py-4 pr-6 text-slate-500 uppercase text-[10px]">Amount (৳)</TableHead>
+                <TableRow className="bg-slate-100 border-b-2 border-black">
+                  <TableHead className="font-black py-4 pl-6 text-black uppercase text-[10px] border-r border-black/10">তারিখ</TableHead>
+                  <TableHead className="font-black py-4 text-black uppercase text-[10px] border-r border-black/10">বিবরণ</TableHead>
+                  <TableHead className="font-black py-4 text-black uppercase text-[10px] border-r border-black/10">রেফারেন্স</TableHead>
+                  <TableHead className="text-right font-black py-4 pr-6 text-black uppercase text-[10px]">পরিমাণ (৳)</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recentEntries.length === 0 ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-16 text-slate-400 font-bold uppercase text-xs">No records found.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center py-16 text-slate-400 font-bold uppercase text-xs">কোনো তথ্য পাওয়া যায়নি।</TableCell></TableRow>
                 ) : recentEntries.map((entry) => (
-                  <TableRow key={entry.id} className="hover:bg-slate-50/50 transition-colors border-b last:border-0">
+                  <TableRow key={entry.id} className="hover:bg-slate-50/50 transition-colors border-b border-black/10 last:border-0 h-[29px]">
                     <TableCell className="font-mono text-[11px] font-bold pl-6">{entry.entryDate}</TableCell>
-                    <TableCell className="text-[11px] font-bold uppercase text-slate-700">{entry.description}</TableCell>
-                    <TableCell><Badge variant="secondary" className="text-[9px] uppercase font-bold tracking-widest px-2 bg-slate-100">{entry.referenceNumber || "AUTO"}</Badge></TableCell>
-                    <TableCell className="text-right font-black text-slate-900 pr-6">{(entry.totalAmount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</TableCell>
+                    <TableCell className="text-[11px] font-bold uppercase text-slate-700 truncate max-w-[300px]">{entry.description}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-[9px] uppercase font-bold tracking-widest px-2 border-black/20 rounded-none bg-slate-50">{entry.referenceNumber || "স্বয়ংক্রিয়"}</Badge></TableCell>
+                    <TableCell className="text-right font-black text-black pr-6 tabular-nums">{(entry.totalAmount || 0).toLocaleString('bn-BD', { minimumFractionDigits: 2 })}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -167,35 +166,35 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-4 border-none shadow-sm bg-white rounded-xl flex flex-col overflow-hidden">
-          <CardHeader className="py-5 px-6 border-b bg-white">
-            <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-primary">
+        <Card className="lg:col-span-4 border-2 border-black shadow-xl bg-white rounded-none flex flex-col overflow-hidden">
+          <CardHeader className="py-5 px-6 border-b-2 border-black bg-slate-50">
+            <CardTitle className="text-lg font-black uppercase flex items-center gap-3 text-black">
               <PieChart className="size-5" />
-              Asset Allocation
+              সম্পদ বন্টন
             </CardTitle>
-            <CardDescription className="text-[11px] font-bold uppercase tracking-wider">Portfolio Risk Diversification</CardDescription>
+            <CardDescription className="text-[11px] font-bold uppercase tracking-wider text-slate-500">পোর্টফোলিও ঝুঁকি বৈচিত্র্য</CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-8 p-6 pt-8">
             <div className="space-y-6">
               {allocation.map((item) => (
                 <div key={item.label} className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
+                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-600">
                     <span>{item.label}</span>
-                    <span>{item.value}%</span>
+                    <span className="tabular-nums">{item.value.toLocaleString('bn-BD')}%</span>
                   </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden shadow-inner border border-slate-200">
+                  <div className="h-3 w-full bg-slate-100 rounded-none overflow-hidden shadow-inner border border-black/20">
                     <div className={cn("h-full transition-all duration-1000 ease-in-out", item.color)} style={{ width: `${item.value}%` }} />
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-auto p-5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="mt-auto p-5 bg-slate-900 text-white border-2 border-black rounded-none space-y-3 shadow-lg">
                <div className="flex items-center gap-2">
-                 <DatabaseZap className="size-3.5 text-indigo-600" />
-                 <p className="text-[9px] uppercase font-black tracking-widest text-indigo-700">Disk Persistence Monitor</p>
+                 <DatabaseZap className="size-3.5 text-emerald-400" />
+                 <p className="text-[9px] uppercase font-black tracking-widest text-emerald-400">ডিস্ক পারসিস্টেন্স মনিটর</p>
                </div>
-               <p className="text-[11px] text-slate-500 leading-relaxed font-bold italic">
-                 "Data mirrors directly to the host machine's drive. Zero cloud exposure ensures high-confidentiality processing."
+               <p className="text-[11px] text-slate-300 leading-relaxed font-bold italic">
+                 "ডাটা সরাসরি হোস্ট মেশিনের ড্রাইভে সংরক্ষিত হয়। জিরো ক্লাউড এক্সপোজার উচ্চ গোপনীয়তা নিশ্চিত করে।"
                </p>
             </div>
           </CardContent>
