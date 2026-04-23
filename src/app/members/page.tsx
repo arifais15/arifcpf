@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -108,6 +109,7 @@ export default function MembersPage() {
       updateDocumentNonBlocking(doc(firestore, "members", editingMember.id), memberData);
       toast({ title: "Profile Updated" });
     } else {
+      // Check for uniqueness in local or cloud DB
       const check = await getDocuments(query(collection(firestore, "members"), where("memberIdNumber", "==", idNum)));
       if (!check.empty) {
         showAlert({ title: "Registration Denied", description: `Member ID ${idNum} is already assigned.`, type: "error" });
@@ -132,7 +134,7 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // Institutional Local-Safe Retrieval
+        // Fetch existing records for reconciliation
         const allMembersSnap = await getDocuments(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach((d: any) => { existingMembersMap[d.data().memberIdNumber] = d.id; });
@@ -185,7 +187,7 @@ export default function MembersPage() {
         showAlert({ title: "Synchronization Complete", type: "success" });
       } catch (err) { 
         console.error("Import Error:", err);
-        toast({ title: "Import Failed", description: "Verify Excel structure and local drive permissions.", variant: "destructive" }); 
+        toast({ title: "Import Failed", description: "Verify Excel structure.", variant: "destructive" }); 
       } finally { 
         setIsUploading(false); 
         setIsBulkOpen(false); 
@@ -257,9 +259,9 @@ export default function MembersPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
+              <TableRow key="loading"><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase italic">No institutional records found</TableCell></TableRow>
+              <TableRow key="empty"><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase italic">No institutional records found</TableCell></TableRow>
             ) : members.map((m) => (
               <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black">
                 <td className="font-mono text-base pl-6">{m.memberIdNumber}</td>

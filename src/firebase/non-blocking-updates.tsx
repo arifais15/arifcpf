@@ -1,3 +1,4 @@
+
 'use client';
     
 import {
@@ -52,18 +53,28 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
 
 /**
  * Local-safe document retrieval for Institutional Portability.
- * Mirros Firebase getDocs functionality using LocalStorage.
+ * Mirrors Firebase getDocs functionality using LocalStorage.
+ * Handles basic 'where' filtering for Member ID Number.
  */
 export async function getDocuments(target: any) {
   if (USE_LOCAL_DB) {
-    // Extract path from CollectionReference or Query
     let path = "";
+    let filterField = "";
+    let filterValue = "";
+
+    // Extract path and basic filter info from target (CollectionReference or Query)
     if (typeof target === 'string') {
       path = target;
     } else if (target.path) {
       path = target.path;
-    } else if (target._query?.path?.canonicalString()) {
+    } else if (target._query) {
+      // Internal parsing of Firestore Query object for basic filters
       path = target._query.path.canonicalString();
+      const filters = target._query.filters || [];
+      if (filters.length > 0) {
+        filterField = filters[0].field?.segments?.[0] || "";
+        filterValue = filters[0].value?.internalValue;
+      }
     } else if (target.type === 'collection') {
       path = target.path;
     }
@@ -71,7 +82,12 @@ export async function getDocuments(target: any) {
     // Default fallback for members
     if (!path && target.toString().includes('members')) path = 'members';
 
-    const data = localDB.getCollection(path);
+    let data = localDB.getCollection(path);
+    
+    // Basic filter shim for common 'where' queries (e.g., checking member uniqueness)
+    if (filterField && filterValue !== undefined) {
+      data = data.filter(d => String(d[filterField]) === String(filterValue));
+    }
     
     // Returns a shimmed QuerySnapshot
     return {
