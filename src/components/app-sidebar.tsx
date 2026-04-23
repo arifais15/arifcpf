@@ -47,25 +47,25 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const navItems = [
-  { title: "Dashboard Summary", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
-  { title: "Transaction Ledger", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
-  { title: "Post New Voucher", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
-  { title: "GL Control Ledger", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
-  { title: "Subsidiary Control", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
-  { title: "Trial Balance Matrix", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
-  { title: "Personnel Registry", icon: Users, url: "/members", iconColor: "text-cyan-400" },
-  { title: "Ledger Matrix", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
-  { title: "Active Portfolio", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
-  { title: "Member Interest", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
-  { title: "Special Yield (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
-  { title: "Movement Audit", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
-  { title: "Interest Movements", icon: Coins, url: "/reports/interest-movements", iconColor: "text-emerald-500" },
-  { title: "Financial Terminal", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
-  { title: "Ledger Batch Print", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
-  { title: "Loan Registry", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
-  { title: "Settlement Log", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
-  { title: "Audit Tracking", icon: PieChart, url: "/reports/contributions", iconColor: "text-pink-400" },
-  { title: "User Manual", icon: HelpCircle, url: "/manual", iconColor: "text-slate-400" },
+  { title: "ড্যাশবোর্ড", icon: LayoutDashboard, url: "/", iconColor: "text-blue-400" },
+  { title: "জাবেদা বই", icon: ListTodo, url: "/transactions", iconColor: "text-emerald-400" },
+  { title: "নতুন ভাউচার এন্ট্রি", icon: PlusCircle, url: "/transactions/new", iconColor: "text-sky-400" },
+  { title: "সাধারণ খতিয়ান", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
+  { title: "নিয়ন্ত্রণ খতিয়ান", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
+  { title: "রেওয়ামিল ম্যাট্রিক্স", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
+  { title: "সদস্য রেজিস্টার", icon: Users, url: "/members", iconColor: "text-cyan-400" },
+  { title: "লেজার সামারি", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
+  { title: "বিনিয়োগ পোর্টফোলিও", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
+  { title: "সদস্য মুনাফা", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
+  { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
+  { title: "ফান্ডের গতিবিধি", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
+  { title: "মুনাফার মুভমেন্ট", icon: Coins, url: "/reports/interest-movements", iconColor: "text-emerald-500" },
+  { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
+  { title: "ব্যাচ লেজার প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
+  { title: "ঋণ রেজিস্টার", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
+  { title: "নিষ্পত্তি লগ", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
+  { title: "অডিট ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", iconColor: "text-pink-400" },
+  { title: "ব্যবহারকারী নির্দেশিকা", icon: HelpCircle, url: "/manual", iconColor: "text-slate-400" },
 ]
 
 export function AppSidebar() {
@@ -77,11 +77,12 @@ export function AppSidebar() {
 
   const handleLogout = () => {
     showAlert({
-      title: "Logout Confirmation",
-      description: "Terminate current authorized session?",
+      title: "লগআউট নিশ্চিতকরণ",
+      description: "আপনি কি বর্তমান সেশনটি বন্ধ করতে চান?",
       type: "warning",
       showCancel: true,
-      confirmText: "Logout",
+      confirmText: "লগআউট",
+      cancelText: "বাতিল",
       onConfirm: async () => {
         if (USE_LOCAL_DB) {
           localStorage.removeItem('pbs_cpf_auth_session');
@@ -103,8 +104,8 @@ export function AppSidebar() {
             <ShieldCheck className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-            <span className="font-black text-white text-base tracking-tighter uppercase">PBS CPF System</span>
-            <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">Institutional Mode</span>
+            <span className="font-black text-white text-base tracking-tighter uppercase">পিবিএস সিপিএফ সিস্টেম</span>
+            <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">প্রাতিষ্ঠানিক মোড</span>
           </div>
           {isMobile && (
             <Button variant="ghost" size="icon" className="size-8 ml-auto text-white" onClick={() => setOpenMobile(false)}>
@@ -131,7 +132,7 @@ export function AppSidebar() {
               >
                 <Link href={item.url}>
                   <item.icon className={cn("size-4 shrink-0 transition-colors", item.iconColor, pathname === item.url ? "opacity-100" : "opacity-40 group-hover:opacity-100")} />
-                  <span className="text-[12px] font-bold uppercase tracking-tight">{item.title}</span>
+                  <span className="text-[14px] font-bold tracking-tight">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -144,14 +145,14 @@ export function AppSidebar() {
             <SidebarMenuButton asChild className="h-10 text-white/50 hover:bg-white/5 hover:text-white rounded-lg">
               <Link href="/settings">
                 <Settings className="size-4 opacity-50" />
-                <span className="font-bold text-[12px] uppercase tracking-tight">Configuration</span>
+                <span className="font-bold text-[14px] tracking-tight">সিস্টেম সেটিংস</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton className="h-10 text-rose-400 hover:bg-rose-500/10 rounded-lg" onClick={handleLogout}>
               <LogOut className="size-4" />
-              <span className="font-bold text-[12px] uppercase tracking-tight">Logout</span>
+              <span className="font-bold text-[14px] tracking-tight">লগআউট</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
