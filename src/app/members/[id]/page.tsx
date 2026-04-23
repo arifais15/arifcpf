@@ -249,27 +249,27 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="grid grid-cols-3 border-4 border-black mb-2 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
           <div className="border-r-2 border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Personnel:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Personnel:</span>
             <span className="text-sm flex-1 truncate">{member?.name}</span>
           </div>
           <div className="border-r-2 border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Vault ID:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Vault ID:</span>
             <span className="text-sm font-mono flex-1">{member?.memberIdNumber}</span>
           </div>
           <div className="border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Position:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Position:</span>
             <span className="text-sm flex-1 truncate">{member?.designation}</span>
           </div>
           <div className="border-r-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Office:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Office:</span>
             <span className="text-sm flex-1 truncate">{member?.zonalOffice || "Head Office"}</span>
           </div>
           <div className="border-r-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Status:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Status:</span>
             <span className={cn("text-xs font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
           <div className="py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Inception:</span>
+            <span className="text-black text-[9px] uppercase tracking-tighter w-[80px]">Inception:</span>
             <span className="text-sm flex-1">{member?.dateJoined}</span>
           </div>
         </div>
