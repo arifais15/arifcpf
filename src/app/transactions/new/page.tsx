@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -18,7 +19,9 @@ import {
   User, 
   Check, 
   ChevronsUpDown, 
-  Search as SearchIcon 
+  Search as SearchIcon,
+  ShieldCheck,
+  Calculator
 } from "lucide-react";
 import { classifyTransaction } from "@/ai/flows/transaction-classification-assistant";
 import { useToast } from "@/hooks/use-toast";
@@ -56,20 +59,20 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between border border-slate-200 h-10 font-bold text-[11px] uppercase bg-white hover:bg-slate-50 px-3"
+          className="w-full justify-between border-none shadow-none h-8 font-black text-[11px] uppercase bg-transparent hover:bg-slate-50 px-2"
         >
-          <span className="truncate text-left max-w-[220px]">
-            {value ? `${selectedMember?.memberIdNumber} - ${selectedMember?.name}` : "SELECT MEMBER (OPTIONAL)"}
+          <span className="truncate text-left max-w-[200px] text-black">
+            {value ? `${selectedMember?.memberIdNumber} - ${selectedMember?.name}` : "UNTAGGED"}
           </span>
-          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-30 text-black" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[350px] p-0 border border-slate-200 rounded-xl shadow-2xl overflow-hidden" align="start">
-        <div className="flex items-center border-b px-3 bg-slate-50">
-          <SearchIcon className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+      <PopoverContent className="w-[350px] p-0 border-2 border-black rounded-none shadow-2xl overflow-hidden font-ledger" align="start">
+        <div className="flex items-center border-b border-black px-3 bg-slate-50">
+          <SearchIcon className="mr-2 h-4 w-4 shrink-0 opacity-40 text-black" />
           <Input
             placeholder="Search Name or ID..."
-            className="h-10 border-none bg-transparent focus-visible:ring-0 font-bold text-xs"
+            className="h-10 border-none bg-transparent focus-visible:ring-0 font-black text-xs text-black"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -78,7 +81,7 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
           <div className="p-1">
             <Button
               variant="ghost"
-              className="w-full justify-start font-bold text-[10px] h-9 rounded-lg uppercase mb-0.5"
+              className="w-full justify-start font-black text-[10px] h-9 rounded-none uppercase mb-0.5 text-black hover:bg-slate-100"
               onClick={() => {
                 onValueChange("");
                 setOpen(false);
@@ -88,12 +91,12 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
               <Check className={cn("mr-2 h-3.5 w-3.5", !value ? "opacity-100" : "opacity-0")} />
               NO MEMBER (GL ONLY)
             </Button>
-            <Separator className="my-1 bg-slate-100" />
+            <Separator className="my-1 bg-black/10" />
             {filteredMembers.map((m: any) => (
               <Button
                 key={m.id}
                 variant="ghost"
-                className="w-full justify-start font-bold text-[10px] h-auto py-2.5 text-left rounded-lg uppercase transition-colors"
+                className="w-full justify-start font-black text-[10px] h-auto py-2 text-left rounded-none uppercase transition-colors text-black hover:bg-slate-100"
                 onClick={() => {
                   onValueChange(m.id);
                   setOpen(false);
@@ -103,7 +106,7 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
                 <Check className={cn("mr-2 h-3.5 w-3.5 shrink-0", value === m.id ? "opacity-100" : "opacity-0")} />
                 <div className="flex flex-col gap-0 overflow-hidden">
                    <span className="truncate">{m.memberIdNumber} - {m.name}</span>
-                   <span className="text-[8px] opacity-50 tracking-wider">{m.designation}</span>
+                   <span className="text-[8px] opacity-40 tracking-wider font-bold">{m.designation}</span>
                 </div>
               </Button>
             ))}
@@ -175,7 +178,10 @@ function TransactionForm() {
   const updateLine = (id: string, updates: Partial<LineItem>) => setLines(lines.map(l => l.id === id ? { ...l, ...updates } : l));
 
   const handleAIClassify = async () => {
-    if (!description) return; 
+    if (!description) {
+      toast({ title: "Input Required", description: "Provide transaction narrative first.", variant: "destructive" });
+      return;
+    } 
     setIsClassifying(true);
     try {
       const res = await classifyTransaction({ transactionDescription: description }); 
@@ -188,6 +194,7 @@ function TransactionForm() {
           credit: 0, 
           memo: description 
         })));
+        toast({ title: "AI Suggestion Applied", description: "Ledger matrix populated." });
       }
     } catch (err) { 
       toast({ title: "AI Error", variant: "destructive" }); 
@@ -218,7 +225,7 @@ function TransactionForm() {
     try {
       if (editId) await updateDocumentNonBlocking(doc(firestore, "journalEntries", editId), entryData);
       else await addDocumentNonBlocking(collection(firestore, "journalEntries"), entryData);
-      showAlert({ title: "Journal Posted", description: "The transaction has been committed to the local drive.", type: "success" }); 
+      showAlert({ title: "Voucher Committed", description: "Transaction synchronized to local disk.", type: "success" }); 
       router.push("/transactions");
     } catch (err) { 
       toast({ title: "Save Failed", variant: "destructive" }); 
@@ -231,140 +238,160 @@ function TransactionForm() {
     if (e.key === "ArrowUp" || e.key === "ArrowDown") e.preventDefault(); 
   };
 
-  if (isEditLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-10 text-primary" /></div>;
+  if (isEditLoading) return <div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>;
 
   return (
-    <div className="p-8 flex flex-col gap-10 bg-slate-50 min-h-screen">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-black text-primary tracking-tight uppercase">{editId ? "Modify Voucher" : "New Journal Entry"}</h1>
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Institutional Financial Registry Matrix</p>
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-black tracking-tight uppercase text-black">
+            {editId ? "Modify Voucher" : "New Journal Entry"}
+          </h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">
+            Institutional General Ledger Terminal
+          </p>
+        </div>
+        <Button onClick={handleAIClassify} disabled={isClassifying} variant="outline" className="border-2 border-black font-black uppercase h-10 px-8 bg-white hover:bg-slate-50 transition-all text-indigo-700 shadow-lg">
+          {isClassifying ? <Loader2 className="size-4 animate-spin mr-2" /> : <Sparkles className="size-4 mr-2" />}
+          AI Matrix Assistant
+        </Button>
       </div>
 
-      <Card className="border-none shadow-sm rounded-2xl overflow-hidden bg-white">
-        <CardHeader className="bg-white border-b px-8 py-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div>
-            <CardTitle className="text-xl font-black uppercase text-primary">Voucher Terminal</CardTitle>
-            <CardDescription className="text-[11px] font-bold uppercase tracking-wider">GL Distribution & Subsidiary Integration</CardDescription>
+      <div className="bg-white border-2 border-black shadow-2xl rounded-none overflow-hidden animate-in fade-in duration-500">
+        {/* --- GRID METADATA BAR --- */}
+        <div className="grid grid-cols-1 md:grid-cols-4 border-b-2 border-black font-black bg-slate-50">
+          <div className="p-4 border-r border-black space-y-1">
+            <Label className="text-[9px] uppercase tracking-widest text-slate-500 ml-1">Posting Date</Label>
+            <Input type="date" value={entryDate} max="9999-12-31" onChange={(e) => setEntryDate(e.target.value)} className="h-9 border-none bg-transparent font-black text-base focus-visible:ring-0 text-black uppercase" />
           </div>
-          <Button onClick={handleAIClassify} disabled={isClassifying} variant="outline" className="w-full md:w-auto border-2 border-slate-100 font-bold uppercase h-10 px-6 bg-slate-50 hover:bg-slate-100 transition-all text-indigo-600">
-            {isClassifying ? <Loader2 className="size-4 animate-spin mr-2" /> : <Sparkles className="size-4 mr-2" />}
-            Accounting AI
-          </Button>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="p-8 grid grid-cols-1 md:grid-cols-3 gap-8 bg-slate-50/50 border-b">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Posting Date</Label>
-              <Input type="date" value={entryDate} max="9999-12-31" onChange={(e) => setEntryDate(e.target.value)} className="h-11 border-slate-200 font-bold text-sm focus:ring-0 uppercase bg-white" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Voucher/Ref No</Label>
-              <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} className="h-11 border-slate-200 font-bold text-sm bg-white" placeholder="E.g. J-2024-001" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400 ml-1">Transaction Description</Label>
-              <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-11 border-slate-200 font-bold text-sm bg-white" placeholder="Describe the transaction..." />
-            </div>
+          <div className="p-4 border-r border-black space-y-1">
+            <Label className="text-[9px] uppercase tracking-widest text-slate-500 ml-1">Voucher/Ref No</Label>
+            <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} className="h-9 border-none bg-transparent font-black text-base focus-visible:ring-0 text-black" placeholder="INSERT REF..." />
           </div>
+          <div className="md:col-span-2 p-4 space-y-1">
+            <Label className="text-[9px] uppercase tracking-widest text-slate-500 ml-1">Institutional Narrative</Label>
+            <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-9 border-none bg-transparent font-black text-base focus-visible:ring-0 text-black uppercase" placeholder="Enter transaction description..." />
+          </div>
+        </div>
 
-          <div className="overflow-x-auto p-2">
-            <table className="w-full font-bold tabular-nums min-w-[1000px] border-separate border-spacing-0">
-              <thead className="bg-white border-b text-[9px] uppercase text-slate-400">
-                <tr>
-                  <th className="p-4 text-left font-black tracking-widest w-[30%]">General Ledger Account</th>
-                  <th className="p-4 text-left font-black tracking-widest w-[30%]">Sub-Ledger Tag (Optional)</th>
-                  <th className="p-4 text-right font-black tracking-widest w-[15%]">Debit (৳)</th>
-                  <th className="p-4 text-right font-black tracking-widest w-[15%]">Credit (৳)</th>
-                  <th className="p-4 text-center w-[10%]"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {lines.map((l) => (
-                  <tr key={l.id} className="group hover:bg-slate-50/50 transition-colors">
-                    <td className="p-2">
-                      <Select value={l.accountCode} onValueChange={(v) => updateLine(l.id, { accountCode: v })}>
-                        <SelectTrigger className="border-none font-bold text-[13px] uppercase h-10 bg-transparent hover:bg-slate-100 px-3">
-                          <SelectValue placeholder="Select Account Code" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-[350px] rounded-xl shadow-2xl border-slate-200">
-                          {activeCOA.filter(a => !a.isHeader).map(a => (
-                            <SelectItem key={a.code} value={a.code} className="text-[11px] font-bold uppercase py-2">
-                              {a.code} - {a.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </td>
-                    <td className="p-2">
-                      <MemberSearchSelector 
-                        value={l.memberId} 
-                        onValueChange={(v: string) => updateLine(l.id, { memberId: v })}
-                        members={members}
-                      />
-                    </td>
-                    <td className="p-2">
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        value={l.debit || ''} 
-                        onKeyDown={handleNumericKeyDown} 
-                        onChange={(e) => updateLine(l.id, { debit: Number(e.target.value), credit: 0 })} 
-                        className={cn("border-none text-right font-black text-[15px] h-10 focus-visible:ring-0 bg-transparent", l.debit > 0 && "text-primary")} 
-                      />
-                    </td>
-                    <td className="p-2">
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        value={l.credit || ''} 
-                        onKeyDown={handleNumericKeyDown} 
-                        onChange={(e) => updateLine(l.id, { credit: Number(e.target.value), debit: 0 })} 
-                        className={cn("border-none text-right font-black text-[15px] h-10 focus-visible:ring-0 bg-transparent", l.credit > 0 && "text-accent")} 
-                      />
-                    </td>
-                    <td className="p-2 text-center">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-rose-300 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all" onClick={() => setLines(lines.filter(x => x.id !== l.id))}>
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot className="bg-slate-50/50 border-t-2">
-                <tr className="h-20">
-                  <td colSpan={2} className="text-right px-8 uppercase text-[10px] font-black tracking-widest text-slate-400">Mathematical Reconciliation:</td>
-                  <td className="text-right px-4 text-xl font-black text-primary border-r tabular-nums">৳ {totals.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  <td className="text-right px-4 text-xl font-black text-accent tabular-nums">৳ {totals.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  <td className="px-4 text-center">
-                    {isBalanced ? (
-                      <Badge className="bg-emerald-500 text-white px-3 py-1 uppercase text-[8px] font-black border-none">Balanced</Badge>
-                    ) : (
-                      <Badge variant="destructive" className="px-3 py-1 uppercase text-[8px] font-black border-none">Discrepancy</Badge>
-                    )}
+        {/* --- DENSE GRID TABLE --- */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse font-black tabular-nums text-black min-w-[1000px]">
+            <thead className="bg-slate-100 border-b-2 border-black text-[9px] uppercase tracking-widest">
+              <tr>
+                <th className="border-r border-black p-3 text-left w-[35%]">Chart of Accounts Mapping</th>
+                <th className="border-r border-black p-3 text-left w-[30%]">Subsidiary Tag</th>
+                <th className="border-r border-black p-3 text-right w-[15%]">Debit (৳)</th>
+                <th className="border-r border-black p-3 text-right w-[15%]">Credit (৳)</th>
+                <th className="p-3 text-center w-[5%]">Op</th>
+              </tr>
+            </thead>
+            <tbody className="text-[13px]">
+              {lines.map((l) => (
+                <tr key={l.id} className="border-b border-black hover:bg-slate-50/50 transition-colors h-11">
+                  <td className="border-r border-black p-0">
+                    <Select value={l.accountCode} onValueChange={(v) => updateLine(l.id, { accountCode: v })}>
+                      <SelectTrigger className="border-none shadow-none font-black h-10 w-full rounded-none bg-transparent px-4 focus:ring-0 uppercase text-xs">
+                        <SelectValue placeholder="SELECT ACCOUNT..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[400px] border-2 border-black rounded-none shadow-2xl">
+                        {activeCOA.filter(a => !a.isHeader).map(a => (
+                          <SelectItem key={a.code} value={a.code} className="font-black text-xs uppercase py-2">
+                            {a.code} — {a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="border-r border-black p-0">
+                    <MemberSearchSelector 
+                      value={l.memberId} 
+                      onValueChange={(v: string) => updateLine(l.id, { memberId: v })}
+                      members={members}
+                    />
+                  </td>
+                  <td className="border-r border-black p-0">
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      value={l.debit || ''} 
+                      onKeyDown={handleNumericKeyDown} 
+                      onChange={(e) => updateLine(l.id, { debit: Number(e.target.value), credit: 0 })} 
+                      className="border-none text-right font-black text-sm h-10 focus-visible:ring-0 bg-transparent px-4 text-black" 
+                    />
+                  </td>
+                  <td className="border-r border-black p-0">
+                    <Input 
+                      type="number" 
+                      step="0.01"
+                      value={l.credit || ''} 
+                      onKeyDown={handleNumericKeyDown} 
+                      onChange={(e) => updateLine(l.id, { credit: Number(e.target.value), debit: 0 })} 
+                      className="border-none text-right font-black text-sm h-10 focus-visible:ring-0 bg-transparent px-4 text-black" 
+                    />
+                  </td>
+                  <td className="p-0 text-center">
+                    <Button variant="ghost" size="icon" className="h-10 w-full rounded-none text-rose-300 hover:text-rose-700 hover:bg-rose-50" onClick={() => setLines(lines.filter(x => x.id !== l.id))}>
+                      <Trash2 className="size-4" />
+                    </Button>
                   </td>
                 </tr>
-              </tfoot>
-            </table>
-          </div>
+              ))}
+            </tbody>
+            <tfoot className="bg-slate-100 border-t-4 border-black text-black">
+              <tr className="h-16">
+                <td colSpan={2} className="border-r-2 border-black px-8 text-right uppercase text-[10px] font-black tracking-[0.3em]">
+                  <div className="flex items-center justify-end gap-3">
+                     <Calculator className="size-4 text-slate-400" />
+                     Mathematical Reconciliation Matrix:
+                  </div>
+                </td>
+                <td className="border-r border-black text-right px-4 text-xl font-black tabular-nums">৳ {totals.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black text-right px-4 text-xl font-black tabular-nums">৳ {totals.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="px-4 text-center bg-white">
+                  {isBalanced ? (
+                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-500 border-2 font-black uppercase text-[9px] rounded-none px-4">BALANCED</Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-500 border-2 font-black uppercase text-[9px] rounded-none px-4">ERROR</Badge>
+                  )}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
 
-          <div className="p-8 flex flex-col md:flex-row justify-between items-center bg-white border-t gap-6">
-            <Button onClick={() => setLines([...lines, { id: Math.random().toString(), accountCode: '', debit: 0, credit: 0, memo: '' }])} variant="outline" className="w-full md:w-auto border-2 border-slate-100 font-black uppercase h-12 px-8 bg-slate-50 hover:bg-slate-100 text-[11px] tracking-widest">
-              <Plus className="size-4 mr-2" /> Add Transaction Matrix
-            </Button>
-            <Button onClick={handleSave} disabled={!isBalanced || isSaving} className="w-full md:w-auto bg-primary text-white px-16 h-14 font-black uppercase text-[11px] tracking-[0.2em] shadow-xl hover:bg-primary/90 transition-all">
-              {isSaving ? <Loader2 className="animate-spin size-4" /> : <Save className="size-4 mr-3" />}
-              Commit Voucher to Ledger
+        {/* --- GRID ACTION FOOTER --- */}
+        <div className="p-8 flex flex-col md:flex-row justify-between items-center bg-white border-t-2 border-black gap-6">
+          <Button onClick={() => setLines([...lines, { id: Math.random().toString(), accountCode: '', debit: 0, credit: 0, memo: '' }])} variant="outline" className="w-full md:w-auto border-2 border-black font-black uppercase h-12 px-10 bg-slate-50 hover:bg-slate-100 text-[10px] tracking-widest shadow-md">
+            <Plus className="size-4 mr-2" /> Append Grid Row
+          </Button>
+          <div className="flex items-center gap-6 w-full md:w-auto">
+            <div className="hidden lg:flex items-center gap-3 text-emerald-600">
+               <ShieldCheck className="size-6" />
+               <p className="text-[9px] font-black uppercase tracking-widest leading-tight">Double-Entry<br/>Integrity Safe</p>
+            </div>
+            <Button onClick={handleSave} disabled={!isBalanced || isSaving} className="w-full md:w-auto bg-black text-white px-20 h-16 font-black uppercase text-xs tracking-[0.4em] shadow-2xl hover:bg-slate-900 transition-all group">
+              {isSaving ? <Loader2 className="animate-spin size-5 mr-3" /> : <Save className="size-5 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />}
+              Commit Voucher
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <div className="mt-auto pt-10 border-t border-black flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="size-4" />
+          <span>Institutional Trust Registry v1.2</span>
+        </div>
+        <p className="italic">Developed by: Ariful Islam, AGM Finance, Gazipur PBS-2</p>
+      </div>
     </div>
   );
 }
 
 export default function NewTransactionPage() {
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-10 text-primary" /></div>}>
+    <Suspense fallback={<div className="flex h-screen items-center justify-center bg-white"><Loader2 className="animate-spin size-12 text-black" /></div>}>
       <TransactionForm />
     </Suspense>
   );
