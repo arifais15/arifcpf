@@ -56,7 +56,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const now = new Date();
     const curYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const startYear = currentMonth >= 7 ? curYear : currentYear - 1;
+    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
