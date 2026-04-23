@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
@@ -121,6 +121,51 @@ export default function MembersPage() {
     setEditingMember(null);
   };
 
+  // Helper to parse dates from Excel
+  const excelDateToISO = (val: any) => {
+    if (!val) return new Date().toISOString().split('T')[0];
+    if (typeof val === 'number') {
+      const date = new Date((val - 25569) * 86400 * 1000);
+      return date.toISOString().split('T')[0];
+    }
+    if (typeof val === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+      } catch (e) {}
+    }
+    return String(val);
+  };
+
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        "ID": "12345",
+        "Name": "John Doe",
+        "Designation": "AGM",
+        "JoinedDate": "2020-01-01",
+        "ZonalOffice": "HO",
+        "Address": "Gazipur",
+        "Status": "Active",
+        "PostingDate": "2024-07-01",
+        "Particulars": "Monthly Contribution - July 2024",
+        "Emp_Contrib": 5000,
+        "Loan_Disbursed": 0,
+        "Loan_Repaid": 0,
+        "Employee_Profit": 0,
+        "Loan_Profit": 0,
+        "PBS_Contribution": 4165,
+        "PBS_Profit": 0
+      }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "UploadTemplate");
+    XLSX.writeFile(wb, "CPF_Monthly_Matrix_Template.xlsx");
+    toast({ title: "Template Downloaded", description: "Use this format for 100% success." });
+  };
+
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -135,11 +180,16 @@ export default function MembersPage() {
         
         const allMembersSnap = await getDocuments(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
-        allMembersSnap.forEach((d: any) => { existingMembersMap[d.data().memberIdNumber] = d.id; });
+        allMembersSnap.forEach((d: any) => { existingMembersMap[String(d.data().memberIdNumber).trim()] = d.id; });
 
+        let successCount = 0;
         for (const entry of data as any[]) {
-          const idNum = String(entry["ID"] || entry.memberIdNumber || "").trim();
-          const name = String(entry["Name"] || "");
+          // Fuzzy key matching for critical fields
+          const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
+          
+          const idNum = String(entry[findKey(["ID", "Member ID", "memberIdNumber", "ID No", "ID Number"])] || "").trim();
+          const name = String(entry[findKey(["Name", "Member Name", "Full Name"])] || "").trim();
+          
           if (!idNum || !name) continue;
           
           let mDocId = existingMembersMap[idNum];
@@ -150,42 +200,43 @@ export default function MembersPage() {
             setDocumentNonBlocking(newRef, { 
               memberIdNumber: idNum, 
               name, 
-              designation: String(entry["Designation"] || ""), 
-              dateJoined: String(entry["JoinedDate"] || ""), 
-              zonalOffice: String(entry["ZonalOffice"] || "HO"), 
-              permanentAddress: String(entry["Address"] || ""), 
-              status: String(entry["Status"] || "Active"), 
+              designation: String(entry[findKey(["Designation", "Rank", "Position"])] || ""), 
+              dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined", "Joining Date"])]), 
+              zonalOffice: String(entry[findKey(["ZonalOffice", "Office", "Branch"])] || "HO"), 
+              permanentAddress: String(entry[findKey(["Address", "Permanent Address"])] || ""), 
+              status: String(entry[findKey(["Status", "Member Status"])] || "Active"), 
               createdAt: new Date().toISOString(), 
               updatedAt: new Date().toISOString() 
             }, { merge: true });
           } else {
             updateDocumentNonBlocking(doc(firestore, "members", mDocId), { 
-              designation: String(entry["Designation"] || ""), 
-              zonalOffice: String(entry["ZonalOffice"] || "HO"), 
-              status: String(entry["Status"] || "Active"), 
+              designation: String(entry[findKey(["Designation", "Rank", "Position"])] || ""), 
+              zonalOffice: String(entry[findKey(["ZonalOffice", "Office", "Branch"])] || "HO"), 
+              status: String(entry[findKey(["Status", "Member Status"])] || "Active"), 
               updatedAt: new Date().toISOString() 
             });
           }
           
           const ledgerEntry = { 
-            summaryDate: String(entry["PostingDate"] || new Date().toISOString().split('T')[0]), 
-            particulars: String(entry["Particulars"] || "Monthly Matrix Append"), 
-            employeeContribution: Number(entry["Emp_Contrib"] || 0), 
-            loanWithdrawal: Number(entry["Loan_Disbursed"] || 0), 
-            loanRepayment: Number(entry["Loan_Repaid"] || 0), 
-            profitEmployee: Number(entry["Employee_Profit"] || 0), 
-            profitLoan: Number(entry["Loan_Profit"] || 0), 
-            pbsContribution: Number(entry["PBS_Contribution"] || 0), 
-            profitPbs: Number(entry["PBS_Profit"] || 0), 
+            summaryDate: excelDateToISO(entry[findKey(["PostingDate", "Date", "TransactionDate"])]), 
+            particulars: String(entry[findKey(["Particulars", "Detail", "Narration"])] || "Monthly Matrix Append"), 
+            employeeContribution: Number(entry[findKey(["Emp_Contrib", "Employee Contribution", "Column 1"])] || 0), 
+            loanWithdrawal: Number(entry[findKey(["Loan_Disbursed", "Loan Withdrawal", "Column 2"])] || 0), 
+            loanRepayment: Number(entry[findKey(["Loan_Repaid", "Loan Repayment", "Column 3"])] || 0), 
+            profitEmployee: Number(entry[findKey(["Employee_Profit", "Yield on Fund", "Column 5"])] || 0), 
+            profitLoan: Number(entry[findKey(["Loan_Profit", "Interest on Loan", "Column 6"])] || 0), 
+            pbsContribution: Number(entry[findKey(["PBS_Contribution", "Office Contribution", "Column 8"])] || 0), 
+            profitPbs: Number(entry[findKey(["PBS_Profit", "Yield on Office", "Column 9"])] || 0), 
             memberId: mDocId, 
             createdAt: new Date().toISOString() 
           };
           addDocumentNonBlocking(collection(firestore, "members", mDocId, "fundSummaries"), ledgerEntry);
+          successCount++;
         }
-        showAlert({ title: "Synchronization Complete", type: "success" });
+        showAlert({ title: "Synchronization Complete", description: `Successfully processed ${successCount} institutional records.`, type: "success" });
       } catch (err) { 
         console.error("Import Error:", err);
-        toast({ title: "Import Failed", description: "Verify Excel structure.", variant: "destructive" }); 
+        toast({ title: "Import Failed", description: "Verify Excel structure or use the provided template.", variant: "destructive" }); 
       } finally { 
         setIsUploading(false); 
         setIsBulkOpen(false); 
@@ -221,7 +272,7 @@ export default function MembersPage() {
         </div>
         <div className="flex items-center gap-6 border-l-2 border-black/10 pl-8 ml-8">
           <div className="flex items-center gap-3">
-            <Label className="text-[11px] font-black uppercase text-slate-500 tracking-widest">Display Rows</Label>
+            <Label className="text-xs font-black uppercase text-slate-500 tracking-widest">Display Rows</Label>
             <Select 
               value={pageSize.toString()} 
               onValueChange={(v) => { 
@@ -286,6 +337,58 @@ export default function MembersPage() {
         </Table>
       </div>
 
+      {/* BULK UPLOAD DIALOG */}
+      <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
+        <DialogContent className="max-w-xl bg-white border-2 border-black p-0 rounded-none shadow-2xl font-ledger">
+          <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle className="text-xl font-black uppercase flex items-center gap-3">
+                <FileType className="size-6 text-emerald-600" />
+                Monthly Matrix Terminal
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
+                Bulk Personnel & Ledger Synchronization
+              </DialogDescription>
+            </div>
+            <Button variant="outline" onClick={downloadTemplate} className="h-8 border-black border-2 font-black uppercase text-[9px] gap-1 px-3">
+              <Download className="size-3" /> Template
+            </Button>
+          </DialogHeader>
+          
+          <div className="p-8 space-y-6">
+            <div className="p-10 border-4 border-dashed border-slate-200 rounded-3xl text-center cursor-pointer hover:border-black transition-all group" onClick={() => fileInputRef.current?.click()}>
+              <input type="file" className="hidden" ref={fileInputRef} onChange={handleExcelUpload} disabled={isUploading} accept=".xlsx, .xls" />
+              {isUploading ? (
+                <div className="space-y-4">
+                  <Loader2 className="size-12 animate-spin mx-auto text-black" />
+                  <p className="text-xs font-black uppercase tracking-widest text-black">Reconciling Database Matrix...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Upload className="size-12 mx-auto text-slate-300 group-hover:text-black transition-colors" />
+                  <p className="text-sm font-black uppercase tracking-[0.2em]">Select Monthly Matrix Excel</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Excel 97-2003 / XML Standard Supported</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-emerald-50 border-2 border-emerald-100 p-4 rounded-xl flex gap-3 items-start">
+              <ShieldCheck className="size-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase text-emerald-700">Audit Consistency Protocol</p>
+                <p className="text-[11px] leading-relaxed text-emerald-600 font-bold italic">
+                  Ensure "PostingDate" follows YYYY-MM-DD standard or Excel Date format. Mandatory headers: ID, Name, PostingDate. Missing members will be auto-registered.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="bg-slate-100 p-4 border-t-2 border-black">
+            <Button variant="ghost" onClick={() => setIsBulkOpen(false)} className="font-black text-[10px] uppercase tracking-widest border-2 border-black h-9 px-6 bg-white hover:bg-slate-50">Cancel Terminal</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={isAddOpen} onOpenChange={(o) => { setIsAddOpen(o); if (!o) setEditingMember(null); }}>
         <DialogContent className="max-w-2xl bg-white p-0 rounded-none shadow-2xl overflow-hidden border-4 border-black font-ledger">
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
@@ -296,13 +399,13 @@ export default function MembersPage() {
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-8 text-black bg-white">
             <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-amber-700 ml-1 tracking-widest">Vault ID Number</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
-              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-blue-700 ml-1 tracking-widest">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
-              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-slate-500 ml-1 tracking-widest">Official Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
-              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-indigo-700 ml-1 tracking-widest">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-12 border-black border-2 font-black text-black" /></div>
-              <div className="space-y-2"><Label className="text-[11px] font-black uppercase text-slate-500 ml-1 tracking-widest">Assigned Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-12 border-black border-2 font-black text-black" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-amber-700 ml-1 tracking-widest">Vault ID Number</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-blue-700 ml-1 tracking-widest">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Official Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-indigo-700 ml-1 tracking-widest">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-12 border-black border-2 font-black text-black" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Assigned Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-12 border-black border-2 font-black text-black" /></div>
               <div className="space-y-2">
-                <Label className="text-[11px] font-black uppercase text-rose-700 ml-1 tracking-widest">Operational Status</Label>
+                <Label className="text-xs font-black uppercase text-rose-700 ml-1 tracking-widest">Operational Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
                   <SelectTrigger className="h-12 border-black border-2 font-black text-black uppercase">
                     <SelectValue />
@@ -316,7 +419,7 @@ export default function MembersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2 space-y-2"><Label className="text-[11px] font-black uppercase text-slate-500 ml-1 tracking-widest">Permanent Registry Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[80px] uppercase text-xs" /></div>
+              <div className="col-span-2 space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Permanent Registry Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[80px] uppercase text-xs" /></div>
             </div>
             <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group">
               <Plus className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
