@@ -83,7 +83,7 @@ function AccountSearchSelector({ value, onValueChange, accounts }: any) {
              {search && !accounts.find((a:any) => a.code === search) && (
                <Button
                  variant="ghost"
-                 className="w-full justify-start font-black text-[11px] h-11 rounded-none uppercase mb-1 text-indigo-600 hover:bg-indigo-50 border-b border-indigo-100"
+                 className="w-full justify-start font-black text-[11px] h-11 rounded-none uppercase mb-1 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all border-b border-indigo-100"
                  onClick={() => {
                    onValueChange(search);
                    setOpen(false);
@@ -98,7 +98,7 @@ function AccountSearchSelector({ value, onValueChange, accounts }: any) {
               <Button
                 key={a.code}
                 variant="ghost"
-                className="w-full justify-start font-black text-[11px] h-auto py-2.5 text-left rounded-none uppercase transition-colors text-black hover:bg-slate-100"
+                className="w-full justify-start font-black text-[11px] h-auto py-2.5 text-left rounded-none uppercase transition-all text-black hover:bg-indigo-600 hover:text-white group"
                 onClick={() => {
                   onValueChange(a.code);
                   setOpen(false);
@@ -108,7 +108,7 @@ function AccountSearchSelector({ value, onValueChange, accounts }: any) {
                 <Check className={cn("mr-2 h-4 w-4 shrink-0", value === a.code ? "opacity-100" : "opacity-0")} />
                 <div className="flex flex-col gap-0.5 overflow-hidden">
                    <span className="truncate">{a.code} — {a.name}</span>
-                   <span className="text-[9px] opacity-40 tracking-wider font-bold">{a.type} | {a.balance}</span>
+                   <span className="text-[9px] opacity-40 tracking-wider font-bold group-hover:text-white/80">{a.type} | {a.balance}</span>
                 </div>
               </Button>
             ))}
@@ -163,7 +163,7 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
           <div className="p-1">
             <Button
               variant="ghost"
-              className="w-full justify-start font-black text-[10px] h-9 rounded-none uppercase mb-0.5 text-black hover:bg-slate-100"
+              className="w-full justify-start font-black text-[10px] h-9 rounded-none uppercase mb-0.5 text-black hover:bg-blue-600 hover:text-white transition-all"
               onClick={() => {
                 onValueChange("");
                 setOpen(false);
@@ -178,7 +178,7 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
               <Button
                 key={m.id}
                 variant="ghost"
-                className="w-full justify-start font-black text-[10px] h-auto py-2 text-left rounded-none uppercase transition-colors text-black hover:bg-slate-100"
+                className="w-full justify-start font-black text-[10px] h-auto py-2 text-left rounded-none uppercase transition-all text-black hover:bg-blue-600 hover:text-white group"
                 onClick={() => {
                   onValueChange(m.id);
                   setOpen(false);
@@ -188,7 +188,7 @@ function MemberSearchSelector({ value, onValueChange, members }: any) {
                 <Check className={cn("mr-2 h-3.5 w-3.5 shrink-0", value === m.id ? "opacity-100" : "opacity-0")} />
                 <div className="flex flex-col gap-0 overflow-hidden">
                    <span className="truncate">{m.memberIdNumber} — {m.name}</span>
-                   <span className="text-[8px] opacity-40 tracking-wider font-bold">{m.designation}</span>
+                   <span className="text-[8px] opacity-40 tracking-wider font-bold group-hover:text-white/80">{m.designation}</span>
                 </div>
               </Button>
             ))}
