@@ -249,27 +249,27 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="grid grid-cols-3 border-4 border-black mb-2 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
           <div className="border-r-2 border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">PERSONNEL:</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Personnel:</span>
             <span className="text-sm flex-1 truncate">{member?.name}</span>
           </div>
           <div className="border-r-2 border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">VAULT ID:</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Vault ID:</span>
             <span className="text-sm font-mono flex-1">{member?.memberIdNumber}</span>
           </div>
           <div className="border-b-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">POSITION:</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Position:</span>
             <span className="text-sm flex-1 truncate">{member?.designation}</span>
           </div>
           <div className="border-r-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">OFFICE:</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Office:</span>
             <span className="text-sm flex-1 truncate">{member?.zonalOffice || "Head Office"}</span>
           </div>
           <div className="border-r-2 border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">STATUS:</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Status:</span>
             <span className={cn("text-xs font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
           <div className="py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">INCEPTION:</span>
+            <span className="text-slate-400 text-[9px] uppercase tracking-tighter w-[80px]">Inception:</span>
             <span className="text-sm flex-1">{member?.dateJoined}</span>
           </div>
         </div>
@@ -288,7 +288,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <th rowSpan={2} className="border-r-2 border-black p-2 bg-indigo-50/20">PBS<br/>Contrib</th>
               <th rowSpan={2} className="border-r-2 border-black p-2 bg-indigo-50/20">Profit on<br/>PBS Contrib</th>
               <th rowSpan={2} className="border-r-2 border-black p-2 bg-slate-100 w-[110px]">Total<br/>Office</th>
-              <th rowSpan={2} className="border-r-2 border-black p-2 bg-slate-200 w-[130px]">CUMULATIVE<br/>FUND TOTAL</th>
+              <th rowSpan={2} className="border-r-2 border-black p-2 bg-slate-200 w-[130px]">Cumulative<br/>Fund Total</th>
               <th rowSpan={2} className="p-2 no-print bg-slate-100 w-[100px]">Audits</th>
             </tr>
             <tr className="border-b-2 border-black">
@@ -309,7 +309,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <th className="border-r-2 border-black/20">9</th>
               <th className="border-r-2 border-black/20">10 (8+9)</th>
               <th className="border-r-2 border-black/20">11 (7+10)</th>
-              <th className="no-print opacity-50">ACTIONS</th>
+              <th className="no-print opacity-50">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -328,25 +328,25 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                 <td className="border-r-2 border-black p-0.5 text-right text-[9px]">{r.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="border-r-2 border-black p-0.5 text-right bg-slate-50 font-bold text-[9px]">{r.col10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="border-r-2 border-black p-0.5 text-right bg-slate-100 text-[10px] font-bold underline underline-offset-2">৳ {r.col11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="p-0.5 text-center no-print bg-slate-50">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-black hover:text-white" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-5 w-5 text-rose-600 hover:bg-rose-600 hover:text-white" onClick={() => showAlert({ title:"Irreversible Purge?", description: "Remove this voucher from subsidiary record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
+                <td className="p-0.5 text-center no-print bg-slate-50 border-r-2 border-black">{!r.isOpening && <div className="flex gap-1 justify-center"><Button variant="ghost" size="icon" className="h-5 w-5 hover:bg-black hover:text-white" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-3" /></Button><Button variant="ghost" size="icon" className="h-5 w-5 text-rose-600 hover:bg-rose-600 hover:text-white" onClick={() => showAlert({ title:"Irreversible Purge?", description: "Remove this voucher from subsidiary record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-3" /></Button></div>}</td>
               </tr>
             ))}
           </tbody>
           <tfoot className="bg-slate-100 font-black border-t-4 border-black text-[10px] uppercase tabular-nums text-black">
             <tr className="h-12">
-              <td colSpan={2} className="border-r-2 border-black p-4 text-right bg-slate-200 tracking-[0.2em]">Institutional Grand Totals:</td>
-              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right text-rose-700">{ledgerLogic.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right text-emerald-700">{ledgerLogic.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/10">{ledgerLogic.grand.c4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/5">{ledgerLogic.grand.c7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right">{ledgerLogic.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/5">{ledgerLogic.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border-r-2 border-black p-0.5 text-right bg-slate-200 text-base underline decoration-double decoration-black/30 px-4">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="no-print bg-slate-100"></td>
+              <td colSpan={2} className="border-r-2 border-b-2 border-black p-4 text-right bg-slate-200 tracking-[0.2em]">Institutional Grand Totals:</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right text-rose-700">{ledgerLogic.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right text-emerald-700">{ledgerLogic.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/10">{ledgerLogic.grand.c4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right">{ledgerLogic.grand.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right">{ledgerLogic.grand.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/5">{ledgerLogic.grand.c7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right">{ledgerLogic.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right">{ledgerLogic.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right bg-white text-[11px] border-y-4 border-black/5">{ledgerLogic.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border-r-2 border-b-2 border-black p-0.5 text-right bg-slate-200 text-base underline decoration-double decoration-black/30 px-4">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="no-print bg-slate-100 border-b-2 border-black"></td>
             </tr>
           </tfoot>
         </table>
@@ -359,7 +359,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                <span className="text-xs font-black uppercase tracking-widest">Mathematical Consistency Verified</span>
             </div>
           </div>
-          <p className="text-[9px] font-black uppercase text-slate-300">Developed by Ariful Islam, AGM Finance,Gazipur PBS-2</p>
+          <p className="text-[9px] font-black uppercase text-slate-300">Developed by Ariful Islam, AGM Finance, Gazipur PBS-2</p>
         </div>
       </div>
 
@@ -388,7 +388,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
                     <Info className="size-3" /> Voucher Particulars / Memo
                  </Label>
-                 <Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="E.g. SALARY CONTRIBUTION JULY-2024" className="h-12 border-black border-4 font-black text-xs px-6 bg-white uppercase focus:bg-emerald-50 transition-colors" />
+                 <Input name="particulars" defaultValue={editingEntry?.particulars} required placeholder="E.g. Salary Contribution July-2024" className="h-12 border-black border-4 font-black text-xs px-6 bg-white uppercase focus:bg-emerald-50 transition-colors" />
               </div>
             </div>
 
@@ -401,11 +401,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </h4>
                     <div className="space-y-4">
                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-black text-slate-400">EMP CONTRIB (COL 1)</Label>
+                          <Label className="text-[9px] font-black text-slate-400">Emp Contrib (Col 1)</Label>
                           <Input type="number" step="0.01" value={manualVals.c1||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c1:Number(e.target.value)})} className="h-10 border-black border-2 font-mono font-black text-right text-base" />
                        </div>
                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-black text-slate-400">OFFICE CONTRIB (COL 8)</Label>
+                          <Label className="text-[9px] font-black text-slate-400">Office Contrib (Col 8)</Label>
                           <Input type="number" step="0.01" value={manualVals.c8||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c8:Number(e.target.value)})} className="h-10 border-black border-2 font-mono font-black text-right text-base" />
                        </div>
                     </div>
@@ -418,11 +418,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </h4>
                     <div className="space-y-4">
                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-black text-rose-600">DISBURSEMENT (COL 2)</Label>
+                          <Label className="text-[9px] font-black text-rose-600">Disbursement (Col 2)</Label>
                           <Input type="number" step="0.01" value={manualVals.c2||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c2:Number(e.target.value)})} className="h-10 border-rose-600 border-2 font-mono font-black text-right text-base text-rose-700 bg-white" />
                        </div>
                        <div className="space-y-1.5">
-                          <Label className="text-[9px] font-black text-emerald-600">REPAYMENT (COL 3)</Label>
+                          <Label className="text-[9px] font-black text-emerald-600">Repayment (Col 3)</Label>
                           <Input type="number" step="0.01" value={manualVals.c3||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c3:Number(e.target.value)})} className="h-10 border-emerald-600 border-2 font-mono font-black text-right text-base text-emerald-700 bg-white" />
                        </div>
                     </div>
@@ -435,15 +435,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                     </h4>
                     <div className="space-y-3">
                        <div className="space-y-1">
-                          <Label className="text-[9px] font-black text-orange-600">PROFIT EMP (COL 5)</Label>
+                          <Label className="text-[9px] font-black text-orange-600">Profit Emp (Col 5)</Label>
                           <Input type="number" step="0.01" value={manualVals.c5||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c5:Number(e.target.value)})} className="h-9 border-orange-600 border-2 font-mono font-black text-right text-base text-orange-700 bg-white" />
                        </div>
                        <div className="space-y-1">
-                          <Label className="text-[9px] font-black text-orange-600">PROFIT LOAN (COL 6)</Label>
+                          <Label className="text-[9px] font-black text-orange-600">Profit Loan (Col 6)</Label>
                           <Input type="number" step="0.01" value={manualVals.c6||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c6:Number(e.target.value)})} className="h-9 border-orange-600 border-2 font-mono font-black text-right text-base text-orange-700 bg-white" />
                        </div>
                        <div className="space-y-1">
-                          <Label className="text-[9px] font-black text-indigo-600">PROFIT PBS (COL 9)</Label>
+                          <Label className="text-[9px] font-black text-indigo-600">Profit PBS (Col 9)</Label>
                           <Input type="number" step="0.01" value={manualVals.c9||''} onKeyDown={handleNumericKeyDown} onChange={e=>setManualVals({...manualVals, c9:Number(e.target.value)})} className="h-9 border-indigo-600 border-2 font-mono font-black text-right text-base text-indigo-700 bg-white" />
                        </div>
                     </div>
@@ -473,7 +473,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                    </p>
                 </div>
                 <div className="space-y-1">
-                   <p className="text-[9px] font-black uppercase tracking-widest text-primary">TOTAL IMPACT</p>
+                   <p className="text-[9px] font-black uppercase tracking-widest text-primary">Total Impact</p>
                    <p className="text-2xl font-black tabular-nums underline decoration-double decoration-black/10">৳ {rowVerification.total.toLocaleString()}</p>
                 </div>
               </div>
