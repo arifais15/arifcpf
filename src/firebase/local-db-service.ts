@@ -1,75 +1,96 @@
 'use client';
 
 /**
- * @fileOverview Statutory Local Persistence Engine
+ * @fileOverview Statutory Local Persistence Engine (Circular-Safe Version)
  * 
- * Implements a virtual Firestore environment using browser LocalStorage.
- * Designed for portable PBS CPF distribution where internet/cloud access is restricted.
+ * Implements a flat-path virtual Firestore environment using browser LocalStorage.
+ * Prevents circular references by avoiding nested object structures.
  * Features automated disk persistence and portability export/import.
  */
 
 const DB_KEY = 'pbs_cpf_local_matrix_v1';
 
 interface LocalDB {
-  [collection: string]: {
-    [docId: string]: any;
-  };
+  [path: string]: any;
 }
 
 class LocalDatabaseService {
   private getDB(): LocalDB {
     if (typeof window === 'undefined') return {};
     const data = localStorage.getItem(DB_KEY);
-    return data ? JSON.parse(data) : {};
+    if (!data) return {};
+    
+    try {
+      const parsed = JSON.parse(data);
+      
+      // MIGRATION: Detect and flatten old nested structure if present
+      const keys = Object.keys(parsed);
+      const isOldStructure = keys.some(k => !k.includes('/') && typeof parsed[k] === 'object' && !Array.isArray(parsed[k]));
+      
+      if (isOldStructure) {
+        const flattened: LocalDB = {};
+        Object.entries(parsed).forEach(([colName, docs]: [string, any]) => {
+          if (typeof docs !== 'object' || Array.isArray(docs)) return;
+          Object.entries(docs).forEach(([docId, docData]: [string, any]) => {
+            const path = `${colName}/${docId}`;
+            const { _sub, ...rest } = docData;
+            flattened[path] = rest;
+            if (_sub) {
+              Object.entries(_sub).forEach(([subKey, subData]) => {
+                // subKey in old version was 'fundSummaries/docID'
+                flattened[`${path}/${subKey}`] = subData;
+              });
+            }
+          });
+        });
+        localStorage.setItem(DB_KEY, JSON.stringify(flattened));
+        return flattened;
+      }
+      
+      return parsed;
+    } catch (e) {
+      console.error("Local DB Parse Error:", e);
+      return {};
+    }
   }
 
   private saveDB(db: LocalDB) {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(DB_KEY, JSON.stringify(db));
-    // Trigger a storage event for multi-tab synchronization and UI updates
-    window.dispatchEvent(new Event('storage'));
+    try {
+      localStorage.setItem(DB_KEY, JSON.stringify(db));
+      // Trigger a storage event for multi-tab synchronization and UI updates
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {
+      console.error("Local DB Save Error (Circular Check Needed):", e);
+    }
   }
 
   // CREATE / UPDATE
   setDoc(path: string, data: any, options: { merge?: boolean } = {}) {
-    const parts = path.split('/').filter(Boolean);
-    if (parts.length < 2) return;
-    
     const db = this.getDB();
-    const collection = parts[0];
-    const docId = parts[1];
-    
-    if (!db[collection]) db[collection] = {};
-    
-    const existing = db[collection][docId] || {};
-    db[collection][docId] = options.merge ? { ...existing, ...data } : data;
-    
-    // Handle subcollections (e.g., members/ID/fundSummaries/ID)
-    if (parts.length > 2) {
-      const subPath = parts.slice(2).join('/');
-      if (!db[collection][docId]._sub) db[collection][docId]._sub = {};
-      db[collection][docId]._sub[subPath] = data;
-    }
-
+    const existing = db[path] || {};
+    db[path] = options.merge ? { ...existing, ...data } : data;
     this.saveDB(db);
   }
 
   addDoc(collectionPath: string, data: any) {
-    const docId = Math.random().toString(36).substring(2, 15);
-    const id = data.id || docId;
-    this.setDoc(`${collectionPath}/${id}`, { ...data, id });
-    return { id };
+    const docId = data.id || Math.random().toString(36).substring(2, 15);
+    const path = `${collectionPath}/${docId}`;
+    this.setDoc(path, { ...data, id: docId });
+    return { id: docId };
   }
 
   // DELETE
   deleteDoc(path: string) {
-    const parts = path.split('/').filter(Boolean);
     const db = this.getDB();
-    const collectionName = parts[0];
-    const docId = parts[1];
-    
-    if (db[collectionName] && db[collectionName][docId]) {
-      delete db[collectionName][docId];
+    if (db[path]) {
+      delete db[path];
+      // Recursive delete: also remove all sub-documents in paths like path/subcollection/id
+      Object.keys(db).forEach(k => {
+        if (k.startsWith(`${path}/`)) {
+          delete db[k];
+        }
+      });
       this.saveDB(db);
     }
   }
@@ -77,47 +98,40 @@ class LocalDatabaseService {
   // QUERY / READ
   getCollection(path: string): any[] {
     const db = this.getDB();
-    const parts = path.split('/').filter(Boolean);
+    const results: any[] = [];
     
-    // Support for collectionGroup (flat scan across all members)
-    if (path.includes('fundSummaries')) {
-      const all: any[] = [];
-      Object.values(db['members'] || {}).forEach((member: any) => {
-        if (member._sub) {
-          Object.entries(member._sub).forEach(([subKey, entry]: any) => {
-            if (subKey.startsWith('fundSummaries')) {
-              all.push({ ...entry, id: entry.id || subKey.split('/').pop() });
-            }
-          });
-        }
-      });
-      return all;
-    }
-
-    if (parts.length === 1) {
-      return Object.values(db[parts[0]] || []);
-    }
+    // Support for collectionGroup (e.g. path='fundSummaries' or path='journalEntries')
+    // We assume path is a collectionGroup name if it has no slashes.
+    const isCollectionGroup = !path.includes('/');
     
-    // Subcollection reading
-    if (parts.length === 3) {
-      const parentCol = parts[0];
-      const parentId = parts[1];
-      const subCol = parts[2];
-      const parent = db[parentCol]?.[parentId];
-      if (!parent || !parent._sub) return [];
+    Object.entries(db).forEach(([k, v]) => {
+      const parts = k.split('/');
       
-      return Object.entries(parent._sub)
-        .filter(([k]) => k.startsWith(subCol))
-        .map(([k, v]: any) => ({ ...v, id: v.id || k.split('/').pop() }));
-    }
+      if (isCollectionGroup) {
+        // Find any document where the parent segment matches the collection name
+        // Path like 'members/ID/fundSummaries/docID' matches 'fundSummaries'
+        if (parts.length >= 2 && parts[parts.length - 2] === path) {
+          results.push({ ...v, id: v.id || parts[parts.length - 1] });
+        }
+      } else {
+        // Standard collection match (e.g. path='members' or path='members/123/fundSummaries')
+        const prefix = path.endsWith('/') ? path : `${path}/`;
+        if (k.startsWith(prefix)) {
+          const subPath = k.substring(prefix.length);
+          // Ensure it is a direct child document (no more slashes in subPath)
+          if (!subPath.includes('/')) {
+            results.push({ ...v, id: v.id || subPath });
+          }
+        }
+      }
+    });
 
-    return [];
+    return results;
   }
 
   getDoc(path: string): any | null {
-    const parts = path.split('/').filter(Boolean);
     const db = this.getDB();
-    return db[parts[0]]?.[parts[1]] || null;
+    return db[path] || null;
   }
 
   // PORTABILITY API
