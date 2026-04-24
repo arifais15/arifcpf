@@ -12,6 +12,8 @@ import {
 } from 'firebase/firestore';
 import { USE_LOCAL_DB } from '@/firebase';
 import { localDB } from '@/firebase/local-db-service';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 /**
  * Statutory Persistence Layer - Supports both Cloud and Local-Matrix modes.
@@ -23,7 +25,14 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
     localDB.setDoc(docRef.path, data, options);
     return;
   }
-  setDoc(docRef, data, options).catch(err => console.error(err));
+  setDoc(docRef, data, options).catch(async (serverError) => {
+    const permissionError = new FirestorePermissionError({
+      path: docRef.path,
+      operation: options && 'merge' in options ? 'update' : 'create',
+      requestResourceData: data,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
@@ -31,7 +40,14 @@ export function addDocumentNonBlocking(colRef: CollectionReference, data: any) {
     const result = localDB.addDoc(colRef.path, data);
     return Promise.resolve(result);
   }
-  return addDoc(colRef, data).catch(err => console.error(err));
+  return addDoc(colRef, data).catch(async (serverError) => {
+    const permissionError = new FirestorePermissionError({
+      path: colRef.path,
+      operation: 'create',
+      requestResourceData: data,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
@@ -39,7 +55,14 @@ export function updateDocumentNonBlocking(docRef: DocumentReference, data: any) 
     localDB.setDoc(docRef.path, data, { merge: true });
     return;
   }
-  updateDoc(docRef, data).catch(err => console.error(err));
+  updateDoc(docRef, data).catch(async (serverError) => {
+    const permissionError = new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'update',
+      requestResourceData: data,
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 export function deleteDocumentNonBlocking(docRef: DocumentReference) {
@@ -47,7 +70,13 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
     localDB.deleteDoc(docRef.path);
     return;
   }
-  deleteDoc(docRef).catch(err => console.error(err));
+  deleteDoc(docRef).catch(async (serverError) => {
+    const permissionError = new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'delete',
+    } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
+  });
 }
 
 /**
@@ -115,5 +144,18 @@ export async function getDocuments(target: any) {
       }))
     };
   }
-  return firebaseGetDocs(target);
+  
+  try {
+    return await firebaseGetDocs(target);
+  } catch (e: any) {
+    if (e.code === 'permission-denied' || e.message?.includes('permissions')) {
+      const path = (target as any).path || (target as any)._query?.path?.canonicalString() || 'unknown';
+      const permissionError = new FirestorePermissionError({
+        path,
+        operation: 'list',
+      } satisfies SecurityRuleContext);
+      errorEmitter.emit('permission-error', permissionError);
+    }
+    throw e;
+  }
 }

@@ -5,7 +5,7 @@ import { USE_LOCAL_DB } from '@/firebase';
 import { localDB } from '@/firebase/local-db-service';
 import { onSnapshot, CollectionReference, Query, DocumentData, QuerySnapshot } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 export type WithId<T> = T & { id: string };
 
@@ -57,8 +57,14 @@ export function useCollection<T = any>(
         setData(results);
         setIsLoading(false);
       },
-      (error) => {
-        console.error("Firestore List Error:", error);
+      async (serverError) => {
+        const path = (memoizedTargetRefOrQuery as any).path || (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'unknown';
+        const permissionError = new FirestorePermissionError({
+          path,
+          operation: 'list',
+        } satisfies SecurityRuleContext);
+
+        errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
       }
     );

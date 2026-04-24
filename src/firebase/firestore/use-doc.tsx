@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { USE_LOCAL_DB } from '@/firebase';
 import { localDB } from '@/firebase/local-db-service';
 import { onSnapshot, DocumentReference, DocumentSnapshot, DocumentData } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
 type WithId<T> = T & { id: string };
 
@@ -46,8 +48,13 @@ export function useDoc<T = any>(
         setData(snapshot.exists() ? { ...(snapshot.data() as T), id: snapshot.id } : null);
         setIsLoading(false);
       },
-      (error) => {
-        console.error("Firestore Get Error:", error);
+      async (serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: memoizedDocRef.path,
+          operation: 'get',
+        } satisfies SecurityRuleContext);
+
+        errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
       }
     );

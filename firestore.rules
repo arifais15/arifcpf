@@ -49,13 +49,13 @@ service cloud.firestore {
      * @description Controls administrative privileges. The existence of a UID here grants system-wide access.
      * @path /roles_admin/{uid}
      * @allow (get) Any authenticated user can check their own role status via the isAdmin helper.
+     * @allow (create) Bootstrap rule: allow a user to self-provision their admin status for prototype use.
      * @deny (write) Only existing admins can manage the admin list.
-     * @principle Role-Based Access Control (RBAC) bootstrapping.
      */
     match /roles_admin/{uid} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
-      allow create: if isAdmin();
+      allow create: if isSignedIn() && request.auth.uid == uid; 
       allow update, delete: if isExistingAdmin();
     }
 

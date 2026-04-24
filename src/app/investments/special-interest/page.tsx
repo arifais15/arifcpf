@@ -31,9 +31,10 @@ import {
   useFirestore, 
   useMemoFirebase, 
   useDoc,
-  addDocumentNonBlocking
+  addDocumentNonBlocking,
+  getDocuments
 } from "@/firebase";
-import { collection, query, orderBy, doc, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -141,7 +142,7 @@ export default function SpecialInterestDPPage() {
     const auditResults = [];
     for (const member of targetMembers) {
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
-      const snapshot = await getDocs(query(summariesRef, orderBy("summaryDate", "asc")));
+      const snapshot = await getDocuments(query(summariesRef, orderBy("summaryDate", "asc")));
       const allEntries = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
       
       let totalInterest = 0;
