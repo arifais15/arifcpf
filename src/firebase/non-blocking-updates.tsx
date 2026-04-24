@@ -1,4 +1,3 @@
-
 'use client';
     
 import {
@@ -54,13 +53,14 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
 /**
  * Local-safe document retrieval for Institutional Portability.
  * Mirrors Firebase getDocs functionality using LocalStorage.
- * Handles basic 'where' filtering for Member ID Number.
+ * Handles basic 'where' filtering and internal 'summaryDate' sorting for interest audits.
  */
 export async function getDocuments(target: any) {
   if (USE_LOCAL_DB) {
     let path = "";
     let filterField = "";
     let filterValue = "";
+    let sortField = "";
 
     // Extract path and basic filter info from target (CollectionReference or Query)
     if (typeof target === 'string') {
@@ -68,28 +68,39 @@ export async function getDocuments(target: any) {
     } else if (target.path) {
       path = target.path;
     } else if (target._query) {
-      // Internal parsing of Firestore Query object for basic filters
-      path = target._query.path.canonicalString();
+      // Internal parsing of Firestore Query object for local routing
+      path = target._query.path.segments.join('/');
+      
+      // Look for where filters
       const filters = target._query.filters || [];
       if (filters.length > 0) {
         filterField = filters[0].field?.segments?.[0] || "";
         filterValue = filters[0].value?.internalValue;
       }
-    } else if (target.type === 'collection') {
-      path = target.path;
+
+      // Look for explicit sorting requirements (critical for interest audits)
+      const orders = target._query.explicitOrderBy || [];
+      if (orders.length > 0) {
+        sortField = orders[0].field?.segments?.[0] || "";
+      }
     }
 
-    // Default fallback for members
-    if (!path && target.toString().includes('members')) path = 'members';
+    // Sanitize path (no leading/trailing slashes for local registry match)
+    const sanitizedPath = path.replace(/^\/|\/$/g, '');
 
-    let data = localDB.getCollection(path);
+    let data = localDB.getCollection(sanitizedPath);
     
-    // Basic filter shim for common 'where' queries (e.g., checking member uniqueness)
+    // Basic filter shim for common 'where' queries
     if (filterField && filterValue !== undefined) {
       data = data.filter(d => String(d[filterField]) === String(filterValue));
     }
+
+    // Sorting shim for audits (e.g. summaryDate asc)
+    if (sortField) {
+      data.sort((a, b) => String(a[sortField]).localeCompare(String(b[sortField])));
+    }
     
-    // Returns a shimmed QuerySnapshot
+    // Returns a shimmed QuerySnapshot compatible with map/forEach patterns
     return {
       empty: data.length === 0,
       docs: data.map(d => ({
