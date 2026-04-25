@@ -128,8 +128,18 @@ export async function getDocuments(target: any) {
     
     return {
       empty: data.length === 0,
-      docs: data.map(d => ({ id: d.id, data: () => d, exists: () => true })),
-      forEach: (cb: (doc: any) => void) => data.forEach(d => cb({ id: d.id, data: () => d, exists: () => true }))
+      docs: data.map(d => ({ 
+        id: d.id, 
+        data: () => d, 
+        exists: () => true, 
+        ref: { path: d._path } 
+      })),
+      forEach: (cb: (doc: any) => void) => data.forEach(d => cb({ 
+        id: d.id, 
+        data: () => d, 
+        exists: () => true, 
+        ref: { path: d._path } 
+      }))
     };
   }
   

@@ -74,14 +74,14 @@ class LocalDatabaseService {
       const parts = k.split('/');
       if (isCollectionGroup) {
         if (parts.length >= 2 && parts[parts.length - 2] === path) {
-          results.push({ ...v, id: v.id || parts[parts.length - 1] });
+          results.push({ ...v, id: v.id || parts[parts.length - 1], _path: k });
         }
       } else {
         const prefix = path.endsWith('/') ? path : `${path}/`;
         if (k.startsWith(prefix)) {
           const subPath = k.substring(prefix.length);
           if (!subPath.includes('/')) {
-            results.push({ ...v, id: v.id || subPath });
+            results.push({ ...v, id: v.id || subPath, _path: k });
           }
         }
       }
