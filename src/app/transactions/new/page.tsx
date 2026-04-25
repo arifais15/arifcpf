@@ -30,15 +30,12 @@ import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Badge } from "@/components/ui/badge";
 import { 
   useFirestore, 
-  addDocumentNonBlocking, 
-  setDocumentNonBlocking,
   useCollection, 
   useMemoFirebase, 
   useDoc, 
-  updateDocumentNonBlocking, 
-  deleteDocumentNonBlocking,
   getDocuments
 } from "@/firebase";
+import { serverExecuteBatch } from "@/app/actions/db-actions";
 import { collection, doc, query, where, collectionGroup } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -306,70 +303,72 @@ function TransactionForm() {
       savedId = newRef.id;
     }
 
-    const journalRef = doc(firestore, "journalEntries", savedId);
+    const batchOps: any[] = [];
+    const timestamp = new Date().toISOString();
+    const dateKey = entryDate.replaceAll('-', '');
 
-    const entryData = { 
-      id: savedId,
-      entryDate, 
-      description, 
-      referenceNumber: refNo, 
-      updatedAt: new Date().toISOString(), 
-      createdAt: existingTransaction?.createdAt || new Date().toISOString(), 
-      lines: lines.map(l => ({ 
-        accountCode: l.accountCode, 
-        accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "MANUAL INPUT", 
-        debit: Number(l.debit) || 0, 
-        credit: Number(l.credit) || 0, 
-        memo: l.memo, 
-        memberId: l.memberId || "" 
-      })), 
-      totalAmount: totals.debit 
-    };
+    // 1. Audit Reconciliation: Clear old entries if editing
+    if (editId) {
+      const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", editId));
+      const snap = await getDocuments(q);
+      snap.forEach((d: any) => {
+        batchOps.push({ type: 'delete', path: d.ref.path });
+      });
+    }
 
-    try {
-      // 1. Audit Reconciliation: Clear old entries if editing
-      if (editId) {
-        const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", editId));
-        const snap = await getDocuments(q);
-        snap.forEach((d: any) => {
-          if (d.ref) deleteDocumentNonBlocking(d.ref);
-        });
+    // 2. Add main Journal Entry to batch
+    batchOps.push({
+      type: 'set',
+      path: `journalEntries/${savedId}`,
+      data: { 
+        id: savedId,
+        entryDate, 
+        description, 
+        referenceNumber: refNo, 
+        updatedAt: timestamp, 
+        createdAt: existingTransaction?.createdAt || timestamp, 
+        lines: lines.map(l => ({ 
+          accountCode: l.accountCode, 
+          accountName: activeCOA.find((a: any) => a.code === l.accountCode)?.name || "MANUAL INPUT", 
+          debit: Number(l.debit) || 0, 
+          credit: Number(l.credit) || 0, 
+          memo: l.memo, 
+          memberId: l.memberId || "" 
+        })), 
+        totalAmount: totals.debit 
       }
+    });
 
-      // 2. Commit main Journal Entry
-      setDocumentNonBlocking(journalRef, entryData);
-
-      // 3. Post Synchronized Ledger Items using Deterministic Unique IDs
-      // Format: yyyymmdd&ID&COA&VoucherID to strictly avoid duplicates
-      const dateKey = entryDate.replaceAll('-', '');
-      
-      lines.forEach(l => {
-        if (l.memberId) {
-          const vals = getSubsidiaryValues(l.accountCode, Number(l.debit) || 0, Number(l.credit) || 0);
-          if (vals) {
-            const deterministicId = `${dateKey}&${l.memberId}&${l.accountCode}&${savedId}`;
-            const ledgerEntry = {
+    // 3. Add Synchronized Ledger Items to batch
+    lines.forEach(l => {
+      if (l.memberId) {
+        const vals = getSubsidiaryValues(l.accountCode, Number(l.debit) || 0, Number(l.credit) || 0);
+        if (vals) {
+          const deterministicId = `${dateKey}&${l.memberId}&${l.accountCode}&${savedId}`;
+          batchOps.push({
+            type: 'set',
+            path: `members/${l.memberId}/fundSummaries/${deterministicId}`,
+            data: {
               ...vals,
               id: deterministicId,
               summaryDate: entryDate,
               particulars: description,
               journalEntryId: savedId,
               memberId: l.memberId,
-              createdAt: new Date().toISOString(),
+              createdAt: timestamp,
               isSystemGenerated: true
-            };
-            
-            const summaryDocRef = doc(firestore, "members", l.memberId, "fundSummaries", deterministicId);
-            setDocumentNonBlocking(summaryDocRef, ledgerEntry);
-          }
+            }
+          });
         }
-      });
+      }
+    });
 
+    try {
+      await serverExecuteBatch(batchOps);
       showAlert({ title: "Voucher Committed", description: "Audit trail and Subsidiary Matrix synchronized.", type: "success" }); 
       router.push("/transactions");
     } catch (err) { 
-      console.error("Institutional Save Error:", err);
-      toast({ title: "Save Failed", description: "Audit trail reconciliation failed.", variant: "destructive" }); 
+      toast({ title: "Save Failed", description: "Batch synchronization error.", variant: "destructive" }); 
     } finally { 
       setIsSaving(false); 
     }
