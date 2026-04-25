@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { USE_LOCAL_DB } from '@/firebase';
-import { localDB } from '@/firebase/local-db-service';
+import { serverGetCollection } from '@/app/actions/db-actions';
 import { onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
@@ -40,14 +40,15 @@ export function useCollection<T = any>(
           path = memoizedTargetRefOrQuery._query.collectionGroup || memoizedTargetRefOrQuery._query.path.segments.join('/');
         }
         
-        const results = await localDB.getCollection(path);
+        const results = await serverGetCollection(path);
         setData(results as WithId<T>[]);
         setIsLoading(false);
       };
 
       syncLocal();
-      window.addEventListener('storage', syncLocal);
-      return () => window.removeEventListener('storage', syncLocal);
+      // Since it's a server action, we poll or rely on revalidations if needed.
+      // For a local-first app, this simple sync is usually enough on mount.
+      return;
     }
 
     setIsLoading(true);

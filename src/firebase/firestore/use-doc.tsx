@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { USE_LOCAL_DB } from '@/firebase';
-import { localDB } from '@/firebase/local-db-service';
+import { serverGetDoc } from '@/app/actions/db-actions';
 import { onSnapshot, DocumentReference, DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
@@ -32,14 +32,13 @@ export function useDoc<T = any>(
     if (USE_LOCAL_DB) {
       const syncLocal = async () => {
         const path = memoizedDocRef.path;
-        const result = await localDB.getDoc(path);
+        const result = await serverGetDoc(path);
         setData(result ? { ...result, id: memoizedDocRef.id } as WithId<T> : null);
         setIsLoading(false);
       };
 
       syncLocal();
-      window.addEventListener('storage', syncLocal);
-      return () => window.removeEventListener('storage', syncLocal);
+      return;
     }
 
     setIsLoading(true);
