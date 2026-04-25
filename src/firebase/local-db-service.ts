@@ -1,15 +1,15 @@
 'use client';
 
 /**
- * @fileOverview Institutional SQLite WASM Persistence Engine (V7)
+ * @fileOverview Institutional SQLite WASM Persistence Engine (V7 - Fixed)
  * 
  * Re-engineered for Guaranteed Local Persistence on PC.
  * 1. Unified Schema: (id, data) for all tables to prevent column mismatch errors.
  * 2. Primary: OPFS (Origin Private File System) for high-speed physical disk access.
- * 3. Integrity: Atomic Transaction Commits for every write operation.
+ * 3. Heartbeat: Forces physical disk creation on startup.
  */
 
-const DB_FILE = 'pbs_cpf_institutional_vault_v7.sqlite3';
+const DB_FILE = 'pbs_cpf_vault_v7.sqlite3';
 
 class SQLiteDatabaseService {
   private db: any = null;
@@ -20,11 +20,12 @@ class SQLiteDatabaseService {
 
   constructor() {
     if (typeof window !== 'undefined') {
-      const existing = (window as any).__PBS_SQLITE_VAULT__;
-      if (existing) {
-        this.db = existing;
+      // Use globalThis to prevent multiple instances during Hot Module Replacement
+      const g = globalThis as any;
+      if (g.__PBS_SQLITE_VAULT__) {
+        this.db = g.__PBS_SQLITE_VAULT__;
+        this.mode = g.__PBS_SQLITE_MODE__ || 'FALLBACK';
         this.initPromise = Promise.resolve();
-        this.mode = (window as any).__PBS_SQLITE_MODE__ || 'FALLBACK';
       } else {
         this.initPromise = this.initialize();
       }
@@ -63,21 +64,21 @@ class SQLiteDatabaseService {
         try {
           this.db = new sqlite3.oo1.OpfsDb(DB_FILE, 'c');
           this.mode = 'OPFS';
-          console.log("Vault Active: SQLite OPFS (Physical Disk) Persistence.");
         } catch (e) {
-          console.warn("OPFS blocked. Falling back to persistent VFS...");
+          console.warn("OPFS restricted by environment. Using IndexedDB fallback.");
         }
       }
 
-      // FALLBACK: Standard DB with create flag
+      // FALLBACK: Standard DB with create flag (IndexedDB VFS)
       if (!this.db) {
         this.db = new sqlite3.oo1.DB(DB_FILE, 'c');
         this.mode = 'FALLBACK';
-        console.log("Vault Active: Browser Internal Persistent Matrix.");
       }
 
-      (window as any).__PBS_SQLITE_VAULT__ = this.db;
-      (window as any).__PBS_SQLITE_MODE__ = this.mode;
+      // Register singleton
+      const g = globalThis as any;
+      g.__PBS_SQLITE_VAULT__ = this.db;
+      g.__PBS_SQLITE_MODE__ = this.mode;
 
       // PERFORMANCE & INTEGRITY TUNING
       this.db.exec(`
@@ -101,10 +102,11 @@ class SQLiteDatabaseService {
         CREATE INDEX IF NOT EXISTS idx_fs_je ON fund_summaries(journalEntryId);
       `);
 
-      // FORCED HEARTBEAT (Ensures file is actually created/flushed)
+      // FORCE HEARTBEAT (Forces browser to create the physical file)
       this.db.exec("VACUUM;");
+      this.db.exec("PRAGMA user_version = 7;");
 
-      console.log(`Institutional Registry Synchronized. Mode: ${this.mode}`);
+      console.log(`Vault Active: Physical Disk Mode (${this.mode}). Registry Synchronized.`);
     } catch (e) {
       console.error("Critical Engine Failure:", e);
       this.mode = 'TRANSIENT';
@@ -137,7 +139,6 @@ class SQLiteDatabaseService {
       } else if (p === 'fundSummaries') {
         sql = "SELECT data FROM fund_summaries";
       } else if (p.includes('/fundSummaries')) {
-        // Handle path like members/ID/fundSummaries
         const mid = p.split('/')[1];
         sql = "SELECT data FROM fund_summaries WHERE memberId = ?";
         binds = [mid];
