@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -8,7 +7,8 @@
  * Supports automated migration from legacy storage and async I/O.
  */
 
-import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+// REMOVED top-level import to avoid "self is not defined" SSR errors
+// import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 
 const DB_FILE = '/pbs_cpf_relational_matrix.sqlite3';
 const LEGACY_KEY = 'pbs_cpf_local_matrix_v1';
@@ -25,6 +25,7 @@ class SQLiteDatabaseService {
   }
 
   async ensureReady() {
+    if (typeof window === 'undefined') return;
     if (this.initPromise) await this.initPromise;
   }
 
@@ -33,6 +34,10 @@ class SQLiteDatabaseService {
     this.isInitializing = true;
 
     try {
+      // Dynamic import ensures this code ONLY runs in the browser
+      // This prevents the "self is not defined" error during Next.js SSR
+      const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default;
+
       const sqlite3 = await sqlite3InitModule({
         print: console.log,
         printErr: console.error,
@@ -146,13 +151,15 @@ class SQLiteDatabaseService {
       localStorage.removeItem(LEGACY_KEY);
       console.log("Relational Migration Successful. Legacy cache purged.");
     } catch (e) {
-      this.db.exec("ROLLBACK;");
+      if (this.db) this.db.exec("ROLLBACK;");
       console.error("Migration Failed:", e);
     }
   }
 
   async getCollection(path: string): Promise<any[]> {
     await this.ensureReady();
+    if (!this.db) return [];
+    
     const results: any[] = [];
     const sanitized = path.replace(/^\/|\/$/g, '');
 
@@ -181,6 +188,8 @@ class SQLiteDatabaseService {
 
   async setDoc(path: string, data: any, options: { merge?: boolean } = {}) {
     await this.ensureReady();
+    if (!this.db) return;
+
     const parts = path.replace(/^\/|\/$/g, '').split('/');
     const id = parts[parts.length - 1];
     
@@ -212,6 +221,8 @@ class SQLiteDatabaseService {
 
   async deleteDoc(path: string) {
     await this.ensureReady();
+    if (!this.db) return;
+
     const parts = path.replace(/^\/|\/$/g, '').split('/');
     const id = parts[parts.length - 1];
 
@@ -229,6 +240,8 @@ class SQLiteDatabaseService {
 
   async getDoc(path: string): Promise<any | null> {
     await this.ensureReady();
+    if (!this.db) return null;
+
     const parts = path.replace(/^\/|\/$/g, '').split('/');
     const id = parts[parts.length - 1];
     let result = null;
