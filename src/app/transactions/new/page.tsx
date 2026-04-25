@@ -295,6 +295,11 @@ function TransactionForm() {
     }
   };
 
+  /**
+   * RECONCILIATION ENGINE:
+   * Ensures that updating a voucher precisely reconciles the member subsidiary ledgers
+   * by purging previous audit trails before committing new records.
+   */
   const handleSave = async () => {
     if (!isBalanced) return; 
     setIsSaving(true);
@@ -326,20 +331,19 @@ function TransactionForm() {
     };
 
     try {
-      // 1. CRITICAL RECONCILIATION: Purge all existing linked ledger entries to prevent duplicates
+      // 1. CRITICAL RECONCILIATION: Purge existing linked subsidiary entries to prevent duplication
       if (editId) {
         const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", editId));
         const snap = await getDocuments(q);
-        // Sequential deletion for database stability
         snap.forEach((d: any) => {
           if (d.ref) deleteDocumentNonBlocking(d.ref);
         });
       }
 
-      // 2. Commit main Journal Entry
+      // 2. Commit main Journal Entry to Vault
       setDocumentNonBlocking(journalRef, entryData);
 
-      // 3. Post to member ledgers (Synchronized Multi-Posting)
+      // 3. Post Synchronized Ledger Items
       lines.forEach(l => {
         if (l.memberId) {
           const vals = getSubsidiaryValues(l.accountCode, Number(l.debit) || 0, Number(l.credit) || 0);
@@ -358,7 +362,7 @@ function TransactionForm() {
         }
       });
 
-      showAlert({ title: "Voucher Committed", description: "Transaction and Subsidiary Ledgers synchronized.", type: "success" }); 
+      showAlert({ title: "Voucher Committed", description: "Audit trail and Subsidiary Matrix synchronized.", type: "success" }); 
       router.push("/transactions");
     } catch (err) { 
       console.error("Institutional Save Error:", err);

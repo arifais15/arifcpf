@@ -79,6 +79,10 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
   });
 }
 
+/**
+ * Institutional Query Reconciler
+ * Bridging Firestore Queries to PC Local Storage Matrix with filter resolution.
+ */
 export async function getDocuments(target: any) {
   if (USE_LOCAL_DB) {
     let path = "";
@@ -92,16 +96,22 @@ export async function getDocuments(target: any) {
     } else if (target.path) {
       path = target.path;
     } else if (target._query) {
-      // Robust Query Inspection for Collection Groups
       const queryObj = target._query;
+      // Extract path for both standard and collectionGroup queries
       path = queryObj.collectionGroup || (queryObj.path?.segments || []).join('/');
       
       const filters = queryObj.filters || [];
       if (filters.length > 0) {
-        // Handle both simple and complex filter structures
+        // Robust internal filter parsing across multiple SDK versions
         const firstFilter = filters[0];
         filterField = firstFilter.field?.segments?.[0] || firstFilter.left?.field?.segments?.[0] || "";
-        filterValue = firstFilter.value?.internalValue ?? firstFilter.right?.value?.internalValue;
+        
+        // Multi-path value extraction for high-fidelity auditing
+        const rawVal = firstFilter.value ?? firstFilter.right?.value;
+        if (rawVal !== undefined && rawVal !== null) {
+          filterValue = rawVal.internalValue ?? rawVal.value?.internalValue ?? rawVal.constantValue ?? rawVal;
+        }
+        
         filterOp = firstFilter.op || firstFilter.operator || "==";
       }
 
@@ -114,8 +124,8 @@ export async function getDocuments(target: any) {
     const sanitizedPath = path.replace(/^\/|\/$/g, '');
     let data = localDB.getCollection(sanitizedPath);
     
-    // Automated Filtering Logic
-    if (filterField && filterValue !== null) {
+    // Automated Filtering Matrix
+    if (filterField && filterValue !== null && filterValue !== undefined) {
       data = data.filter(d => {
         const val = d[filterField];
         if (filterOp === '>=') return String(val) >= String(filterValue);
@@ -124,7 +134,7 @@ export async function getDocuments(target: any) {
       });
     }
 
-    // Automated Sorting
+    // Automated Sorting Chronology
     if (sortField) {
       data.sort((a, b) => String(a[sortField]).localeCompare(String(b[sortField])));
     }
