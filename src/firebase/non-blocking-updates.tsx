@@ -104,15 +104,25 @@ export async function getDocuments(target: any) {
       if (filters.length > 0) {
         // Robust internal filter parsing across multiple SDK versions
         const firstFilter = filters[0];
-        filterField = firstFilter.field?.segments?.[0] || firstFilter.left?.field?.segments?.[0] || "";
         
-        // Multi-path value extraction for high-fidelity auditing
-        const rawVal = firstFilter.value ?? firstFilter.right?.value;
-        if (rawVal !== undefined && rawVal !== null) {
-          filterValue = rawVal.internalValue ?? rawVal.value?.internalValue ?? rawVal.constantValue ?? rawVal;
-        }
+        // 1. Identify Field Name
+        filterField = firstFilter.field?.segments?.[0] || 
+                      firstFilter.left?.field?.segments?.[0] || 
+                      "";
         
+        // 2. Identify Operator
         filterOp = firstFilter.op || firstFilter.operator || "==";
+        
+        // 3. Robust Multi-path value extraction
+        // Handles nested objects (internalValue) and raw constants
+        const extractVal = (v: any) => {
+          if (v === null || v === undefined) return null;
+          if (typeof v !== 'object') return v;
+          return v.internalValue ?? v.value?.internalValue ?? v.constantValue ?? v;
+        };
+
+        const rawVal = firstFilter.value ?? firstFilter.right?.value;
+        filterValue = extractVal(rawVal);
       }
 
       const orders = queryObj.explicitOrderBy || [];
@@ -128,9 +138,13 @@ export async function getDocuments(target: any) {
     if (filterField && filterValue !== null && filterValue !== undefined) {
       data = data.filter(d => {
         const val = d[filterField];
-        if (filterOp === '>=') return String(val) >= String(filterValue);
-        if (filterOp === '<') return String(val) < String(filterValue);
-        return String(val) === String(filterValue);
+        const stringVal = String(val);
+        const stringFilter = String(filterValue);
+
+        if (filterOp === '>=') return stringVal >= stringFilter;
+        if (filterOp === '<') return stringVal < stringFilter;
+        if (filterOp === '==' || filterOp === 'equal') return stringVal === stringFilter;
+        return true;
       });
     }
 
