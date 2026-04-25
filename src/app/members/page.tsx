@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -8,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
-import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
+import { collection, doc, query, where, collectionGroup, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -204,7 +203,7 @@ export default function MembersPage() {
           const journalLines: any[] = [];
           let totalDebit = 0;
           let totalCredit = 0;
-          let bankEffect = 0; // Net cash flow for this batch
+          let bankEffect = 0; // Net cash flow for this batch (now Receivable from PBS)
 
           for (const entry of rows) {
             const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
@@ -260,7 +259,7 @@ export default function MembersPage() {
                 });
                 totalDebit += m.debit;
                 totalCredit += m.credit;
-                // Calculate net effect for Bank balancing
+                // Calculate net effect for balancing
                 bankEffect += (m.credit - m.debit); // Positive if cash comes in (Contrib/Repay), Negative if cash goes out (Disburse)
               }
             });
@@ -278,11 +277,11 @@ export default function MembersPage() {
             successCount++;
           }
 
-          // 2. Add the Balancing Bank Line to the Journal Entry
+          // 2. Add the Balancing Line (Receivable from PBS 107.10.0000) to the Journal Entry
           if (bankEffect !== 0) {
             const isDebit = bankEffect > 0;
             journalLines.push({
-              accountCode: '131.10.0000', accountName: 'STD Bank Account',
+              accountCode: '107.10.0000', accountName: 'Receivable from PBS',
               debit: isDebit ? Math.abs(bankEffect) : 0,
               credit: !isDebit ? Math.abs(bankEffect) : 0,
               memo: `Bulk Matrix Reconciliation - ${postingDate}`
@@ -304,7 +303,7 @@ export default function MembersPage() {
         }
         showAlert({ 
           title: "Audit Synchronized", 
-          description: `Generated ${voucherCount} balanced vouchers for ${successCount} personnel records.`, 
+          description: `Generated ${voucherCount} balanced vouchers for ${successCount} personnel records. Balanced against Receivable from PBS (107.10.0000).`, 
           type: "success" 
         });
       } catch (err) { 
@@ -448,7 +447,7 @@ export default function MembersPage() {
               <div className="space-y-1">
                 <p className="text-[10px] font-black uppercase text-indigo-700">Financial Integrity Protocol</p>
                 <p className="text-[11px] leading-relaxed text-indigo-600 font-bold italic">
-                  This upload will generate balanced General Ledger vouchers. Contributions will debit the STD Bank account. Individual ledgers will be synchronized automatically.
+                  This upload will generate balanced General Ledger vouchers. Transactions will balance against Receivable from PBS (107.10.0000). Individual ledgers will be synchronized automatically.
                 </p>
               </div>
             </div>
