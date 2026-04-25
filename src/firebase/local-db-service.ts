@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * @fileOverview Institutional SQLite WASM Persistence Engine (V2)
+ * @fileOverview Institutional SQLite WASM Persistence Engine (V3)
  * 
  * Re-engineered for absolute data persistence on local PC.
- * Uses OPFS (Origin Private File System) with explicit commits.
+ * Database Identity: pbs_cpf_institutional_vault_v3.sqlite3
  */
 
 const DB_FILE = 'pbs_cpf_institutional_vault_v3.sqlite3';
@@ -43,20 +43,23 @@ class SQLiteDatabaseService {
         printErr: console.error,
       });
 
-      console.log("Institutional Audit: SQLite WASM Loaded. Version:", sqlite3.version.libVersion);
+      console.log("Institutional Audit: SQLite WASM Engine Loaded.");
 
-      // Initialize persistent database
+      // Initialize persistent database using OO1 OPFS API
       if ('opfs' in sqlite3.oo1) {
         this.db = new sqlite3.oo1.OpfsDb(DB_FILE);
-        console.log("Institutional Persistence: OPFS High-Performance Disk Engine Active.");
+        console.log(`Institutional Persistence: [CREATED] ${DB_FILE} on local disk.`);
       } else {
-        // Fallback to basic DB if OPFS is not supported (likely due to headers)
-        // Note: Without OPFS or a specific VFS, persistence depends on the browser's implementation of the 'ct' flag
+        // Fallback for non-OPFS environments (e.g. missing headers)
         this.db = new sqlite3.oo1.DB(DB_FILE, 'ct');
-        console.warn("Institutional Warning: OPFS not detected. Using standard persistence matrix.");
+        console.warn("Institutional Warning: OPFS restricted. Using browser-managed persistence.");
       }
 
-      // 1. Create Comprehensive Relational Schema
+      // 1. Force Disk Handshake
+      this.db.exec("PRAGMA journal_mode=WAL;");
+      this.db.exec("PRAGMA synchronous=NORMAL;");
+
+      // 2. Create Comprehensive Relational Schema
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS accounts (
           id TEXT PRIMARY KEY,
@@ -111,7 +114,7 @@ class SQLiteDatabaseService {
         CREATE INDEX IF NOT EXISTS idx_journal_date ON journal_entries(entryDate);
       `);
 
-      // 2. Automated Legacy Migration
+      // 3. Automated Legacy Migration
       await this.migrateFromLocalStorage();
 
     } catch (e) {
