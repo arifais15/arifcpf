@@ -28,13 +28,24 @@ import { classifyTransaction } from "@/ai/flows/transaction-classification-assis
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
 import { Badge } from "@/components/ui/badge";
-import { useFirestore, addDocumentNonBlocking, useCollection, useMemoFirebase, useDoc, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc, query, where, getDocs } from "firebase/firestore";
+import { 
+  useFirestore, 
+  addDocumentNonBlocking, 
+  setDocumentNonBlocking,
+  useCollection, 
+  useMemoFirebase, 
+  useDoc, 
+  updateDocumentNonBlocking, 
+  deleteDocumentNonBlocking,
+  getDocuments
+} from "@/firebase";
+import { collection, doc, query, where, collectionGroup } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { getSubsidiaryValues } from "@/lib/ledger-mapping";
 
 interface LineItem { id: string; accountCode: string; debit: number; credit: number; memo: string; memberId?: string; }
 
@@ -288,7 +299,18 @@ function TransactionForm() {
   const handleSave = async () => {
     if (!isBalanced) return; 
     setIsSaving(true);
+    
+    let savedId = editId;
+    if (!savedId) {
+      // Generate ID ahead of time to avoid awaiting addDoc, ensuring we can link subsidiary entries
+      const newRef = doc(collection(firestore, "journalEntries"));
+      savedId = newRef.id;
+    }
+
+    const journalRef = doc(firestore, "journalEntries", savedId);
+
     const entryData = { 
+      id: savedId,
       entryDate, 
       description, 
       referenceNumber: refNo, 
@@ -304,12 +326,43 @@ function TransactionForm() {
       })), 
       totalAmount: totals.debit 
     };
+
     try {
-      if (editId) await updateDocumentNonBlocking(doc(firestore, "journalEntries", editId), entryData);
-      else await addDocumentNonBlocking(collection(firestore, "journalEntries"), entryData);
-      showAlert({ title: "Voucher Committed", description: "Transaction synchronized to local disk.", type: "success" }); 
+      // 1. Reconcile existing linked ledger entries if editing
+      if (editId) {
+        const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", editId));
+        const snap = await getDocuments(q);
+        snap.forEach(d => {
+          deleteDocumentNonBlocking(d.ref);
+        });
+      }
+
+      // 2. Commit main Journal Entry
+      setDocumentNonBlocking(journalRef, entryData);
+
+      // 3. Post to member ledgers (Synchronized Multi-Posting)
+      lines.forEach(l => {
+        if (l.memberId) {
+          const vals = getSubsidiaryValues(l.accountCode, Number(l.debit) || 0, Number(l.credit) || 0);
+          if (vals) {
+            const ledgerEntry = {
+              ...vals,
+              summaryDate: entryDate,
+              particulars: description,
+              journalEntryId: savedId,
+              memberId: l.memberId,
+              createdAt: new Date().toISOString(),
+              isSystemGenerated: true
+            };
+            addDocumentNonBlocking(collection(firestore, "members", l.memberId, "fundSummaries"), ledgerEntry);
+          }
+        }
+      });
+
+      showAlert({ title: "Voucher Committed", description: "Transaction and Subsidiary Ledgers synchronized.", type: "success" }); 
       router.push("/transactions");
     } catch (err) { 
+      console.error("Save Error:", err);
       toast({ title: "Save Failed", variant: "destructive" }); 
     } finally { 
       setIsSaving(false); 

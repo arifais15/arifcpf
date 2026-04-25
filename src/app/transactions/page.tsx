@@ -13,8 +13,14 @@ import {
   Loader2 
 } from "lucide-react";
 import Link from "next/link";
-import { useCollection, useFirestore, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
-import { collection, doc } from "firebase/firestore";
+import { 
+  useCollection, 
+  useFirestore, 
+  useMemoFirebase, 
+  deleteDocumentNonBlocking,
+  getDocuments
+} from "@/firebase";
+import { collection, doc, query, where, collectionGroup } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useSweetAlert } from "@/hooks/use-sweet-alert";
@@ -41,18 +47,34 @@ export default function TransactionsPage() {
   const handleDelete = (id: string, ref: string) => {
     showAlert({
       title: "Delete Transaction?",
-      description: `Are you sure you want to delete transaction ${ref || id}? This action cannot be reversed.`,
+      description: `Are you sure you want to delete transaction ${ref || id}? This action will also remove associated entries from all member ledgers.`,
       type: "warning",
       showCancel: true,
-      confirmText: "Yes, Delete",
-      onConfirm: () => {
-        const docRef = doc(firestore, "journalEntries", id);
-        deleteDocumentNonBlocking(docRef);
-        showAlert({
-          title: "Deleted",
-          description: "Journal entry has been removed from the system.",
-          type: "success"
-        });
+      confirmText: "Yes, Delete All",
+      onConfirm: async () => {
+        try {
+          // 1. Find and delete all linked member ledger entries
+          const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", id));
+          const snap = await getDocuments(q);
+          snap.forEach(d => {
+            const memberId = d.data().memberId;
+            if (memberId) {
+              deleteDocumentNonBlocking(doc(firestore, "members", memberId, "fundSummaries", d.id));
+            }
+          });
+
+          // 2. Delete the main journal entry
+          const docRef = doc(firestore, "journalEntries", id);
+          deleteDocumentNonBlocking(docRef);
+          
+          showAlert({
+            title: "Reconciled",
+            description: "Journal entry and associated subsidiary records removed.",
+            type: "success"
+          });
+        } catch (e) {
+          toast({ title: "Deletion Failed", variant: "destructive" });
+        }
       }
     });
   };
@@ -135,7 +157,7 @@ export default function TransactionsPage() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10" 
+                      className="text-destructive hover:bg-destructive/10" 
                       onClick={() => handleDelete(entry.id, entry.referenceNumber)}
                     >
                       <Trash2 className="size-3.5" />
