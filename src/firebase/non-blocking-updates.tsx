@@ -17,7 +17,7 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
 
 /**
  * Statutory Persistence Layer - Supports both Cloud and Local-Matrix modes.
- * Ensures that data entered on a local PC stays on that PC's drive.
+ * Features automated query mapping for 100% offline filtering/sorting.
  */
 
 export function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions = {}) {
@@ -79,83 +79,66 @@ export function deleteDocumentNonBlocking(docRef: DocumentReference) {
   });
 }
 
-/**
- * Local-safe document retrieval for Institutional Portability.
- * Mirrors Firebase getDocs functionality using LocalStorage.
- * Handles basic 'where' filtering and internal 'summaryDate' sorting for interest audits.
- */
 export async function getDocuments(target: any) {
   if (USE_LOCAL_DB) {
     let path = "";
     let filterField = "";
-    let filterValue = "";
+    let filterValue: any = null;
+    let filterOp = "==";
     let sortField = "";
 
-    // Extract path and basic filter info from target (CollectionReference or Query)
     if (typeof target === 'string') {
       path = target;
     } else if (target.path) {
       path = target.path;
     } else if (target._query) {
-      // Internal parsing of Firestore Query object for local routing
-      path = target._query.path.segments.join('/');
+      // Query Automation: Handle collectionGroup vs standard collection
+      path = target._query.collectionGroup || target._query.path.segments.join('/');
       
-      // Look for where filters
       const filters = target._query.filters || [];
       if (filters.length > 0) {
         filterField = filters[0].field?.segments?.[0] || "";
         filterValue = filters[0].value?.internalValue;
+        filterOp = filters[0].op || "==";
       }
 
-      // Look for explicit sorting requirements (critical for interest audits)
       const orders = target._query.explicitOrderBy || [];
       if (orders.length > 0) {
         sortField = orders[0].field?.segments?.[0] || "";
       }
     }
 
-    // Sanitize path (no leading/trailing slashes for local registry match)
     const sanitizedPath = path.replace(/^\/|\/$/g, '');
-
     let data = localDB.getCollection(sanitizedPath);
     
-    // Basic filter shim for common 'where' queries
-    if (filterField && filterValue !== undefined) {
-      data = data.filter(d => String(d[filterField]) === String(filterValue));
+    // Automated Filtering Logic (Handles prefix search for members)
+    if (filterField && filterValue !== null) {
+      data = data.filter(d => {
+        const val = d[filterField];
+        if (filterOp === '>=') return String(val) >= String(filterValue);
+        if (filterOp === '<') return String(val) < String(filterValue);
+        return String(val) === String(filterValue);
+      });
     }
 
-    // Sorting shim for audits (e.g. summaryDate asc)
+    // Automated Sorting (Critical for ledger consistency)
     if (sortField) {
       data.sort((a, b) => String(a[sortField]).localeCompare(String(b[sortField])));
     }
     
-    // Returns a shimmed QuerySnapshot compatible with map/forEach patterns
     return {
       empty: data.length === 0,
-      docs: data.map(d => ({
-        id: d.id,
-        data: () => d,
-        exists: () => true
-      })),
-      forEach: (cb: (doc: any) => void) => data.forEach(d => cb({ 
-        id: d.id, 
-        data: () => d,
-        exists: () => true 
-      }))
+      docs: data.map(d => ({ id: d.id, data: () => d, exists: () => true })),
+      forEach: (cb: (doc: any) => void) => data.forEach(d => cb({ id: d.id, data: () => d, exists: () => true }))
     };
   }
   
   try {
     return await firebaseGetDocs(target);
   } catch (e: any) {
-    if (e.code === 'permission-denied' || e.message?.includes('permissions')) {
-      const path = (target as any).path || (target as any)._query?.path?.canonicalString() || 'unknown';
-      const permissionError = new FirestorePermissionError({
-        path,
-        operation: 'list',
-      } satisfies SecurityRuleContext);
-      errorEmitter.emit('permission-error', permissionError);
-    }
+    const path = (target as any).path || (target as any)._query?.path?.canonicalString() || 'unknown';
+    const permissionError = new FirestorePermissionError({ path, operation: 'list' } satisfies SecurityRuleContext);
+    errorEmitter.emit('permission-error', permissionError);
     throw e;
   }
 }

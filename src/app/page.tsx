@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useMemo, useEffect, useState } from "react";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Users, TrendingUp, Wallet, ShieldCheck, Loader2, PieChart, Activity, HardDrive, DatabaseZap, Clock, ArrowUpRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, USE_LOCAL_DB } from "@/firebase";
 import { collection } from "firebase/firestore";
 import { cn } from "@/lib/utils";
 
@@ -81,42 +80,10 @@ export default function DashboardPage() {
   }
 
   const stats = [
-    { 
-      title: "সদস্য রেজিস্টার", 
-      value: members?.length.toLocaleString('bn-BD') || "০", 
-      icon: Users, 
-      sub: "নিবন্ধিত কর্মকর্তা-কর্মচারী", 
-      color: "text-blue-700",
-      bg: "bg-blue-50",
-      border: "border-blue-200"
-    },
-    { 
-      title: "মোট ফান্ড ইকুইটি", 
-      value: `৳ ${(statsData.fundValue / 1000000).toLocaleString('bn-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`, 
-      icon: Wallet, 
-      sub: "পুঞ্জীভূত মূলধন", 
-      color: "text-emerald-700",
-      bg: "bg-emerald-50",
-      border: "border-emerald-200"
-    },
-    { 
-      title: "বকেয়া ঋণ", 
-      value: `৳ ${(statsData.currentLoans / 1000).toLocaleString('bn-BD', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`, 
-      icon: TrendingUp, 
-      sub: "বর্তমান পাওনা", 
-      color: "text-rose-700",
-      bg: "bg-rose-50",
-      border: "border-rose-200"
-    },
-    { 
-      title: "অর্জিত মুনাফা", 
-      value: `৳ ${(statsData.profitDistributed / 1000).toLocaleString('bn-BD', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`, 
-      icon: Activity, 
-      sub: "সদস্য বন্টন", 
-      color: "text-amber-700",
-      bg: "bg-amber-50",
-      border: "border-amber-200"
-    },
+    { title: "সদস্য রেজিস্টার", value: members?.length.toLocaleString('bn-BD') || "০", icon: Users, sub: "নিবন্ধিত কর্মকর্তা-কর্মচারী", color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200" },
+    { title: "মোট ফান্ড ইকুইটি", value: `৳ ${(statsData.fundValue / 1000000).toLocaleString('bn-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`, icon: Wallet, sub: "পুঞ্জীভূত মূলধন", color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
+    { title: "বকেয়া ঋণ", value: `৳ ${(statsData.currentLoans / 1000).toLocaleString('bn-BD', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`, icon: TrendingUp, sub: "বর্তমান পাওনা", color: "text-rose-700", bg: "bg-rose-50", border: "border-rose-200" },
+    { title: "অর্জিত মুনাফা", value: `৳ ${(statsData.profitDistributed / 1000).toLocaleString('bn-BD', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}K`, icon: Activity, sub: "সদস্য বন্টন", color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200" },
   ];
 
   return (
@@ -134,7 +101,9 @@ export default function DashboardPage() {
            <div className="space-y-0.5">
              <div className="flex items-center gap-2">
                <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">ডেটাবেস ইঞ্জিন:</span>
-               <Badge className="bg-emerald-600 text-white text-[10px] h-5 uppercase font-black border-none rounded-none px-3 tracking-widest">Local Matrix Active</Badge>
+               <Badge className={cn("text-white text-[10px] h-5 uppercase font-black border-none rounded-none px-3 tracking-widest", USE_LOCAL_DB ? "bg-emerald-600" : "bg-blue-600")}>
+                 {USE_LOCAL_DB ? "Local Matrix Active" : "Cloud Synchronized"}
+               </Badge>
              </div>
              <div className="flex items-center gap-2">
                <Clock className="size-3.5 text-indigo-600" />
@@ -148,9 +117,7 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <Card key={stat.title} className={cn("border-2 shadow-xl hover:scale-[1.02] transition-all overflow-hidden rounded-2xl", stat.bg, stat.border)}>
             <CardHeader className="flex flex-row items-center justify-between pb-3 pt-6">
-              <CardTitle className={cn("text-xs font-black uppercase tracking-widest", stat.color)}>
-                {stat.title}
-              </CardTitle>
+              <CardTitle className={cn("text-xs font-black uppercase tracking-widest", stat.color)}>{stat.title}</CardTitle>
               <stat.icon className={cn("h-6 w-6", stat.color)} />
             </CardHeader>
             <CardContent>
@@ -166,8 +133,7 @@ export default function DashboardPage() {
           <CardHeader className="bg-slate-50 border-b-2 border-black flex flex-row items-center justify-between py-5 px-6">
             <div>
               <CardTitle className="text-xl font-black uppercase flex items-center gap-3 text-black">
-                <ShieldCheck className="size-6 text-emerald-600" />
-                অডিট লগ: সাম্প্রতিক কার্যক্রম
+                <ShieldCheck className="size-6 text-emerald-600" /> অডিট লগ: সাম্প্রতিক কার্যক্রম
               </CardTitle>
               <CardDescription className="text-xs font-black uppercase tracking-widest text-indigo-600 mt-1">যাচাইকৃত দ্বৈত-প্রবেশ হিসাব বিবরণী (Local Drive Archive)</CardDescription>
             </div>
@@ -204,8 +170,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-4 border-2 border-black shadow-2xl bg-white rounded-none flex flex-col overflow-hidden">
           <CardHeader className="py-5 px-6 border-b-2 border-black bg-slate-50">
             <CardTitle className="text-xl font-black uppercase flex items-center gap-3 text-black">
-              <PieChart className="size-6 text-indigo-600" />
-              সম্পদ বন্টন
+              <PieChart className="size-6 text-indigo-600" /> সম্পদ বন্টন
             </CardTitle>
             <CardDescription className="text-xs font-black uppercase tracking-widest text-slate-500 mt-1">পোর্টফোলিও ঝুঁকি ও বিন্যাস ম্যাট্রিক্স</CardDescription>
           </CardHeader>
@@ -225,9 +190,7 @@ export default function DashboardPage() {
             </div>
             
             <div className="mt-auto p-6 bg-slate-900 text-white border-2 border-black rounded-2xl space-y-4 shadow-2xl relative overflow-hidden group">
-               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
-                  <DatabaseZap className="size-20" />
-               </div>
+               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform"><DatabaseZap className="size-20" /></div>
                <div className="flex items-center gap-2 relative z-10">
                  <DatabaseZap className="size-5 text-emerald-400" />
                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400">ডিস্ক পারসিস্টেন্স মনিটর</p>
@@ -236,8 +199,7 @@ export default function DashboardPage() {
                  "ডাটা সরাসরি হোস্ট মেশিনের ড্রাইভে সংরক্ষিত হয়। জিরো ক্লাউড এক্সপোজার উচ্চ গোপনীয়তা নিশ্চিত করে। প্রাতিষ্ঠানিক গোপনীয়তা বজায় রাখতে আমরা এই লোকাল ইঞ্জিন ব্যবহার করি।"
                </p>
                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest relative z-10 pt-3 border-t border-white/5">
-                 <ShieldCheck className="size-4 text-emerald-600" />
-                 ইন্ডাস্ট্রি স্ট্যান্ডার্ড এনক্রিপশন সক্রিয়
+                 <ShieldCheck className="size-4 text-emerald-600" /> ইন্ডাস্ট্রি স্ট্যান্ডার্ড এনক্রিপশন সক্রিয়
                </div>
             </div>
           </CardContent>

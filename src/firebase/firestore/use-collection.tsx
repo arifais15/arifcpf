@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { USE_LOCAL_DB } from '@/firebase';
 import { localDB } from '@/firebase/local-db-service';
-import { onSnapshot, CollectionReference, Query, DocumentData, QuerySnapshot } from 'firebase/firestore';
+import { onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/errors';
 
@@ -15,6 +15,10 @@ export interface UseCollectionResult<T> {
   error: any | null;
 }
 
+/**
+ * Institutional Hook Wrapper - Seamlessly bridges Cloud and Local storage.
+ * Automates data fetching for both collectionGroup and standard collections.
+ */
 export function useCollection<T = any>(
   memoizedTargetRefOrQuery: any
 ): UseCollectionResult<T> {
@@ -30,14 +34,49 @@ export function useCollection<T = any>(
 
     if (USE_LOCAL_DB) {
       const syncLocal = () => {
-        const path = typeof memoizedTargetRefOrQuery === 'string' 
-          ? memoizedTargetRefOrQuery 
-          : memoizedTargetRefOrQuery.path || memoizedTargetRefOrQuery._query?.path?.canonicalString() || '';
+        // Query Object Parsing Logic
+        let path = "";
+        let filterField = "";
+        let filterValue: any = null;
+        let filterOp = "==";
+        let sortField = "";
+
+        if (typeof memoizedTargetRefOrQuery === 'string') {
+          path = memoizedTargetRefOrQuery;
+        } else if (memoizedTargetRefOrQuery.path) {
+          path = memoizedTargetRefOrQuery.path;
+        } else if (memoizedTargetRefOrQuery._query) {
+          path = memoizedTargetRefOrQuery._query.collectionGroup || memoizedTargetRefOrQuery._query.path.segments.join('/');
+          
+          const filters = memoizedTargetRefOrQuery._query.filters || [];
+          if (filters.length > 0) {
+            filterField = filters[0].field?.segments?.[0] || "";
+            filterValue = filters[0].value?.internalValue;
+            filterOp = filters[0].op || "==";
+          }
+
+          const orders = memoizedTargetRefOrQuery._query.explicitOrderBy || [];
+          if (orders.length > 0) sortField = orders[0].field?.segments?.[0] || "";
+        }
         
-        // Custom handling for the way collectionGroup is passed in the app
-        const effectivePath = memoizedTargetRefOrQuery?.type === 'collection' ? memoizedTargetRefOrQuery.path : path;
-        
-        const results = localDB.getCollection(effectivePath || path);
+        const sanitizedPath = path.replace(/^\/|\/$/g, '');
+        let results = localDB.getCollection(sanitizedPath);
+
+        // Automated Filter Bridging
+        if (filterField && filterValue !== null) {
+          results = results.filter(d => {
+            const val = d[filterField];
+            if (filterOp === '>=') return String(val) >= String(filterValue);
+            if (filterOp === '<') return String(val) < String(filterValue);
+            return String(val) === String(filterValue);
+          });
+        }
+
+        // Automated Sort Bridging
+        if (sortField) {
+          results.sort((a, b) => String(a[sortField]).localeCompare(String(b[sortField])));
+        }
+
         setData(results as WithId<T>[]);
         setIsLoading(false);
       };
@@ -47,7 +86,6 @@ export function useCollection<T = any>(
       return () => window.removeEventListener('storage', syncLocal);
     }
 
-    // Standard Firestore Real-time Listener
     setIsLoading(true);
     const unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
@@ -59,11 +97,7 @@ export function useCollection<T = any>(
       },
       async (serverError) => {
         const path = (memoizedTargetRefOrQuery as any).path || (memoizedTargetRefOrQuery as any)._query?.path?.canonicalString() || 'unknown';
-        const permissionError = new FirestorePermissionError({
-          path,
-          operation: 'list',
-        } satisfies SecurityRuleContext);
-
+        const permissionError = new FirestorePermissionError({ path, operation: 'list' } satisfies SecurityRuleContext);
         errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false);
       }
