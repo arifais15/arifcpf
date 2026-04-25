@@ -425,9 +425,9 @@ export default function MembersPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-24"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
+              <TableRow key="loading-row"><TableCell colSpan={5} className="text-center py-24"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
             ) : members.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase text-xl italic opacity-20">No institutional records synchronized</TableCell></TableRow>
+              <TableRow key="empty-row"><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase text-xl italic opacity-20">No institutional records synchronized</TableCell></TableRow>
             ) : members.map((m) => (
               <TableRow key={m.id} className="hover:bg-slate-50 border-b border-black h-[29px] transition-colors group">
                 <td className="font-mono text-base pl-8 py-0 border-r border-black text-amber-900">{m.memberIdNumber}</td>
