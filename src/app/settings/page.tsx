@@ -42,7 +42,9 @@ import {
   Upload,
   Database,
   HardDrive,
-  Percent
+  Percent,
+  AlertTriangle,
+  RefreshCw
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -366,7 +368,7 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="database" className="space-y-10 animate-in fade-in duration-500">
-           <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+           <Card className="max-w-4xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
               <CardHeader className="bg-black text-white flex flex-row items-center justify-between py-6">
                 <div className="flex items-center gap-4">
                   <HardDrive className="size-6 text-emerald-400" />
@@ -375,48 +377,60 @@ export default function SettingsPage() {
                     <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time drive synchronization audit</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Active: {dbMode}</Badge>
+                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Mode: {dbMode}</Badge>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
-                 <div className="space-y-6">
-                   <div className="flex items-center gap-4 p-4 bg-slate-50 border-2 border-black rounded-xl">
-                      <div className={cn("p-2 rounded-lg", dbMode === 'OPFS' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
-                        <ShieldCheck className="size-6" />
+                 <div className="grid md:grid-cols-2 gap-8">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 p-4 bg-slate-50 border-2 border-black rounded-xl">
+                          <div className={cn("p-2 rounded-lg", dbMode === 'OPFS' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                            <ShieldCheck className="size-6" />
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-xs font-black uppercase">Vault Status: {dbMode === 'OPFS' ? 'Synchronized to Disk' : 'Fallback Active'}</p>
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                              {dbMode === 'OPFS' ? 'Data is physically saved on your PC drive.' : 'Data is saved in browser IndexedDB.'}
+                            </p>
+                          </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-black uppercase">Vault Status: {dbMode === 'OPFS' ? 'Synchronized to Disk' : 'Fallback Active'}</p>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                          {dbMode === 'OPFS' ? 'Every transaction is immediately flushed to the Origin Private File System.' : 'System is using IndexedDB fallback. Data is persistent but storage may be limited.'}
-                        </p>
+                      <div className="bg-amber-50 p-6 border-2 border-amber-200 rounded-2xl flex gap-4 items-start">
+                         <AlertTriangle className="size-8 text-amber-600 shrink-0 mt-1" />
+                         <div className="space-y-2">
+                           <h4 className="text-sm font-black uppercase text-amber-800">Understanding Local Storage</h4>
+                           <p className="text-[12px] text-amber-700 leading-relaxed font-bold">
+                             The database file (<span className="font-mono text-black">pbs_cpf_vault_v7.sqlite3</span>) is stored in a hidden area of your browser's private disk space (OPFS). 
+                             <b> You will not find it in your standard Windows/Linux folders.</b> 
+                           </p>
+                           <p className="text-[12px] text-amber-700 leading-relaxed font-bold italic">
+                             To "Backup" or "Move" your data, you must use the <b>Download Archive</b> button below.
+                           </p>
+                         </div>
                       </div>
-                   </div>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase leading-relaxed italic border-l-4 border-slate-200 pl-4">
-                     Browser SQL storage is managed locally. For institutional continuity, performing a weekly "Download Archive" is mandatory.
-                   </p>
-                 </div>
-
-                 <div className="grid md:grid-cols-2 gap-10">
-                    <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
-                       <div className="flex items-center gap-4">
-                         <div className="bg-white p-3 rounded-2xl border-2 border-black"><Download className="size-6 text-black" /></div>
-                         <h4 className="font-black uppercase text-sm tracking-widest">Download Archive</h4>
-                       </div>
-                       <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Encapsulates all Member Ledgers, Vouchers, and Matrix Rules into a standalone JSON file.</p>
-                       <Button onClick={handleExportDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">Generate Local Backup</Button>
                     </div>
 
-                    <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
-                       <div className="flex items-center gap-4">
-                         <div className="bg-white p-3 rounded-2xl border-2 border-black"><Upload className="size-6 text-indigo-600" /></div>
-                         <h4 className="font-black uppercase text-sm tracking-widest">Synchronize Drive</h4>
-                       </div>
-                       <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Restore institutional registry from an external file. <span className="text-rose-600 underline">Existing data will be replaced.</span></p>
-                       <div className="relative">
-                         <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked} />
-                         <Button variant="outline" disabled={!isUnlocked} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
-                            {isUnlocked ? "Select Registry Matrix" : "Terminal Locked"}
-                         </Button>
-                       </div>
+                    <div className="space-y-6">
+                      <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-white p-3 rounded-2xl border-2 border-black"><Download className="size-6 text-black" /></div>
+                          <h4 className="font-black uppercase text-sm tracking-widest">Download Archive</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Encapsulates all Member Ledgers, Vouchers, and Matrix Rules into a standalone JSON file for backup.</p>
+                        <Button onClick={handleExportDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">Generate Backup File</Button>
+                      </div>
+
+                      <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl">
+                        <div className="flex items-center gap-4">
+                          <div className="bg-white p-3 rounded-2xl border-2 border-black"><Upload className="size-6 text-indigo-600" /></div>
+                          <h4 className="font-black uppercase text-sm tracking-widest">Restore Registry</h4>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Restore the entire institutional registry from a JSON file. <span className="text-rose-600 underline">Existing local data will be replaced.</span></p>
+                        <div className="relative">
+                          <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked} />
+                          <Button variant="outline" disabled={!isUnlocked} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
+                              {isUnlocked ? "Select Registry File" : "Authorization Required"}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                  </div>
               </CardContent>

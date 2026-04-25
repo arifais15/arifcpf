@@ -4,8 +4,10 @@
  * @fileOverview Portable Database Initialization
  * 
  * This file has been re-engineered for Institutional Portability.
- * It provides a "Local-First" database experience that runs on any PC
- * without requiring cloud configuration or Firebase CLI installation.
+ * 
+ * MODE SELECTION:
+ * - true:  Saves data ONLY to your local PC (Private & Offline).
+ * - false: Saves data to Firebase Cloud (Requires Internet).
  */
 
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -13,7 +15,7 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
 
-// The system now defaults to Local Persistence Mode for Zero-Config Distribution
+// To use Firebase Cloud instead of Local PC, change this to 'false'
 export const USE_LOCAL_DB = true; 
 
 export function initializeFirebase() {
@@ -28,7 +30,7 @@ export function initializeFirebase() {
   const app = getApp();
   return {
     firebaseApp: app,
-    auth: getAuth(app),
+    auth: getApp().name ? getAuth(app) : getAuth(), // Guard for local auth state
     firestore: getFirestore(app)
   };
 }
