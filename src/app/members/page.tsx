@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
 import * as XLSX from "xlsx";
 import { getSubsidiaryValues } from "@/lib/ledger-mapping";
+import { serverExecuteBatch } from "@/app/actions/db-actions";
 
 export default function MembersPage() {
   const firestore = useFirestore();
@@ -40,7 +41,6 @@ export default function MembersPage() {
   const [isCommitting, setIsCommitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Preview Data State
   const [bulkPreview, setBulkPreview] = useState<any>(null);
 
   useEffect(() => {
@@ -190,7 +190,6 @@ export default function MembersPage() {
           return;
         }
 
-        // Group rows and calculate summary for PREVIEW
         const groupedByDate: Record<string, any[]> = {};
         let totalEmpCont = 0;
         let totalPbsCont = 0;
@@ -239,15 +238,16 @@ export default function MembersPage() {
     setIsCommitting(true);
 
     try {
-      // Pre-fetch all members for ID mapping to prevent excessive queries
       const allMembersSnap = await getDocuments(collection(firestore, "members"));
       const existingMembersMap: Record<string, string> = {};
       allMembersSnap.forEach((d: any) => { existingMembersMap[String(d.data().memberIdNumber).trim()] = d.id; });
 
+      const batchOps: any[] = [];
+      const timestamp = new Date().toISOString();
+
       for (const [postingDate, rows] of Object.entries(bulkPreview.dateGroups)) {
         const dateKey = postingDate.replaceAll('-', '');
-        const journalId = `BULK-${dateKey}`; // Deterministic Voucher ID to avoid duplicates
-        const journalRef = doc(firestore, "journalEntries", journalId);
+        const journalId = `BULK-${dateKey}`;
         const journalLines: any[] = [];
         let totalDebit = 0;
         let totalCredit = 0;
@@ -260,22 +260,23 @@ export default function MembersPage() {
           
           if (!idNum || !name) continue;
           
-          // a. Ensure member exists
           let mDocId = existingMembersMap[idNum];
           if (!mDocId) {
-            const newMRef = doc(collection(firestore, "members"));
-            mDocId = newMRef.id;
+            mDocId = Math.random().toString(36).substring(2, 15);
             existingMembersMap[idNum] = mDocId;
-            setDocumentNonBlocking(newMRef, { 
-              memberIdNumber: idNum, name, 
-              designation: String(entry[findKey(["Designation", "Rank"])] || ""), 
-              dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined"])]), 
-              zonalOffice: String(entry[findKey(["ZonalOffice", "Office"])] || "HO"), 
-              status: "Active", createdAt: new Date().toISOString() 
+            batchOps.push({
+              type: 'set',
+              path: `members/${mDocId}`,
+              data: { 
+                memberIdNumber: idNum, name, 
+                designation: String(entry[findKey(["Designation", "Rank"])] || ""), 
+                dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined"])]), 
+                zonalOffice: String(entry[findKey(["ZonalOffice", "Office"])] || "HO"), 
+                status: "Active", createdAt: timestamp, updatedAt: timestamp
+              }
             });
           }
 
-          // b. Process Ledger Values
           const vals = {
             c1: Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0),
             c2: Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0),
@@ -288,7 +289,6 @@ export default function MembersPage() {
 
           const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Matrix Bulk - ${postingDate}`);
 
-          // c. General Ledger Lines
           const mapping = [
             { code: '200.10.0000', debit: 0, credit: vals.c1, name: "Employees' Own Contribution" },
             { code: '105.10.0000', debit: vals.c2, credit: 0, name: "CPF Loan Disburse" },
@@ -310,18 +310,19 @@ export default function MembersPage() {
             }
           });
 
-          // d. Individual Subsidiary Ledger entry (Deterministic Overwrite)
           const deterministicId = `${dateKey}&${mDocId}&BATCH&${journalId}`;
-          const ledgerEntry = {
-            employeeContribution: vals.c1, loanWithdrawal: vals.c2, loanRepayment: vals.c3,
-            profitEmployee: vals.c5, profitLoan: vals.c6, pbsContribution: vals.c8, profitPbs: vals.c9,
-            id: deterministicId, summaryDate: postingDate, particulars, journalEntryId: journalId, memberId: mDocId,
-            createdAt: new Date().toISOString(), isSystemGenerated: true
-          };
-          setDocumentNonBlocking(doc(firestore, "members", mDocId, "fundSummaries", deterministicId), ledgerEntry);
+          batchOps.push({
+            type: 'set',
+            path: `members/${mDocId}/fundSummaries/${deterministicId}`,
+            data: {
+              employeeContribution: vals.c1, loanWithdrawal: vals.c2, loanRepayment: vals.c3,
+              profitEmployee: vals.c5, profitLoan: vals.c6, pbsContribution: vals.c8, profitPbs: vals.c9,
+              id: deterministicId, summaryDate: postingDate, particulars, journalEntryId: journalId, memberId: mDocId,
+              createdAt: timestamp, isSystemGenerated: true
+            }
+          });
         }
 
-        // 2. Balancing Line (Receivable from PBS)
         if (bankEffect !== 0) {
           const isDebit = bankEffect > 0;
           journalLines.push({
@@ -334,26 +335,31 @@ export default function MembersPage() {
           else totalCredit += Math.abs(bankEffect);
         }
 
-        // 3. Commit Journal Entry (Deterministic Overwrite)
         if (journalLines.length > 0) {
-          setDocumentNonBlocking(journalRef, {
-            id: journalId, entryDate: postingDate, referenceNumber: `BULK-${dateKey}`,
-            description: `Automated Batch Dual-Entry: Monthly Matrix ${postingDate}`,
-            lines: journalLines, totalAmount: totalDebit,
-            createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+          batchOps.push({
+            type: 'set',
+            path: `journalEntries/${journalId}`,
+            data: {
+              id: journalId, entryDate: postingDate, referenceNumber: `BULK-${dateKey}`,
+              description: `Automated Batch Dual-Entry: Monthly Matrix ${postingDate}`,
+              lines: journalLines, totalAmount: totalDebit,
+              createdAt: timestamp, updatedAt: timestamp
+            }
           });
         }
       }
 
+      await serverExecuteBatch(batchOps);
+
       showAlert({ 
         title: "Audit Synchronized", 
-        description: "Bulk data has been committed to the institutional registry.", 
+        description: `Successfully processed ${bulkPreview.rawData.length} lines into the project vault.`, 
         type: "success" 
       });
       setIsPreviewOpen(false);
       setBulkPreview(null);
     } catch (err) {
-      toast({ title: "Sync Failed", variant: "destructive" });
+      toast({ title: "Sync Failed", description: "The batch operation encountered an error.", variant: "destructive" });
     } finally {
       setIsCommitting(false);
     }
@@ -451,7 +457,6 @@ export default function MembersPage() {
         </Table>
       </div>
 
-      {/* STEP 1: Upload Selection Dialog */}
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="max-w-xl bg-white border-2 border-black p-0 rounded-none shadow-2xl font-ledger">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black flex flex-row items-center justify-between">
@@ -493,7 +498,6 @@ export default function MembersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* STEP 2: Pre-commit Summary & Confirmation */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-2xl bg-white border-4 border-black p-0 rounded-none shadow-2xl font-ledger">
           <DialogHeader className="bg-black text-white p-6 border-b-2 border-black">
@@ -541,7 +545,8 @@ export default function MembersPage() {
             {isCommitting && (
                <div className="text-center space-y-2 py-4">
                   <Loader2 className="size-8 animate-spin mx-auto text-black" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">Committing Dual-Entry Matrix to PC Storage...</p>
+                  <p className="text-xs font-black uppercase tracking-widest">Committing Atomic Batch to Project Folder...</p>
+                  <p className="text-[10px] font-bold text-slate-400">Synchronizing database file on PC drive.</p>
                </div>
             )}
           </div>
@@ -550,7 +555,7 @@ export default function MembersPage() {
              <Button variant="outline" onClick={() => setIsPreviewOpen(false)} disabled={isCommitting} className="border-black border-2 font-black uppercase text-[11px] px-8 h-12 bg-white">Abandon</Button>
              <Button onClick={handleConfirmUpload} disabled={isCommitting} className="bg-black text-white font-black uppercase text-[11px] px-12 h-12 shadow-xl group">
                <CheckCircle2 className="size-4 mr-2 group-hover:scale-110 transition-transform text-emerald-400" />
-               Commit to Registry
+               Commit to Project Vault
              </Button>
           </DialogFooter>
         </DialogContent>

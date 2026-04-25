@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 /**
  * @fileOverview Server Actions for Database Bridge
- * Allows frontend to write directly to the .sqlite3 file in project folder.
+ * Optimized for high-speed local persistence in the Project Folder.
  */
 
 export async function serverGetCollection(path: string) {
@@ -70,6 +70,59 @@ export async function serverSetDoc(path: string, data: any) {
     db.prepare(`INSERT OR REPLACE INTO ${table} (id, data${extraCols}) VALUES (?, ?${placeholders})`).run(...binds);
     revalidatePath('/');
   }
+}
+
+/**
+ * ATOMIC BATCH ENGINE
+ * Processes thousands of records in a single SQL transaction.
+ */
+export async function serverExecuteBatch(ops: { type: 'set' | 'delete', path: string, data?: any }[]) {
+  const setMember = db.prepare("INSERT OR REPLACE INTO members (id, data) VALUES (?, ?)");
+  const setSummary = db.prepare("INSERT OR REPLACE INTO fund_summaries (id, data, memberId, journalEntryId) VALUES (?, ?, ?, ?)");
+  const setJournal = db.prepare("INSERT OR REPLACE INTO journal_entries (id, data) VALUES (?, ?)");
+  const setAccount = db.prepare("INSERT OR REPLACE INTO accounts (id, data) VALUES (?, ?)");
+  const setInvestment = db.prepare("INSERT OR REPLACE INTO investments (id, data) VALUES (?, ?)");
+  const setSettings = db.prepare("INSERT OR REPLACE INTO settings (id, data) VALUES (?, ?)");
+  const setLog = db.prepare("INSERT OR REPLACE INTO audit_logs (id, data) VALUES (?, ?)");
+  
+  const deleteMember = db.prepare("DELETE FROM members WHERE id = ?");
+  const deleteSummariesForMember = db.prepare("DELETE FROM fund_summaries WHERE memberId = ?");
+  const deleteSummary = db.prepare("DELETE FROM fund_summaries WHERE id = ?");
+  const deleteJournal = db.prepare("DELETE FROM journal_entries WHERE id = ?");
+  const deleteAccount = db.prepare("DELETE FROM accounts WHERE id = ?");
+  const deleteInvestment = db.prepare("DELETE FROM investments WHERE id = ?");
+  const deleteLog = db.prepare("DELETE FROM audit_logs WHERE id = ?");
+
+  const runBatch = db.transaction((operations: any[]) => {
+    for (const op of operations) {
+      const p = op.path.replace(/^\/|\/$/g, '').split('/');
+      const id = p[p.length - 1];
+      const coll = p[0];
+
+      if (op.type === 'set') {
+        const json = JSON.stringify({ ...op.data, id });
+        if (coll === 'members' && p.length === 2) setMember.run(id, json);
+        else if (op.path.includes('/fundSummaries/')) setSummary.run(id, json, op.data.memberId || "", op.data.journalEntryId || "");
+        else if (coll === 'journalEntries') setJournal.run(id, json);
+        else if (coll === 'chartOfAccounts') setAccount.run(id, json);
+        else if (coll === 'investmentInstruments') setInvestment.run(id, json);
+        else if (coll === 'settings') setSettings.run(id, json);
+        else if (coll === 'accruedInterestLogs') setLog.run(id, json);
+      } else if (op.type === 'delete') {
+        if (coll === 'members' && p.length === 2) {
+          deleteSummariesForMember.run(id);
+          deleteMember.run(id);
+        } else if (op.path.includes('/fundSummaries/')) deleteSummary.run(id);
+        else if (coll === 'journalEntries') deleteJournal.run(id);
+        else if (coll === 'chartOfAccounts') deleteAccount.run(id);
+        else if (coll === 'investmentInstruments') deleteInvestment.run(id);
+        else if (coll === 'accruedInterestLogs') deleteLog.run(id);
+      }
+    }
+  });
+
+  runBatch(ops);
+  revalidatePath('/');
 }
 
 export async function serverDeleteDoc(path: string) {
