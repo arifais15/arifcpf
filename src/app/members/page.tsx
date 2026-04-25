@@ -5,7 +5,7 @@ import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
 import { collection, doc, query, orderBy, limit, startAfter, where, QueryConstraint } from "firebase/firestore";
@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { PageHeaderActions } from "@/components/header-actions";
 import * as XLSX from "xlsx";
+import { getSubsidiaryValues } from "@/lib/ledger-mapping";
 
 export default function MembersPage() {
   const firestore = useFirestore();
@@ -121,7 +122,6 @@ export default function MembersPage() {
     setEditingMember(null);
   };
 
-  // Helper to parse dates from Excel
   const excelDateToISO = (val: any) => {
     if (!val) return new Date().toISOString().split('T')[0];
     if (typeof val === 'number') {
@@ -171,6 +171,7 @@ export default function MembersPage() {
     if (!file) return;
     setIsUploading(true);
     const reader = new FileReader();
+
     reader.onload = async (event) => {
       try {
         const bstr = event.target?.result;
@@ -178,68 +179,139 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
+        // Pre-fetch all members for ID mapping
         const allMembersSnap = await getDocuments(collection(firestore, "members"));
         const existingMembersMap: Record<string, string> = {};
         allMembersSnap.forEach((d: any) => { existingMembersMap[String(d.data().memberIdNumber).trim()] = d.id; });
 
-        let successCount = 0;
-        for (const entry of data as any[]) {
-          // Fuzzy key matching for critical fields
+        // Group rows by Date for Grouped Journal Entry
+        const groupedByDate: Record<string, any[]> = {};
+        
+        data.forEach((entry: any) => {
           const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
-          
-          const idNum = String(entry[findKey(["ID", "Member ID", "memberIdNumber", "ID No", "ID Number"])] || "").trim();
-          const name = String(entry[findKey(["Name", "Member Name", "Full Name"])] || "").trim();
-          
-          if (!idNum || !name) continue;
-          
-          let mDocId = existingMembersMap[idNum];
-          if (!mDocId) {
-            const newRef = doc(collection(firestore, "members"));
-            mDocId = newRef.id;
-            existingMembersMap[idNum] = mDocId;
-            setDocumentNonBlocking(newRef, { 
-              memberIdNumber: idNum, 
-              name, 
-              designation: String(entry[findKey(["Designation", "Rank", "Position"])] || ""), 
-              dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined", "Joining Date"])]), 
-              zonalOffice: String(entry[findKey(["ZonalOffice", "Office", "Branch"])] || "HO"), 
-              permanentAddress: String(entry[findKey(["Address", "Permanent Address"])] || ""), 
-              status: String(entry[findKey(["Status", "Member Status"])] || "Active"), 
-              createdAt: new Date().toISOString(), 
-              updatedAt: new Date().toISOString() 
-            }, { merge: true });
-          } else {
-            updateDocumentNonBlocking(doc(firestore, "members", mDocId), { 
-              designation: String(entry[findKey(["Designation", "Rank", "Position"])] || ""), 
-              zonalOffice: String(entry[findKey(["ZonalOffice", "Office", "Branch"])] || "HO"), 
-              status: String(entry[findKey(["Status", "Member Status"])] || "Active"), 
-              updatedAt: new Date().toISOString() 
+          const date = excelDateToISO(entry[findKey(["PostingDate", "Date", "TransactionDate"])]);
+          if (!groupedByDate[date]) groupedByDate[date] = [];
+          groupedByDate[date].push(entry);
+        });
+
+        let successCount = 0;
+        let voucherCount = 0;
+
+        for (const [postingDate, rows] of Object.entries(groupedByDate)) {
+          // 1. Create a Master Journal Entry for this date
+          const journalRef = doc(collection(firestore, "journalEntries"));
+          const journalId = journalRef.id;
+          const journalLines: any[] = [];
+          let totalDebit = 0;
+          let totalCredit = 0;
+          let bankEffect = 0; // Net cash flow for this batch
+
+          for (const entry of rows) {
+            const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
+            const idNum = String(entry[findKey(["ID", "Member ID", "ID No"])] || "").trim();
+            const name = String(entry[findKey(["Name", "Member Name"])] || "").trim();
+            
+            if (!idNum || !name) continue;
+            
+            // a. Ensure member exists
+            let mDocId = existingMembersMap[idNum];
+            if (!mDocId) {
+              const newMRef = doc(collection(firestore, "members"));
+              mDocId = newMRef.id;
+              existingMembersMap[idNum] = mDocId;
+              setDocumentNonBlocking(newMRef, { 
+                memberIdNumber: idNum, name, 
+                designation: String(entry[findKey(["Designation", "Rank"])] || ""), 
+                dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined"])]), 
+                zonalOffice: String(entry[findKey(["ZonalOffice", "Office"])] || "HO"), 
+                status: "Active", createdAt: new Date().toISOString() 
+              });
+            }
+
+            // b. Process Ledger Values
+            const vals = {
+              c1: Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0),
+              c2: Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0),
+              c3: Number(entry[findKey(["Loan_Repaid", "Column 3"])] || 0),
+              c5: Number(entry[findKey(["Employee_Profit", "Column 5"])] || 0),
+              c6: Number(entry[findKey(["Loan_Profit", "Column 6"])] || 0),
+              c8: Number(entry[findKey(["PBS_Contribution", "Column 8"])] || 0),
+              c9: Number(entry[findKey(["PBS_Profit", "Column 9"])] || 0)
+            };
+
+            const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Matrix Bulk - ${postingDate}`);
+
+            // c. Generate General Ledger Lines for this member
+            // Map: Column -> GL Account Code
+            const mapping = [
+              { code: '200.10.0000', debit: 0, credit: vals.c1, name: "Employees' Own Contribution" },
+              { code: '105.10.0000', debit: vals.c2, credit: 0, name: "CPF Loan Disburse" },
+              { code: '105.20.0000', debit: 0, credit: vals.c3, name: "CPF Loan Recover" },
+              { code: '400.40.0000', debit: 0, credit: vals.c6, name: "Interest on Member Loan" },
+              { code: '200.20.0000', debit: 0, credit: vals.c8, name: "PBS Contribution" }
+            ];
+
+            mapping.forEach(m => {
+              if (m.debit > 0 || m.credit > 0) {
+                journalLines.push({ 
+                  accountCode: m.code, accountName: m.name, 
+                  debit: m.debit, credit: m.credit, 
+                  memberId: mDocId, memo: particulars 
+                });
+                totalDebit += m.debit;
+                totalCredit += m.credit;
+                // Calculate net effect for Bank balancing
+                bankEffect += (m.credit - m.debit); // Positive if cash comes in (Contrib/Repay), Negative if cash goes out (Disburse)
+              }
             });
+
+            // d. Generate individual Subsidiary Ledger entry
+            const dateKey = postingDate.replaceAll('-', '');
+            const deterministicId = `${dateKey}&${mDocId}&BATCH&${journalId}`;
+            const ledgerEntry = {
+              employeeContribution: vals.c1, loanWithdrawal: vals.c2, loanRepayment: vals.c3,
+              profitEmployee: vals.c5, profitLoan: vals.c6, pbsContribution: vals.c8, profitPbs: vals.c9,
+              id: deterministicId, summaryDate: postingDate, particulars, journalEntryId: journalId, memberId: mDocId,
+              createdAt: new Date().toISOString(), isSystemGenerated: true
+            };
+            setDocumentNonBlocking(doc(firestore, "members", mDocId, "fundSummaries", deterministicId), ledgerEntry);
+            successCount++;
           }
-          
-          const ledgerEntry = { 
-            summaryDate: excelDateToISO(entry[findKey(["PostingDate", "Date", "TransactionDate"])]), 
-            particulars: String(entry[findKey(["Particulars", "Detail", "Narration"])] || "Monthly Matrix Append"), 
-            employeeContribution: Number(entry[findKey(["Emp_Contrib", "Employee Contribution", "Column 1"])] || 0), 
-            loanWithdrawal: Number(entry[findKey(["Loan_Disbursed", "Loan Withdrawal", "Column 2"])] || 0), 
-            loanRepayment: Number(entry[findKey(["Loan_Repaid", "Loan Repayment", "Column 3"])] || 0), 
-            profitEmployee: Number(entry[findKey(["Employee_Profit", "Yield on Fund", "Column 5"])] || 0), 
-            profitLoan: Number(entry[findKey(["Loan_Profit", "Interest on Loan", "Column 6"])] || 0), 
-            pbsContribution: Number(entry[findKey(["PBS_Contribution", "Office Contribution", "Column 8"])] || 0), 
-            profitPbs: Number(entry[findKey(["PBS_Profit", "Yield on Office", "Column 9"])] || 0), 
-            memberId: mDocId, 
-            createdAt: new Date().toISOString() 
-          };
-          addDocumentNonBlocking(collection(firestore, "members", mDocId, "fundSummaries"), ledgerEntry);
-          successCount++;
+
+          // 2. Add the Balancing Bank Line to the Journal Entry
+          if (bankEffect !== 0) {
+            const isDebit = bankEffect > 0;
+            journalLines.push({
+              accountCode: '131.10.0000', accountName: 'STD Bank Account',
+              debit: isDebit ? Math.abs(bankEffect) : 0,
+              credit: !isDebit ? Math.abs(bankEffect) : 0,
+              memo: `Bulk Matrix Reconciliation - ${postingDate}`
+            });
+            if (isDebit) totalDebit += Math.abs(bankEffect);
+            else totalCredit += Math.abs(bankEffect);
+          }
+
+          // 3. Commit the Balanced Journal Entry
+          if (journalLines.length > 0) {
+            setDocumentNonBlocking(journalRef, {
+              id: journalId, entryDate: postingDate, referenceNumber: `BULK-${postingDate.replaceAll('-','')}`,
+              description: `Automated Batch Dual-Entry: Monthly Matrix ${postingDate}`,
+              lines: journalLines, totalAmount: totalDebit,
+              createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+            });
+            voucherCount++;
+          }
         }
-        showAlert({ title: "Synchronization Complete", description: `Successfully processed ${successCount} institutional records.`, type: "success" });
+        showAlert({ 
+          title: "Audit Synchronized", 
+          description: `Generated ${voucherCount} balanced vouchers for ${successCount} personnel records.`, 
+          type: "success" 
+        });
       } catch (err) { 
-        console.error("Import Error:", err);
-        toast({ title: "Import Failed", description: "Verify Excel structure or use the provided template.", variant: "destructive" }); 
+        console.error("Institutional Bulk Error:", err);
+        toast({ title: "Sync Failed", variant: "destructive" }); 
       } finally { 
-        setIsUploading(false); 
-        setIsBulkOpen(false); 
+        setIsUploading(false); setIsBulkOpen(false); 
       }
     };
     reader.readAsBinaryString(file);
@@ -337,7 +409,6 @@ export default function MembersPage() {
         </Table>
       </div>
 
-      {/* BULK UPLOAD DIALOG */}
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="max-w-xl bg-white border-2 border-black p-0 rounded-none shadow-2xl font-ledger">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black flex flex-row items-center justify-between">
@@ -347,7 +418,7 @@ export default function MembersPage() {
                 Monthly Matrix Terminal
               </DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
-                Bulk Personnel & Ledger Synchronization
+                Bulk Dual-Entry General Ledger Sync
               </DialogDescription>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="h-8 border-black border-2 font-black uppercase text-[9px] gap-1 px-3">
@@ -361,23 +432,23 @@ export default function MembersPage() {
               {isUploading ? (
                 <div className="space-y-4">
                   <Loader2 className="size-12 animate-spin mx-auto text-black" />
-                  <p className="text-xs font-black uppercase tracking-widest text-black">Reconciling Database Matrix...</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-black text-center">Processing Dual-Entry Matrix...<br/>Balancing GL Vouchers...</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <Upload className="size-12 mx-auto text-slate-300 group-hover:text-black transition-colors" />
                   <p className="text-sm font-black uppercase tracking-[0.2em]">Select Monthly Matrix Excel</p>
-                  <p className="text-[9px] font-black uppercase text-slate-400">Excel 97-2003 / XML Standard Supported</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Balanced Journal Entries will be generated</p>
                 </div>
               )}
             </div>
 
-            <div className="bg-emerald-50 border-2 border-emerald-100 p-4 rounded-xl flex gap-3 items-start">
-              <ShieldCheck className="size-5 text-emerald-600 mt-0.5 shrink-0" />
+            <div className="bg-indigo-50 border-2 border-indigo-100 p-4 rounded-xl flex gap-3 items-start">
+              <ShieldCheck className="size-5 text-indigo-600 mt-0.5 shrink-0" />
               <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-emerald-700">Audit Consistency Protocol</p>
-                <p className="text-[11px] leading-relaxed text-emerald-600 font-bold italic">
-                  Ensure "PostingDate" follows YYYY-MM-DD standard or Excel Date format. Mandatory headers: ID, Name, PostingDate. Missing members will be auto-registered.
+                <p className="text-[10px] font-black uppercase text-indigo-700">Financial Integrity Protocol</p>
+                <p className="text-[11px] leading-relaxed text-indigo-600 font-bold italic">
+                  This upload will generate balanced General Ledger vouchers. Contributions will debit the STD Bank account. Individual ledgers will be synchronized automatically.
                 </p>
               </div>
             </div>
