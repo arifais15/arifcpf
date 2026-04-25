@@ -65,10 +65,12 @@ export default function SettingsPage() {
   const isUnlocked = securityCode === AUTHORIZATION_CODE
 
   // --- STORAGE METRICS ---
-  const [storageMetrics, setStorageMetrics] = useState({ used: 0, total: 5242880, percent: 0 })
+  const [dbMode, setDbMode] = useState<string>("Initializing...")
   
   useEffect(() => {
-    const updateMetrics = () => setStorageMetrics(localDB.getStorageMetrics());
+    const updateMetrics = () => {
+      setDbMode(localDB.getMode());
+    };
     updateMetrics();
     window.addEventListener('storage', updateMetrics);
     return () => window.removeEventListener('storage', updateMetrics);
@@ -275,15 +277,16 @@ export default function SettingsPage() {
 
   // --- LOCAL DB PORTABILITY HANDLERS ---
   const handleExportDB = () => {
-    const data = localDB.exportDatabase();
-    const blob = new Blob([data], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `PBS_CPF_DATABASE_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Database Exported", description: "Storage file saved to downloads." });
+    localDB.exportDatabase().then(data => {
+      const blob = new Blob([data], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `PBS_CPF_DATABASE_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      toast({ title: "Database Exported", description: "Storage file saved to downloads." });
+    });
   };
 
   const handleImportDB = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -569,29 +572,32 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="database" className="space-y-10 animate-in fade-in duration-500">
-           {/* STORAGE HEALTH MONITOR */}
            <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
               <CardHeader className="bg-black text-white flex flex-row items-center justify-between py-6">
                 <div className="flex items-center gap-4">
                   <HardDrive className="size-6 text-emerald-400" />
                   <div>
-                    <CardTitle className="text-lg font-black uppercase">Storage Health Matrix</CardTitle>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time persistence audit</p>
+                    <CardTitle className="text-lg font-black uppercase">Persistence Matrix Monitor</CardTitle>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time drive synchronization audit</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Institutional Secure</Badge>
+                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Active: {dbMode}</Badge>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
-                 <div className="space-y-4">
-                   <div className="flex justify-between items-end text-[11px] font-black uppercase tracking-widest">
-                     <span>Local Registry Utilization:</span>
-                     <span className={cn(storageMetrics.percent > 80 ? "text-rose-600" : "text-emerald-600")}>
-                        {(storageMetrics.used / 1024).toFixed(1)} KB / 5,120 KB ({storageMetrics.percent}%)
-                     </span>
+                 <div className="space-y-6">
+                   <div className="flex items-center gap-4 p-4 bg-slate-50 border-2 border-black rounded-xl">
+                      <div className={cn("p-2 rounded-lg", dbMode === 'OPFS' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                        <ShieldCheck className="size-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-black uppercase">Vault Status: {dbMode === 'OPFS' ? 'Synchronized to Disk' : 'Fallback Active'}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                          {dbMode === 'OPFS' ? 'Every transaction is immediately flushed to the Origin Private File System.' : 'System is using IndexedDB fallback. Data is persistent but storage may be browser-limited.'}
+                        </p>
+                      </div>
                    </div>
-                   <Progress value={storageMetrics.percent} className="h-4 border-2 border-black bg-slate-100 rounded-none shadow-inner" />
                    <p className="text-[10px] text-slate-400 font-bold uppercase leading-relaxed italic border-l-4 border-slate-200 pl-4">
-                     Browser LocalStorage limit is strictly 5MB. Large transaction volumes (10,000+ rows) may require periodic "Purge" via Audit Tracking or a Database Backup & Reset.
+                     Browser SQL storage is managed locally. For institutional continuity, performing a weekly "Download Archive" is mandatory.
                    </p>
                  </div>
               </CardContent>
@@ -625,16 +631,6 @@ export default function SettingsPage() {
                      </Button>
                    </div>
                 </div>
-              </div>
-
-              <div className="bg-amber-50 border-2 border-amber-200 p-8 rounded-3xl flex items-start gap-6 shadow-sm">
-                 <div className="bg-white p-3 rounded-2xl border-2 border-amber-300 shadow-md"><RefreshCw className="size-8 text-amber-600" /></div>
-                 <div className="space-y-2">
-                    <p className="text-xs font-black uppercase text-amber-900 tracking-wider">Institutional Data Integrity Protocol</p>
-                    <p className="text-[11px] leading-relaxed text-amber-800 font-bold uppercase italic">
-                      This system operates 100% locally on this PC's drive. To prevent data loss due to PC failure or browser cache clearing, perform a "Download Archive" weekly and store it on an institutional server or pendrive.
-                    </p>
-                 </div>
               </div>
             </CardContent>
           </Card>
