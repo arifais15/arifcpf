@@ -121,7 +121,7 @@ export default function MembersPage() {
         return;
       }
       addDocumentNonBlocking(collection(firestore, "members"), { ...memberData, createdAt: new Date().toISOString() });
-      toast({ title: "Personnel Registered" });
+      toast({ title: "Employee Registered" });
     }
     setIsAddOpen(false);
     setEditingMember(null);
@@ -146,15 +146,15 @@ export default function MembersPage() {
   const downloadTemplate = () => {
     const templateData = [
       {
-        "ID": "12345",
-        "Name": "John Doe",
+        "ID": "1234",
+        "Name": "Ariful Islam",
         "Designation": "AGM",
-        "JoinedDate": "2020-01-01",
+        "JoinedDate": "2018-05-03",
         "ZonalOffice": "HO",
         "Address": "Gazipur",
         "Status": "Active",
-        "PostingDate": "2024-07-01",
-        "Particulars": "Monthly Contribution - July 2024",
+        "PostingDate": "2025-07-01",
+        "Particulars": "Contribution - July 2025",
         "Emp_Contrib": 5000,
         "Loan_Disbursed": 0,
         "Loan_Repaid": 0,
@@ -167,7 +167,7 @@ export default function MembersPage() {
     const ws = XLSX.utils.json_to_sheet(templateData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "UploadTemplate");
-    XLSX.writeFile(wb, "CPF_Monthly_Matrix_Template.xlsx");
+    XLSX.writeFile(wb, "CPF_Monthly_Import_Template.xlsx");
     toast({ title: "Template Downloaded" });
   };
 
@@ -287,7 +287,7 @@ export default function MembersPage() {
             c9: Number(entry[findKey(["PBS_Profit", "Column 9"])] || 0)
           };
 
-          const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Matrix Bulk - ${postingDate}`);
+          const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Import Bulk - ${postingDate}`);
 
           const mapping = [
             { code: '200.10.0000', debit: 0, credit: vals.c1, name: "Employees' Own Contribution" },
@@ -329,7 +329,7 @@ export default function MembersPage() {
             accountCode: '107.10.0000', accountName: 'Receivable from PBS',
             debit: isDebit ? Math.abs(bankEffect) : 0,
             credit: !isDebit ? Math.abs(bankEffect) : 0,
-            memo: `Bulk Matrix Reconciliation - ${postingDate}`
+            memo: `Bulk Import Reconciliation - ${postingDate}`
           });
           if (isDebit) totalDebit += Math.abs(bankEffect);
           else totalCredit += Math.abs(bankEffect);
@@ -341,7 +341,7 @@ export default function MembersPage() {
             path: `journalEntries/${journalId}`,
             data: {
               id: journalId, entryDate: postingDate, referenceNumber: `BULK-${dateKey}`,
-              description: `Automated Batch Dual-Entry: Monthly Matrix ${postingDate}`,
+              description: `Automated Batch Dual-Entry: Monthly Import ${postingDate}`,
               lines: journalLines, totalAmount: totalDebit,
               createdAt: timestamp, updatedAt: timestamp
             }
@@ -368,10 +368,10 @@ export default function MembersPage() {
   const headerActions = useMemo(() => (
     <div className="flex gap-3 ml-auto no-print">
       <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-2 border-black uppercase text-[11px] font-black text-black rounded-xl px-6 bg-white hover:bg-slate-50 shadow-md">
-        <Upload className="size-4 mr-2" /> Monthly Matrix
+        <Upload className="size-4 mr-2" /> Monthly Data Import
       </Button>
       <Button onClick={() => setIsAddOpen(true)} className="h-10 bg-black text-white uppercase text-[11px] font-black rounded-xl px-8 shadow-xl">
-        <Plus className="size-4 mr-2" /> Register Personnel
+        <Plus className="size-4 mr-2" /> Register Employee
       </Button>
     </div>
   ), []);
@@ -385,7 +385,7 @@ export default function MembersPage() {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-slate-400" />
           <Input 
             className="pl-12 h-12 bg-slate-50 border-2 border-black font-black text-lg focus:bg-white transition-all shadow-inner" 
-            placeholder="Search Institutional Personnel (ID/Name)..." 
+            placeholder="Search  Employee (ID/Name)..." 
             value={search} 
             onChange={(e) => setSearch(e.target.value)} 
           />
@@ -413,7 +413,7 @@ export default function MembersPage() {
             </Select>
           </div>
           <Badge className="bg-black text-white px-4 py-2 font-black uppercase text-[10px] tracking-[0.2em] rounded-none shadow-lg">
-            {members.length} Personnel Listed
+            {members.length} Employees Listed
           </Badge>
         </div>
       </div>
@@ -422,7 +422,7 @@ export default function MembersPage() {
         <Table className="text-black font-black">
           <TableHeader className="bg-slate-100 border-b-2 border-black">
             <TableRow>
-              <TableHead className="w-[150px] uppercase text-[11px] font-black pl-8 text-amber-800 border-r border-black tracking-[0.1em]">Vault ID</TableHead>
+              <TableHead className="w-[150px] uppercase text-[11px] font-black pl-8 text-amber-800 border-r border-black tracking-[0.1em]">PayID</TableHead>
               <TableHead className="uppercase text-[11px] font-black text-blue-800 border-r border-black tracking-[0.1em]">Legal Name</TableHead>
               <TableHead className="uppercase text-[11px] font-black text-slate-600 border-r border-black tracking-[0.1em]">Designation</TableHead>
               <TableHead className="uppercase text-[11px] font-black text-indigo-700 text-center border-r border-black tracking-[0.1em]">Status</TableHead>
@@ -463,10 +463,10 @@ export default function MembersPage() {
             <div>
               <DialogTitle className="text-xl font-black uppercase flex items-center gap-3">
                 <FileType className="size-6 text-emerald-600" />
-                Monthly Matrix Terminal
+                Monthly Data Import
               </DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
-                Phase 1: Excel Audit Integration
+                Phase 1: Excel Integration
               </DialogDescription>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="h-8 border-black border-2 font-black uppercase text-[9px] gap-1 px-3">
@@ -480,13 +480,13 @@ export default function MembersPage() {
               {isUploading ? (
                 <div className="space-y-4">
                   <Loader2 className="size-12 animate-spin mx-auto text-black" />
-                  <p className="text-xs font-black uppercase tracking-widest text-black text-center">Parsing Institutional Data Matrix...</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-black text-center">Parsing Data ...</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <Upload className="size-12 mx-auto text-slate-300 group-hover:text-black transition-colors" />
-                  <p className="text-sm font-black uppercase tracking-[0.2em]">Select Monthly Matrix Excel</p>
-                  <p className="text-[9px] font-black uppercase text-slate-400">Institutional verification follows selection</p>
+                  <p className="text-sm font-black uppercase tracking-[0.2em]">Select Monthly Excel</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">verification</p>
                 </div>
               )}
             </div>
@@ -503,7 +503,7 @@ export default function MembersPage() {
           <DialogHeader className="bg-black text-white p-6 border-b-2 border-black">
             <DialogTitle className="text-xl font-black uppercase flex items-center gap-3">
               <ShieldCheck className="size-6 text-emerald-400" />
-              Matrix Reconciliation Audit
+             Reconciliation
             </DialogTitle>
             <DialogDescription className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
               Phase 2: Confirmation of Statutory Totals
@@ -513,7 +513,7 @@ export default function MembersPage() {
           <div className="p-8 space-y-8">
             <div className="grid grid-cols-2 gap-4">
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">Total Personnel</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Total Employees</p>
                   <p className="text-2xl font-black text-black">{bulkPreview?.totalMembers} Members</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
@@ -537,7 +537,7 @@ export default function MembersPage() {
                <div className="space-y-1">
                  <p className="text-[10px] font-black uppercase text-amber-900 tracking-wider">Institutional Data Integrity Safe</p>
                  <p className="text-[11px] leading-relaxed text-amber-800 font-bold italic">
-                   This matrix will synchronize balanced Journal Entries against "Receivable from PBS (107.10.0000)". Any existing data for these members on these dates will be reconciled (updated) automatically.
+                   This will synchronize balanced Journal Entries against "Receivable from PBS (107.10.0000)". Any existing data for these members on these dates will be reconciled (updated) automatically.
                  </p>
                </div>
             </div>
@@ -566,18 +566,18 @@ export default function MembersPage() {
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <DialogTitle className="font-black uppercase text-2xl flex items-center gap-4 text-black">
               <UserCircle className="size-8 text-blue-700" /> 
-              Personnel Registration Matrix
+              Employee Registration
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleAddMember} className="p-8 space-y-8 text-black bg-white">
             <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-amber-700 ml-1 tracking-widest">Vault ID Number</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-blue-700 ml-1 tracking-widest">Full Legal Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Official Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-amber-700 ml-1 tracking-widest">PayID</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-blue-700 ml-1 tracking-widest">Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
               <div className="space-y-2"><Label className="text-xs font-black uppercase text-indigo-700 ml-1 tracking-widest">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-12 border-black border-2 font-black text-black" /></div>
               <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Assigned Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-12 border-black border-2 font-black text-black" /></div>
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase text-rose-700 ml-1 tracking-widest">Operational Status</Label>
+                <Label className="text-xs font-black uppercase text-rose-700 ml-1 tracking-widest">Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
                   <SelectTrigger className="h-12 border-black border-2 font-black text-black uppercase">
                     <SelectValue />
@@ -595,7 +595,7 @@ export default function MembersPage() {
             </div>
             <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group">
               <Plus className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
-              Commit Profile to Local Vault
+              Commit Profile
             </Button>
           </form>
         </DialogContent>

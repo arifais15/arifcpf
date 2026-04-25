@@ -91,7 +91,7 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="text-4xl font-black text-black tracking-tight uppercase">সারসংক্ষেপ</h1>
-          <p className="text-black uppercase tracking-widest text-[11px] font-black bg-black text-white px-3 py-1 rounded inline-block">সমন্বিত সিপিএফ ম্যানেজমেন্ট টার্মিনাল • প্রাতিষ্ঠানিক ড্যাশবোর্ড</p>
+          <p className="text-black uppercase tracking-widest text-[11px] font-black bg-black text-white px-3 py-1 rounded inline-block">সিপিএফ ম্যানেজমেন্ট ড্যাশবোর্ড</p>
         </div>
 
         <div className="flex items-center gap-4 bg-white border-2 border-black p-4 rounded-2xl shadow-lg no-print">
@@ -135,7 +135,7 @@ export default function DashboardPage() {
               <CardTitle className="text-xl font-black uppercase flex items-center gap-3 text-black">
                 <ShieldCheck className="size-6 text-emerald-600" /> অডিট লগ: সাম্প্রতিক কার্যক্রম
               </CardTitle>
-              <CardDescription className="text-xs font-black uppercase tracking-widest text-indigo-600 mt-1">যাচাইকৃত দ্বৈত-প্রবেশ হিসাব বিবরণী (Local Drive Archive)</CardDescription>
+              <CardDescription className="text-xs font-black uppercase tracking-widest text-indigo-600 mt-1">যাচাইকৃত হিসাব বিবরণী (Local Drive Archive)</CardDescription>
             </div>
             <Badge variant="outline" className="border-black border-2 font-black px-4 py-1.5 uppercase text-[10px] tracking-widest bg-white shadow-sm text-black">রিয়েল-টাইম ডাটা</Badge>
           </CardHeader>
@@ -172,7 +172,7 @@ export default function DashboardPage() {
             <CardTitle className="text-xl font-black uppercase flex items-center gap-3 text-black">
               <PieChart className="size-6 text-indigo-600" /> সম্পদ বন্টন
             </CardTitle>
-            <CardDescription className="text-xs font-black uppercase tracking-widest text-slate-500 mt-1">পোর্টফোলিও ঝুঁকি ও বিন্যাস ম্যাট্রিক্স</CardDescription>
+            <CardDescription className="text-xs font-black uppercase tracking-widest text-slate-500 mt-1">পোর্টফোলিও ঝুঁকি ও বিন্যাস </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col gap-8 p-8">
             <div className="space-y-8">
@@ -196,10 +196,10 @@ export default function DashboardPage() {
                  <p className="text-[11px] font-black uppercase tracking-[0.3em] text-emerald-400">ডিস্ক পারসিস্টেন্স মনিটর</p>
                </div>
                <p className="text-[13px] text-slate-300 leading-relaxed font-black italic relative z-10 border-l-4 border-emerald-500 pl-4">
-                 "ডাটা সরাসরি হোস্ট মেশিনের ড্রাইভে সংরক্ষিত হয়। জিরো ক্লাউড এক্সপোজার উচ্চ গোপনীয়তা নিশ্চিত করে। প্রাতিষ্ঠানিক গোপনীয়তা বজায় রাখতে আমরা এই লোকাল ইঞ্জিন ব্যবহার করি।"
+                 "ডাটা সরাসরি হোস্ট মেশিনের ড্রাইভে সংরক্ষিত হয়। "
                </p>
                <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest relative z-10 pt-3 border-t border-white/5">
-                 <ShieldCheck className="size-4 text-emerald-600" /> ইন্ডাস্ট্রি স্ট্যান্ডার্ড এনক্রিপশন সক্রিয়
+                 <ShieldCheck className="size-4 text-emerald-600" /> এনক্রিপশন সক্রিয়
                </div>
             </div>
           </CardContent>

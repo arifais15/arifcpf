@@ -126,8 +126,8 @@ export function AppSidebar() {
             <ShieldCheck className="size-6" />
           </div>
           <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-            <span className="font-black text-white text-base tracking-tighter uppercase">পিবিএস সিপিএফ সিস্টেম</span>
-            <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">প্রাতিষ্ঠানিক মোড</span>
+            <span className="font-black text-white text-base tracking-tighter uppercase">সিপিএ ম্যানেজমেন্ট</span>
+            <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">অটোমেশন@আরিফ</span>
           </div>
           {isMobile && (
             <Button variant="ghost" size="icon" className="size-8 ml-auto text-white" onClick={() => setOpenMobile(false)}>
