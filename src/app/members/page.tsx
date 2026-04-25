@@ -1,10 +1,11 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save } from "lucide-react";
+import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
 import { collection, doc, query, where, collectionGroup, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
@@ -33,9 +34,14 @@ export default function MembersPage() {
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isBulkOpen, setIsBulkOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [editingMember, setEditingMember] = useState<any>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCommitting, setIsCommitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Preview Data State
+  const [bulkPreview, setBulkPreview] = useState<any>(null);
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -162,7 +168,7 @@ export default function MembersPage() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "UploadTemplate");
     XLSX.writeFile(wb, "CPF_Monthly_Matrix_Template.xlsx");
-    toast({ title: "Template Downloaded", description: "Use this format for 100% success." });
+    toast({ title: "Template Downloaded" });
   };
 
   const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,142 +184,179 @@ export default function MembersPage() {
         const sheetName = workbook.SheetNames[0];
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
         
-        // Pre-fetch all members for ID mapping
-        const allMembersSnap = await getDocuments(collection(firestore, "members"));
-        const existingMembersMap: Record<string, string> = {};
-        allMembersSnap.forEach((d: any) => { existingMembersMap[String(d.data().memberIdNumber).trim()] = d.id; });
+        if (data.length === 0) {
+          toast({ title: "Empty File", variant: "destructive" });
+          setIsUploading(false);
+          return;
+        }
 
-        // Group rows by Date for Grouped Journal Entry
+        // Group rows and calculate summary for PREVIEW
         const groupedByDate: Record<string, any[]> = {};
-        
+        let totalEmpCont = 0;
+        let totalPbsCont = 0;
+        let totalLoanAct = 0;
+        let uniqueIDs = new Set();
+
         data.forEach((entry: any) => {
           const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
           const date = excelDateToISO(entry[findKey(["PostingDate", "Date", "TransactionDate"])]);
+          const idNum = String(entry[findKey(["ID", "Member ID", "ID No"])] || "").trim();
+          
+          if (!idNum) return;
+          uniqueIDs.add(idNum);
+
           if (!groupedByDate[date]) groupedByDate[date] = [];
           groupedByDate[date].push(entry);
+
+          totalEmpCont += Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0);
+          totalPbsCont += Number(entry[findKey(["PBS_Contribution", "Column 8"])] || 0);
+          totalLoanAct += Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0);
+          totalLoanAct -= Number(entry[findKey(["Loan_Repaid", "Column 3"])] || 0);
         });
 
-        let successCount = 0;
-        let voucherCount = 0;
-
-        for (const [postingDate, rows] of Object.entries(groupedByDate)) {
-          // 1. Create a Master Journal Entry for this date
-          const journalRef = doc(collection(firestore, "journalEntries"));
-          const journalId = journalRef.id;
-          const journalLines: any[] = [];
-          let totalDebit = 0;
-          let totalCredit = 0;
-          let bankEffect = 0; // Net cash flow for this batch (now Receivable from PBS)
-
-          for (const entry of rows) {
-            const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
-            const idNum = String(entry[findKey(["ID", "Member ID", "ID No"])] || "").trim();
-            const name = String(entry[findKey(["Name", "Member Name"])] || "").trim();
-            
-            if (!idNum || !name) continue;
-            
-            // a. Ensure member exists
-            let mDocId = existingMembersMap[idNum];
-            if (!mDocId) {
-              const newMRef = doc(collection(firestore, "members"));
-              mDocId = newMRef.id;
-              existingMembersMap[idNum] = mDocId;
-              setDocumentNonBlocking(newMRef, { 
-                memberIdNumber: idNum, name, 
-                designation: String(entry[findKey(["Designation", "Rank"])] || ""), 
-                dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined"])]), 
-                zonalOffice: String(entry[findKey(["ZonalOffice", "Office"])] || "HO"), 
-                status: "Active", createdAt: new Date().toISOString() 
-              });
-            }
-
-            // b. Process Ledger Values
-            const vals = {
-              c1: Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0),
-              c2: Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0),
-              c3: Number(entry[findKey(["Loan_Repaid", "Column 3"])] || 0),
-              c5: Number(entry[findKey(["Employee_Profit", "Column 5"])] || 0),
-              c6: Number(entry[findKey(["Loan_Profit", "Column 6"])] || 0),
-              c8: Number(entry[findKey(["PBS_Contribution", "Column 8"])] || 0),
-              c9: Number(entry[findKey(["PBS_Profit", "Column 9"])] || 0)
-            };
-
-            const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Matrix Bulk - ${postingDate}`);
-
-            // c. Generate General Ledger Lines for this member
-            // Map: Column -> GL Account Code
-            const mapping = [
-              { code: '200.10.0000', debit: 0, credit: vals.c1, name: "Employees' Own Contribution" },
-              { code: '105.10.0000', debit: vals.c2, credit: 0, name: "CPF Loan Disburse" },
-              { code: '105.20.0000', debit: 0, credit: vals.c3, name: "CPF Loan Recover" },
-              { code: '400.40.0000', debit: 0, credit: vals.c6, name: "Interest on Member Loan" },
-              { code: '200.20.0000', debit: 0, credit: vals.c8, name: "PBS Contribution" }
-            ];
-
-            mapping.forEach(m => {
-              if (m.debit > 0 || m.credit > 0) {
-                journalLines.push({ 
-                  accountCode: m.code, accountName: m.name, 
-                  debit: m.debit, credit: m.credit, 
-                  memberId: mDocId, memo: particulars 
-                });
-                totalDebit += m.debit;
-                totalCredit += m.credit;
-                // Calculate net effect for balancing
-                bankEffect += (m.credit - m.debit); // Positive if cash comes in (Contrib/Repay), Negative if cash goes out (Disburse)
-              }
-            });
-
-            // d. Generate individual Subsidiary Ledger entry
-            const dateKey = postingDate.replaceAll('-', '');
-            const deterministicId = `${dateKey}&${mDocId}&BATCH&${journalId}`;
-            const ledgerEntry = {
-              employeeContribution: vals.c1, loanWithdrawal: vals.c2, loanRepayment: vals.c3,
-              profitEmployee: vals.c5, profitLoan: vals.c6, pbsContribution: vals.c8, profitPbs: vals.c9,
-              id: deterministicId, summaryDate: postingDate, particulars, journalEntryId: journalId, memberId: mDocId,
-              createdAt: new Date().toISOString(), isSystemGenerated: true
-            };
-            setDocumentNonBlocking(doc(firestore, "members", mDocId, "fundSummaries", deterministicId), ledgerEntry);
-            successCount++;
-          }
-
-          // 2. Add the Balancing Line (Receivable from PBS 107.10.0000) to the Journal Entry
-          if (bankEffect !== 0) {
-            const isDebit = bankEffect > 0;
-            journalLines.push({
-              accountCode: '107.10.0000', accountName: 'Receivable from PBS',
-              debit: isDebit ? Math.abs(bankEffect) : 0,
-              credit: !isDebit ? Math.abs(bankEffect) : 0,
-              memo: `Bulk Matrix Reconciliation - ${postingDate}`
-            });
-            if (isDebit) totalDebit += Math.abs(bankEffect);
-            else totalCredit += Math.abs(bankEffect);
-          }
-
-          // 3. Commit the Balanced Journal Entry
-          if (journalLines.length > 0) {
-            setDocumentNonBlocking(journalRef, {
-              id: journalId, entryDate: postingDate, referenceNumber: `BULK-${postingDate.replaceAll('-','')}`,
-              description: `Automated Batch Dual-Entry: Monthly Matrix ${postingDate}`,
-              lines: journalLines, totalAmount: totalDebit,
-              createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
-            });
-            voucherCount++;
-          }
-        }
-        showAlert({ 
-          title: "Audit Synchronized", 
-          description: `Generated ${voucherCount} balanced vouchers for ${successCount} personnel records. Balanced against Receivable from PBS (107.10.0000).`, 
-          type: "success" 
+        setBulkPreview({
+          dateGroups: groupedByDate,
+          totalMembers: uniqueIDs.size,
+          totalEmpCont,
+          totalPbsCont,
+          totalLoanAct,
+          rawData: data
         });
-      } catch (err) { 
-        console.error("Institutional Bulk Error:", err);
-        toast({ title: "Sync Failed", variant: "destructive" }); 
-      } finally { 
-        setIsUploading(false); setIsBulkOpen(false); 
+
+        setIsBulkOpen(false);
+        setIsPreviewOpen(true);
+      } catch (err) {
+        toast({ title: "Parse Error", variant: "destructive" });
+      } finally {
+        setIsUploading(false);
       }
     };
     reader.readAsBinaryString(file);
+  };
+
+  const handleConfirmUpload = async () => {
+    if (!bulkPreview) return;
+    setIsCommitting(true);
+
+    try {
+      // Pre-fetch all members for ID mapping to prevent excessive queries
+      const allMembersSnap = await getDocuments(collection(firestore, "members"));
+      const existingMembersMap: Record<string, string> = {};
+      allMembersSnap.forEach((d: any) => { existingMembersMap[String(d.data().memberIdNumber).trim()] = d.id; });
+
+      for (const [postingDate, rows] of Object.entries(bulkPreview.dateGroups)) {
+        const dateKey = postingDate.replaceAll('-', '');
+        const journalId = `BULK-${dateKey}`; // Deterministic Voucher ID to avoid duplicates
+        const journalRef = doc(firestore, "journalEntries", journalId);
+        const journalLines: any[] = [];
+        let totalDebit = 0;
+        let totalCredit = 0;
+        let bankEffect = 0; 
+
+        for (const entry of rows as any[]) {
+          const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
+          const idNum = String(entry[findKey(["ID", "Member ID", "ID No"])] || "").trim();
+          const name = String(entry[findKey(["Name", "Member Name"])] || "").trim();
+          
+          if (!idNum || !name) continue;
+          
+          // a. Ensure member exists
+          let mDocId = existingMembersMap[idNum];
+          if (!mDocId) {
+            const newMRef = doc(collection(firestore, "members"));
+            mDocId = newMRef.id;
+            existingMembersMap[idNum] = mDocId;
+            setDocumentNonBlocking(newMRef, { 
+              memberIdNumber: idNum, name, 
+              designation: String(entry[findKey(["Designation", "Rank"])] || ""), 
+              dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined"])]), 
+              zonalOffice: String(entry[findKey(["ZonalOffice", "Office"])] || "HO"), 
+              status: "Active", createdAt: new Date().toISOString() 
+            });
+          }
+
+          // b. Process Ledger Values
+          const vals = {
+            c1: Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0),
+            c2: Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0),
+            c3: Number(entry[findKey(["Loan_Repaid", "Column 3"])] || 0),
+            c5: Number(entry[findKey(["Employee_Profit", "Column 5"])] || 0),
+            c6: Number(entry[findKey(["Loan_Profit", "Column 6"])] || 0),
+            c8: Number(entry[findKey(["PBS_Contribution", "Column 8"])] || 0),
+            c9: Number(entry[findKey(["PBS_Profit", "Column 9"])] || 0)
+          };
+
+          const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Matrix Bulk - ${postingDate}`);
+
+          // c. General Ledger Lines
+          const mapping = [
+            { code: '200.10.0000', debit: 0, credit: vals.c1, name: "Employees' Own Contribution" },
+            { code: '105.10.0000', debit: vals.c2, credit: 0, name: "CPF Loan Disburse" },
+            { code: '105.20.0000', debit: 0, credit: vals.c3, name: "CPF Loan Recover" },
+            { code: '400.40.0000', debit: 0, credit: vals.c6, name: "Interest on Member Loan" },
+            { code: '200.20.0000', debit: 0, credit: vals.c8, name: "PBS Contribution" }
+          ];
+
+          mapping.forEach(m => {
+            if (m.debit > 0 || m.credit > 0) {
+              journalLines.push({ 
+                accountCode: m.code, accountName: m.name, 
+                debit: m.debit, credit: m.credit, 
+                memberId: mDocId, memo: particulars 
+              });
+              totalDebit += m.debit;
+              totalCredit += m.credit;
+              bankEffect += (m.credit - m.debit);
+            }
+          });
+
+          // d. Individual Subsidiary Ledger entry (Deterministic Overwrite)
+          const deterministicId = `${dateKey}&${mDocId}&BATCH&${journalId}`;
+          const ledgerEntry = {
+            employeeContribution: vals.c1, loanWithdrawal: vals.c2, loanRepayment: vals.c3,
+            profitEmployee: vals.c5, profitLoan: vals.c6, pbsContribution: vals.c8, profitPbs: vals.c9,
+            id: deterministicId, summaryDate: postingDate, particulars, journalEntryId: journalId, memberId: mDocId,
+            createdAt: new Date().toISOString(), isSystemGenerated: true
+          };
+          setDocumentNonBlocking(doc(firestore, "members", mDocId, "fundSummaries", deterministicId), ledgerEntry);
+        }
+
+        // 2. Balancing Line (Receivable from PBS)
+        if (bankEffect !== 0) {
+          const isDebit = bankEffect > 0;
+          journalLines.push({
+            accountCode: '107.10.0000', accountName: 'Receivable from PBS',
+            debit: isDebit ? Math.abs(bankEffect) : 0,
+            credit: !isDebit ? Math.abs(bankEffect) : 0,
+            memo: `Bulk Matrix Reconciliation - ${postingDate}`
+          });
+          if (isDebit) totalDebit += Math.abs(bankEffect);
+          else totalCredit += Math.abs(bankEffect);
+        }
+
+        // 3. Commit Journal Entry (Deterministic Overwrite)
+        if (journalLines.length > 0) {
+          setDocumentNonBlocking(journalRef, {
+            id: journalId, entryDate: postingDate, referenceNumber: `BULK-${dateKey}`,
+            description: `Automated Batch Dual-Entry: Monthly Matrix ${postingDate}`,
+            lines: journalLines, totalAmount: totalDebit,
+            createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+          });
+        }
+      }
+
+      showAlert({ 
+        title: "Audit Synchronized", 
+        description: "Bulk data has been committed to the institutional registry.", 
+        type: "success" 
+      });
+      setIsPreviewOpen(false);
+      setBulkPreview(null);
+    } catch (err) {
+      toast({ title: "Sync Failed", variant: "destructive" });
+    } finally {
+      setIsCommitting(false);
+    }
   };
 
   const headerActions = useMemo(() => (
@@ -408,6 +451,7 @@ export default function MembersPage() {
         </Table>
       </div>
 
+      {/* STEP 1: Upload Selection Dialog */}
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="max-w-xl bg-white border-2 border-black p-0 rounded-none shadow-2xl font-ledger">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black flex flex-row items-center justify-between">
@@ -417,7 +461,7 @@ export default function MembersPage() {
                 Monthly Matrix Terminal
               </DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
-                Bulk Dual-Entry General Ledger Sync
+                Phase 1: Excel Audit Integration
               </DialogDescription>
             </div>
             <Button variant="outline" onClick={downloadTemplate} className="h-8 border-black border-2 font-black uppercase text-[9px] gap-1 px-3">
@@ -431,30 +475,83 @@ export default function MembersPage() {
               {isUploading ? (
                 <div className="space-y-4">
                   <Loader2 className="size-12 animate-spin mx-auto text-black" />
-                  <p className="text-xs font-black uppercase tracking-widest text-black text-center">Processing Dual-Entry Matrix...<br/>Balancing GL Vouchers...</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-black text-center">Parsing Institutional Data Matrix...</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <Upload className="size-12 mx-auto text-slate-300 group-hover:text-black transition-colors" />
                   <p className="text-sm font-black uppercase tracking-[0.2em]">Select Monthly Matrix Excel</p>
-                  <p className="text-[9px] font-black uppercase text-slate-400">Balanced Journal Entries will be generated</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Institutional verification follows selection</p>
                 </div>
               )}
-            </div>
-
-            <div className="bg-indigo-50 border-2 border-indigo-100 p-4 rounded-xl flex gap-3 items-start">
-              <ShieldCheck className="size-5 text-indigo-600 mt-0.5 shrink-0" />
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase text-indigo-700">Financial Integrity Protocol</p>
-                <p className="text-[11px] leading-relaxed text-indigo-600 font-bold italic">
-                  This upload will generate balanced General Ledger vouchers. Transactions will balance against Receivable from PBS (107.10.0000). Individual ledgers will be synchronized automatically.
-                </p>
-              </div>
             </div>
           </div>
           
           <DialogFooter className="bg-slate-100 p-4 border-t-2 border-black">
             <Button variant="ghost" onClick={() => setIsBulkOpen(false)} className="font-black text-[10px] uppercase tracking-widest border-2 border-black h-9 px-6 bg-white hover:bg-slate-50">Cancel Terminal</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* STEP 2: Pre-commit Summary & Confirmation */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-2xl bg-white border-4 border-black p-0 rounded-none shadow-2xl font-ledger">
+          <DialogHeader className="bg-black text-white p-6 border-b-2 border-black">
+            <DialogTitle className="text-xl font-black uppercase flex items-center gap-3">
+              <ShieldCheck className="size-6 text-emerald-400" />
+              Matrix Reconciliation Audit
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
+              Phase 2: Confirmation of Statutory Totals
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="p-8 space-y-8">
+            <div className="grid grid-cols-2 gap-4">
+               <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
+                  <p className="text-[9px] font-black uppercase text-slate-400">Total Personnel</p>
+                  <p className="text-2xl font-black text-black">{bulkPreview?.totalMembers} Members</p>
+               </div>
+               <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
+                  <p className="text-[9px] font-black uppercase text-slate-400">Emp Contrib (Col 1)</p>
+                  <p className="text-2xl font-black text-indigo-700">৳ {bulkPreview?.totalEmpCont.toLocaleString()}</p>
+               </div>
+               <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
+                  <p className="text-[9px] font-black uppercase text-slate-400">PBS Matching (Col 8)</p>
+                  <p className="text-2xl font-black text-emerald-700">৳ {bulkPreview?.totalPbsCont.toLocaleString()}</p>
+               </div>
+               <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
+                  <p className="text-[9px] font-black uppercase text-slate-400">Net Loan Movement</p>
+                  <p className={cn("text-2xl font-black", bulkPreview?.totalLoanAct >= 0 ? "text-rose-700" : "text-emerald-700")}>
+                    ৳ {Math.abs(bulkPreview?.totalLoanAct || 0).toLocaleString()} {bulkPreview?.totalLoanAct >= 0 ? "(Disbursed)" : "(Recovered)"}
+                  </p>
+               </div>
+            </div>
+
+            <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-xl flex gap-3 items-start">
+               <AlertCircle className="size-5 text-amber-600 mt-1 shrink-0" />
+               <div className="space-y-1">
+                 <p className="text-[10px] font-black uppercase text-amber-900 tracking-wider">Institutional Data Integrity Safe</p>
+                 <p className="text-[11px] leading-relaxed text-amber-800 font-bold italic">
+                   This matrix will synchronize balanced Journal Entries against "Receivable from PBS (107.10.0000)". Any existing data for these members on these dates will be reconciled (updated) automatically.
+                 </p>
+               </div>
+            </div>
+
+            {isCommitting && (
+               <div className="text-center space-y-2 py-4">
+                  <Loader2 className="size-8 animate-spin mx-auto text-black" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Committing Dual-Entry Matrix to PC Storage...</p>
+               </div>
+            )}
+          </div>
+
+          <DialogFooter className="bg-slate-50 p-6 border-t-2 border-black gap-3">
+             <Button variant="outline" onClick={() => setIsPreviewOpen(false)} disabled={isCommitting} className="border-black border-2 font-black uppercase text-[11px] px-8 h-12 bg-white">Abandon</Button>
+             <Button onClick={handleConfirmUpload} disabled={isCommitting} className="bg-black text-white font-black uppercase text-[11px] px-12 h-12 shadow-xl group">
+               <CheckCircle2 className="size-4 mr-2 group-hover:scale-110 transition-transform text-emerald-400" />
+               Commit to Registry
+             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
