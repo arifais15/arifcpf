@@ -7,10 +7,7 @@
  * Supports automated migration from legacy storage and async I/O.
  */
 
-// REMOVED top-level import to avoid "self is not defined" SSR errors
-// import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-
-const DB_FILE = '/pbs_cpf_relational_matrix.sqlite3';
+const DB_FILE = 'pbs_cpf_relational_vault_v2.sqlite3';
 const LEGACY_KEY = 'pbs_cpf_local_matrix_v1';
 
 class SQLiteDatabaseService {
@@ -34,8 +31,6 @@ class SQLiteDatabaseService {
     this.isInitializing = true;
 
     try {
-      // Dynamic import ensures this code ONLY runs in the browser
-      // This prevents the "self is not defined" error during Next.js SSR
       const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default;
 
       const sqlite3 = await sqlite3InitModule({
@@ -43,13 +38,16 @@ class SQLiteDatabaseService {
         printErr: console.error,
       });
 
+      // Use Origin Private File System for persistent disk storage
       if ('opfs' in sqlite3) {
         this.db = new sqlite3.oo1.OpfsDb(DB_FILE);
+        console.log("Institutional Persistence: OPFS Disk Engine Active.");
       } else {
         this.db = new sqlite3.oo1.DB(DB_FILE, 'ct');
+        console.warn("Institutional Warning: OPFS not supported. Using transient fallback.");
       }
 
-      // 1. Create Relational Schema
+      // 1. Create Comprehensive Relational Schema
       this.db.exec(`
         CREATE TABLE IF NOT EXISTS accounts (
           id TEXT PRIMARY KEY,
@@ -90,8 +88,18 @@ class SQLiteDatabaseService {
           principal REAL,
           data JSON
         );
+        CREATE TABLE IF NOT EXISTS settings (
+          id TEXT PRIMARY KEY,
+          data JSON
+        );
+        CREATE TABLE IF NOT EXISTS audit_logs (
+          id TEXT PRIMARY KEY,
+          type TEXT,
+          data JSON
+        );
         CREATE INDEX IF NOT EXISTS idx_summaries_member ON fund_summaries(memberId);
         CREATE INDEX IF NOT EXISTS idx_summaries_date ON fund_summaries(summaryDate);
+        CREATE INDEX IF NOT EXISTS idx_journal_date ON journal_entries(entryDate);
       `);
 
       // 2. Automated Legacy Migration
@@ -112,39 +120,10 @@ class SQLiteDatabaseService {
     
     try {
       const flatDB = JSON.parse(legacyData);
-      
       this.db.exec("BEGIN TRANSACTION;");
       
       for (const [path, data] of Object.entries(flatDB)) {
-        const parts = path.split('/');
-        const id = parts[parts.length - 1];
-
-        if (path.startsWith('chartOfAccounts/')) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO accounts (id, code, name, type, balance, isHeader, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            bind: [id, data.accountCode || data.code, data.accountName || data.name, data.accountType || data.type, data.normalBalance || data.balance, data.isHeader ? 1 : 0, JSON.stringify(data)]
-          });
-        } else if (path.startsWith('members/') && parts.length === 2) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO members (id, memberIdNumber, name, designation, status, data) VALUES (?, ?, ?, ?, ?, ?)",
-            bind: [id, data.memberIdNumber, data.name, data.designation, data.status, JSON.stringify(data)]
-          });
-        } else if (path.includes('/fundSummaries/')) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO fund_summaries (id, memberId, journalEntryId, summaryDate, data) VALUES (?, ?, ?, ?, ?)",
-            bind: [id, data.memberId, data.journalEntryId, data.summaryDate, JSON.stringify(data)]
-          });
-        } else if (path.startsWith('journalEntries/')) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO journal_entries (id, entryDate, refNo, totalAmount, data) VALUES (?, ?, ?, ?, ?)",
-            bind: [id, data.entryDate, data.referenceNumber, data.totalAmount, JSON.stringify(data)]
-          });
-        } else if (path.startsWith('investmentInstruments/')) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO investments (id, refNo, bankName, principal, data) VALUES (?, ?, ?, ?, ?)",
-            bind: [id, data.referenceNumber, data.bankName, data.principalAmount, JSON.stringify(data)]
-          });
-        }
+        await this.setDoc(path, data);
       }
 
       this.db.exec("COMMIT;");
@@ -168,7 +147,9 @@ class SQLiteDatabaseService {
     else if (sanitized === 'chartOfAccounts') sql = "SELECT data FROM accounts ORDER BY code ASC";
     else if (sanitized === 'journalEntries') sql = "SELECT data FROM journal_entries ORDER BY entryDate DESC";
     else if (sanitized === 'investmentInstruments') sql = "SELECT data FROM investments";
-    else if (sanitized === 'fundSummaries') sql = "SELECT data FROM fund_summaries"; // collectionGroup
+    else if (sanitized === 'fundSummaries') sql = "SELECT data FROM fund_summaries"; 
+    else if (sanitized === 'accruedInterestLogs') sql = "SELECT data FROM audit_logs WHERE type = 'accrual'";
+    else if (sanitized.startsWith('settings')) sql = "SELECT data FROM settings";
     else if (sanitized.includes('members/') && sanitized.includes('/fundSummaries')) {
       const memberId = sanitized.split('/')[1];
       sql = `SELECT data FROM fund_summaries WHERE memberId = '${memberId}' ORDER BY summaryDate ASC`;
@@ -176,12 +157,18 @@ class SQLiteDatabaseService {
 
     if (!sql) return [];
 
-    this.db.exec({
-      sql,
-      callback: (row: any) => {
-        if (row[0]) results.push(JSON.parse(row[0]));
-      }
-    });
+    try {
+      this.db.exec({
+        sql,
+        callback: (row: any) => {
+          if (row[0]) {
+            try { results.push(JSON.parse(row[0])); } catch(e) {}
+          }
+        }
+      });
+    } catch(e) {
+      console.error("Query Execution Error:", e);
+    }
 
     return results;
   }
@@ -192,6 +179,7 @@ class SQLiteDatabaseService {
 
     const parts = path.replace(/^\/|\/$/g, '').split('/');
     const id = parts[parts.length - 1];
+    const collection = parts[0];
     
     let finalData = data;
     if (options.merge) {
@@ -199,21 +187,52 @@ class SQLiteDatabaseService {
       finalData = { ...existing, ...data };
     }
 
-    if (path.startsWith('members/') && parts.length === 2) {
-      this.db.exec({
-        sql: "INSERT OR REPLACE INTO members (id, memberIdNumber, name, designation, status, data) VALUES (?, ?, ?, ?, ?, ?)",
-        bind: [id, finalData.memberIdNumber, finalData.name, finalData.designation, finalData.status, JSON.stringify(finalData)]
-      });
-    } else if (path.includes('/fundSummaries/')) {
-      this.db.exec({
-        sql: "INSERT OR REPLACE INTO fund_summaries (id, memberId, journalEntryId, summaryDate, data) VALUES (?, ?, ?, ?, ?)",
-        bind: [id, finalData.memberId, finalData.journalEntryId, finalData.summaryDate, JSON.stringify(finalData)]
-      });
-    } else if (path.startsWith('journalEntries/')) {
-      this.db.exec({
-        sql: "INSERT OR REPLACE INTO journal_entries (id, entryDate, refNo, totalAmount, data) VALUES (?, ?, ?, ?, ?)",
-        bind: [id, finalData.entryDate, finalData.referenceNumber, finalData.totalAmount, JSON.stringify(finalData)]
-      });
+    // Ensure ID is part of data
+    if (typeof finalData === 'object' && !finalData.id) {
+      finalData.id = id;
+    }
+
+    const dataJson = JSON.stringify(finalData);
+
+    try {
+      if (collection === 'members' && parts.length === 2) {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO members (id, memberIdNumber, name, designation, status, data) VALUES (?, ?, ?, ?, ?, ?)",
+          bind: [id, finalData.memberIdNumber, finalData.name, finalData.designation, finalData.status, dataJson]
+        });
+      } else if (path.includes('/fundSummaries/')) {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO fund_summaries (id, memberId, journalEntryId, summaryDate, data) VALUES (?, ?, ?, ?, ?)",
+          bind: [id, finalData.memberId, finalData.journalEntryId, finalData.summaryDate, dataJson]
+        });
+      } else if (collection === 'journalEntries') {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO journal_entries (id, entryDate, refNo, totalAmount, data) VALUES (?, ?, ?, ?, ?)",
+          bind: [id, finalData.entryDate, finalData.referenceNumber, finalData.totalAmount, dataJson]
+        });
+      } else if (collection === 'chartOfAccounts') {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO accounts (id, code, name, type, balance, isHeader, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          bind: [id, finalData.code || finalData.accountCode, finalData.name || finalData.accountName, finalData.type || finalData.accountType, finalData.balance || finalData.normalBalance, finalData.isHeader ? 1 : 0, dataJson]
+        });
+      } else if (collection === 'investmentInstruments') {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO investments (id, refNo, bankName, principal, data) VALUES (?, ?, ?, ?, ?)",
+          bind: [id, finalData.referenceNumber, finalData.bankName, finalData.principalAmount, dataJson]
+        });
+      } else if (collection === 'settings') {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO settings (id, data) VALUES (?, ?)",
+          bind: [id, dataJson]
+        });
+      } else if (collection === 'accruedInterestLogs') {
+        this.db.exec({
+          sql: "INSERT OR REPLACE INTO audit_logs (id, type, data) VALUES (?, ?, ?)",
+          bind: [id, 'accrual', dataJson]
+        });
+      }
+    } catch(e) {
+      console.error(`Persistence Error for ${path}:`, e);
     }
     
     window.dispatchEvent(new Event('storage'));
@@ -225,14 +244,25 @@ class SQLiteDatabaseService {
 
     const parts = path.replace(/^\/|\/$/g, '').split('/');
     const id = parts[parts.length - 1];
+    const collection = parts[0];
 
-    if (path.startsWith('members/')) {
-      this.db.exec(`DELETE FROM fund_summaries WHERE memberId = '${id}'`);
-      this.db.exec(`DELETE FROM members WHERE id = '${id}'`);
-    } else if (path.includes('/fundSummaries/')) {
-      this.db.exec(`DELETE FROM fund_summaries WHERE id = '${id}'`);
-    } else if (path.startsWith('journalEntries/')) {
-      this.db.exec(`DELETE FROM journal_entries WHERE id = '${id}'`);
+    try {
+      if (collection === 'members' && parts.length === 2) {
+        this.db.exec(`DELETE FROM fund_summaries WHERE memberId = '${id}'`);
+        this.db.exec(`DELETE FROM members WHERE id = '${id}'`);
+      } else if (path.includes('/fundSummaries/')) {
+        this.db.exec(`DELETE FROM fund_summaries WHERE id = '${id}'`);
+      } else if (collection === 'journalEntries') {
+        this.db.exec(`DELETE FROM journal_entries WHERE id = '${id}'`);
+      } else if (collection === 'chartOfAccounts') {
+        this.db.exec(`DELETE FROM accounts WHERE id = '${id}'`);
+      } else if (collection === 'investmentInstruments') {
+        this.db.exec(`DELETE FROM investments WHERE id = '${id}'`);
+      } else if (collection === 'accruedInterestLogs') {
+        this.db.exec(`DELETE FROM audit_logs WHERE id = '${id}'`);
+      }
+    } catch(e) {
+      console.error(`Deletion Error for ${path}:`, e);
     }
 
     window.dispatchEvent(new Event('storage'));
@@ -244,32 +274,87 @@ class SQLiteDatabaseService {
 
     const parts = path.replace(/^\/|\/$/g, '').split('/');
     const id = parts[parts.length - 1];
+    const collection = parts[0];
     let result = null;
 
     let sql = "";
-    if (path.startsWith('members/')) sql = `SELECT data FROM members WHERE id = '${id}'`;
+    if (collection === 'members' && parts.length === 2) sql = `SELECT data FROM members WHERE id = '${id}'`;
     else if (path.includes('/fundSummaries/')) sql = `SELECT data FROM fund_summaries WHERE id = '${id}'`;
+    else if (collection === 'journalEntries') sql = `SELECT data FROM journal_entries WHERE id = '${id}'`;
+    else if (collection === 'chartOfAccounts') sql = `SELECT data FROM accounts WHERE id = '${id}'`;
+    else if (collection === 'settings') sql = `SELECT data FROM settings WHERE id = '${id}'`;
+    else if (collection === 'investmentInstruments') sql = `SELECT data FROM investments WHERE id = '${id}'`;
     
     if (sql) {
-      this.db.exec({
-        sql,
-        callback: (row: any) => { result = JSON.parse(row[0]); }
-      });
+      try {
+        this.db.exec({
+          sql,
+          callback: (row: any) => { if (row[0]) result = JSON.parse(row[0]); }
+        });
+      } catch(e) {
+        console.error(`Read Error for ${path}:`, e);
+      }
     }
     return result;
   }
 
-  /**
-   * Placeholder for future cloud synchronization logic.
-   */
-  async syncWithFirebase() {
-    console.log("Institutional Sync: Preparing SQLite matrix for Firestore upload...");
-    // Future: Iterate tables and call Firestore setDoc()
+  async exportDatabase(): Promise<string> {
+    await this.ensureReady();
+    const data: Record<string, any> = {};
+    
+    // We export a flat JSON structure compatible with current systems
+    const collections = [
+      { name: 'members', path: 'members' },
+      { name: 'accounts', path: 'chartOfAccounts' },
+      { name: 'journal_entries', path: 'journalEntries' },
+      { name: 'investments', path: 'investmentInstruments' },
+      { name: 'settings', path: 'settings' },
+      { name: 'fund_summaries', path: 'fund_summaries' }, // We'll map this correctly later
+      { name: 'audit_logs', path: 'accruedInterestLogs' }
+    ];
+
+    for (const col of collections) {
+      this.db.exec({
+        sql: `SELECT id, data FROM ${col.name}`,
+        callback: (row: any) => {
+          if (row[0] && row[1]) {
+            const path = col.name === 'fund_summaries' 
+              ? `members/${JSON.parse(row[1]).memberId}/fundSummaries/${row[0]}`
+              : `${col.path}/${row[0]}`;
+            data[path] = JSON.parse(row[1]);
+          }
+        }
+      });
+    }
+
+    return JSON.stringify(data);
+  }
+
+  importDatabase(json: string): boolean {
+    try {
+      const data = JSON.parse(json);
+      this.db.exec("BEGIN TRANSACTION;");
+      
+      // Clear existing tables
+      ['members', 'fund_summaries', 'journal_entries', 'accounts', 'investments', 'settings', 'audit_logs'].forEach(t => {
+        this.db.exec(`DELETE FROM ${t}`);
+      });
+
+      for (const [path, docData] of Object.entries(data)) {
+        this.setDoc(path, docData);
+      }
+
+      this.db.exec("COMMIT;");
+      return true;
+    } catch (e) {
+      if (this.db) this.db.exec("ROLLBACK;");
+      return false;
+    }
   }
 
   getStorageMetrics() {
-    // SQLite OPFS doesn't have a small 5MB limit like LocalStorage.
-    // It's limited by user disk space.
+    // In SQLite WASM, storage is not capped at 5MB like LocalStorage.
+    // It is only capped by available disk space. 
     return { used: 0, total: 1024 * 1024 * 1024, percent: 0 };
   }
 }
