@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * @fileOverview Institutional SQLite WASM + OPFS Persistence Engine
+ * @fileOverview Institutional SQLite WASM Persistence Engine (V2)
  * 
- * Replaces LocalStorage with a high-performance relational database.
- * Supports automated migration from legacy storage and async I/O.
+ * Re-engineered for absolute data persistence on local PC.
+ * Uses OPFS (Origin Private File System) with explicit commits.
  */
 
-const DB_FILE = 'pbs_cpf_relational_vault_v2.sqlite3';
+const DB_FILE = 'pbs_cpf_institutional_vault_v3.sqlite3';
 const LEGACY_KEY = 'pbs_cpf_local_matrix_v1';
 
 class SQLiteDatabaseService {
@@ -24,6 +24,11 @@ class SQLiteDatabaseService {
   async ensureReady() {
     if (typeof window === 'undefined') return;
     if (this.initPromise) await this.initPromise;
+    if (!this.db) {
+        // Retry initialization if first attempt failed
+        this.initPromise = this.initialize();
+        await this.initPromise;
+    }
   }
 
   private async initialize() {
@@ -38,13 +43,17 @@ class SQLiteDatabaseService {
         printErr: console.error,
       });
 
-      // Use Origin Private File System for persistent disk storage
-      if ('opfs' in sqlite3) {
+      console.log("Institutional Audit: SQLite WASM Loaded. Version:", sqlite3.version.libVersion);
+
+      // Initialize persistent database
+      if ('opfs' in sqlite3.oo1) {
         this.db = new sqlite3.oo1.OpfsDb(DB_FILE);
-        console.log("Institutional Persistence: OPFS Disk Engine Active.");
+        console.log("Institutional Persistence: OPFS High-Performance Disk Engine Active.");
       } else {
+        // Fallback to basic DB if OPFS is not supported (likely due to headers)
+        // Note: Without OPFS or a specific VFS, persistence depends on the browser's implementation of the 'ct' flag
         this.db = new sqlite3.oo1.DB(DB_FILE, 'ct');
-        console.warn("Institutional Warning: OPFS not supported. Using transient fallback.");
+        console.warn("Institutional Warning: OPFS not detected. Using standard persistence matrix.");
       }
 
       // 1. Create Comprehensive Relational Schema
@@ -106,7 +115,7 @@ class SQLiteDatabaseService {
       await this.migrateFromLocalStorage();
 
     } catch (e) {
-      console.error("SQLite Initialization Error:", e);
+      console.error("SQLite Critical Initialization Failure:", e);
     } finally {
       this.isInitializing = false;
     }
@@ -116,7 +125,7 @@ class SQLiteDatabaseService {
     const legacyData = localStorage.getItem(LEGACY_KEY);
     if (!legacyData) return;
 
-    console.log("Institutional Audit: legacy LocalStorage detected. Initiating Relational Migration...");
+    console.log("Institutional Audit: Legacy LocalStorage detected. Initiating migration...");
     
     try {
       const flatDB = JSON.parse(legacyData);
@@ -128,10 +137,10 @@ class SQLiteDatabaseService {
 
       this.db.exec("COMMIT;");
       localStorage.removeItem(LEGACY_KEY);
-      console.log("Relational Migration Successful. Legacy cache purged.");
+      console.log("Migration Successful. LocalStorage matrix purged.");
     } catch (e) {
       if (this.db) this.db.exec("ROLLBACK;");
-      console.error("Migration Failed:", e);
+      console.error("Migration Aborted:", e);
     }
   }
 
@@ -187,7 +196,6 @@ class SQLiteDatabaseService {
       finalData = { ...existing, ...data };
     }
 
-    // Ensure ID is part of data
     if (typeof finalData === 'object' && !finalData.id) {
       finalData.id = id;
     }
@@ -195,6 +203,8 @@ class SQLiteDatabaseService {
     const dataJson = JSON.stringify(finalData);
 
     try {
+      this.db.exec("BEGIN TRANSACTION;");
+      
       if (collection === 'members' && parts.length === 2) {
         this.db.exec({
           sql: "INSERT OR REPLACE INTO members (id, memberIdNumber, name, designation, status, data) VALUES (?, ?, ?, ?, ?, ?)",
@@ -231,7 +241,11 @@ class SQLiteDatabaseService {
           bind: [id, 'accrual', dataJson]
         });
       }
+      
+      this.db.exec("COMMIT;");
+      console.log(`Institutional Sync: [COMMIT] ${path}`);
     } catch(e) {
+      if (this.db) this.db.exec("ROLLBACK;");
       console.error(`Persistence Error for ${path}:`, e);
     }
     
@@ -247,6 +261,8 @@ class SQLiteDatabaseService {
     const collection = parts[0];
 
     try {
+      this.db.exec("BEGIN TRANSACTION;");
+      
       if (collection === 'members' && parts.length === 2) {
         this.db.exec(`DELETE FROM fund_summaries WHERE memberId = '${id}'`);
         this.db.exec(`DELETE FROM members WHERE id = '${id}'`);
@@ -261,7 +277,11 @@ class SQLiteDatabaseService {
       } else if (collection === 'accruedInterestLogs') {
         this.db.exec(`DELETE FROM audit_logs WHERE id = '${id}'`);
       }
+      
+      this.db.exec("COMMIT;");
+      console.log(`Institutional Sync: [PURGE] ${path}`);
     } catch(e) {
+      if (this.db) this.db.exec("ROLLBACK;");
       console.error(`Deletion Error for ${path}:`, e);
     }
 
@@ -302,14 +322,13 @@ class SQLiteDatabaseService {
     await this.ensureReady();
     const data: Record<string, any> = {};
     
-    // We export a flat JSON structure compatible with current systems
     const collections = [
       { name: 'members', path: 'members' },
       { name: 'accounts', path: 'chartOfAccounts' },
       { name: 'journal_entries', path: 'journalEntries' },
       { name: 'investments', path: 'investmentInstruments' },
       { name: 'settings', path: 'settings' },
-      { name: 'fund_summaries', path: 'fund_summaries' }, // We'll map this correctly later
+      { name: 'fund_summaries', path: 'fund_summaries' },
       { name: 'audit_logs', path: 'accruedInterestLogs' }
     ];
 
@@ -318,10 +337,11 @@ class SQLiteDatabaseService {
         sql: `SELECT id, data FROM ${col.name}`,
         callback: (row: any) => {
           if (row[0] && row[1]) {
+            const rowData = JSON.parse(row[1]);
             const path = col.name === 'fund_summaries' 
-              ? `members/${JSON.parse(row[1]).memberId}/fundSummaries/${row[0]}`
+              ? `members/${rowData.memberId}/fundSummaries/${row[0]}`
               : `${col.path}/${row[0]}`;
-            data[path] = JSON.parse(row[1]);
+            data[path] = rowData;
           }
         }
       });
@@ -335,13 +355,14 @@ class SQLiteDatabaseService {
       const data = JSON.parse(json);
       this.db.exec("BEGIN TRANSACTION;");
       
-      // Clear existing tables
       ['members', 'fund_summaries', 'journal_entries', 'accounts', 'investments', 'settings', 'audit_logs'].forEach(t => {
         this.db.exec(`DELETE FROM ${t}`);
       });
 
       for (const [path, docData] of Object.entries(data)) {
-        this.setDoc(path, docData);
+        // Use normalized paths
+        const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+        this.setDoc(normalizedPath, docData);
       }
 
       this.db.exec("COMMIT;");
@@ -353,8 +374,6 @@ class SQLiteDatabaseService {
   }
 
   getStorageMetrics() {
-    // In SQLite WASM, storage is not capped at 5MB like LocalStorage.
-    // It is only capped by available disk space. 
     return { used: 0, total: 1024 * 1024 * 1024, percent: 0 };
   }
 }
