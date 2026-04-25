@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -295,11 +296,6 @@ function TransactionForm() {
     }
   };
 
-  /**
-   * RECONCILIATION ENGINE:
-   * Ensures that updating a voucher precisely reconciles the member subsidiary ledgers
-   * by purging previous audit trails before committing new records.
-   */
   const handleSave = async () => {
     if (!isBalanced) return; 
     setIsSaving(true);
@@ -331,7 +327,7 @@ function TransactionForm() {
     };
 
     try {
-      // 1. CRITICAL RECONCILIATION: Purge existing linked subsidiary entries to prevent duplication
+      // 1. Audit Reconciliation: Clear old entries if editing
       if (editId) {
         const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", editId));
         const snap = await getDocuments(q);
@@ -340,16 +336,21 @@ function TransactionForm() {
         });
       }
 
-      // 2. Commit main Journal Entry to Vault
+      // 2. Commit main Journal Entry
       setDocumentNonBlocking(journalRef, entryData);
 
-      // 3. Post Synchronized Ledger Items
+      // 3. Post Synchronized Ledger Items using Deterministic Unique IDs
+      // Format: yyyymmdd&ID&COA&VoucherID to strictly avoid duplicates
+      const dateKey = entryDate.replaceAll('-', '');
+      
       lines.forEach(l => {
         if (l.memberId) {
           const vals = getSubsidiaryValues(l.accountCode, Number(l.debit) || 0, Number(l.credit) || 0);
           if (vals) {
+            const deterministicId = `${dateKey}&${l.memberId}&${l.accountCode}&${savedId}`;
             const ledgerEntry = {
               ...vals,
+              id: deterministicId,
               summaryDate: entryDate,
               particulars: description,
               journalEntryId: savedId,
@@ -357,7 +358,9 @@ function TransactionForm() {
               createdAt: new Date().toISOString(),
               isSystemGenerated: true
             };
-            addDocumentNonBlocking(collection(firestore, "members", l.memberId, "fundSummaries"), ledgerEntry);
+            
+            const summaryDocRef = doc(firestore, "members", l.memberId, "fundSummaries", deterministicId);
+            setDocumentNonBlocking(summaryDocRef, ledgerEntry);
           }
         }
       });
