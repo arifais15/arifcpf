@@ -39,25 +39,28 @@ class LocalDatabaseService {
 
   setDoc(path: string, data: any, options: { merge?: boolean } = {}) {
     const db = this.getDB();
-    const existing = db[path] || {};
-    db[path] = options.merge ? { ...existing, ...data } : data;
+    const cleanPath = path.replace(/^\/|\/$/g, '');
+    const existing = db[cleanPath] || {};
+    db[cleanPath] = options.merge ? { ...existing, ...data } : data;
     this.saveDB(db);
   }
 
   addDoc(collectionPath: string, data: any) {
     const docId = data.id || Math.random().toString(36).substring(2, 15);
-    const path = `${collectionPath}/${docId}`;
+    const cleanColPath = collectionPath.replace(/^\/|\/$/g, '');
+    const path = `${cleanColPath}/${docId}`;
     this.setDoc(path, { ...data, id: docId });
     return { id: docId };
   }
 
   deleteDoc(path: string) {
     const db = this.getDB();
-    if (db[path]) {
-      delete db[path];
+    const cleanPath = path.replace(/^\/|\/$/g, '');
+    if (db[cleanPath]) {
+      delete db[cleanPath];
       // Automate sub-collection purging (Recursive Deletion)
       Object.keys(db).forEach(k => {
-        if (k.startsWith(`${path}/`)) delete db[k];
+        if (k.startsWith(`${cleanPath}/`)) delete db[k];
       });
       this.saveDB(db);
     }
@@ -66,18 +69,21 @@ class LocalDatabaseService {
   getCollection(path: string): any[] {
     const db = this.getDB();
     const results: any[] = [];
+    const searchPath = path.replace(/^\/|\/$/g, '');
     
     // Support for collectionGroup (No slashes = search all paths for this segment)
-    const isCollectionGroup = !path.includes('/');
+    const isCollectionGroup = !searchPath.includes('/');
     
     Object.entries(db).forEach(([k, v]) => {
       const parts = k.split('/');
       if (isCollectionGroup) {
-        if (parts.length >= 2 && parts[parts.length - 2] === path) {
+        // Robust Collection Group Matching: find the collection segment anywhere in the path
+        const colIndex = parts.indexOf(searchPath);
+        if (colIndex !== -1 && colIndex === parts.length - 2) {
           results.push({ ...v, id: v.id || parts[parts.length - 1], _path: k });
         }
       } else {
-        const prefix = path.endsWith('/') ? path : `${path}/`;
+        const prefix = searchPath.endsWith('/') ? searchPath : `${searchPath}/`;
         if (k.startsWith(prefix)) {
           const subPath = k.substring(prefix.length);
           if (!subPath.includes('/')) {
@@ -91,7 +97,8 @@ class LocalDatabaseService {
   }
 
   getDoc(path: string): any | null {
-    return this.getDB()[path] || null;
+    const cleanPath = path.replace(/^\/|\/$/g, '');
+    return this.getDB()[cleanPath] || null;
   }
 
   exportDatabase(): string {

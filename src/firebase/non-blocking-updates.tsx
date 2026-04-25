@@ -92,17 +92,20 @@ export async function getDocuments(target: any) {
     } else if (target.path) {
       path = target.path;
     } else if (target._query) {
-      // Query Automation: Handle collectionGroup vs standard collection
-      path = target._query.collectionGroup || target._query.path.segments.join('/');
+      // Robust Query Inspection for Collection Groups
+      const queryObj = target._query;
+      path = queryObj.collectionGroup || (queryObj.path?.segments || []).join('/');
       
-      const filters = target._query.filters || [];
+      const filters = queryObj.filters || [];
       if (filters.length > 0) {
-        filterField = filters[0].field?.segments?.[0] || "";
-        filterValue = filters[0].value?.internalValue;
-        filterOp = filters[0].op || "==";
+        // Handle both simple and complex filter structures
+        const firstFilter = filters[0];
+        filterField = firstFilter.field?.segments?.[0] || firstFilter.left?.field?.segments?.[0] || "";
+        filterValue = firstFilter.value?.internalValue ?? firstFilter.right?.value?.internalValue;
+        filterOp = firstFilter.op || firstFilter.operator || "==";
       }
 
-      const orders = target._query.explicitOrderBy || [];
+      const orders = queryObj.explicitOrderBy || [];
       if (orders.length > 0) {
         sortField = orders[0].field?.segments?.[0] || "";
       }
@@ -111,7 +114,7 @@ export async function getDocuments(target: any) {
     const sanitizedPath = path.replace(/^\/|\/$/g, '');
     let data = localDB.getCollection(sanitizedPath);
     
-    // Automated Filtering Logic (Handles prefix search for members)
+    // Automated Filtering Logic
     if (filterField && filterValue !== null) {
       data = data.filter(d => {
         const val = d[filterField];
@@ -121,7 +124,7 @@ export async function getDocuments(target: any) {
       });
     }
 
-    // Automated Sorting (Critical for ledger consistency)
+    // Automated Sorting
     if (sortField) {
       data.sort((a, b) => String(a[sortField]).localeCompare(String(b[sortField])));
     }

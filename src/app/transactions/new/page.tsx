@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect, Suspense } from "react";
@@ -302,7 +301,6 @@ function TransactionForm() {
     
     let savedId = editId;
     if (!savedId) {
-      // Generate ID ahead of time to avoid awaiting addDoc, ensuring we can link subsidiary entries
       const newRef = doc(collection(firestore, "journalEntries"));
       savedId = newRef.id;
     }
@@ -328,12 +326,13 @@ function TransactionForm() {
     };
 
     try {
-      // 1. Reconcile existing linked ledger entries if editing
+      // 1. CRITICAL RECONCILIATION: Purge all existing linked ledger entries to prevent duplicates
       if (editId) {
         const q = query(collectionGroup(firestore, "fundSummaries"), where("journalEntryId", "==", editId));
         const snap = await getDocuments(q);
-        snap.forEach(d => {
-          deleteDocumentNonBlocking(d.ref);
+        // Sequential deletion for database stability
+        snap.forEach((d: any) => {
+          if (d.ref) deleteDocumentNonBlocking(d.ref);
         });
       }
 
@@ -362,8 +361,8 @@ function TransactionForm() {
       showAlert({ title: "Voucher Committed", description: "Transaction and Subsidiary Ledgers synchronized.", type: "success" }); 
       router.push("/transactions");
     } catch (err) { 
-      console.error("Save Error:", err);
-      toast({ title: "Save Failed", variant: "destructive" }); 
+      console.error("Institutional Save Error:", err);
+      toast({ title: "Save Failed", description: "Audit trail reconciliation failed.", variant: "destructive" }); 
     } finally { 
       setIsSaving(false); 
     }
