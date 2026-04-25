@@ -50,7 +50,7 @@ export default function LoginPage() {
           
           showAlert({
             title: "Access Granted",
-            description: "Institutional Local Mode Active. Session synchronized.",
+            description: "Active. Session synchronized.",
             type: "success"
           });
           router.push("/");
@@ -136,9 +136,9 @@ export default function LoginPage() {
               <ShieldCheck className="size-10 text-black" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-black tracking-tight text-black uppercase">PBS CPF System</CardTitle>
+          <CardTitle className="text-2xl font-black tracking-tight text-black uppercase">PBS CPF Management </CardTitle>
           <CardDescription className="font-bold text-[10px] uppercase tracking-widest text-slate-400">
-            Institutional Local Access Matrix
+            off-line Access
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -199,7 +199,7 @@ export default function LoginPage() {
             
             <div className="text-center pt-2">
               <p className="text-[11px] text-slate-400 uppercase tracking-widest font-black italic">
-                Developed by: Ariful Islam, AGMF, Gazipur PBS-2
+                Developed by: Ariful Islam, AGM Finance, Gazipur PBS-2
               </p>
             </div>
           </CardFooter>

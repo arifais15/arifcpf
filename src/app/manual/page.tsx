@@ -297,7 +297,7 @@ export default function UserManualPage() {
       {/* HIDDEN PRINT CONTAINER (FOR HIGH FIDELITY OUTPUT) */}
       <div className="hidden print:block font-ledger text-black">
         <div className="text-center space-y-2 mb-12 border-b-4 border-black pb-8">
-          <h1 className="text-3xl font-black uppercase">Institutional Operating Manual</h1>
+          <h1 className="text-3xl font-black uppercase"> Operating Manual</h1>
           <p className="text-base font-black uppercase tracking-[0.3em]">PBS CPF Management Software (Portable Version)</p>
           <p className="text-xs font-black uppercase mt-4">Document Version: 1.2 • Print Date: {new Date().toLocaleDateString('en-GB')}</p>
         </div>
@@ -345,7 +345,7 @@ export default function UserManualPage() {
             <h3 className="text-xl font-black uppercase border-b-2 border-black pb-2">3. Data Integrity & Safety Protocol</h3>
             <div className="p-6 border-4 border-black space-y-4">
               <p className="text-[12px] font-black uppercase underline">Critical Recovery Procedure:</p>
-              <p className="leading-relaxed">All transaction data resides in the host browser's persistent matrix. For institutional continuity, the "Download Backup" function must be used weekly. The resulting .json file represents the absolute state of the CPF fund and can be migrated to any PC.</p>
+              <p className="leading-relaxed">All transaction data resides in the host continuity, the "Download Backup" function must be used weekly. The resulting .json file represents the absolute state of the CPF fund and can be migrated to any PC.</p>
             </div>
           </section>
         </div>
@@ -357,7 +357,7 @@ export default function UserManualPage() {
         
         <div className="mt-12 pt-4 border-t border-black flex justify-between items-center text-[8px] font-black uppercase">
           <span>Manual Code: PBS-CPF-MAN-v1.2</span>
-          <span>Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+          <span>Developed by: Ariful Islam, AGM Finance , Gazipur PBS-2</span>
         </div>
       </div>
     </div>

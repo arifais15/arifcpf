@@ -96,7 +96,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const lastP = pre[pre.length-1] || { col4:0, col7:0, col10:0, col11:0 };
     const pSums = pre.reduce((acc, r) => ({ c1:acc.c1+r.c1, c2:acc.c2+r.c2, c3:acc.c3+r.c3, c5:acc.c5+r.c5, c6:acc.c6+r.c6, c8:acc.c8+r.c8, c9:acc.c9+r.c9 }), { c1:0,c2:0,c3:0,c5:0,c6:0,c8:0,c9:0 });
     let rows = inR;
-    if (pre.length > 0) rows = [{ summaryDate: dateRange.start, particulars: "Opening Balance Brought Forward", ...pSums, col4:lastP.col4, col7:lastP.col7, col10:lastP.col10, col11:lastP.col11, isOpening: true }, ...inR];
+    if (pre.length > 0) rows = [{ summaryDate: dateRange.start, particulars: "Opening Balance BF", ...pSums, col4:lastP.col4, col7:lastP.col7, col10:lastP.col10, col11:lastP.col11, isOpening: true }, ...inR];
     
     const viewSums = rows.reduce((acc, r) => ({ 
       c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 
@@ -192,13 +192,16 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   const headerActions = useMemo(() => (
     <div className="flex gap-3 no-print">
-      <Button onClick={() => window.print()} className="h-10 border-2 border-black font-black uppercase text-[11px] px-6 shadow hover:bg-slate-50 text-black">
-        <Printer className="size-4 mr-2" /> Print Statement
+      <Button onClick={() => window.print()} className="h-10 border-2 border-yellow-500 bg-yellow-500 text-black font-black uppercase text-[11px] px-6 shadow 
+                 hover:bg-slate-900 hover:text-yellow-500 hover:border-slate-900 transition-all duration-200 ease-in-out hover:shadow-xl">
+        <Printer className="size-4 mr-2" /> Print Ledger
       </Button>
-      <Button variant="outline" onClick={() => { setEditingEntry(null); setManualVals({ c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }); setIsEntryOpen(true); }} className="h-10 border-2 border-black font-black uppercase text-[11px] text-black hover:bg-slate-50 shadow">
-        <Plus className="size-4 mr-2" /> Manual Sync
+      <Button variant="outline" onClick={() => { setEditingEntry(null); setManualVals({ c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 }); setIsEntryOpen(true); }} className="h-10 border-2 border-emerald-600 bg-transparent text-emerald-700 font-black uppercase text-[11px] px-6 shadow 
+                 hover:bg-emerald-600 hover:text-white transition-all duration-200">
+        <Plus className="size-4 mr-2" /> Manual Posting
       </Button>
-      <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-2 border-rose-600 text-rose-700 hover:bg-rose-50 font-black uppercase text-[11px] shadow">
+      <Button variant="outline" onClick={() => setIsSettlementOpen(true)} className="h-10 border-2 border-rose-600 bg-transparent text-rose-700 font-black uppercase text-[11px] px-6 shadow 
+                 hover:bg-rose-600 hover:text-white transition-all duration-200">
         <UserX className="size-4 mr-2" /> Final Settlement
       </Button>
     </div>
@@ -248,15 +251,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="grid grid-cols-3 border border-black mb-0 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">PERSONNEL:</span>
+            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Employee-Name:</span>
             <span className="text-xs flex-1 truncate text-black font-black">{member?.name}</span>
           </div>
           <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">POSITION:</span>
+            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Designation:</span>
             <span className="text-xs flex-1 truncate text-black font-black">{member?.designation}</span>
           </div>
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-amber-800 text-[11px] uppercase tracking-tighter font-black w-[80px]">VAULT ID:</span>
+            <span className="text-amber-800 text-[11px] uppercase tracking-tighter font-black w-[80px]">PayID:</span>
             <span className="text-xs font-mono flex-1 text-black font-black">{member?.memberIdNumber}</span>
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
@@ -282,13 +285,13 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <th rowSpan={2} className="border border-black p-1 bg-rose-50/50 text-rose-900">Loan<br/>Disburse</th>
               <th rowSpan={2} className="border border-black p-1 bg-emerald-50/50 text-emerald-900">Loan<br/>Repay</th>
               <th rowSpan={2} className="border border-black p-1 bg-slate-100 text-black w-[90px]">Loan<br/>Balance</th>
-              <th colSpan={2} className="border border-black p-1 bg-amber-50/50 text-amber-900">Yield on</th>
+              <th colSpan={2} className="border border-black p-1 bg-amber-50/50 text-amber-900">Profit on</th>
               <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[100px]">Total<br/>Equity</th>
               <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">PBS<br/>Contrib</th>
               <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">Profit on<br/>PBS Contrib</th>
               <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[100px]">Total<br/>Office</th>
-              <th rowSpan={2} className="border border-black p-1 bg-black text-white w-[120px]">Cumulative<br/>Fund Total</th>
-              <th rowSpan={2} className="p-1 no-print bg-slate-100 w-[80px] border border-black">Audits</th>
+              <th rowSpan={2} className="border border-black p-1 bg-green text-black w-[120px]">Cumulative<br/>Fund Total</th>
+              <th rowSpan={2} className="p-1 no-print bg-slate-100 w-[80px] border border-black">Actions</th>
             </tr>
             <tr className="border-b border-black">
               <th className="border border-black p-1 bg-amber-50/20">Member<br/>Fund</th>
@@ -324,7 +327,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </tbody>
           <tfoot className="bg-slate-100 font-black border-t-2 border-black text-[9px] uppercase tabular-nums text-black">
             <tr className="h-10">
-              <td colSpan={2} className="border border-black p-2 text-right bg-slate-200 tracking-widest font-black text-black">AGGREGATE TOTALS:</td>
+              <td colSpan={2} className="border border-black p-2 text-right bg-slate-200 tracking-widest font-black text-black">Total:</td>
               <td className="border border-black p-0 px-2 text-right font-black">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               <td className="border border-black p-0 px-2 text-right text-rose-800 font-black">{ledgerLogic.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               <td className="border border-black p-0 px-2 text-right text-emerald-800 font-black">{ledgerLogic.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -343,7 +346,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="mt-12 flex justify-between items-end border-t-2 border-black pt-4 no-print">
           <div className="space-y-1">
-            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Vault Verification</p>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Verification</p>
             <div className="flex items-center gap-1.5 text-emerald-600">
                <ShieldCheck className="size-5" />
                <span className="text-[11px] font-black uppercase tracking-widest">Mathematical Consistency Verified</span>
@@ -360,7 +363,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                <Calculator className="size-8 text-black" />
                <div>
                   <DialogTitle className="text-xl font-black uppercase tracking-tight">Manual Ledger Posting Terminal</DialogTitle>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Direct Vault Modification Interface</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Direct  Modification Interface</p>
                </div>
             </div>
           </DialogHeader>
@@ -416,7 +419,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
                <div className="space-y-4 border-2 border-black p-6 bg-slate-50 rounded-xl">
                   <h4 className="text-xs font-black uppercase tracking-widest text-center border-b border-black pb-2 flex items-center justify-center gap-2 text-orange-800">
-                     <Percent className="size-4" /> Yield Distributions
+                     <Percent className="size-4" /> Profit Distributions
                   </h4>
                   <div className="space-y-3">
                      <div className="space-y-1">

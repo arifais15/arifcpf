@@ -45,7 +45,7 @@ export default function RootLayout({
                       {/* Local Distribution Badge */}
                       <div className="local-mode-banner no-print">
                         <ShieldCheck className="size-3" />
-                        Institutional Local Mode Active
+                        Active
                       </div>
                     </main>
                   </SidebarInset>

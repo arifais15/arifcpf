@@ -61,30 +61,30 @@ const navigationGroups = [
   {
     label: "সদস্য লেজার",
     items: [
-      { title: "সদস্য রেজিস্টার", icon: Users, url: "/members", iconColor: "text-cyan-400" },
+      { title: "সাবসিডিয়ারি লেজার", icon: Users, url: "/members", iconColor: "text-cyan-400" },
       { title: "লেজার সামারি", icon: ClipboardCheck, url: "/reports/ledger-summary", iconColor: "text-teal-400" },
       { title: "ঋণ রেজিস্টার", icon: HandCoins, url: "/reports/loans", iconColor: "text-rose-400" },
-      { title: "নিষ্পত্তি লগ", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
       { title: "ব্যাচ লেজার প্রিন্ট", icon: Printer, url: "/reports/all-ledgers", iconColor: "text-purple-400" },
+      { title: "বার্ষিক মুনাফা", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
+      { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
+      { title: "কন্ট্রোল লেজার", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
+      { title: "ফান্ডের মুভমেন্ট", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
+      { title: "মুনাফার মুভমেন্ট", icon: Coins, iconColor: "text-emerald-500", url: "/reports/interest-movements" },
+      { title: "নিষ্পত্তি লগ", icon: UserX, url: "/reports/settlements", iconColor: "text-red-400" },
     ]
   },
   {
     label: "বিনিয়োগ ব্যবস্থাপনা",
     items: [
       { title: "বিনিয়োগ পোর্টফোলিও", icon: TrendingUp, url: "/investments", iconColor: "text-blue-500" },
-      { title: "সদস্য মুনাফা", icon: Percent, url: "/investments/member-interest", iconColor: "text-orange-400" },
-      { title: "বিশেষ মুনাফা (DP)", icon: Calculator, url: "/investments/special-interest", iconColor: "text-amber-400" },
     ]
   },
   {
     label: "আর্থিক প্রতিবেদন",
     items: [
-      { title: "আর্থিক প্রতিবেদন (হোম)", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
-      { title: "রেওয়ামিল ম্যাট্রিক্স", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
+      { title: "আর্থিক প্রতিবেদন", icon: FileText, url: "/reports", iconColor: "text-slate-300" },
+      { title: "রেওয়ামিল", icon: Scale, url: "/reports/trial-balance", iconColor: "text-slate-300" },
       { title: "সাধারণ খতিয়ান", icon: BookText, url: "/reports/control-ledger", iconColor: "text-indigo-400" },
-      { title: "নিয়ন্ত্রণ খতিয়ান", icon: LayoutList, url: "/reports/subsidiary-control", iconColor: "text-violet-400" },
-      { title: "ফান্ডের গতিবিধি", icon: Activity, url: "/investments/movements", iconColor: "text-slate-400" },
-      { title: "মুনাফার মুভমেন্ট", icon: Coins, iconColor: "text-emerald-500", url: "/reports/interest-movements" },
       { title: "অডিট ট্র্যাকিং", icon: PieChart, url: "/reports/contributions", iconColor: "text-pink-400" },
     ]
   }
@@ -188,7 +188,7 @@ export function AppSidebar() {
                 >
                   <Link href="/manual">
                     <HelpCircle className="size-4 shrink-0 opacity-40 text-slate-400 group-hover:opacity-100" />
-                    <span className="text-[13px] font-bold tracking-tight">ব্যবহারকারী নির্দেশিকা</span>
+                    <span className="text-[13px] font-bold tracking-tight">নির্দেশিকা</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -202,7 +202,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild className="h-10 text-white/50 hover:bg-white/5 hover:text-white rounded-lg">
               <Link href="/settings">
                 <Settings className="size-4 opacity-50" />
-                <span className="font-bold text-[14px] tracking-tight">সিস্টেম সেটিংস</span>
+                <span className="font-bold text-[14px] tracking-tight">সেটিংস</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
