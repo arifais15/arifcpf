@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -5,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -22,7 +22,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from "@/firebase"
-import { localDB } from "@/firebase/local-db-service"
+import { serverBackupDatabase, serverRestoreDatabase } from "@/app/actions/db-actions"
 import { collection, doc } from "firebase/firestore"
 import { 
   Loader2, 
@@ -43,8 +43,7 @@ import {
   Database,
   HardDrive,
   Percent,
-  AlertTriangle,
-  RefreshCw
+  AlertTriangle
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -56,23 +55,12 @@ export default function SettingsPage() {
   const { toast } = useToast()
   const { showAlert } = useSweetAlert()
   const [isSaving, setIsSaving] = useState(false)
+  const [isProcessingDB, setIsProcessingDB] = useState(false)
 
   // --- SECURITY LOCK STATE ---
   const [securityCode, setSecurityCode] = useState("")
   const AUTHORIZATION_CODE = "Arif@PBS2" 
   const isUnlocked = securityCode === AUTHORIZATION_CODE
-
-  // --- STORAGE METRICS ---
-  const [dbMode, setDbMode] = useState<string>("Initializing...")
-  
-  useEffect(() => {
-    const updateMetrics = () => {
-      setDbMode(localDB.getMode());
-    };
-    updateMetrics();
-    window.addEventListener('storage', updateMetrics);
-    return () => window.removeEventListener('storage', updateMetrics);
-  }, []);
 
   // --- GENERAL SETTINGS ---
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore])
@@ -200,12 +188,6 @@ export default function SettingsPage() {
     setMapping(prev => ({ ...prev, [column]: code }))
   }
 
-  const toggleDebit = (code: string) => {
-    setDebitAccounts(prev => 
-      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
-    )
-  }
-
   const addInterestTier = () => {
     const newTiers = [...interestTiers]
     const lastTier = newTiers[newTiers.length - 1]
@@ -273,36 +255,47 @@ export default function SettingsPage() {
     });
   };
 
-  // --- LOCAL DB PORTABILITY HANDLERS ---
-  const handleExportDB = () => {
-    localDB.exportDatabase().then(data => {
-      const blob = new Blob([data], { type: "application/json" });
+  // --- SERVER-SIDE DB PORTABILITY HANDLERS ---
+  const handleExportDB = async () => {
+    setIsProcessingDB(true);
+    try {
+      const json = await serverBackupDatabase();
+      const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `PBS_CPF_DATABASE_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `PBS_CPF_VAULT_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
       link.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Database Exported", description: "Storage file saved to downloads." });
-    });
+      toast({ title: "Archive Generated", description: "Project folder vault encapsulated into JSON." });
+    } catch (err) {
+      toast({ title: "Backup Failed", variant: "destructive" });
+    } finally {
+      setIsProcessingDB(false);
+    }
   };
 
-  const handleImportDB = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportDB = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = localDB.importDatabase(event.target?.result as string);
-      if (result) {
-        showAlert({
-          title: "Import Successful",
-          description: "Institutional registry has been synchronized. System will now reload.",
-          type: "success",
-          onConfirm: () => window.location.reload()
-        });
-      } else {
-        toast({ title: "Import Failed", description: "Invalid database file.", variant: "destructive" });
+    reader.onload = async (event) => {
+      setIsProcessingDB(true);
+      try {
+        const result = await serverRestoreDatabase(event.target?.result as string);
+        if (result) {
+          showAlert({
+            title: "Restore Complete",
+            description: "Institutional registry has been synchronized to the project folder. Page will now refresh.",
+            type: "success",
+            onConfirm: () => window.location.reload()
+          });
+        }
+      } catch (err) {
+        toast({ title: "Restore Failed", description: "Invalid database archive.", variant: "destructive" });
+      } finally {
+        setIsProcessingDB(false);
       }
     };
     reader.readAsText(file);
@@ -373,36 +366,35 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-4">
                   <HardDrive className="size-6 text-emerald-400" />
                   <div>
-                    <CardTitle className="text-lg font-black uppercase">Persistence Matrix Monitor</CardTitle>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time drive synchronization audit</p>
+                    <CardTitle className="text-lg font-black uppercase">Project Folder Vault Monitor</CardTitle>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time disk persistence audit</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Mode: {dbMode}</Badge>
+                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Mode: Server SQLite</Badge>
               </CardHeader>
               <CardContent className="p-10 space-y-8">
                  <div className="grid md:grid-cols-2 gap-8">
                     <div className="space-y-4">
                       <div className="flex items-center gap-4 p-4 bg-slate-50 border-2 border-black rounded-xl">
-                          <div className={cn("p-2 rounded-lg", dbMode === 'OPFS' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                          <div className="p-2 rounded-lg bg-emerald-100 text-emerald-700">
                             <ShieldCheck className="size-6" />
                           </div>
                           <div className="space-y-1">
-                            <p className="text-xs font-black uppercase">Vault Status: {dbMode === 'OPFS' ? 'Synchronized to Disk' : 'Fallback Active'}</p>
+                            <p className="text-xs font-black uppercase">Vault Status: Synchronized to Project Folder</p>
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                              {dbMode === 'OPFS' ? 'Data is physically saved on your PC drive.' : 'Data is saved in browser IndexedDB.'}
+                              The database file is physically located in your project root.
                             </p>
                           </div>
                       </div>
                       <div className="bg-amber-50 p-6 border-2 border-amber-200 rounded-2xl flex gap-4 items-start">
                          <AlertTriangle className="size-8 text-amber-600 shrink-0 mt-1" />
                          <div className="space-y-2">
-                           <h4 className="text-sm font-black uppercase text-amber-800">Understanding Local Storage</h4>
+                           <h4 className="text-sm font-black uppercase text-amber-800">Direct File Access</h4>
                            <p className="text-[12px] text-amber-700 leading-relaxed font-bold">
-                             The database file (<span className="font-mono text-black">pbs_cpf_vault_v7.sqlite3</span>) is stored in a hidden area of your browser's private disk space (OPFS). 
-                             <b> You will not find it in your standard Windows/Linux folders.</b> 
+                             All records are saved in <span className="font-mono text-black">pbs_cpf_vault_v7.sqlite3</span> inside your application folder. 
                            </p>
                            <p className="text-[12px] text-amber-700 leading-relaxed font-bold italic">
-                             To "Backup" or "Move" your data, you must use the <b>Download Archive</b> button below.
+                             You can manually copy this file to any other machine running this software.
                            </p>
                          </div>
                       </div>
@@ -415,7 +407,9 @@ export default function SettingsPage() {
                           <h4 className="font-black uppercase text-sm tracking-widest">Download Archive</h4>
                         </div>
                         <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Encapsulates all Member Ledgers, Vouchers, and Matrix Rules into a standalone JSON file for backup.</p>
-                        <Button onClick={handleExportDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">Generate Backup File</Button>
+                        <Button onClick={handleExportDB} disabled={isProcessingDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">
+                           {isProcessingDB ? <Loader2 className="size-4 animate-spin" /> : "Generate Backup File"}
+                        </Button>
                       </div>
 
                       <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl">
@@ -425,9 +419,9 @@ export default function SettingsPage() {
                         </div>
                         <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Restore the entire institutional registry from a JSON file. <span className="text-rose-600 underline">Existing local data will be replaced.</span></p>
                         <div className="relative">
-                          <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked} />
-                          <Button variant="outline" disabled={!isUnlocked} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
-                              {isUnlocked ? "Select Registry File" : "Authorization Required"}
+                          <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked || isProcessingDB} />
+                          <Button variant="outline" disabled={!isUnlocked || isProcessingDB} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
+                              {isProcessingDB ? <Loader2 className="size-4 animate-spin" /> : isUnlocked ? "Select Registry File" : "Authorization Required"}
                           </Button>
                         </div>
                       </div>
