@@ -37,6 +37,21 @@ class LocalDatabaseService {
     }
   }
 
+  /**
+   * Returns storage utilization metrics in Bytes and Percentage.
+   */
+  getStorageMetrics() {
+    if (typeof window === 'undefined') return { used: 0, total: 5242880, percent: 0 };
+    const data = localStorage.getItem(DB_KEY) || "";
+    const used = new Blob([data]).size;
+    const total = 5 * 1024 * 1024; // 5MB standard safe limit
+    return {
+      used,
+      total,
+      percent: Math.min(100, Math.round((used / total) * 100))
+    };
+  }
+
   setDoc(path: string, data: any, options: { merge?: boolean } = {}) {
     const db = this.getDB();
     const cleanPath = path.replace(/^\/|\/$/g, '');

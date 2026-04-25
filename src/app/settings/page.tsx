@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Progress } from "@/components/ui/progress"
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data"
 import { 
   useFirestore, 
@@ -44,7 +45,8 @@ import {
   Download,
   Upload,
   Database,
-  RefreshCw
+  RefreshCw,
+  HardDrive
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -61,6 +63,16 @@ export default function SettingsPage() {
   const [securityCode, setSecurityCode] = useState("")
   const AUTHORIZATION_CODE = "Arif@PBS2" 
   const isUnlocked = securityCode === AUTHORIZATION_CODE
+
+  // --- STORAGE METRICS ---
+  const [storageMetrics, setStorageMetrics] = useState({ used: 0, total: 5242880, percent: 0 })
+  
+  useEffect(() => {
+    const updateMetrics = () => setStorageMetrics(localDB.getStorageMetrics());
+    updateMetrics();
+    window.addEventListener('storage', updateMetrics);
+    return () => window.removeEventListener('storage', updateMetrics);
+  }, []);
 
   // --- GENERAL SETTINGS ---
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore])
@@ -296,7 +308,7 @@ export default function SettingsPage() {
   };
 
   if (isLedgerLoading || isInterestLoading || isCoaLoading || isGeneralLoading) {
-    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-primary" /></div>
+    return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin size-8 text-black" /></div>
   }
 
   const ledgerCols = [
@@ -310,18 +322,18 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger">
+    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold text-primary tracking-tight">System Settings</h1>
-          <p className="text-muted-foreground">Manage institutional accounting rules and parameters</p>
+          <h1 className="text-3xl font-black text-black tracking-tight uppercase">System Settings</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Institutional Governance & Rule Matrix</p>
         </div>
 
-        <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4 animate-in slide-in-from-right-4 duration-500">
+        <div className="bg-white p-4 rounded-xl border-2 border-black shadow-lg flex items-center gap-4 animate-in slide-in-from-right-4 duration-500">
           <div className="flex items-center gap-3">
             <div className={cn(
-              "p-2 rounded-lg transition-colors",
-              isUnlocked ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+              "p-2 rounded-lg transition-colors border-2",
+              isUnlocked ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-rose-50 text-rose-600 border-rose-200"
             )}>
               {isUnlocked ? <Unlock className="size-5" /> : <Lock className="size-5" />}
             </div>
@@ -334,188 +346,98 @@ export default function SettingsPage() {
                   placeholder="Insert Higher Code..."
                   value={securityCode}
                   onChange={(e) => setSecurityCode(e.target.value)}
-                  className="h-9 pl-9 w-[200px] text-xs font-bold border-slate-200 focus:bg-white"
+                  className="h-9 pl-9 w-[200px] text-xs font-black border-2 border-slate-200 focus:bg-white text-black"
                 />
               </div>
             </div>
           </div>
           {isUnlocked && (
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase text-[9px] font-black tracking-widest">Authorized</Badge>
+            <Badge className="bg-black text-white uppercase text-[9px] font-black tracking-widest px-3 py-1 rounded-none shadow-md">Authorized</Badge>
           )}
         </div>
       </div>
 
-      {!isUnlocked && (
-        <div className="bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-start gap-3">
-          <ShieldCheck className="size-5 text-rose-600 mt-0.5" />
-          <div className="space-y-1">
-            <p className="text-sm font-bold text-rose-800">Operational Lock Engaged</p>
-            <p className="text-xs text-rose-700 leading-relaxed">Authorization Code required to modify system parameters.</p>
-          </div>
-        </div>
-      )}
-
       <Tabs defaultValue="coa" className="w-full">
-        <TabsList className="bg-white p-1 rounded-xl border shadow-sm mb-8">
-          <TabsTrigger value="coa" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-            <BookOpen className="size-4" /> Chart of Accounts
-          </TabsTrigger>
-          <TabsTrigger value="ledger" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-            <ShieldCheck className="size-4" /> Ledger Mapping
-          </TabsTrigger>
-          <TabsTrigger value="interest" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-            <Percent className="size-4" /> Interest & Tax
-          </TabsTrigger>
-          <TabsTrigger value="branding" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-            <Building className="size-4" /> General
-          </TabsTrigger>
-          <TabsTrigger value="database" className="px-6 py-2 gap-2 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
-            <Database className="size-4" /> Data Portability
-          </TabsTrigger>
+        <TabsList className="bg-slate-100 p-1 rounded-xl border-2 border-black mb-8 h-12 shadow-inner">
+          <TabsTrigger value="coa" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><BookOpen className="size-4" /> Chart of Accounts</TabsTrigger>
+          <TabsTrigger value="ledger" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><ShieldCheck className="size-4" /> Ledger Mapping</TabsTrigger>
+          <TabsTrigger value="interest" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Percent className="size-4" /> Interest & Tax</TabsTrigger>
+          <TabsTrigger value="branding" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Building className="size-4" /> General</TabsTrigger>
+          <TabsTrigger value="database" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Database className="size-4" /> Data Portability</TabsTrigger>
         </TabsList>
 
         <TabsContent value="coa" className="space-y-6 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-2">
-            <div className="relative flex-1 max-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input 
-                className="pl-9 h-10 max-sm" 
-                placeholder="Search accounts..." 
-                value={coaSearch}
-                onChange={(e) => setCoaSearch(e.target.value)}
-              />
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black opacity-30" />
+              <Input className="pl-9 h-10 border-2 border-black font-black text-xs" placeholder="Filter Registry Accounts..." value={coaSearch} onChange={(e) => setCoaSearch(e.target.value)} />
             </div>
             <Dialog open={isCoaAddOpen} onOpenChange={(open) => { if (isUnlocked) { setIsCoaAddOpen(open); if (!open) setEditingCoaAccount(null); } }}>
               <DialogTrigger asChild>
-                <Button size="sm" disabled={!isUnlocked}>
-                  <Plus className="size-4 mr-2" />
-                  Add Account
-                </Button>
+                <Button className="h-10 bg-black text-white font-black uppercase text-[10px] px-8 rounded-none shadow-xl" disabled={!isUnlocked}><Plus className="size-4 mr-2" /> Add Account</Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>{editingCoaAccount ? "Edit Account" : "Add New Account"}</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSaveCoaAccount} className="space-y-4 pt-4">
-                  <div className="grid grid-cols-2 gap-4">
+              <DialogContent className="max-w-md bg-white border-4 border-black p-0 overflow-hidden rounded-none shadow-2xl">
+                <DialogHeader className="bg-slate-100 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase">{editingCoaAccount ? "Edit" : "New"} Ledger Head</DialogTitle></DialogHeader>
+                <form onSubmit={handleSaveCoaAccount} className="p-8 space-y-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Code</Label><Input name="code" className="h-10 border-2 border-black font-black font-mono" defaultValue={editingCoaAccount?.code || editingCoaAccount?.accountCode} required /></div>
                     <div className="space-y-2">
-                      <Label htmlFor="code">Account Code</Label>
-                      <Input id="code" name="code" placeholder="e.g. 101.10.0000" defaultValue={editingCoaAccount?.code || editingCoaAccount?.accountCode} required />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Account Type</Label>
+                      <Label className="text-[10px] font-black uppercase">Type</Label>
                       <Select name="type" defaultValue={editingCoaAccount ? (editingCoaAccount.type || editingCoaAccount.accountType || "none") : "Asset"}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Asset">Asset</SelectItem>
-                          <SelectItem value="Contra-Asset">Contra-Asset</SelectItem>
-                          <SelectItem value="Liability">Liability</SelectItem>
-                          <SelectItem value="Equity">Equity</SelectItem>
-                          <SelectItem value="Income">Income</SelectItem>
-                          <SelectItem value="Expense">Expense</SelectItem>
-                          <SelectItem value="none">None (Header)</SelectItem>
+                        <SelectTrigger className="h-10 border-2 border-black font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
+                        <SelectContent className="font-black uppercase text-[10px]">
+                          <SelectItem value="Asset">Asset</SelectItem><SelectItem value="Contra-Asset">Contra-Asset</SelectItem><SelectItem value="Liability">Liability</SelectItem><SelectItem value="Equity">Equity</SelectItem><SelectItem value="Income">Income</SelectItem><SelectItem value="Expense">Expense</SelectItem><SelectItem value="none">Header</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Account Name</Label>
-                    <Input id="name" name="name" placeholder="e.g. Cash in Hand" defaultValue={editingCoaAccount?.name || editingCoaAccount?.accountName} required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Account Label</Label><Input name="name" className="h-10 border-2 border-black font-black uppercase text-xs" defaultValue={editingCoaAccount?.name || editingCoaAccount?.accountName} required /></div>
+                  <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="balance">Normal Balance</Label>
+                      <Label className="text-[10px] font-black uppercase">Normal Balance</Label>
                       <Select name="balance" defaultValue={editingCoaAccount ? (editingCoaAccount.balance || editingCoaAccount.normalBalance || "none") : "Debit"}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select balance" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Debit">Debit</SelectItem>
-                          <SelectItem value="Credit">Credit</SelectItem>
-                          <SelectItem value="none">None</SelectItem>
-                        </SelectContent>
+                        <SelectTrigger className="h-10 border-2 border-black font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
+                        <SelectContent className="font-black uppercase text-[10px]"><SelectItem value="Debit">Debit</SelectItem><SelectItem value="Credit">Credit</SelectItem><SelectItem value="none">None</SelectItem></SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="isHeader">Is Group Header?</Label>
+                      <Label className="text-[10px] font-black uppercase">Header Row</Label>
                       <Select name="isHeader" defaultValue={editingCoaAccount?.isHeader?.toString() || "false"}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Is Header?" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="true">Yes</SelectItem>
-                          <SelectItem value="false">No</SelectItem>
-                        </SelectContent>
+                        <SelectTrigger className="h-10 border-2 border-black font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
+                        <SelectContent className="font-black uppercase text-[10px]"><SelectItem value="true">YES</SelectItem><SelectItem value="false">NO</SelectItem></SelectContent>
                       </Select>
                     </div>
                   </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsCoaAddOpen(false)}>Cancel</Button>
-                    <Button type="submit">Save Account</Button>
-                  </DialogFooter>
+                  <DialogFooter className="pt-4"><Button type="submit" className="w-full h-12 bg-black text-white font-black uppercase tracking-widest text-[10px] shadow-xl">Commit to Registry</Button></DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
           </div>
 
-          <Card className="border shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="w-[150px]">Code</TableHead>
-                  <TableHead>Account Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Balance</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+          <Card className="border-2 border-black rounded-none shadow-xl overflow-hidden bg-white">
+            <Table className="text-black font-black">
+              <TableHeader className="bg-slate-100 border-b-2 border-black">
+                <TableRow>
+                  <TableHead className="w-[150px] font-black uppercase text-[10px] pl-6 text-black">Code</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] text-black">Account Name</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] text-black">Type</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] text-black">Balance</TableHead>
+                  <TableHead className="text-right pr-6 font-black uppercase text-[10px] text-black">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="tabular-nums">
                 {activeCOA.map((account: any) => (
-                  <TableRow key={account.id || account.code} className={account.isHeader ? "bg-muted/20 font-semibold" : ""}>
-                    <TableCell className="font-mono text-xs">{account.code || account.accountCode}</TableCell>
-                    <TableCell className={account.isHeader ? "pl-4" : "pl-8"}>
-                      {account.name || account.accountName}
-                    </TableCell>
-                    <TableCell>
-                      {(account.type || account.accountType) && (
-                        <Badge variant={(account.type || account.accountType) === 'Asset' ? "default" : (account.type || account.accountType) === 'Liability' ? 'outline' : 'secondary'}>
-                          {account.type || account.accountType}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {(account.balance || account.normalBalance) && (
-                        <span className={`text-xs ${(account.balance || account.normalBalance) === 'Debit' ? 'text-blue-600' : 'text-orange-600'} font-medium`}>
-                          {account.balance || account.normalBalance}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          disabled={!isUnlocked}
-                          onClick={() => { setEditingCoaAccount(account); setIsCoaAddOpen(true); }}
-                        >
-                          <Edit2 className="size-3.5" />
-                        </Button>
-                        {account.id && (
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 text-destructive hover:bg-destructive/10" 
-                            disabled={!isUnlocked}
-                            onClick={() => handleDeleteCoaAccount(account.id, account.name || account.accountName)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
-                        )}
+                  <TableRow key={account.id || account.code} className={cn("border-b border-black/10 hover:bg-slate-50 transition-colors h-[29px]", account.isHeader && "bg-slate-100/50 font-black")}>
+                    <td className="font-mono text-xs pl-6 py-0">{account.code || account.accountCode}</td>
+                    <td className={cn("py-0 uppercase text-[11px]", account.isHeader ? "pl-4 text-primary" : "pl-8")}>{account.name || account.accountName}</td>
+                    <td className="py-0"><Badge variant="outline" className="text-[9px] uppercase font-black border-black/20 h-5 px-2 rounded-none">{account.type || account.accountType}</Badge></td>
+                    <td className="py-0 font-bold uppercase text-[9px]">{account.balance || account.normalBalance}</td>
+                    <td className="text-right pr-6 py-0">
+                      <div className="flex justify-end gap-1 h-full items-center">
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-black" disabled={!isUnlocked} onClick={() => { setEditingCoaAccount(account); setIsCoaAddOpen(true); }}><Edit2 className="size-3" /></Button>
+                        {account.id && <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-rose-600" disabled={!isUnlocked} onClick={() => handleDeleteCoaAccount(account.id, account.name || account.accountName)}><Trash2 className="size-3" /></Button>}
                       </div>
-                    </TableCell>
+                    </td>
                   </TableRow>
                 ))}
               </TableBody>
@@ -524,199 +446,193 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="ledger" className="space-y-8 animate-in fade-in duration-500">
-          <div className="grid gap-8 lg:grid-cols-12">
-            <Card className="lg:col-span-8 border-none shadow-sm overflow-hidden">
-              <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Column Mapping Configuration</CardTitle>
-                  <CardDescription>Assign GL Account Codes to Subsidiary Ledger columns.</CardDescription>
-                </div>
-                <Button onClick={handleSaveLedger} disabled={isSaving || !isUnlocked} className="gap-2">
-                  {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                  Save Mappings
-                </Button>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {ledgerCols.map((col) => (
-                    <div key={col.key} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
-                      <div className="space-y-1">
-                        <Label className="text-sm font-bold">{col.label}</Label>
-                        <p className="text-xs text-muted-foreground">{col.description}</p>
-                      </div>
-                      <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="flex flex-col items-center gap-1">
-                          <Label className="text-[9px] uppercase text-slate-400 font-bold">Normal Balance</Label>
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-[10px] font-bold", !debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Credit</span>
-                            <Switch 
-                              checked={debitAccounts.includes(mapping[col.key] || "")} 
-                              onCheckedChange={() => mapping[col.key] && toggleDebit(mapping[col.key])}
-                              disabled={!mapping[col.key] || !isUnlocked}
-                            />
-                            <span className={cn("text-[10px] font-bold", debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Debit</span>
-                          </div>
-                        </div>
-                        <Select 
-                          value={mapping[col.key] || "none"} 
-                          onValueChange={(val) => updateMapping(col.key, val === "none" ? "" : val)}
-                          disabled={!isUnlocked}
-                        >
-                          <SelectTrigger className="w-[300px]">
-                            <SelectValue placeholder="Select Account Code" />
-                          </SelectTrigger>
-                          <SelectContent className="max-h-[300px]">
-                            <SelectItem value="none">No Mapping</SelectItem>
-                            {coaData?.filter((a: any) => !a.isHeader).map((a: any) => (
-                              <SelectItem key={a.code || a.accountCode} value={a.code || a.accountCode}>
-                                {a.code || a.accountCode} - {a.name || a.accountName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="interest" className="space-y-8 animate-in fade-in duration-500">
-          <div className="grid gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-8 space-y-8">
-              <Card className="border-none shadow-sm overflow-hidden">
-                <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Tiered Interest Policy</CardTitle>
-                    <CardDescription>Configure annual profit sharing rates for member funds.</CardDescription>
-                  </div>
-                  <Button onClick={handleSaveInterest} disabled={isSaving || !isUnlocked} className="gap-2">
-                    {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                    Save Policy
-                  </Button>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {interestTiers.map((tier, idx) => (
-                      <div key={idx} className="grid grid-cols-12 gap-4 items-center p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <div className="col-span-5 relative">
-                          {tier.limit === null ? (
-                            <div className="h-10 flex items-center px-3 bg-slate-200/50 rounded-md text-slate-500 text-sm font-bold italic">Above previous limit</div>
-                          ) : (
-                            <Input type="number" className="font-mono" value={tier.limit} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
-                          )}
-                        </div>
-                        <div className="col-span-5 relative">
-                          <Input type="number" step="0.01" className="pr-8 font-mono" value={tier.rate} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">%</span>
-                        </div>
-                        <div className="col-span-2 text-right">
-                          <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" disabled={!isUnlocked} onClick={() => removeInterestTier(idx)}><Trash2 className="size-4" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                    <Button variant="outline" className="w-full border-dashed border-2 py-8 rounded-xl gap-2" disabled={!isUnlocked} onClick={addInterestTier}><Plus className="size-4" /> Add Tier</Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm overflow-hidden">
-                <CardHeader className="bg-slate-50 border-b">
-                  <CardTitle className="text-lg flex items-center gap-2"><Coins className="size-5 text-indigo-600" /> Tax Settings</CardTitle>
-                  <CardDescription>Define the institutional TDS rate for investment income.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-indigo-50/30 p-6 rounded-2xl border border-indigo-100">
-                    <div className="space-y-1">
-                      <Label className="text-sm font-black">Default TDS Rate (%)</Label>
-                      <p className="text-xs text-muted-foreground">Applied to gross interest during provisions and maturity schedules.</p>
-                    </div>
-                    <div className="relative w-full md:w-[200px]">
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        value={tdsRate} 
-                        onKeyDown={handleNumericKeyDown}
-                        onChange={(e) => setTdsRate(Number(e.target.value))}
-                        disabled={!isUnlocked}
-                        className="h-12 font-black text-xl text-center pr-10 border-indigo-200"
-                      />
-                      <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-indigo-400">%</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="branding" className="space-y-8 animate-in fade-in duration-500">
-          <Card className="max-w-2xl border-none shadow-sm overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
+          <Card className="max-w-4xl border-2 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b-2 border-black flex flex-row items-center justify-between py-6">
               <div>
-                <CardTitle className="text-lg">Institutional Branding</CardTitle>
-                <CardDescription>Set the name of your PBS.</CardDescription>
+                <CardTitle className="text-xl font-black uppercase">Subsidiary Column Mapping</CardTitle>
+                <CardDescription className="font-black text-[10px] uppercase tracking-widest text-slate-400 mt-1">Cross-link General Ledger heads to BREB Form-224 Columns</CardDescription>
               </div>
-              <Button onClick={handleSaveGeneral} disabled={isSaving || !isUnlocked} className="gap-2">
-                {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-                Save Branding
-              </Button>
+              <Button onClick={handleSaveLedger} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Commit Config</Button>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-2">
-                <Label htmlFor="pbsName">Full Institutional Name</Label>
-                <Input id="pbsName" value={pbsName} disabled={!isUnlocked} onChange={(e) => setPbsName(e.target.value)} className="h-11 text-lg font-semibold" />
+            <CardContent className="p-0">
+              <div className="divide-y divide-black/10">
+                {ledgerCols.map((col) => (
+                  <div key={col.key} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-slate-50 transition-colors">
+                    <div className="space-y-1">
+                      <Label className="text-sm font-black uppercase text-indigo-700">{col.label}</Label>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{col.description}</p>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="flex flex-col items-center gap-1.5 border-r border-black/10 pr-6">
+                        <Label className="text-[9px] uppercase text-slate-400 font-black">Normal Balance</Label>
+                        <div className="flex items-center gap-3">
+                          <span className={cn("text-[9px] font-black uppercase", !debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Credit</span>
+                          <Switch className="data-[state=checked]:bg-indigo-600" checked={debitAccounts.includes(mapping[col.key] || "")} onCheckedChange={() => mapping[col.key] && toggleDebit(mapping[col.key])} disabled={!mapping[col.key] || !isUnlocked} />
+                          <span className={cn("text-[9px] font-black uppercase", debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Debit</span>
+                        </div>
+                      </div>
+                      <Select value={mapping[col.key] || "none"} onValueChange={(val) => updateMapping(col.key, val === "none" ? "" : val)} disabled={!isUnlocked}>
+                        <SelectTrigger className="w-[350px] h-10 border-2 border-black font-black uppercase text-xs text-black"><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-[300px] font-black uppercase text-xs">
+                          <SelectItem value="none">UNMAPPED</SelectItem>
+                          {coaData?.filter((a: any) => !a.isHeader).map((a: any) => (
+                            <SelectItem key={a.code} value={a.code}>{a.code} — {a.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="database" className="space-y-8 animate-in fade-in duration-500">
-          <Card className="max-w-3xl border-none shadow-sm overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b">
-              <CardTitle className="text-lg flex items-center gap-2"><Database className="size-5 text-primary" /> Database Portability Terminal</CardTitle>
-              <CardDescription>Export your entire institutional registry for backup or transfer between PCs.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-8 space-y-10">
-              <div className="grid md:grid-cols-2 gap-8">
-                <div className="p-6 bg-slate-50 border-2 border-black rounded-2xl space-y-4">
-                   <div className="flex items-center gap-3">
-                     <Download className="size-6 text-primary" />
-                     <h4 className="font-black uppercase text-sm">Download Backup</h4>
+        <TabsContent value="interest" className="space-y-8 animate-in fade-in duration-500">
+           <div className="grid gap-10 lg:grid-cols-12 max-w-6xl">
+              <div className="lg:col-span-8 space-y-10">
+                <Card className="border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+                  <CardHeader className="bg-slate-50 border-b-4 border-black flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="text-xl font-black uppercase">Interest Distribution Policy</CardTitle>
+                      <CardDescription className="font-black text-[10px] uppercase text-slate-400 mt-1">Multi-tier annual profit sharing matrix</CardDescription>
+                    </div>
+                    <Button onClick={handleSaveInterest} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Save Matrix</Button>
+                  </CardHeader>
+                  <CardContent className="p-8 space-y-8">
+                    <div className="space-y-4">
+                       {interestTiers.map((tier, idx) => (
+                        <div key={idx} className="grid grid-cols-12 gap-6 items-center p-6 bg-slate-50 border-2 border-black rounded-xl">
+                          <div className="col-span-6 space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-slate-500">Tier Cap Limit (৳)</Label>
+                             {tier.limit === null ? (
+                               <div className="h-11 flex items-center px-4 bg-slate-200 border-2 border-slate-300 rounded-lg text-slate-500 text-xs font-black uppercase italic tracking-widest">Surplus Balances</div>
+                             ) : (
+                               <Input type="number" className="h-11 border-2 border-black font-black text-lg tabular-nums" value={tier.limit} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { limit: Number(e.target.value) })} />
+                             )}
+                          </div>
+                          <div className="col-span-4 space-y-2">
+                             <Label className="text-[10px] font-black uppercase text-slate-500">Yield Rate (%)</Label>
+                             <div className="relative">
+                               <Input type="number" step="0.01" className="h-11 border-2 border-black font-black text-lg tabular-nums pr-8 text-center" value={tier.rate} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
+                               <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black text-slate-400">%</span>
+                             </div>
+                          </div>
+                          <div className="col-span-2 text-right pt-6">
+                            <Button variant="ghost" size="icon" className="h-11 w-11 text-rose-300 hover:text-rose-600 hover:bg-rose-50" disabled={!isUnlocked} onClick={() => removeInterestTier(idx)}><Trash2 className="size-5" /></Button>
+                          </div>
+                        </div>
+                       ))}
+                       <Button variant="outline" className="w-full border-4 border-dashed border-slate-200 py-12 rounded-2xl gap-4 font-black uppercase text-slate-300 hover:border-black hover:text-black transition-all" disabled={!isUnlocked} onClick={addInterestTier}><Plus className="size-6" /> Append Policy Tier</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+                  <CardHeader className="bg-indigo-50 border-b-4 border-black">
+                    <CardTitle className="text-xl font-black uppercase flex items-center gap-4 text-indigo-900"><Coins className="size-6" /> Statutory Tax Configuration</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-8">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 p-8 border-2 border-indigo-200 bg-indigo-50/20 rounded-3xl">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-black uppercase text-indigo-900">Institutional TDS Rate (%)</Label>
+                        <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">Default deduction for annual provisions and final maturity schedules.</p>
+                      </div>
+                      <div className="relative w-full md:w-[220px]">
+                        <Input type="number" step="0.01" value={tdsRate} onKeyDown={handleNumericKeyDown} onChange={(e) => setTdsRate(Number(e.target.value))} disabled={!isUnlocked} className="h-16 border-4 border-black font-black text-3xl text-center tabular-nums pr-12 focus:bg-white" />
+                        <span className="absolute right-6 top-1/2 -translate-y-1/2 text-2xl font-black text-black">%</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+           </div>
+        </TabsContent>
+
+        <TabsContent value="branding" className="space-y-8 animate-in fade-in duration-500">
+           <Card className="max-w-2xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+             <CardHeader className="bg-slate-50 border-b-4 border-black flex flex-row items-center justify-between">
+               <div><CardTitle className="text-xl font-black uppercase">Institutional Branding</CardTitle></div>
+               <Button onClick={handleSaveGeneral} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Commit</Button>
+             </CardHeader>
+             <CardContent className="p-10 space-y-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Full PBS Identity</Label>
+                  <Input value={pbsName} disabled={!isUnlocked} onChange={(e) => setPbsName(e.target.value)} className="h-14 border-2 border-black font-black text-xl uppercase px-6" />
+                </div>
+                <div className="bg-slate-50 p-6 rounded-2xl border border-black/5 flex gap-4 items-center">
+                   <ShieldCheck className="size-8 text-emerald-600" />
+                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-tight">This name will appear on all statutory reports, trial balances, and member ledgers.</p>
+                </div>
+             </CardContent>
+           </Card>
+        </TabsContent>
+
+        <TabsContent value="database" className="space-y-10 animate-in fade-in duration-500">
+           {/* STORAGE HEALTH MONITOR */}
+           <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+              <CardHeader className="bg-black text-white flex flex-row items-center justify-between py-6">
+                <div className="flex items-center gap-4">
+                  <HardDrive className="size-6 text-emerald-400" />
+                  <div>
+                    <CardTitle className="text-lg font-black uppercase">Storage Health Matrix</CardTitle>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time persistence audit</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Institutional Secure</Badge>
+              </CardHeader>
+              <CardContent className="p-10 space-y-8">
+                 <div className="space-y-4">
+                   <div className="flex justify-between items-end text-[11px] font-black uppercase tracking-widest">
+                     <span>Local Registry Utilization:</span>
+                     <span className={cn(storageMetrics.percent > 80 ? "text-rose-600" : "text-emerald-600")}>
+                        {(storageMetrics.used / 1024).toFixed(1)} KB / 5,120 KB ({storageMetrics.percent}%)
+                     </span>
                    </div>
-                   <p className="text-[11px] text-muted-foreground leading-relaxed">Encapsulates all Member Ledgers, Transactions, and Settings into a portable JSON file.</p>
-                   <Button onClick={handleExportDB} className="w-full h-11 font-black uppercase tracking-widest text-[10px]">Generate Archive</Button>
+                   <Progress value={storageMetrics.percent} className="h-4 border-2 border-black bg-slate-100 rounded-none shadow-inner" />
+                   <p className="text-[10px] text-slate-400 font-bold uppercase leading-relaxed italic border-l-4 border-slate-200 pl-4">
+                     Browser LocalStorage limit is strictly 5MB. Large transaction volumes (10,000+ rows) may require periodic "Purge" via Audit Tracking or a Database Backup & Reset.
+                   </p>
+                 </div>
+              </CardContent>
+           </Card>
+
+           <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+            <CardHeader className="bg-slate-50 border-b-4 border-black">
+              <CardTitle className="text-xl font-black uppercase flex items-center gap-4"><Database className="size-6" /> Registry Portability Terminal</CardTitle>
+            </CardHeader>
+            <CardContent className="p-10 space-y-10">
+              <div className="grid md:grid-cols-2 gap-10">
+                <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
+                   <div className="flex items-center gap-4">
+                     <div className="bg-white p-3 rounded-2xl border-2 border-black"><Download className="size-6 text-black" /></div>
+                     <h4 className="font-black uppercase text-sm tracking-widest">Download Archive</h4>
+                   </div>
+                   <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Encapsulates all Member Ledgers, Vouchers, and Matrix Rules into a standalone JSON file.</p>
+                   <Button onClick={handleExportDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">Generate Local Backup</Button>
                 </div>
 
-                <div className="p-6 bg-slate-50 border-2 border-black rounded-2xl space-y-4">
-                   <div className="flex items-center gap-3">
-                     <Upload className="size-6 text-emerald-600" />
-                     <h4 className="font-black uppercase text-sm">Synchronize Drive</h4>
+                <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
+                   <div className="flex items-center gap-4">
+                     <div className="bg-white p-3 rounded-2xl border-2 border-black"><Upload className="size-6 text-indigo-600" /></div>
+                     <h4 className="font-black uppercase text-sm tracking-widest">Synchronize Drive</h4>
                    </div>
-                   <p className="text-[11px] text-muted-foreground leading-relaxed">Import a database file from another machine. <span className="text-rose-600 font-bold">WARNING: This overwrites all current local data.</span></p>
+                   <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Restore institutional registry from an external file. <span className="text-rose-600 underline">Existing local data will be replaced.</span></p>
                    <div className="relative">
-                     <Input 
-                       type="file" 
-                       accept=".json" 
-                       onChange={handleImportDB}
-                       className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10"
-                       disabled={!isUnlocked}
-                     />
-                     <Button variant="outline" disabled={!isUnlocked} className="w-full h-11 font-black border-2 border-black uppercase tracking-widest text-[10px] bg-white">
-                        {isUnlocked ? "Select Registry File" : "Unlock Terminal First"}
+                     <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked} />
+                     <Button variant="outline" disabled={!isUnlocked} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
+                        {isUnlocked ? "Select Registry Matrix" : "Terminal Locked"}
                      </Button>
                    </div>
                 </div>
               </div>
 
-              <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl flex items-start gap-4">
-                 <Info className="size-6 text-amber-600 mt-0.5 shrink-0" />
-                 <div className="space-y-1">
-                    <p className="text-xs font-black uppercase text-amber-900 tracking-wider">Institutional Safety Protocol</p>
-                    <p className="text-[11px] leading-relaxed text-amber-800">
-                      The local database is stored in your browser's persistence layer. Clearing browser cookies or cache may remove local data. **Perform a "Download Backup" weekly** and store the file on an external institutional drive for definitive safety.
+              <div className="bg-amber-50 border-2 border-amber-200 p-8 rounded-3xl flex items-start gap-6 shadow-sm">
+                 <div className="bg-white p-3 rounded-2xl border-2 border-amber-300 shadow-md"><RefreshCw className="size-8 text-amber-600" /></div>
+                 <div className="space-y-2">
+                    <p className="text-xs font-black uppercase text-amber-900 tracking-wider">Institutional Data Integrity Protocol</p>
+                    <p className="text-[11px] leading-relaxed text-amber-800 font-bold uppercase italic">
+                      This system operates 100% locally on this PC's drive. To prevent data loss due to PC failure or browser cache clearing, perform a "Download Archive" weekly and store it on an institutional server or pendrive.
                     </p>
                  </div>
               </div>
