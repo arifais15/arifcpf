@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,10 +16,6 @@ export interface UseCollectionResult<T> {
   error: any | null;
 }
 
-/**
- * Institutional Hook Wrapper - Seamlessly bridges Cloud and Local storage.
- * Automates data fetching for both collectionGroup and standard collections.
- */
 export function useCollection<T = any>(
   memoizedTargetRefOrQuery: any
 ): UseCollectionResult<T> {
@@ -33,50 +30,17 @@ export function useCollection<T = any>(
     }
 
     if (USE_LOCAL_DB) {
-      const syncLocal = () => {
-        // Query Object Parsing Logic
+      const syncLocal = async () => {
         let path = "";
-        let filterField = "";
-        let filterValue: any = null;
-        let filterOp = "==";
-        let sortField = "";
-
         if (typeof memoizedTargetRefOrQuery === 'string') {
           path = memoizedTargetRefOrQuery;
         } else if (memoizedTargetRefOrQuery.path) {
           path = memoizedTargetRefOrQuery.path;
         } else if (memoizedTargetRefOrQuery._query) {
           path = memoizedTargetRefOrQuery._query.collectionGroup || memoizedTargetRefOrQuery._query.path.segments.join('/');
-          
-          const filters = memoizedTargetRefOrQuery._query.filters || [];
-          if (filters.length > 0) {
-            filterField = filters[0].field?.segments?.[0] || "";
-            filterValue = filters[0].value?.internalValue;
-            filterOp = filters[0].op || "==";
-          }
-
-          const orders = memoizedTargetRefOrQuery._query.explicitOrderBy || [];
-          if (orders.length > 0) sortField = orders[0].field?.segments?.[0] || "";
         }
         
-        const sanitizedPath = path.replace(/^\/|\/$/g, '');
-        let results = localDB.getCollection(sanitizedPath);
-
-        // Automated Filter Bridging
-        if (filterField && filterValue !== null) {
-          results = results.filter(d => {
-            const val = d[filterField];
-            if (filterOp === '>=') return String(val) >= String(filterValue);
-            if (filterOp === '<') return String(val) < String(filterValue);
-            return String(val) === String(filterValue);
-          });
-        }
-
-        // Automated Sort Bridging
-        if (sortField) {
-          results.sort((a, b) => String(a[sortField]).localeCompare(String(b[sortField])));
-        }
-
+        const results = await localDB.getCollection(path);
         setData(results as WithId<T>[]);
         setIsLoading(false);
       };

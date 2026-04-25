@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -29,9 +30,9 @@ export function useDoc<T = any>(
     }
 
     if (USE_LOCAL_DB) {
-      const syncLocal = () => {
+      const syncLocal = async () => {
         const path = memoizedDocRef.path;
-        const result = localDB.getDoc(path);
+        const result = await localDB.getDoc(path);
         setData(result ? { ...result, id: memoizedDocRef.id } as WithId<T> : null);
         setIsLoading(false);
       };
