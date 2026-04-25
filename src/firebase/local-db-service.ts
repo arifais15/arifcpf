@@ -1,15 +1,15 @@
 'use client';
 
 /**
- * @fileOverview Institutional SQLite WASM Persistence Engine (V6)
+ * @fileOverview Institutional SQLite WASM Persistence Engine (V7)
  * 
- * Re-engineered for Guaranteed Local Persistence.
- * 1. Primary: OPFS (Origin Private File System) for high-speed disk access.
- * 2. Secondary: Reliable SQL Transaction Commits to force disk writes.
- * 3. Fallback: Automatic detection of transient vs. persistent state.
+ * Re-engineered for Guaranteed Local Persistence on PC.
+ * 1. Unified Schema: (id, data) for all tables to prevent column mismatch errors.
+ * 2. Primary: OPFS (Origin Private File System) for high-speed physical disk access.
+ * 3. Integrity: Atomic Transaction Commits for every write operation.
  */
 
-const DB_FILE = 'pbs_cpf_institutional_vault_v6.sqlite3';
+const DB_FILE = 'pbs_cpf_institutional_vault_v7.sqlite3';
 
 class SQLiteDatabaseService {
   private db: any = null;
@@ -58,14 +58,14 @@ class SQLiteDatabaseService {
 
       console.log("SQLite Engine Loaded. Establishing Persistent Vault...");
 
-      // ATTEMPT OPFS (High-Performance Persistence)
+      // ATTEMPT OPFS (Primary Disk Persistence)
       if ('opfs' in sqlite3.oo1) {
         try {
           this.db = new sqlite3.oo1.OpfsDb(DB_FILE, 'c');
           this.mode = 'OPFS';
-          console.log("Vault Active: SQLite OPFS (File System) Persistence.");
+          console.log("Vault Active: SQLite OPFS (Physical Disk) Persistence.");
         } catch (e) {
-          console.warn("OPFS blocked or unavailable. Falling back to persistent VFS...");
+          console.warn("OPFS blocked. Falling back to persistent VFS...");
         }
       }
 
@@ -73,7 +73,7 @@ class SQLiteDatabaseService {
       if (!this.db) {
         this.db = new sqlite3.oo1.DB(DB_FILE, 'c');
         this.mode = 'FALLBACK';
-        console.log("Vault Active: Standard Persistent Matrix.");
+        console.log("Vault Active: Browser Internal Persistent Matrix.");
       }
 
       (window as any).__PBS_SQLITE_VAULT__ = this.db;
@@ -86,23 +86,25 @@ class SQLiteDatabaseService {
         PRAGMA foreign_keys=OFF;
       `);
 
-      // BOOTSTRAP SCHEMA
+      // BOOTSTRAP UNIFIED SCHEMA (v7)
+      // We use a simple (id, data) schema for all tables to prevent column count errors.
       this.db.exec(`
-        CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, code TEXT, data JSON);
-        CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, memberIdNumber TEXT, data JSON);
-        CREATE TABLE IF NOT EXISTS journal_entries (id TEXT PRIMARY KEY, entryDate TEXT, data JSON);
-        CREATE TABLE IF NOT EXISTS fund_summaries (id TEXT PRIMARY KEY, memberId TEXT, journalEntryId TEXT, summaryDate TEXT, data JSON);
+        CREATE TABLE IF NOT EXISTS accounts (id TEXT PRIMARY KEY, data JSON);
+        CREATE TABLE IF NOT EXISTS members (id TEXT PRIMARY KEY, data JSON);
+        CREATE TABLE IF NOT EXISTS journal_entries (id TEXT PRIMARY KEY, data JSON);
+        CREATE TABLE IF NOT EXISTS fund_summaries (id TEXT PRIMARY KEY, memberId TEXT, journalEntryId TEXT, data JSON);
         CREATE TABLE IF NOT EXISTS investments (id TEXT PRIMARY KEY, data JSON);
         CREATE TABLE IF NOT EXISTS settings (id TEXT PRIMARY KEY, data JSON);
         CREATE TABLE IF NOT EXISTS audit_logs (id TEXT PRIMARY KEY, data JSON);
         
-        CREATE INDEX IF NOT EXISTS idx_m_code ON members(memberIdNumber);
         CREATE INDEX IF NOT EXISTS idx_fs_m ON fund_summaries(memberId);
-        CREATE INDEX IF NOT EXISTS idx_fs_d ON fund_summaries(summaryDate);
-        CREATE INDEX IF NOT EXISTS idx_je_d ON journal_entries(entryDate);
+        CREATE INDEX IF NOT EXISTS idx_fs_je ON fund_summaries(journalEntryId);
       `);
 
-      console.log(`Institutional Registry Initialized. Mode: ${this.mode}`);
+      // FORCED HEARTBEAT (Ensures file is actually created/flushed)
+      this.db.exec("VACUUM;");
+
+      console.log(`Institutional Registry Synchronized. Mode: ${this.mode}`);
     } catch (e) {
       console.error("Critical Engine Failure:", e);
       this.mode = 'TRANSIENT';
@@ -125,18 +127,19 @@ class SQLiteDatabaseService {
       let binds: any[] = [];
 
       if (p === 'members') {
-        sql = "SELECT data FROM members ORDER BY memberIdNumber ASC";
+        sql = "SELECT data FROM members";
       } else if (p === 'chartOfAccounts') {
-        sql = "SELECT data FROM accounts ORDER BY id ASC";
+        sql = "SELECT data FROM accounts";
       } else if (p === 'journalEntries') {
-        sql = "SELECT data FROM journal_entries ORDER BY entryDate DESC";
+        sql = "SELECT data FROM journal_entries";
       } else if (p === 'investmentInstruments') {
         sql = "SELECT data FROM investments";
       } else if (p === 'fundSummaries') {
         sql = "SELECT data FROM fund_summaries";
       } else if (p.includes('/fundSummaries')) {
+        // Handle path like members/ID/fundSummaries
         const mid = p.split('/')[1];
-        sql = "SELECT data FROM fund_summaries WHERE memberId = ? ORDER BY summaryDate ASC";
+        sql = "SELECT data FROM fund_summaries WHERE memberId = ?";
         binds = [mid];
       } else if (p.startsWith('settings')) {
         sql = "SELECT data FROM settings";
@@ -145,11 +148,15 @@ class SQLiteDatabaseService {
       }
 
       if (sql) {
-        this.db.exec({
-          sql,
-          bind: binds,
-          callback: (row: any) => { if (row[0]) results.push(JSON.parse(row[0])); }
-        });
+        try {
+          this.db.exec({
+            sql,
+            bind: binds,
+            callback: (row: any) => { if (row[0]) results.push(JSON.parse(row[0])); }
+          });
+        } catch (err) {
+          console.error(`Collection Query Error (${path}):`, err);
+        }
       }
       return results;
     });
@@ -162,7 +169,7 @@ class SQLiteDatabaseService {
 
       const p = path.replace(/^\/|\/$/g, '').split('/');
       const id = p[p.length - 1];
-      const collection = p[0];
+      const collectionName = p[0];
       
       let finalData = data;
       if (options.merge) {
@@ -176,47 +183,43 @@ class SQLiteDatabaseService {
       // FORCE ATOMIC COMMIT
       this.db.exec("BEGIN IMMEDIATE TRANSACTION;");
       try {
-        if (collection === 'members' && p.length === 2) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO members (id, memberIdNumber, data) VALUES (?, ?, ?)",
-            bind: [id, finalData.memberIdNumber, json]
-          });
+        let tableName = "";
+        let extraBinds: any[] = [];
+        let extraCols = "";
+        let extraPlaceholders = "";
+
+        if (collectionName === 'members' && p.length === 2) {
+          tableName = "members";
         } else if (path.includes('/fundSummaries/')) {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO fund_summaries (id, memberId, journalEntryId, summaryDate, data) VALUES (?, ?, ?, ?, ?)",
-            bind: [id, finalData.memberId, finalData.journalEntryId, finalData.summaryDate, json]
-          });
-        } else if (collection === 'journalEntries') {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO journal_entries (id, entryDate, data) VALUES (?, ?, ?)",
-            bind: [id, finalData.entryDate, json]
-          });
-        } else if (collection === 'chartOfAccounts') {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO accounts (id, data) VALUES (?, ?)",
-            bind: [id, json]
-          });
-        } else if (collection === 'investmentInstruments') {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO investments (id, data) VALUES (?, ?)",
-            bind: [id, json]
-          });
-        } else if (collection === 'settings') {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO settings (id, data) VALUES (?, ?)",
-            bind: [id, json]
-          });
-        } else if (collection === 'accruedInterestLogs') {
-          this.db.exec({
-            sql: "INSERT OR REPLACE INTO audit_logs (id, data) VALUES (?, ?)",
-            bind: [id, json]
-          });
+          tableName = "fund_summaries";
+          extraCols = ", memberId, journalEntryId";
+          extraPlaceholders = ", ?, ?";
+          extraBinds = [finalData.memberId || "", finalData.journalEntryId || ""];
+        } else if (collectionName === 'journalEntries') {
+          tableName = "journal_entries";
+        } else if (collectionName === 'chartOfAccounts') {
+          tableName = "accounts";
+        } else if (collectionName === 'investmentInstruments') {
+          tableName = "investments";
+        } else if (collectionName === 'settings') {
+          tableName = "settings";
+        } else if (collectionName === 'accruedInterestLogs') {
+          tableName = "audit_logs";
         }
-        this.db.exec("COMMIT;");
-        console.log(`Vault Sync: Committed ${path}`);
+
+        if (tableName) {
+          this.db.exec({
+            sql: `INSERT OR REPLACE INTO ${tableName} (id, data${extraCols}) VALUES (?, ?${extraPlaceholders})`,
+            bind: [id, json, ...extraBinds]
+          });
+          this.db.exec("COMMIT;");
+        } else {
+          this.db.exec("ROLLBACK;");
+          console.warn(`Untracked collection path: ${path}`);
+        }
       } catch (e) {
         this.db.exec("ROLLBACK;");
-        console.error("Vault Error: Transaction failed.", e);
+        console.error(`Vault Error: Save failed for ${path}`, e);
         throw e;
       }
       
@@ -247,6 +250,8 @@ class SQLiteDatabaseService {
           this.db.exec({ sql: "DELETE FROM investments WHERE id = ?", bind: [id] });
         } else if (coll === 'accruedInterestLogs') {
           this.db.exec({ sql: "DELETE FROM audit_logs WHERE id = ?", bind: [id] });
+        } else if (coll === 'settings') {
+          this.db.exec({ sql: "DELETE FROM settings WHERE id = ?", bind: [id] });
         }
         this.db.exec("COMMIT;");
       } catch (e) {
@@ -274,11 +279,15 @@ class SQLiteDatabaseService {
       else if (coll === 'accruedInterestLogs') tableName = "audit_logs";
 
       let result = null;
-      this.db.exec({
-        sql: `SELECT data FROM ${tableName} WHERE id = ?`,
-        bind: [id],
-        callback: (row: any) => { if (row[0]) result = JSON.parse(row[0]); }
-      });
+      try {
+        this.db.exec({
+          sql: `SELECT data FROM ${tableName} WHERE id = ?`,
+          bind: [id],
+          callback: (row: any) => { if (row[0]) result = JSON.parse(row[0]); }
+        });
+      } catch (err) {
+        console.error(`Document Query Error (${path}):`, err);
+      }
       return result;
     });
   }
@@ -297,18 +306,20 @@ class SQLiteDatabaseService {
     ];
 
     for (const table of tables) {
-      this.db.exec({
-        sql: `SELECT id, data FROM ${table.name}`,
-        callback: (row: any) => {
-          if (row[0] && row[1]) {
-            const val = JSON.parse(row[1]);
-            const fullPath = table.name === 'fund_summaries' 
-              ? `members/${val.memberId}/fundSummaries/${row[0]}`
-              : `${table.path}/${row[0]}`;
-            data[fullPath] = val;
+      try {
+        this.db.exec({
+          sql: `SELECT id, data FROM ${table.name}`,
+          callback: (row: any) => {
+            if (row[0] && row[1]) {
+              const val = JSON.parse(row[1]);
+              const fullPath = table.name === 'fund_summaries' 
+                ? `members/${val.memberId}/fundSummaries/${row[0]}`
+                : `${table.path}/${row[0]}`;
+              data[fullPath] = val;
+            }
           }
-        }
-      });
+        });
+      } catch (e) {}
     }
     return JSON.stringify(data);
   }

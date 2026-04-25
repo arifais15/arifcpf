@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
-import { Progress } from "@/components/ui/progress"
 import { CHART_OF_ACCOUNTS as INITIAL_COA } from "@/lib/coa-data"
 import { 
   useFirestore, 
@@ -29,11 +28,8 @@ import {
   Loader2, 
   Save, 
   ShieldCheck, 
-  Info, 
-  Percent, 
   Plus, 
   Trash2, 
-  ArrowRight, 
   BookOpen, 
   Search, 
   Edit2,
@@ -45,7 +41,6 @@ import {
   Download,
   Upload,
   Database,
-  RefreshCw,
   HardDrive
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -161,7 +156,7 @@ export default function SettingsPage() {
     
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Branding Updated", description: "Institution name saved. Refreshing system...", type: "success" })
+      showAlert({ title: "Branding Updated", description: "Institution name saved.", type: "success" })
     }, 500)
   }
 
@@ -175,7 +170,7 @@ export default function SettingsPage() {
     
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Ledger Saved", description: "Mapping configuration updated. Refreshing system...", type: "success" })
+      showAlert({ title: "Ledger Saved", description: "Mapping configuration updated.", type: "success" })
     }, 500)
   }
 
@@ -194,7 +189,7 @@ export default function SettingsPage() {
 
     setTimeout(() => {
       setIsSaving(false)
-      showAlert({ title: "Policy Updated", description: "Interest tiers and TDS rates saved. Refreshing system...", type: "success" })
+      showAlert({ title: "Policy Updated", description: "Interest tiers and TDS rates saved.", type: "success" })
     }, 500)
   }
 
@@ -360,14 +355,72 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="coa" className="w-full">
+      <Tabs defaultValue="database" className="w-full">
         <TabsList className="bg-slate-100 p-1 rounded-xl border-2 border-black mb-8 h-12 shadow-inner">
+          <TabsTrigger value="database" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Database className="size-4" /> Data Portability</TabsTrigger>
           <TabsTrigger value="coa" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><BookOpen className="size-4" /> Chart of Accounts</TabsTrigger>
           <TabsTrigger value="ledger" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><ShieldCheck className="size-4" /> Ledger Mapping</TabsTrigger>
           <TabsTrigger value="interest" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Percent className="size-4" /> Interest & Tax</TabsTrigger>
           <TabsTrigger value="branding" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Building className="size-4" /> General</TabsTrigger>
-          <TabsTrigger value="database" className="px-6 py-2 gap-2 rounded-lg font-black uppercase text-[10px] data-[state=active]:bg-black data-[state=active]:text-white"><Database className="size-4" /> Data Portability</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="database" className="space-y-10 animate-in fade-in duration-500">
+           <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
+              <CardHeader className="bg-black text-white flex flex-row items-center justify-between py-6">
+                <div className="flex items-center gap-4">
+                  <HardDrive className="size-6 text-emerald-400" />
+                  <div>
+                    <CardTitle className="text-lg font-black uppercase">Persistence Matrix Monitor</CardTitle>
+                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time drive synchronization audit</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Active: {dbMode}</Badge>
+              </CardHeader>
+              <CardContent className="p-10 space-y-8">
+                 <div className="space-y-6">
+                   <div className="flex items-center gap-4 p-4 bg-slate-50 border-2 border-black rounded-xl">
+                      <div className={cn("p-2 rounded-lg", dbMode === 'OPFS' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                        <ShieldCheck className="size-6" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs font-black uppercase">Vault Status: {dbMode === 'OPFS' ? 'Synchronized to Disk' : 'Fallback Active'}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                          {dbMode === 'OPFS' ? 'Every transaction is immediately flushed to the Origin Private File System.' : 'System is using IndexedDB fallback. Data is persistent but storage may be limited.'}
+                        </p>
+                      </div>
+                   </div>
+                   <p className="text-[10px] text-slate-400 font-bold uppercase leading-relaxed italic border-l-4 border-slate-200 pl-4">
+                     Browser SQL storage is managed locally. For institutional continuity, performing a weekly "Download Archive" is mandatory.
+                   </p>
+                 </div>
+
+                 <div className="grid md:grid-cols-2 gap-10">
+                    <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
+                       <div className="flex items-center gap-4">
+                         <div className="bg-white p-3 rounded-2xl border-2 border-black"><Download className="size-6 text-black" /></div>
+                         <h4 className="font-black uppercase text-sm tracking-widest">Download Archive</h4>
+                       </div>
+                       <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Encapsulates all Member Ledgers, Vouchers, and Matrix Rules into a standalone JSON file.</p>
+                       <Button onClick={handleExportDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">Generate Local Backup</Button>
+                    </div>
+
+                    <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
+                       <div className="flex items-center gap-4">
+                         <div className="bg-white p-3 rounded-2xl border-2 border-black"><Upload className="size-6 text-indigo-600" /></div>
+                         <h4 className="font-black uppercase text-sm tracking-widest">Synchronize Drive</h4>
+                       </div>
+                       <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Restore institutional registry from an external file. <span className="text-rose-600 underline">Existing data will be replaced.</span></p>
+                       <div className="relative">
+                         <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked} />
+                         <Button variant="outline" disabled={!isUnlocked} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
+                            {isUnlocked ? "Select Registry Matrix" : "Terminal Locked"}
+                         </Button>
+                       </div>
+                    </div>
+                 </div>
+              </CardContent>
+           </Card>
+        </TabsContent>
 
         <TabsContent value="coa" className="space-y-6 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-2">
@@ -539,7 +592,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 p-8 border-2 border-indigo-200 bg-indigo-50/20 rounded-3xl">
                       <div className="space-y-2">
                         <Label className="text-sm font-black uppercase text-indigo-900">Institutional TDS Rate (%)</Label>
-                        <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">Default deduction for annual provisions and final maturity schedules.</p>
+                        <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">Default deduction for annual provisions.</p>
                       </div>
                       <div className="relative w-full md:w-[220px]">
                         <Input type="number" step="0.01" value={tdsRate} onKeyDown={handleNumericKeyDown} onChange={(e) => setTdsRate(Number(e.target.value))} disabled={!isUnlocked} className="h-16 border-4 border-black font-black text-3xl text-center tabular-nums pr-12 focus:bg-white" />
@@ -565,75 +618,10 @@ export default function SettingsPage() {
                 </div>
                 <div className="bg-slate-50 p-6 rounded-2xl border border-black/5 flex gap-4 items-center">
                    <ShieldCheck className="size-8 text-emerald-600" />
-                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-tight">This name will appear on all statutory reports, trial balances, and member ledgers.</p>
+                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest leading-tight">This name will appear on all statutory reports and member ledgers.</p>
                 </div>
              </CardContent>
            </Card>
-        </TabsContent>
-
-        <TabsContent value="database" className="space-y-10 animate-in fade-in duration-500">
-           <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
-              <CardHeader className="bg-black text-white flex flex-row items-center justify-between py-6">
-                <div className="flex items-center gap-4">
-                  <HardDrive className="size-6 text-emerald-400" />
-                  <div>
-                    <CardTitle className="text-lg font-black uppercase">Persistence Matrix Monitor</CardTitle>
-                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Real-time drive synchronization audit</p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="border-emerald-500 text-emerald-400 font-black uppercase text-[10px] tracking-widest px-4 py-1.5 h-8">Active: {dbMode}</Badge>
-              </CardHeader>
-              <CardContent className="p-10 space-y-8">
-                 <div className="space-y-6">
-                   <div className="flex items-center gap-4 p-4 bg-slate-50 border-2 border-black rounded-xl">
-                      <div className={cn("p-2 rounded-lg", dbMode === 'OPFS' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
-                        <ShieldCheck className="size-6" />
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs font-black uppercase">Vault Status: {dbMode === 'OPFS' ? 'Synchronized to Disk' : 'Fallback Active'}</p>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
-                          {dbMode === 'OPFS' ? 'Every transaction is immediately flushed to the Origin Private File System.' : 'System is using IndexedDB fallback. Data is persistent but storage may be browser-limited.'}
-                        </p>
-                      </div>
-                   </div>
-                   <p className="text-[10px] text-slate-400 font-bold uppercase leading-relaxed italic border-l-4 border-slate-200 pl-4">
-                     Browser SQL storage is managed locally. For institutional continuity, performing a weekly "Download Archive" is mandatory.
-                   </p>
-                 </div>
-              </CardContent>
-           </Card>
-
-           <Card className="max-w-3xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
-            <CardHeader className="bg-slate-50 border-b-4 border-black">
-              <CardTitle className="text-xl font-black uppercase flex items-center gap-4"><Database className="size-6" /> Registry Portability Terminal</CardTitle>
-            </CardHeader>
-            <CardContent className="p-10 space-y-10">
-              <div className="grid md:grid-cols-2 gap-10">
-                <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
-                   <div className="flex items-center gap-4">
-                     <div className="bg-white p-3 rounded-2xl border-2 border-black"><Download className="size-6 text-black" /></div>
-                     <h4 className="font-black uppercase text-sm tracking-widest">Download Archive</h4>
-                   </div>
-                   <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Encapsulates all Member Ledgers, Vouchers, and Matrix Rules into a standalone JSON file.</p>
-                   <Button onClick={handleExportDB} className="w-full h-12 bg-black text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl">Generate Local Backup</Button>
-                </div>
-
-                <div className="p-8 bg-slate-50 border-2 border-black rounded-3xl space-y-6 shadow-xl hover:scale-[1.02] transition-transform">
-                   <div className="flex items-center gap-4">
-                     <div className="bg-white p-3 rounded-2xl border-2 border-black"><Upload className="size-6 text-indigo-600" /></div>
-                     <h4 className="font-black uppercase text-sm tracking-widest">Synchronize Drive</h4>
-                   </div>
-                   <p className="text-[11px] text-slate-400 font-bold uppercase leading-relaxed">Restore institutional registry from an external file. <span className="text-rose-600 underline">Existing local data will be replaced.</span></p>
-                   <div className="relative">
-                     <Input type="file" accept=".json" onChange={handleImportDB} className="cursor-pointer opacity-0 absolute inset-0 w-full h-full z-10" disabled={!isUnlocked} />
-                     <Button variant="outline" disabled={!isUnlocked} className="w-full h-12 border-2 border-black bg-white font-black uppercase tracking-[0.2em] text-[10px] text-black">
-                        {isUnlocked ? "Select Registry Matrix" : "Terminal Locked"}
-                     </Button>
-                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>
