@@ -214,7 +214,7 @@ export default function CPFInterestPage() {
 
     setPreviewData(results);
     setIsCalculating(false);
-    toast({ title: "Audit Matrix Generated", description: `Processed ${results.length} active personnel.` });
+    toast({ title: "Audit Interest Calculation Generated", description: `Processed ${results.length} active personnel.` });
   };
 
   const handlePostAllInterest = async () => {
@@ -225,7 +225,7 @@ export default function CPFInterestPage() {
     const modeLabel = calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Range`;
     for (const item of unpostedItems) {
       if (item.calculatedInterest <= 0) continue;
-      const entryData = { summaryDate: postingDate, particulars: `Annual Profit ${modeLabel} (Tiered)`, employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0, profitEmployee: Math.round(item.employeeProfit), profitLoan: 0, pbsContribution: 0, profitPbs: Math.round(item.pbsProfit), lastUpdateDate: new Date().toISOString(), createdAt: new Date().toISOString(), memberId: item.memberId };
+      const entryData = { summaryDate: postingDate, particulars: `Profit ${modeLabel}`, employeeContribution: 0, loanWithdrawal: 0, loanRepayment: 0, profitEmployee: Math.round(item.employeeProfit), profitLoan: 0, pbsContribution: 0, profitPbs: Math.round(item.pbsProfit), lastUpdateDate: new Date().toISOString(), createdAt: new Date().toISOString(), memberId: item.memberId };
       addDocumentNonBlocking(collection(firestore, "members", item.memberId, "fundSummaries"), entryData);
     }
     setIsPosting(false);
@@ -238,7 +238,7 @@ export default function CPFInterestPage() {
     const exportRows = previewData.map(item => ({ "Member ID": item.memberIdNumber, "Name": item.name, "Designation": item.designation, "Profit (Emp)": item.employeeProfit.toFixed(2), "Profit (PBS)": item.pbsProfit.toFixed(2), "Total Profit": item.calculatedInterest.toFixed(2) }));
     const ws = XLSX.utils.json_to_sheet(exportRows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Annual Interest Audit");
+    XLSX.utils.book_append_sheet(wb, ws, "Annual Interest");
     XLSX.writeFile(wb, `CPF_Profit_Audit_${selectedFY || 'Custom'}.xlsx`);
   };
 
@@ -250,7 +250,7 @@ export default function CPFInterestPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black text-black tracking-tight uppercase">Interest Accrual Terminal</h1>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Institutional Audit & Distribution Matrix</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Interest Calculation& Distributions </p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
           <Tabs value={calculationMode} onValueChange={(v: any) => setCalculationMode(v)}>
@@ -277,7 +277,7 @@ export default function CPFInterestPage() {
 
           <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-black uppercase text-[10px] h-9 px-6 bg-black text-white hover:bg-black/90 shadow-lg">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run Audit
+            Calculate Interest
           </Button>
         </div>
       </div>
@@ -288,7 +288,7 @@ export default function CPFInterestPage() {
           <CardContent><div className="text-2xl font-black">{activeMembers.length} Active Members</div></CardContent>
         </Card>
         <Card className="border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white rounded-none">
-          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Computed Yield</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-500">Computed Profit</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-black tabular-nums">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div></CardContent>
         </Card>
         <Card className={cn("border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-none", hasUnpostedEntries ? "bg-white" : "bg-black text-white")}>
@@ -299,7 +299,7 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="max-w-md mx-auto text-center space-y-4 no-print py-12">
-          <p className="text-xs font-black uppercase tracking-[0.2em]">Auditing Active Personnel Ledger Volume...</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em]">Active Personnel Ledger Volume...</p>
           <Progress value={progress} className="h-3 border-2 border-black bg-slate-100 rounded-none" />
           <p className="text-[10px] font-black uppercase">{progress}% Complete</p>
         </div>
@@ -309,7 +309,7 @@ export default function CPFInterestPage() {
         <div className="bg-white rounded-none shadow-2xl border-2 border-black overflow-hidden no-print animate-in fade-in duration-500">
           <div className="p-4 border-b-2 border-black bg-slate-100 flex items-center justify-between">
             <h2 className="font-black text-sm uppercase tracking-widest flex items-center gap-3">
-              <ShieldCheck className="size-5 text-emerald-600" /> Audit Matrix Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
+              <ShieldCheck className="size-5 text-emerald-600" /> Calculations Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
             </h2>
             <div className="flex items-center gap-4 bg-white p-2 border-2 border-black shadow-lg">
               <div className="grid gap-0.5">

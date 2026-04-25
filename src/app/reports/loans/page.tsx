@@ -146,7 +146,7 @@ export default function LoanReportPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-black text-black tracking-tight uppercase">Loan Audit Report</h1>
-          <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Opening, Disbursements, and Repayments Registry</p>
+          <p className="text-black uppercase tracking-widest text-[11px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Opening, Disbursements, and Repayments Registry</p>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
           <div className="flex items-center gap-3">
@@ -162,10 +162,10 @@ export default function LoanReportPage() {
           </div>
           <div className="h-6 w-px bg-black hidden sm:block" />
           <div className="flex gap-2">
-            <Button variant="outline" onClick={exportToExcel} className="gap-2 h-10 font-black px-6 border-2 border-black text-black uppercase text-[10px] tracking-widest">
+            <Button variant="outline" onClick={exportToExcel} className="gap-2 h-10 font-black px-6 border-2 border-black text-black uppercase text-[11px] tracking-widest">
               <FileSpreadsheet className="size-4" /> Export
             </Button>
-            <Button onClick={() => window.print()} className="gap-2 h-10 font-black px-8 bg-black text-white shadow-xl uppercase text-[10px] tracking-widest">
+            <Button onClick={() => window.print()} className="gap-2 h-10 font-black px-8 bg-black text-white shadow-xl uppercase text-[11px] tracking-widest">
               <Printer className="size-4" /> Print
             </Button>
           </div>
@@ -175,7 +175,7 @@ export default function LoanReportPage() {
       <div className="grid gap-6 md:grid-cols-4 no-print">
         <Card className="border-2 border-black shadow-lg bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase text-black tracking-widest">Aggregate Opening</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase text-black tracking-widest">Aggregate Opening</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black tabular-nums">{stats.totalOpening.toLocaleString()}</div>
@@ -183,7 +183,7 @@ export default function LoanReportPage() {
         </Card>
         <Card className="border-2 border-black shadow-lg bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase text-black tracking-widest">New Disbursements</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase text-black tracking-widest">New Disbursements</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black tabular-nums">{stats.totalNew.toLocaleString()}</div>
@@ -191,15 +191,15 @@ export default function LoanReportPage() {
         </Card>
         <Card className="border-2 border-black shadow-lg bg-white">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase text-black tracking-widest">Aggregate Recovery</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase text-black tracking-widest">Aggregate Recovery</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black tabular-nums">{stats.totalRepaid.toLocaleString()}</div>
           </CardContent>
         </Card>
-        <Card className="border-2 border-black shadow-lg bg-black text-white">
+        <Card className="border-2 border-black shadow-lg bg-yellow-400 text-black hover:bg-yellow-500 transition">
           <CardHeader className="pb-2">
-            <CardTitle className="text-[10px] font-black uppercase text-white tracking-widest">Total Outstanding</CardTitle>
+            <CardTitle className="text-[11px] font-black uppercase text-black tracking-widest">Total Outstanding</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-black tabular-nums">{stats.totalClosing.toLocaleString()}</div>
@@ -233,7 +233,7 @@ export default function LoanReportPage() {
                 <td className="p-4 border-r border-black">
                   <div className="flex flex-col">
                     <span className="uppercase text-sm font-black">{row.name}</span>
-                    <span className="text-[10px] uppercase italic tracking-widest font-black">{row.designation}</span>
+                    <span className="text-[11px] uppercase italic tracking-widest font-black">{row.designation}</span>
                   </div>
                 </td>
                 <td className="text-right p-4 border-r border-black font-black">{row.openingBalance.toLocaleString()}</td>
@@ -265,7 +265,7 @@ export default function LoanReportPage() {
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
           </div>
         </div>
-        <table className="w-full text-[10px] border-collapse border-2 border-black text-black font-black tabular-nums">
+        <table className="w-full text-[11px] border-collapse border-2 border-black text-black font-black tabular-nums">
           <thead>
             <tr className="bg-slate-100 border-b-2 border-black">
               <th className="border border-black p-2.5 uppercase tracking-widest">ID No</th>

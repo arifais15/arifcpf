@@ -119,7 +119,7 @@ export default function SpecialInterestDPPage() {
 
   const handleCalculate = async () => {
     if (!dateRange.start || !dateRange.end) {
-      toast({ title: "Dates Required", description: "Select audit period.", variant: "destructive" });
+      toast({ title: "Dates Required", description: "Select Interest period.", variant: "destructive" });
       return;
     }
 
@@ -234,7 +234,7 @@ export default function SpecialInterestDPPage() {
 
     setResults(auditResults);
     setIsCalculating(false);
-    toast({ title: "Day-Product Audit Complete", description: `Processed ${auditResults.length} records.` });
+    toast({ title: "Day-Product Interest Complete", description: `Processed ${auditResults.length} records.` });
   };
 
   const handlePostAll = async () => {
@@ -273,7 +273,7 @@ export default function SpecialInterestDPPage() {
     const data = results.map(r => ({
       "ID No": r.memberIdNumber,
       "Name": r.name,
-      "Days Audited": r.days,
+      "Days": r.days,
       "Opening Balance": r.openingBalance,
       "Closing Balance": r.closingBalance,
       "Total DP Interest": r.totalInterest.toFixed(2),
@@ -313,7 +313,7 @@ export default function SpecialInterestDPPage() {
           </div>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-primary tracking-tight">Special Interest (Day-Product)</h1>
-            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black">Mid-month balance tracking • Fraction month settlement audit</p>
+            <p className="text-muted-foreground uppercase tracking-widest text-[10px] font-black">Mid-month balance tracking • Fraction month settlement</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -345,7 +345,7 @@ export default function SpecialInterestDPPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Audit Period Range</Label>
+            <Label className="text-[10px] uppercase font-black text-slate-400 ml-1">Interest Period Range</Label>
             <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-lg border">
               <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none bg-transparent font-black" />
               <ArrowRightLeft className="size-3 text-slate-300" />
@@ -359,7 +359,7 @@ export default function SpecialInterestDPPage() {
             className="h-11 font-black uppercase tracking-widest gap-2 shadow-lg shadow-primary/20"
           >
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run DP Audit
+            Run Interest Calculations 
           </Button>
         </div>
       </div>
@@ -411,7 +411,7 @@ export default function SpecialInterestDPPage() {
                   <TableHead className="text-right py-4 font-black">Closing Bal (৳)</TableHead>
                   <TableHead className="text-right py-4 font-black">Days</TableHead>
                   <TableHead className="text-right py-4 font-black">Total Interest (৳)</TableHead>
-                  <TableHead className="text-center py-4 font-black">Audit</TableHead>
+                  <TableHead className="text-center py-4 font-black">Verified</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -446,10 +446,10 @@ export default function SpecialInterestDPPage() {
           <DialogHeader className="border-b pb-4 mb-4">
             <DialogTitle className="flex items-center gap-3 text-xl font-black">
               <History className="size-5 text-amber-600" /> 
-              Detailed Profit Audit: {viewingDetails?.name}
+              Detailed Profit: {viewingDetails?.name}
             </DialogTitle>
             <DialogDescription className="uppercase font-black text-[10px] tracking-widest text-slate-400">
-              Audit Period: {dateRange.start} to {dateRange.end} • Member ID: {viewingDetails?.memberIdNumber}
+              Interest Period: {dateRange.start} to {dateRange.end} • Member ID: {viewingDetails?.memberIdNumber}
             </DialogDescription>
           </DialogHeader>
           
@@ -509,7 +509,7 @@ export default function SpecialInterestDPPage() {
                 <Table>
                   <TableHeader className="bg-slate-100">
                     <TableRow>
-                      <TableHead className="text-[10px] font-black uppercase py-3">Audit Date</TableHead>
+                      <TableHead className="text-[10px] font-black uppercase py-3">Date</TableHead>
                       <TableHead className="text-right text-[10px] font-black uppercase py-3">Day-End Balance (৳)</TableHead>
                       <TableHead className="text-right text-[10px] font-black uppercase py-3">Day Portion Interest (৳)</TableHead>
                       <TableHead className="text-center text-[10px] font-black uppercase py-3">Activity</TableHead>
@@ -554,7 +554,7 @@ export default function SpecialInterestDPPage() {
       <div className="hidden print:block print-container font-ledger text-black">
         <div className="text-center space-y-2 mb-8 border-b-2 border-black pb-6">
           <h1 className="text-2xl font-black uppercase">{pbsName}</h1>
-          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Day-Product Special Interest Audit Statement</h2>
+          <h2 className="text-lg font-black underline underline-offset-4 uppercase">Day-Product Special Interest Statement</h2>
           <div className="flex justify-between text-[10px] font-black pt-4">
             <span>Period: {dateRange.start} to {dateRange.end}</span>
             <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
