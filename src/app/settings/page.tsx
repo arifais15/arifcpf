@@ -41,7 +41,8 @@ import {
   Download,
   Upload,
   Database,
-  HardDrive
+  HardDrive,
+  Percent
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useSweetAlert } from "@/hooks/use-sweet-alert"
@@ -424,7 +425,7 @@ export default function SettingsPage() {
 
         <TabsContent value="coa" className="space-y-6 animate-in fade-in duration-500">
           <div className="flex items-center justify-between mb-2">
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 max-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-black opacity-30" />
               <Input className="pl-9 h-10 border-2 border-black font-black text-xs" placeholder="Filter Registry Accounts..." value={coaSearch} onChange={(e) => setCoaSearch(e.target.value)} />
             </div>
@@ -523,7 +524,6 @@ export default function SettingsPage() {
                         <Label className="text-[9px] uppercase text-slate-400 font-black">Normal Balance</Label>
                         <div className="flex items-center gap-3">
                           <span className={cn("text-[9px] font-black uppercase", !debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Credit</span>
-                          <Switch className="data-[state=checked]:bg-indigo-600" checked={debitAccounts.includes(mapping[col.key] || "")} onCheckedChange={() => mapping[col.key] && toggleDebit(mapping[col.key])} disabled={!mapping[col.key] || !isUnlocked} />
                           <span className={cn("text-[9px] font-black uppercase", debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Debit</span>
                         </div>
                       </div>
