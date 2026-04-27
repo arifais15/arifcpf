@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -195,6 +196,17 @@ export default function TrialBalancePage() {
               <p className="text-xl font-black uppercase">{isBalanced ? "Balanced" : "Discrepancy Detected"}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Print Header */}
+      <div className="hidden print:block text-center space-y-2 mb-10 border-b-4 border-black pb-8">
+        <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
+        <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
+        <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Statement of Trial Balance</h2>
+        <div className="flex justify-between text-[11px] font-black pt-8">
+          <span>As of Date: {asOfDate}</span>
+          <span>Print Date: {new Date().toLocaleDateString('en-GB')}</span>
         </div>
       </div>
 
