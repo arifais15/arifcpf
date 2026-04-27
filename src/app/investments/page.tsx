@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -283,6 +284,24 @@ export default function InvestmentsPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Investments");
     XLSX.writeFile(wb, `Investment_Portfolio_${new Date().toISOString().split('T')[0]}.xlsx`);
     toast({ title: "Exported", description: "Portfolio data saved to Excel." });
+  };
+
+  const handleDelete = (id: string) => {
+    const pw = window.prompt("Enter Authorization Code to Delete:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
+    showAlert({ 
+      title: "Delete Record?", 
+      description: "Remove this instrument from active portfolio? Audit trail history is retained.", 
+      type: "warning", 
+      showCancel: true, 
+      confirmText: "Delete", 
+      onConfirm: () => { 
+        deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", id)); 
+      } 
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -586,7 +605,7 @@ export default function InvestmentsPage() {
                     <Button variant="ghost" size="icon" className="h-9 w-9 text-black hover:bg-slate-100" title="History" onClick={() => { setViewingHistory(inv); setIsHistoryOpen(true); }}><HistoryIcon className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9 text-black hover:bg-slate-100" title="Renew" onClick={() => { setRenewingInvestment(inv); setIsRenewOpen(true); }}><RefreshCw className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9 hover:bg-slate-100" onClick={() => { setEditingInvestment(inv); setIsAddOpen(true); }}><Edit2 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => { showAlert({ title: "Delete Record?", description: "Remove this instrument from active portfolio? Audit trail history is retained.", type: "warning", showCancel: true, confirmText: "Delete", onConfirm: () => { deleteDocumentNonBlocking(doc(firestore, "investmentInstruments", inv.id)); } }); }}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => handleDelete(inv.id)}><Trash2 className="size-4" /></Button>
                   </div>
                 </TableCell>
               </TableRow>

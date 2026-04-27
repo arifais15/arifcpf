@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -63,7 +64,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     const now = new Date();
     const curYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
+    const startYear = currentMonth >= 7 ? curYear : currentYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -189,6 +190,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     setIsSettlementOpen(false);
     toast({ title: "Settlement Confirmed" });
   };
+
+  const handleDeleteEntry = (entryId: string) => {
+    const pw = window.prompt("Enter Authorization Code to Delete:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
+    showAlert({ 
+      title: "Irreversible Purge?", 
+      description: "Remove this voucher from subsidiary record?", 
+      type: "warning", 
+      showCancel: true, 
+      onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", entryId)) 
+    });
+  }
 
   const headerActions = useMemo(() => (
     <div className="flex gap-3 no-print">
@@ -318,7 +334,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                   {!r.isOpening && (
                     <div className="flex gap-1 justify-center">
                       <Button variant="ghost" size="icon" className="h-4 w-4 hover:bg-black hover:text-white" onClick={() => { setEditingEntry(r); setManualVals({ c1:r.c1, c2:r.c2, c3:r.c3, c5:r.c5, c6:r.c6, c8:r.c8, c9:r.c9 }); setIsEntryOpen(true); }}><Edit2 className="size-2.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-4 w-4 text-rose-600 hover:bg-rose-600 hover:text-white" onClick={() => showAlert({ title:"Irreversible Purge?", description: "Remove this voucher from subsidiary record?", type:"warning", showCancel:true, onConfirm:() => deleteDocumentNonBlocking(doc(firestore, "members", resolvedParams.id, "fundSummaries", r.id)) })}><Trash2 className="size-2.5" /></Button>
+                      <Button variant="ghost" size="icon" className="h-4 w-4 text-rose-600 hover:bg-rose-600 hover:text-white" onClick={() => handleDeleteEntry(r.id)}><Trash2 className="size-2.5" /></Button>
                     </div>
                   )}
                 </td>

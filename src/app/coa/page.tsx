@@ -72,6 +72,11 @@ export default function COAPage() {
   };
 
   const handleDeleteAccount = (id: string, name: string) => {
+    const pw = window.prompt("Enter Authorization Code to Delete:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
     showAlert({
       title: "Are you sure?",
       description: `Delete account: ${name}?`,

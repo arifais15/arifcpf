@@ -77,17 +77,10 @@ export default function ContributionAuditPage() {
   const summariesRef = useMemoFirebase(() => collectionGroup(firestore, "fundSummaries"), [firestore]);
   const { data: allSummaries, isLoading: isSummariesLoading } = useCollection(summariesRef);
 
-  /**
-   * CRITICAL PERFORMANCE FIX:
-   * During cleanup, we return an empty array to prevent the browser from 
-   * attempting to re-render the heavy table and re-filter thousands of items 
-   * for every single record deleted.
-   */
   const filteredData = useMemo(() => {
     if (!allSummaries || isProcessingCleanup) return [];
     let data = allSummaries;
     
-    // 1. Date Range Filter
     if (dateRange.start && dateRange.end) {
       const s = new Date(dateRange.start).getTime();
       const e = new Date(dateRange.end).getTime();
@@ -97,7 +90,6 @@ export default function ContributionAuditPage() {
       });
     }
 
-    // 2. Global Search (ID, Name, Desig, Particulars)
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       data = data.filter(item => {
@@ -120,6 +112,11 @@ export default function ContributionAuditPage() {
   }, [filteredData]);
 
   const handleBulkDelete = async () => {
+    const pw = window.prompt("Enter Authorization Code to PURGE ALL FILTERED DATA:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
     if (filteredData.length === 0) return;
     showAlert({
       title: "Institutional Purge",
@@ -129,18 +126,14 @@ export default function ContributionAuditPage() {
       confirmText: "Delete Records",
       onConfirm: async () => {
         setIsDeleting(true);
-        setIsProcessingCleanup(true); // Engages the CPU throttling overlay
+        setIsProcessingCleanup(true); 
         
-        // Use the existing filteredData snapshot so it doesn't change mid-loop
         const batch = [...filteredData];
         
-        // Execute deletions
         batch.forEach((item) => {
           deleteDocumentNonBlocking(doc(firestore, "members", item.memberId, "fundSummaries", item.id));
         });
 
-        // Stabilization window: keeps the overlay up for a moment to let React finish its 
-        // internal reconciliation after the state-update storm.
         setTimeout(() => {
           setIsDeleting(false);
           setIsProcessingCleanup(false);
@@ -259,8 +252,6 @@ export default function ContributionAuditPage() {
                 <TableHead className="w-[120px] border-r-2 border-black p-1 text-left text-black font-black">Personnel Details</TableHead>
                 <TableHead className="w-[70px] border-r border-black p-1 text-center text-black font-black">Date</TableHead>
                 <TableHead className="w-[150px] border-r-2 border-black p-1 text-left text-black font-black">Particulars</TableHead>
-                
-                {/* 7 Statutory Columns */}
                 <TableHead className="w-[65px] border-r border-black text-right p-1 text-black font-black bg-blue-50/30">Emp(1)</TableHead>
                 <TableHead className="w-[65px] border-r border-black text-right p-1 text-black font-black">Draw(2)</TableHead>
                 <TableHead className="w-[65px] border-r border-black text-right p-1 text-black font-black">Repay(3)</TableHead>
@@ -284,7 +275,6 @@ export default function ContributionAuditPage() {
                     </td>
                     <td className="p-1 border-r border-black text-center font-mono text-black">{item.summaryDate}</td>
                     <td className="p-1 border-r-2 border-black truncate uppercase text-black">{item.particulars}</td>
-                    
                     <td className="p-1 border-r border-black text-right bg-blue-50/10 text-black">{Number(item.employeeContribution||0).toLocaleString()}</td>
                     <td className="p-1 border-r border-black text-right text-rose-600">{Number(item.loanWithdrawal||0).toLocaleString()}</td>
                     <td className="p-1 border-r border-black text-right text-emerald-600">{Number(item.loanRepayment||0).toLocaleString()}</td>
@@ -342,4 +332,3 @@ export default function ContributionAuditPage() {
     </div>
   );
 }
-

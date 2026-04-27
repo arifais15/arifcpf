@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -233,6 +234,11 @@ export default function MembersPage() {
   };
 
   const handleConfirmUpload = async () => {
+    const pw = window.prompt("Enter Authorization Code to Import Data:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
     if (!bulkPreview) return;
     setIsCommitting(true);
 
@@ -365,6 +371,21 @@ export default function MembersPage() {
     }
   };
 
+  const handleDeleteMember = (id: string, name: string) => {
+    const pw = window.prompt("Enter Authorization Code to Delete Member:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
+    showAlert({ 
+      title: "Irreversible Purge?", 
+      description: `Remove ${name} from vault?`, 
+      type: "warning", 
+      showCancel: true, 
+      onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", id)) 
+    });
+  };
+
   const headerActions = useMemo(() => (
     <div className="flex gap-3 ml-auto no-print">
       <Button variant="outline" onClick={() => setIsBulkOpen(true)} className="h-10 border-2 border-black uppercase text-[11px] font-black text-black rounded-xl px-6 bg-white hover:bg-slate-50 shadow-md">
@@ -447,7 +468,7 @@ export default function MembersPage() {
                 <td className="text-right pr-8 py-0">
                   <div className="flex justify-end gap-2 items-center h-full">
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-black hover:bg-black hover:text-white transition-all" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-white hover:bg-rose-600 transition-all" onClick={() => showAlert({ title: "Irreversible Purge?", description: `Remove ${m.name} from vault?`, type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-white hover:bg-rose-600 transition-all" onClick={() => handleDeleteMember(m.id, m.name)}><Trash2 className="size-3.5" /></Button>
                     <Button variant="outline" size="sm" asChild className="h-6 px-4 border-black border-2 font-black uppercase text-[10px] text-black bg-white hover:bg-black hover:text-white rounded-none transition-all tracking-widest ml-2"><Link href={`/members/${m.id}`}>Open Ledger</Link></Button>
                   </div>
                 </td>

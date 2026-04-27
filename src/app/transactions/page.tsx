@@ -45,6 +45,11 @@ export default function TransactionsPage() {
   }, [entries, search]);
 
   const handleDelete = (id: string, ref: string) => {
+    const pw = window.prompt("Enter Authorization Code to Delete Transaction:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
     showAlert({
       title: "Delete Transaction?",
       description: `Are you sure you want to delete transaction ${ref || id}? This action will also remove associated entries from all member ledgers.`,
