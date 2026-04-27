@@ -194,7 +194,7 @@ export default function SpecialInterestDPPage() {
       if (res.totalInterest <= 0) continue;
       const entry = { 
         summaryDate: postingDate, 
-        particulars: `Annual Profit (DP Basis) ${dateRange.start} to ${dateRange.end}`, 
+        particulars: `Profit ${dateRange.start} to ${dateRange.end}`, 
         employeeContribution: 0, 
         loanWithdrawal: 0, 
         loanRepayment: 0, 
@@ -229,7 +229,7 @@ export default function SpecialInterestDPPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Special Interest Audit");
-    XLSX.writeFile(wb, `Special_Profit_Audit_${dateRange.start}.xlsx`);
+    XLSX.writeFile(wb, `Special_Profit_${dateRange.start}.xlsx`);
     toast({ title: "Exported", description: "Detailed yield matrix saved to Excel." });
   };
 
@@ -273,7 +273,7 @@ export default function SpecialInterestDPPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-[10px] uppercase font-black text-black ml-1">Audit Range</Label>
+            <Label className="text-[10px] uppercase font-black text-black ml-1">Date Range</Label>
             <div className="flex items-center gap-3 border-2 border-black p-1.5 rounded-lg">
               <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-none font-black" />
               <ArrowRightLeft className="size-3 text-black" />
@@ -282,7 +282,7 @@ export default function SpecialInterestDPPage() {
           </div>
           <Button onClick={handleCalculate} disabled={isCalculating || isMembersLoading} className="h-11 font-black bg-black text-white uppercase tracking-widest shadow-xl">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run DP Audit
+            Run Profit Distribution
           </Button>
         </div>
       </div>
@@ -300,7 +300,7 @@ export default function SpecialInterestDPPage() {
                 <Input type="date" value={postingDate} max="9999-12-31" onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs border-black border-2" />
               </div>
               <Button onClick={handlePostAll} disabled={!postingDate} className="bg-black text-white h-10 font-black uppercase text-[10px] tracking-widest">
-                <ShieldCheck className="size-4" /> Sync All
+                <ShieldCheck className="size-4" /> Post to Ledger 
               </Button>
             </div>
           </div>
@@ -349,7 +349,7 @@ export default function SpecialInterestDPPage() {
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
             <DialogTitle className="flex items-center gap-4 text-2xl font-black uppercase">
               <History className="size-8 text-black" /> 
-              Detailed Profit Audit: {viewingDetails?.name}
+              Detailed Profit : {viewingDetails?.name}
             </DialogTitle>
             <DialogDescription className="uppercase font-black text-[10px] tracking-widest text-slate-500 mt-2">
               Audit Period: {dateRange.start} to {dateRange.end} • Member ID: {viewingDetails?.memberIdNumber}
@@ -422,8 +422,8 @@ export default function SpecialInterestDPPage() {
                     {viewingDetails?.dailyLog.map((day: any, i: number) => (
                       <TableRow key={i} className={cn("hover:bg-slate-50 border-b border-black", day.hasActivity && "bg-amber-50/20")}>
                         <td className="font-mono text-xs p-3 pl-6 text-black">{day.date}</td>
-                        <td className="text-right p-3 font-black text-black">৳ {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                        <td className="text-right p-3 font-black text-black">৳ {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
+                        <td className="text-right p-3 font-black text-black"> {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="text-right p-3 font-black text-black"> {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
                         <td className="text-center p-3 pr-6">
                           {day.hasActivity ? <Badge className="bg-black text-white text-[8px] h-4 uppercase font-black rounded-none">Trxn</Badge> : <span className="text-[8px] text-slate-300 font-black">—</span>}
                         </td>
@@ -445,7 +445,7 @@ export default function SpecialInterestDPPage() {
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Day-Product Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-slate-400 font-black italic uppercase">
-                  This calculation captures exact fund utilization for Active members. Interest is computed daily using the formula: (Daily Balance * Annual Tiered Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual.
+                  This calculation captures exact fund utilization for Active members. Interest is computed daily using the formula: (Daily Balance * Annual  Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual.
                 </p>
               </div>
             </div>

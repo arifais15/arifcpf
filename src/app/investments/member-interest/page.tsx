@@ -164,7 +164,7 @@ export default function CPFInterestPage() {
       const snapshot = await getDocuments(q);
       const summaries = snapshot.docs.map(doc => doc.data());
 
-      const isAlreadyPosted = summaries.some(s => s.particulars?.includes(`Annual Profit ${modeLabel}`));
+      const isAlreadyPosted = summaries.some(s => s.particulars?.includes(`Profit ${modeLabel}`));
 
       let totalInterest = 0;
       let finalEmployeeFund = 0;
@@ -233,7 +233,7 @@ export default function CPFInterestPage() {
       if (item.calculatedInterest <= 0) continue;
       const entryData = { 
         summaryDate: postingDate, 
-        particulars: `Annual Profit ${modeLabel} (Tiered)`, 
+        particulars: `Profit ${modeLabel}`, 
         employeeContribution: 0, 
         loanWithdrawal: 0, 
         loanRepayment: 0, 
@@ -279,7 +279,7 @@ export default function CPFInterestPage() {
           <Link href="/investments" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors"><ArrowLeft className="size-6" /></Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tight uppercase">Member Interest Accrual</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Annual Profit Distribution Audit Terminal</p>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Annual Profit Distribution</p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
@@ -307,7 +307,7 @@ export default function CPFInterestPage() {
 
           <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-black uppercase text-[10px] h-9 px-6 bg-black text-white hover:bg-black/90 shadow-lg">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run Audit
+            Run Profit Distribution 
           </Button>
         </div>
       </div>
@@ -344,14 +344,14 @@ export default function CPFInterestPage() {
           <div className="p-6 border-b-4 border-black bg-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex flex-col gap-3">
               <h2 className="font-black text-sm uppercase tracking-widest flex items-center gap-3">
-                <ShieldCheck className="size-5" /> Audit Matrix Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
+                <ShieldCheck className="size-5" /> Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
               </h2>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={exportToExcel} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
                   <FileSpreadsheet className="size-3.5" /> Export Excel
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => window.print()} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
-                  <Printer className="size-3.5" /> Print Audit Report
+                  <Printer className="size-3.5" /> Print  Report
                 </Button>
               </div>
             </div>
@@ -368,7 +368,7 @@ export default function CPFInterestPage() {
                 className={cn("gap-2 font-black uppercase text-[10px] h-9 px-6", hasUnpostedEntries && postingDate ? "bg-black text-white" : "bg-slate-200 text-slate-400")}
               >
                 {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-                Synchronize
+                Post To Ledger Now
               </Button>
             </div>
           </div>
@@ -416,7 +416,7 @@ export default function CPFInterestPage() {
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
             <DialogTitle className="flex items-center gap-4 text-2xl font-black uppercase tracking-tight">
               <Calculator className="size-8 text-black" />
-              Profit Audit Matrix Breakdown
+              Profit  Calculation Breakdown
             </DialogTitle>
             <DialogDescription className="font-black text-slate-500 text-[11px] uppercase tracking-[0.25em] mt-2">
               {viewingDetails?.name} ({viewingDetails?.memberIdNumber}) • {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Audit Range`}
@@ -480,7 +480,7 @@ export default function CPFInterestPage() {
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Institutional Audit Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-slate-400 font-bold uppercase italic">
-                  Profit is computed by aggregating 12 audit snapshots for Active members only. Each snapshot captures the total cumulative fund value at the end of the basis month. The final amount represents the weighted annual profit share based on real-time ledger contributions.
+                  Profit is computed by aggregating 12 month snapshots for Active members only. Each snapshot captures the total cumulative fund value at the end of the basis month. The final amount represents the weighted annual profit share based on real-time ledger contributions.
                 </p>
               </div>
             </div>
