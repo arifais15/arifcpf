@@ -1,4 +1,3 @@
-
 'use client';
     
 import {
@@ -21,7 +20,9 @@ import { FirestorePermissionError, type SecurityRuleContext } from '@/firebase/e
  */
 export async function setDocumentNonBlocking(docRef: DocumentReference, data: any, options: SetOptions = {}) {
   if (USE_LOCAL_DB) {
-    return serverSetDoc(docRef.path, data);
+    await serverSetDoc(docRef.path, data);
+    errorEmitter.emit('data-updated', { path: docRef.path });
+    return;
   }
   return setDoc(docRef, data, options).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
@@ -41,6 +42,7 @@ export async function addDocumentNonBlocking(colRef: CollectionReference, data: 
     const docId = data.id || Math.random().toString(36).substring(2, 15);
     const path = `${colRef.path}/${docId}`;
     await serverSetDoc(path, { ...data, id: docId });
+    errorEmitter.emit('data-updated', { path: colRef.path });
     return { id: docId };
   }
   return addDoc(colRef, data).catch(async (serverError) => {
@@ -59,7 +61,9 @@ export async function addDocumentNonBlocking(colRef: CollectionReference, data: 
  */
 export async function updateDocumentNonBlocking(docRef: DocumentReference, data: any) {
   if (USE_LOCAL_DB) {
-    return serverSetDoc(docRef.path, data);
+    await serverSetDoc(docRef.path, data);
+    errorEmitter.emit('data-updated', { path: docRef.path });
+    return;
   }
   return updateDoc(docRef, data).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({
@@ -76,7 +80,9 @@ export async function updateDocumentNonBlocking(docRef: DocumentReference, data:
  */
 export async function deleteDocumentNonBlocking(docRef: DocumentReference) {
   if (USE_LOCAL_DB) {
-    return serverDeleteDoc(docRef.path);
+    await serverDeleteDoc(docRef.path);
+    errorEmitter.emit('data-updated', { path: docRef.path });
+    return;
   }
   return deleteDoc(docRef).catch(async (serverError) => {
     const permissionError = new FirestorePermissionError({

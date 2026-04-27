@@ -32,7 +32,8 @@ import {
   useCollection, 
   useMemoFirebase, 
   useDoc, 
-  getDocuments
+  getDocuments,
+  errorEmitter
 } from "@/firebase";
 import { serverExecuteBatch } from "@/app/actions/db-actions";
 import { collection, doc, query, where, collectionGroup } from "firebase/firestore";
@@ -364,6 +365,7 @@ function TransactionForm() {
 
     try {
       await serverExecuteBatch(batchOps);
+      errorEmitter.emit('data-updated', { path: 'journalEntries' });
       showAlert({ title: "Voucher Committed", description: "Audit trail and Subsidiary Matrix synchronized.", type: "success" }); 
       router.push("/transactions");
     } catch (err) { 

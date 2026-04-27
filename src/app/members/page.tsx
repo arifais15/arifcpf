@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
+import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments, errorEmitter } from "@/firebase";
 import { collection, doc, query, where, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -349,6 +349,7 @@ export default function MembersPage() {
       }
 
       await serverExecuteBatch(batchOps);
+      errorEmitter.emit('data-updated', { path: 'members' });
 
       showAlert({ 
         title: "Audit Synchronized", 

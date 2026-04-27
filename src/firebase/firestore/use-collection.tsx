@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { USE_LOCAL_DB } from '@/firebase';
 import { serverGetCollection } from '@/app/actions/db-actions';
 import { onSnapshot, QuerySnapshot, DocumentData } from 'firebase/firestore';
@@ -22,6 +21,28 @@ export function useCollection<T = any>(
   const [data, setData] = useState<WithId<T>[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const syncLocal = useCallback(async () => {
+    if (!memoizedTargetRefOrQuery) return;
+    
+    let path = "";
+    if (typeof memoizedTargetRefOrQuery === 'string') {
+      path = memoizedTargetRefOrQuery;
+    } else if (memoizedTargetRefOrQuery.path) {
+      path = memoizedTargetRefOrQuery.path;
+    } else if (memoizedTargetRefOrQuery._query) {
+      path = memoizedTargetRefOrQuery._query.collectionGroup || (memoizedTargetRefOrQuery._query.path?.segments || []).join('/');
+    }
+    
+    try {
+      const results = await serverGetCollection(path);
+      setData(results as WithId<T>[]);
+    } catch (e) {
+      console.error("Local sync failed:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [memoizedTargetRefOrQuery]);
+
   useEffect(() => {
     if (!memoizedTargetRefOrQuery) {
       setData(null);
@@ -30,25 +51,18 @@ export function useCollection<T = any>(
     }
 
     if (USE_LOCAL_DB) {
-      const syncLocal = async () => {
-        let path = "";
-        if (typeof memoizedTargetRefOrQuery === 'string') {
-          path = memoizedTargetRefOrQuery;
-        } else if (memoizedTargetRefOrQuery.path) {
-          path = memoizedTargetRefOrQuery.path;
-        } else if (memoizedTargetRefOrQuery._query) {
-          path = memoizedTargetRefOrQuery._query.collectionGroup || memoizedTargetRefOrQuery._query.path.segments.join('/');
-        }
-        
-        const results = await serverGetCollection(path);
-        setData(results as WithId<T>[]);
-        setIsLoading(false);
+      setIsLoading(true);
+      syncLocal();
+
+      // Listen for global update signals to refresh UI instantly
+      const handleUpdate = () => {
+        syncLocal();
       };
 
-      syncLocal();
-      // Since it's a server action, we poll or rely on revalidations if needed.
-      // For a local-first app, this simple sync is usually enough on mount.
-      return;
+      errorEmitter.on('data-updated', handleUpdate);
+      return () => {
+        errorEmitter.off('data-updated', handleUpdate);
+      };
     }
 
     setIsLoading(true);
@@ -69,7 +83,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]);
+  }, [memoizedTargetRefOrQuery, syncLocal]);
 
   return { data, isLoading, error: null };
 }

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { USE_LOCAL_DB } from '@/firebase';
 import { serverGetDoc } from '@/app/actions/db-actions';
 import { onSnapshot, DocumentReference, DocumentSnapshot, DocumentData } from 'firebase/firestore';
@@ -22,6 +21,19 @@ export function useDoc<T = any>(
   const [data, setData] = useState<WithId<T> | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const syncLocal = useCallback(async () => {
+    if (!memoizedDocRef) return;
+    const path = memoizedDocRef.path;
+    try {
+      const result = await serverGetDoc(path);
+      setData(result ? { ...result, id: memoizedDocRef.id } as WithId<T> : null);
+    } catch (e) {
+      console.error("Local doc sync failed:", e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [memoizedDocRef]);
+
   useEffect(() => {
     if (!memoizedDocRef) {
       setData(null);
@@ -30,15 +42,18 @@ export function useDoc<T = any>(
     }
 
     if (USE_LOCAL_DB) {
-      const syncLocal = async () => {
-        const path = memoizedDocRef.path;
-        const result = await serverGetDoc(path);
-        setData(result ? { ...result, id: memoizedDocRef.id } as WithId<T> : null);
-        setIsLoading(false);
+      setIsLoading(true);
+      syncLocal();
+
+      // Listen for global update signals to refresh UI instantly
+      const handleUpdate = () => {
+        syncLocal();
       };
 
-      syncLocal();
-      return;
+      errorEmitter.on('data-updated', handleUpdate);
+      return () => {
+        errorEmitter.off('data-updated', handleUpdate);
+      };
     }
 
     setIsLoading(true);
@@ -60,7 +75,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]);
+  }, [memoizedDocRef, syncLocal]);
 
   return { data, isLoading, error: null };
 }
