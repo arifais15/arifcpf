@@ -141,6 +141,39 @@ export default function TrialBalancePage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-[#000000]">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          .no-print { display: none !important; }
+          .print-container {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+          table { 
+            width: 100% !important; 
+            table-layout: fixed !important; 
+            border-collapse: collapse !important;
+          }
+          th, td { 
+            border: 1pt solid black !important;
+            padding: 4px !important;
+          }
+          thead { display: table-header-group !important; }
+          tfoot { display: table-footer-group !important; }
+          body { background-color: white !important; }
+          main { overflow: visible !important; height: auto !important; }
+          [data-sidebar="inset"] { height: auto !important; overflow: visible !important; }
+        }
+      `}} />
+
       {/* Navigation & Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
