@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments, errorEmitter } from "@/firebase";
-import { collection, doc, query, where, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
+import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
+import { collection, doc, query, where, collectionGroup, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -196,22 +196,34 @@ export default function MembersPage() {
         let totalLoanAct = 0;
         let uniqueIDs = new Set();
 
-        data.forEach((entry: any) => {
-          const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
-          const date = excelDateToISO(entry[findKey(["PostingDate", "Date", "TransactionDate"])]);
-          const idNum = String(entry[findKey(["ID", "Member ID", "ID No"])] || "").trim();
+        const sampleKeys = data.length > 0 ? Object.keys(data[0]) : [];
+        const findKey = (search: string[]) => sampleKeys.find(k => search.includes(k.trim())) || "";
+        
+        const keyDate = findKey(["PostingDate", "Date", "TransactionDate"]);
+        const keyId = findKey(["ID", "Member ID", "ID No"]);
+        const keyEmpCont = findKey(["Emp_Contrib", "Column 1"]);
+        const keyPbsCont = findKey(["PBS_Contribution", "Column 8"]);
+        const keyLoanDisb = findKey(["Loan_Disbursed", "Column 2"]);
+        const keyLoanRepaid = findKey(["Loan_Repaid", "Column 3"]);
+
+        for (let i = 0; i < data.length; i++) {
+          if (i % 100 === 0) await new Promise(resolve => setTimeout(resolve, 0)); // Yield to keep UI responsive
+          const entry = data[i] as any;
           
-          if (!idNum) return;
+          const date = excelDateToISO(entry[keyDate]);
+          const idNum = String(entry[keyId] || "").trim();
+          
+          if (!idNum) continue;
           uniqueIDs.add(idNum);
 
           if (!groupedByDate[date]) groupedByDate[date] = [];
           groupedByDate[date].push(entry);
 
-          totalEmpCont += Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0);
-          totalPbsCont += Number(entry[findKey(["PBS_Contribution", "Column 8"])] || 0);
-          totalLoanAct += Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0);
-          totalLoanAct -= Number(entry[findKey(["Loan_Repaid", "Column 3"])] || 0);
-        });
+          totalEmpCont += Number(entry[keyEmpCont] || 0);
+          totalPbsCont += Number(entry[keyPbsCont] || 0);
+          totalLoanAct += Number(entry[keyLoanDisb] || 0);
+          totalLoanAct -= Number(entry[keyLoanRepaid] || 0);
+        }
 
         setBulkPreview({
           dateGroups: groupedByDate,
@@ -234,11 +246,6 @@ export default function MembersPage() {
   };
 
   const handleConfirmUpload = async () => {
-    const pw = window.prompt("Enter Authorization Code to Import Data:");
-    if (pw !== "321") {
-      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
-      return;
-    }
     if (!bulkPreview) return;
     setIsCommitting(true);
 
@@ -250,7 +257,29 @@ export default function MembersPage() {
       const batchOps: any[] = [];
       const timestamp = new Date().toISOString();
 
+      const sampleRow = Object.values(bulkPreview.dateGroups)[0]?.[0] || {};
+      const sampleKeys = Object.keys(sampleRow);
+      const findKey = (search: string[]) => sampleKeys.find(k => search.includes(k.trim())) || "";
+      
+      const keyId = findKey(["ID", "Member ID", "ID No"]);
+      const keyName = findKey(["Name", "Member Name"]);
+      const keyDesignation = findKey(["Designation", "Rank"]);
+      const keyJoined = findKey(["JoinedDate", "DateJoined"]);
+      const keyZonal = findKey(["ZonalOffice", "Office"]);
+      
+      const keyC1 = findKey(["Emp_Contrib", "Column 1"]);
+      const keyC2 = findKey(["Loan_Disbursed", "Column 2"]);
+      const keyC3 = findKey(["Loan_Repaid", "Column 3"]);
+      const keyC5 = findKey(["Employee_Profit", "Column 5"]);
+      const keyC6 = findKey(["Loan_Profit", "Column 6"]);
+      const keyC8 = findKey(["PBS_Contribution", "Column 8"]);
+      const keyC9 = findKey(["PBS_Profit", "Column 9"]);
+      const keyParticulars = findKey(["Particulars", "Detail"]);
+
       for (const [postingDate, rows] of Object.entries(bulkPreview.dateGroups)) {
+        // Yield to main thread to prevent UI freezing
+        await new Promise(resolve => setTimeout(resolve, 10));
+
         const dateKey = postingDate.replaceAll('-', '');
         const journalId = `BULK-${dateKey}`;
         const journalLines: any[] = [];
@@ -258,10 +287,13 @@ export default function MembersPage() {
         let totalCredit = 0;
         let bankEffect = 0; 
 
+        let processedCount = 0;
         for (const entry of rows as any[]) {
-          const findKey = (search: string[]) => Object.keys(entry).find(k => search.includes(k.trim())) || "";
-          const idNum = String(entry[findKey(["ID", "Member ID", "ID No"])] || "").trim();
-          const name = String(entry[findKey(["Name", "Member Name"])] || "").trim();
+          processedCount++;
+          if (processedCount % 100 === 0) await new Promise(resolve => setTimeout(resolve, 0));
+
+          const idNum = String(entry[keyId] || "").trim();
+          const name = String(entry[keyName] || "").trim();
           
           if (!idNum || !name) continue;
           
@@ -274,25 +306,25 @@ export default function MembersPage() {
               path: `members/${mDocId}`,
               data: { 
                 memberIdNumber: idNum, name, 
-                designation: String(entry[findKey(["Designation", "Rank"])] || ""), 
-                dateJoined: excelDateToISO(entry[findKey(["JoinedDate", "DateJoined"])]), 
-                zonalOffice: String(entry[findKey(["ZonalOffice", "Office"])] || "HO"), 
+                designation: String(entry[keyDesignation] || ""), 
+                dateJoined: excelDateToISO(entry[keyJoined]), 
+                zonalOffice: String(entry[keyZonal] || "HO"), 
                 status: "Active", createdAt: timestamp, updatedAt: timestamp
               }
             });
           }
 
           const vals = {
-            c1: Number(entry[findKey(["Emp_Contrib", "Column 1"])] || 0),
-            c2: Number(entry[findKey(["Loan_Disbursed", "Column 2"])] || 0),
-            c3: Number(entry[findKey(["Loan_Repaid", "Column 3"])] || 0),
-            c5: Number(entry[findKey(["Employee_Profit", "Column 5"])] || 0),
-            c6: Number(entry[findKey(["Loan_Profit", "Column 6"])] || 0),
-            c8: Number(entry[findKey(["PBS_Contribution", "Column 8"])] || 0),
-            c9: Number(entry[findKey(["PBS_Profit", "Column 9"])] || 0)
+            c1: Number(entry[keyC1] || 0),
+            c2: Number(entry[keyC2] || 0),
+            c3: Number(entry[keyC3] || 0),
+            c5: Number(entry[keyC5] || 0),
+            c6: Number(entry[keyC6] || 0),
+            c8: Number(entry[keyC8] || 0),
+            c9: Number(entry[keyC9] || 0)
           };
 
-          const particulars = String(entry[findKey(["Particulars", "Detail"])] || `Monthly Import Bulk - ${postingDate}`);
+          const particulars = String(entry[keyParticulars] || `Monthly Import Bulk - ${postingDate}`);
 
           const mapping = [
             { code: '200.10.0000', debit: 0, credit: vals.c1, name: "Employees' Own Contribution" },
@@ -355,12 +387,12 @@ export default function MembersPage() {
       }
 
       await serverExecuteBatch(batchOps);
-      errorEmitter.emit('data-updated', { path: 'members' });
 
       showAlert({ 
         title: "Audit Synchronized", 
         description: `Successfully processed ${bulkPreview.rawData.length} lines into the project vault.`, 
-        type: "success" 
+        type: "success",
+        onConfirm: () => window.location.reload()
       });
       setIsPreviewOpen(false);
       setBulkPreview(null);
@@ -369,21 +401,6 @@ export default function MembersPage() {
     } finally {
       setIsCommitting(false);
     }
-  };
-
-  const handleDeleteMember = (id: string, name: string) => {
-    const pw = window.prompt("Enter Authorization Code to Delete Member:");
-    if (pw !== "321") {
-      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
-      return;
-    }
-    showAlert({ 
-      title: "Irreversible Purge?", 
-      description: `Remove ${name} from vault?`, 
-      type: "warning", 
-      showCancel: true, 
-      onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", id)) 
-    });
   };
 
   const headerActions = useMemo(() => (
@@ -413,7 +430,7 @@ export default function MembersPage() {
         </div>
         <div className="flex items-center gap-6 border-l-2 border-black/10 pl-8 ml-8">
           <div className="flex items-center gap-3">
-            <Label className="uppercase text-slate-500 tracking-widest">Display Rows</Label>
+            <Label className="text-xs font-black uppercase text-slate-500 tracking-widest">Display Rows</Label>
             <Select 
               value={pageSize.toString()} 
               onValueChange={(v) => { 
@@ -468,7 +485,7 @@ export default function MembersPage() {
                 <td className="text-right pr-8 py-0">
                   <div className="flex justify-end gap-2 items-center h-full">
                     <Button variant="ghost" size="icon" className="h-6 w-6 text-black hover:bg-black hover:text-white transition-all" onClick={() => { setEditingMember(m); setIsAddOpen(true); }}><Edit2 className="size-3.5" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-white hover:bg-rose-600 transition-all" onClick={() => handleDeleteMember(m.id, m.name)}><Trash2 className="size-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-white hover:bg-rose-600 transition-all" onClick={() => showAlert({ title: "Irreversible Purge?", description: `Remove ${m.name} from vault?`, type: "warning", showCancel: true, onConfirm: () => deleteDocumentNonBlocking(doc(firestore, "members", m.id)) })}><Trash2 className="size-3.5" /></Button>
                     <Button variant="outline" size="sm" asChild className="h-6 px-4 border-black border-2 font-black uppercase text-[10px] text-black bg-white hover:bg-black hover:text-white rounded-none transition-all tracking-widest ml-2"><Link href={`/members/${m.id}`}>Open Ledger</Link></Button>
                   </div>
                 </td>
@@ -476,14 +493,6 @@ export default function MembersPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="flex justify-between items-center no-print px-2">
-        <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest italic">Institutional Registry Interface</p>
-        <div className="flex items-center gap-2">
-           <Button variant="outline" disabled={currentPage === 1} onClick={() => { setCurrentPage(p => p - 1); setLastVisible(null); }} className="h-8 border-2 border-black font-black uppercase text-[9px] px-4">Previous</Button>
-           <Button variant="outline" disabled={members.length < pageSize} onClick={() => { setLastVisible(rawMembers?.[rawMembers.length - 2]); setCurrentPage(p => p + 1); }} className="h-8 border-2 border-black font-black uppercase text-[9px] px-4">Next</Button>
-        </div>
       </div>
 
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
@@ -494,7 +503,7 @@ export default function MembersPage() {
                 <FileType className="size-6 text-emerald-600" />
                 Monthly Data Import
               </DialogTitle>
-              <DialogDescription className="font-black uppercase tracking-widest text-slate-500 mt-1">
+              <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
                 Phase 1: Excel Integration
               </DialogDescription>
             </div>
@@ -534,7 +543,7 @@ export default function MembersPage() {
               <ShieldCheck className="size-6 text-emerald-400" />
              Reconciliation
             </DialogTitle>
-            <DialogDescription className="text-slate-400 font-black uppercase tracking-widest mt-1">
+            <DialogDescription className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
               Phase 2: Confirmation of Statutory Totals
             </DialogDescription>
           </DialogHeader>
@@ -542,19 +551,19 @@ export default function MembersPage() {
           <div className="p-8 space-y-8">
             <div className="grid grid-cols-2 gap-4">
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="uppercase text-slate-400">Total Employees</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Total Employees</p>
                   <p className="text-2xl font-black text-black">{bulkPreview?.totalMembers} Members</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="uppercase text-slate-400">Emp Contrib (Col 1)</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Emp Contrib (Col 1)</p>
                   <p className="text-2xl font-black text-indigo-700">৳ {bulkPreview?.totalEmpCont.toLocaleString()}</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="uppercase text-slate-400">PBS Matching (Col 8)</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">PBS Matching (Col 8)</p>
                   <p className="text-2xl font-black text-emerald-700">৳ {bulkPreview?.totalPbsCont.toLocaleString()}</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="uppercase text-slate-400">Net Loan Movement</p>
+                  <p className="text-[9px] font-black uppercase text-slate-400">Net Loan Movement</p>
                   <p className={cn("text-2xl font-black", bulkPreview?.totalLoanAct >= 0 ? "text-rose-700" : "text-emerald-700")}>
                     ৳ {Math.abs(bulkPreview?.totalLoanAct || 0).toLocaleString()} {bulkPreview?.totalLoanAct >= 0 ? "(Disbursed)" : "(Recovered)"}
                   </p>
@@ -564,7 +573,7 @@ export default function MembersPage() {
             <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-xl flex gap-3 items-start">
                <AlertCircle className="size-5 text-amber-600 mt-1 shrink-0" />
                <div className="space-y-1">
-                 <p className="uppercase text-amber-900 tracking-wider">Institutional Data Integrity Safe</p>
+                 <p className="text-[10px] font-black uppercase text-amber-900 tracking-wider">Institutional Data Integrity Safe</p>
                  <p className="text-[11px] leading-relaxed text-amber-800 font-bold italic">
                    This will synchronize balanced Journal Entries against "Receivable from PBS (107.10.0000)". Any existing data for these members on these dates will be reconciled (updated) automatically.
                  </p>
@@ -595,35 +604,20 @@ export default function MembersPage() {
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <DialogTitle className="font-black uppercase text-2xl flex items-center gap-4 text-black">
               <UserCircle className="size-8 text-blue-700" /> 
-              EMPLOYEE REGISTRATION
+              Employee Registration
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddMember} className="p-8 space-y-10 text-black bg-white">
-            <div className="grid grid-cols-2 gap-10">
-              <div className="space-y-2.5">
-                <Label className="uppercase text-amber-800 ml-1 tracking-widest">PayID</Label>
-                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-14 border-black border-2 font-black text-2xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} />
-              </div>
-              <div className="space-y-2.5">
-                <Label className="uppercase text-blue-800 ml-1 tracking-widest">Name</Label>
-                <Input name="name" defaultValue={editingMember?.name} required className="h-14 border-black border-2 font-black text-xl uppercase" />
-              </div>
-              <div className="space-y-2.5">
-                <Label className="uppercase text-slate-700 ml-1 tracking-widest">Designation</Label>
-                <Input name="designation" defaultValue={editingMember?.designation} required className="h-14 border-black border-2 font-black text-lg uppercase" />
-              </div>
-              <div className="space-y-2.5">
-                <Label className="uppercase text-indigo-800 ml-1 tracking-widest">Joining Date</Label>
-                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-14 border-black border-2 font-black text-xl text-black" />
-              </div>
-              <div className="space-y-2.5">
-                <Label className="uppercase text-slate-700 ml-1 tracking-widest">Assigned Office</Label>
-                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-14 border-black border-2 font-black text-lg text-black uppercase" />
-              </div>
-              <div className="space-y-2.5">
-                <Label className="uppercase text-rose-800 ml-1 tracking-widest">Status</Label>
+          <form onSubmit={handleAddMember} className="p-8 space-y-8 text-black bg-white">
+            <div className="grid grid-cols-2 gap-8">
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-amber-700 ml-1 tracking-widest">PayID</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-blue-700 ml-1 tracking-widest">Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-indigo-700 ml-1 tracking-widest">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-12 border-black border-2 font-black text-black" /></div>
+              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Assigned Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-12 border-black border-2 font-black text-black" /></div>
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase text-rose-700 ml-1 tracking-widest">Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
-                  <SelectTrigger className="h-14 border-black border-2 font-black text-lg text-black uppercase">
+                  <SelectTrigger className="h-12 border-black border-2 font-black text-black uppercase">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="font-black uppercase">
@@ -635,14 +629,11 @@ export default function MembersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2 space-y-2.5">
-                <Label className="uppercase text-slate-700 ml-1 tracking-widest">Permanent Registry Address</Label>
-                <Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[100px] uppercase text-sm" />
-              </div>
+              <div className="col-span-2 space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Permanent Registry Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[80px] uppercase text-xs" /></div>
             </div>
-            <Button type="submit" className="w-full h-20 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group text-lg">
-              <Plus className="size-7 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
-              COMMIT PROFILE
+            <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group">
+              <Plus className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
+              Commit Profile
             </Button>
           </form>
         </DialogContent>
