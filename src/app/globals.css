@@ -2,38 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+
 @layer base {
   :root {
-    --background: 210 20% 98%; /* Very light slate gray */
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%; /* Deep Slate Primary */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 20%; /* EXTREME DARK for maximum visibility */
-    --accent: 226 70% 45%; /* Stable Indigo Accent */
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 47.4% 11.2%;
-    --radius: 0.5rem;
-    --sidebar-background: 222.2 47.4% 11.2%; 
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 226 70% 45%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222.2 40% 18%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222.2 47.4% 15%;
-    --sidebar-ring: 226 70% 45%;
+      /* Pure, clean background for high contrast */
+      --background: 220 30% 99%;
+      --foreground: 224 80% 10%; /* Deep navy instead of gray */
+      /* Surfaces - Ultra white */
+      --card: 0 0% 100%;
+      --card-foreground: 224 80% 10%;
+      --popover: 0 0% 100%;
+      --popover-foreground: 224 80% 10%;
+      /* Vibrant Primary - "Electric Indigo" */
+      --primary: 245 80% 60%;
+      --primary-foreground: 0 0% 100%;
+      /* UI Neutrals - Keep them cool and blue-tinted */
+      --secondary: 240 20% 96%;
+      --secondary-foreground: 245 80% 60%;
+      --muted: 240 10% 94%;
+      --muted-foreground: 240 15% 45%;
+      /* The "Vibrant" Pop - "Vivid Violet" */
+      --accent: 265 90% 60%;
+      --accent-foreground: 0 0% 100%;
+      /* High-Visibility Feedback */
+      --destructive: 0 95% 60%; /* Punchy red */
+      --destructive-foreground: 0 0% 100%;
+      /* Sharp Controls */
+      --border: 240 15% 90%;
+      --input: 240 15% 90%;
+      --ring: 245 80% 60%;
+      --radius: 0.75rem; /* Larger radius looks friendlier and more modern */
+      /* Sidebar - Vibrant Deep Navy */
+      --sidebar-background: 224 80% 10%;
+      --sidebar-foreground: 210 40% 98%;
+      --sidebar-primary: 245 80% 60%;
+      --sidebar-primary-foreground: 0 0% 100%;
+      --sidebar-accent: 224 70% 18%;
+      --sidebar-accent-foreground: 210 40% 98%;
+      --sidebar-border: 224 60% 15%;
+      --sidebar-ring: 245 80% 60%;
   }
 }
+
 
 @layer base {
   * { @apply border-border; }
