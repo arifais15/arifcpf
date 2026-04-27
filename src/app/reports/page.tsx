@@ -510,7 +510,7 @@ export default function ReportsPage() {
                       {formatValue(totalReceipts + openingBank)}
                     </td>
                     <td className="p-2 text-right pr-4">
-                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Receipt'), 0) + getBalanceAtDate(prevYearStart, '131.10.0000'))}
+                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Receipt'), 0) + getBalanceAtDate(prevYearStart, '131.10.0000'))}
                     </td>
                   </tr>
                   <tr className="bg-slate-50 font-black"><td colSpan={4} className="p-1 pl-4 border-y border-black uppercase text-[9px]">PAYMENTS:</td></tr>
