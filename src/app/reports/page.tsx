@@ -197,6 +197,31 @@ export default function ReportsPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          .print-container {
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .report-header {
+            margin-bottom: 1rem !important;
+          }
+          .report-header h1 { font-size: 1.5rem !important; margin-bottom: 0 !important; }
+          .report-header p { font-size: 0.9rem !important; margin-top: 0 !important; }
+          .report-header h2 { font-size: 1.1rem !important; margin-top: 0.5rem !important; }
+          .financial-table th, .financial-table td { padding: 4px 8px !important; }
+          .financial-table { font-size: 10px !important; }
+        }
+      `}</style>
+
       <div className="flex flex-col gap-6 no-print max-w-6xl mx-auto w-full bg-white p-8 rounded-3xl border-2 border-black shadow-xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-5">
@@ -243,22 +268,22 @@ export default function ReportsPage() {
 
         {/* --- STATEMENT OF FINANCIAL POSITION --- */}
         <TabsContent value="position" className="animate-in fade-in duration-500">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
-            <div className="text-center mb-10 text-black">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0 font-ledger print-container">
+            <div className="text-center mb-6 report-header text-black">
               <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
-              <p className="text-lg font-black uppercase tracking-[0.2em] mt-1">Employees' Provident Fund</p>
-              <h2 className="text-xl font-black mt-6 uppercase underline underline-offset-8">Statement of Financial Position</h2>
-              <p className="text-sm font-black mt-6">As at {dateRange.end ? format(parseISO(dateRange.end), 'MMMM d, yyyy') : '...'}</p>
+              <p className="text-sm font-black uppercase tracking-[0.2em] mt-0.5">Employees' Provident Fund</p>
+              <h2 className="text-lg font-black mt-2 uppercase underline underline-offset-4">Statement of Financial Position</h2>
+              <p className="text-xs font-black mt-2">As at {dateRange.end ? format(parseISO(dateRange.end), 'MMMM d, yyyy') : '...'}</p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black">
+              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black financial-table">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-black">
-                    <th className="border-r border-black p-3 text-left w-[120px]">Account Code</th>
-                    <th className="border-r border-black p-3 text-left">Particulars</th>
-                    <th className="border-r border-black p-3 text-center w-[60px]">Note</th>
-                    <th colSpan={2} className="p-3 text-center border-b border-black">Amount in Taka</th>
+                    <th className="border-r border-black p-2 text-left w-[120px]">Account Code</th>
+                    <th className="border-r border-black p-2 text-left">Particulars</th>
+                    <th className="border-r border-black p-2 text-center w-[60px]">Note</th>
+                    <th colSpan={2} className="p-2 text-center border-b border-black">Amount in Taka</th>
                   </tr>
                   <tr className="bg-slate-100 border-b-2 border-black">
                     <th className="border-r border-black"></th>
@@ -269,7 +294,7 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="bg-slate-50"><td colSpan={5} className="p-2 pl-4 border-b border-black font-black uppercase tracking-widest text-[10px]">ASSETS:</td></tr>
+                  <tr className="bg-slate-50"><td colSpan={5} className="p-1 pl-4 border-b border-black font-black uppercase tracking-widest text-[9px]">ASSETS:</td></tr>
                   {[
                     { code: '101.00.0000', label: 'Investment', note: '1' },
                     { code: '105.00.0000', label: 'Member Loans (outstanding)', note: '2' },
@@ -278,56 +303,51 @@ export default function ReportsPage() {
                     { code: '108.00.0000', label: 'Advance Tax', note: '5' },
                     { code: '131.00.0000', label: 'Cash & Bank', note: '6' },
                   ].map((row) => (
-                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 pl-3 font-mono">{row.code}</td>
-                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
-                      <td className="border-r border-black p-2 text-center">{row.note}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.end, row.code))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getBalanceAtDate(prevYearEnd, row.code))}</td>
+                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 pl-3 font-mono">{row.code}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-center">{row.note}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.end, row.code))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getBalanceAtDate(prevYearEnd, row.code))}</td>
                     </tr>
                   ))}
                   <tr className="bg-slate-100 font-black h-10">
                     <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase">Total Assets</td>
+                    <td className="border-r border-black p-1 pl-4 uppercase">Total Assets</td>
                     <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
+                    <td className="border-r border-black p-1 text-right pr-4 underline decoration-double">
                       {formatValue(['101','105','106','107','108','131'].reduce((s,c)=>s+getBalanceAtDate(dateRange.end, c+'.00.0000'), 0))}
                     </td>
-                    <td className="p-2 text-right pr-4 underline decoration-double">
+                    <td className="p-1 text-right pr-4 underline decoration-double">
                       {formatValue(['101','105','106','107','108','131'].reduce((s,c)=>s+getBalanceAtDate(prevYearEnd, c+'.00.0000'), 0))}
                     </td>
                   </tr>
 
-                  <tr className="bg-slate-50"><td colSpan={5} className="p-2 pl-4 border-y border-black font-black uppercase tracking-widest text-[10px]">LIABILITIES & MEMBER FUND:</td></tr>
+                  <tr className="bg-slate-50"><td colSpan={5} className="p-1 pl-4 border-y border-black font-black uppercase tracking-widest text-[9px]">LIABILITIES & MEMBER FUND:</td></tr>
                   {[
                     { code: '200.00.0000', label: 'Member Fund / Equity', note: '7' },
                     { code: '205.00.0000', label: 'Forfeiture', note: '8' },
-                    { code: '205.10.0000', label: 'Lapse & Forfeiture Account', note: '9' },
                     { code: '210.00.0000', label: 'Payables', note: '10' },
-                    { code: '210.10.0000', label: 'Audit & Professional Fee Payable', note: '11' },
-                    { code: '210.20.0000', label: 'Payable to PBS', note: '12' },
-                    { code: '210.30.0000', label: 'Audit Objection & Legal Procedure', note: '13' },
                     { code: '220.00.0000', label: 'Provisions', note: '14' },
-                    { code: '220.10.0000', label: 'Provision for Income Tax', note: '15' },
                     { code: '225.50.0000', label: 'Final Settlement Payable', note: '16' },
                     { code: '225.60.0000', label: 'Retained Earnings (Reserved)', note: '17' },
                   ].map((row) => (
-                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 pl-3 font-mono">{row.code}</td>
-                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
-                      <td className="border-r border-black p-2 text-center">{row.note}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.end, row.code))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getBalanceAtDate(prevYearEnd, row.code))}</td>
+                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 pl-3 font-mono">{row.code}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-center">{row.note}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.end, row.code))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getBalanceAtDate(prevYearEnd, row.code))}</td>
                     </tr>
                   ))}
                   <tr className="bg-slate-100 font-black h-12">
                     <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase">TOTAL LIABILITIES & MEMBER FUND</td>
+                    <td className="border-r border-black p-1 pl-4 uppercase">TOTAL LIABILITIES & FUND</td>
                     <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
+                    <td className="border-r border-black p-1 text-right pr-4 underline decoration-double">
                       {formatValue(['200','205','210','220','225'].reduce((s,c)=>s+getBalanceAtDate(dateRange.end, c+'.00.0000'), 0))}
                     </td>
-                    <td className="p-2 text-right pr-4 underline decoration-double">
+                    <td className="p-1 text-right pr-4 underline decoration-double">
                       {formatValue(['200','205','210','220','225'].reduce((s,c)=>s+getBalanceAtDate(prevYearEnd, c+'.00.0000'), 0))}
                     </td>
                   </tr>
@@ -335,7 +355,7 @@ export default function ReportsPage() {
               </table>
             </div>
 
-            <div className="mt-32 grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+            <div className="mt-20 grid grid-cols-3 gap-16 text-[11px] font-black text-center uppercase tracking-widest text-black">
               <div className="border-t-2 border-black pt-4">Prepared by</div>
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
@@ -345,22 +365,22 @@ export default function ReportsPage() {
 
         {/* --- INCOME STATEMENT --- */}
         <TabsContent value="income">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
-            <div className="text-center mb-10 text-black">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0 font-ledger print-container">
+            <div className="text-center mb-6 report-header text-black">
               <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
-              <p className="text-lg font-black uppercase tracking-[0.2em] mt-1">Employees' Provident Fund</p>
-              <h2 className="text-xl font-black mt-6 uppercase underline underline-offset-8">Income Statement</h2>
-              <p className="text-sm font-black mt-6">For the Year Ended June 30, {dateRange.end ? format(parseISO(dateRange.end), 'yyyy') : '...'}</p>
+              <p className="text-sm font-black uppercase tracking-[0.2em] mt-0.5">Employees' Provident Fund</p>
+              <h2 className="text-lg font-black mt-2 uppercase underline underline-offset-4">Income Statement</h2>
+              <p className="text-xs font-black mt-2">For the Year Ended June 30, {dateRange.end ? format(parseISO(dateRange.end), 'yyyy') : '...'}</p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black">
+              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black financial-table">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-black">
-                    <th className="border-r border-black p-3 text-left w-[120px]">Code</th>
-                    <th className="border-r border-black p-3 text-left">Particulars</th>
-                    <th className="border-r border-black p-3 text-center w-[60px]">Note</th>
-                    <th colSpan={2} className="p-3 text-center border-b border-black">Amount in Taka</th>
+                    <th className="border-r border-black p-2 text-left w-[120px]">Code</th>
+                    <th className="border-r border-black p-2 text-left">Particulars</th>
+                    <th className="border-r border-black p-2 text-center w-[60px]">Note</th>
+                    <th colSpan={2} className="p-2 text-center border-b border-black">Amount in Taka</th>
                   </tr>
                   <tr className="bg-slate-100 border-b-2 border-black">
                     <th className="border-r border-black"></th>
@@ -371,113 +391,70 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="bg-slate-50"><td colSpan={5} className="p-2 pl-4 border-b border-black font-black uppercase text-[10px]">A. OPERATING INCOME</td></tr>
+                  <tr className="bg-slate-50"><td colSpan={5} className="p-1 pl-4 border-b border-black font-black uppercase text-[9px]">A. OPERATING INCOME</td></tr>
                   {[
-                    { code: '400.00.0000', label: 'Interest Income', note: '18' },
                     { code: '400.10.0000', label: 'Interest on FDR', note: '19' },
                     { code: '400.20.0000', label: 'Interest on Savings Certificate', note: '20' },
-                    { code: '400.30.0000', label: 'Interest on Bond', note: '21' },
                     { code: '400.40.0000', label: 'Interest on Member Loan', note: '22' },
                     { code: '400.50.0000', label: 'Interest on Bank Balance', note: '23' },
                   ].map((row) => (
-                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 pl-3 font-mono">{row.code}</td>
-                      <td className={cn("border-r border-black p-2 pl-4", row.code.endsWith('.00.0000') ? "font-black" : "pl-8")}>{row.label}</td>
-                      <td className="border-r border-black p-2 text-center">{row.note}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code))}</td>
+                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 pl-3 font-mono">{row.code}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-center">{row.note}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code))}</td>
                     </tr>
                   ))}
 
-                  <tr className="bg-slate-50"><td colSpan={5} className="p-2 pl-4 border-y border-black font-black uppercase text-[10px]">B. NON OPERATING INCOME & SUBSIDY</td></tr>
+                  <tr className="bg-slate-50"><td colSpan={5} className="p-1 pl-4 border-y border-black font-black uppercase text-[9px]">B. NON OPERATING INCOME</td></tr>
                   {[
                     { code: '410.10.0000', label: 'Forfeiture Income', note: '24' },
-                    { code: '410.20.0000', label: 'PBS Subsidy (Administrative Support)', note: '25' },
+                    { code: '410.20.0000', label: 'PBS Subsidy', note: '25' },
                   ].map((row) => (
-                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 pl-3 font-mono">{row.code}</td>
-                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
-                      <td className="border-r border-black p-2 text-center">{row.note}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code))}</td>
+                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 pl-3 font-mono">{row.code}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-center">{row.note}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code))}</td>
                     </tr>
                   ))}
                   <tr className="bg-slate-100 font-black h-10 border-b-2 border-black">
                     <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase">Total INCOME (C)</td>
+                    <td className="border-r border-black p-1 pl-4 uppercase">Total INCOME (C)</td>
                     <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 text-right pr-4">
+                    <td className="border-r border-black p-1 text-right pr-4">
                       {formatValue(getMovementForPeriod(dateRange.start, dateRange.end, ['400','410']))}
                     </td>
-                    <td className="p-2 text-right pr-4">
+                    <td className="p-1 text-right pr-4">
                       {formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, ['400','410']))}
                     </td>
                   </tr>
 
-                  <tr className="bg-slate-50"><td colSpan={5} className="p-2 pl-4 border-b border-black font-black uppercase text-[10px]">D. OPERATING EXPENSE</td></tr>
+                  <tr className="bg-slate-50"><td colSpan={5} className="p-1 pl-4 border-b border-black font-black uppercase text-[9px]">D. OPERATING EXPENSE</td></tr>
                   {[
                     { code: '500.10.0000', label: 'Bank Charges & Excise Duty', note: '26' },
-                    { code: '500.20.0000', label: 'Audit & Professional Fees', note: '27' },
                     { code: '500.30.0000', label: 'Administrative Expenses', note: '28' },
-                    { code: '500.40.0000', label: 'Loss on Investment', note: '29' },
+                    { code: '500.50.0000', label: 'Income Tax Expense', note: '30' },
                   ].map((row) => (
-                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 pl-3 font-mono">{row.code}</td>
-                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
-                      <td className="border-r border-black p-2 text-center">{row.note}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code))}</td>
+                    <tr key={row.code} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 pl-3 font-mono">{row.code}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-center">{row.note}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code))}</td>
                     </tr>
                   ))}
-                  
-                  <tr className="bg-slate-50 font-black border-y-2 border-black h-10">
-                    <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase">INCOME BEFORE TAX</td>
-                    <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 text-right pr-4">
-                      {formatValue(getMovementForPeriod(dateRange.start, dateRange.end, ['400','410']) - getMovementForPeriod(dateRange.start, dateRange.end, ['500.10','500.20','500.30','500.40']))}
-                    </td>
-                    <td className="p-2 text-right pr-4">
-                      {formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, ['400','410']) - getMovementForPeriod(prevYearStart, prevYearEnd, ['500.10','500.20','500.30','500.40']))}
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 border-b border-black">
-                    <td className="border-r border-black p-2 pl-3 font-mono">500.50.0000</td>
-                    <td className="border-r border-black p-2 pl-4">Income Tax Expense</td>
-                    <td className="border-r border-black p-2 text-center">30</td>
-                    <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, '500.50.0000'))}</td>
-                    <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, '500.50.0000'))}</td>
-                  </tr>
-
-                  <tr className="bg-slate-100 font-black border-y-2 border-black h-10">
-                    <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase text-primary">E. NET INCOME FOR DISTRIBUTION</td>
-                    <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 text-right pr-4">
-                      {formatValue(getMovementForPeriod(dateRange.start, dateRange.end, ['400','410']) - getMovementForPeriod(dateRange.start, dateRange.end, ['500.10','500.20','500.30','500.40','500.50']))}
-                    </td>
-                    <td className="p-2 text-right pr-4">
-                      {formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, ['400','410']) - getMovementForPeriod(prevYearStart, prevYearEnd, ['500.10','500.20','500.30','500.40','500.50']))}
-                    </td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/50 border-b border-black">
-                    <td className="border-r border-black p-2 pl-3 font-mono">500.60.0000</td>
-                    <td className="border-r border-black p-2 pl-4">Interest Distribution</td>
-                    <td className="border-r border-black p-2 text-center">31</td>
-                    <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, '500.60.0000'))}</td>
-                    <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, '500.60.0000'))}</td>
-                  </tr>
 
                   <tr className="bg-black text-white font-black h-12">
                     <td className="border-r border-white/20"></td>
-                    <td className="border-r border-white/20 p-2 pl-4 uppercase tracking-widest">Net Margin</td>
+                    <td className="border-r border-white/20 p-1 pl-4 uppercase tracking-widest">Net Surplus for Period</td>
                     <td className="border-r border-white/20"></td>
-                    <td className="border-r border-white/20 p-2 text-right pr-4 underline decoration-double">
+                    <td className="border-r border-white/20 p-1 text-right pr-4 underline decoration-double">
                       {formatValue(getMovementForPeriod(dateRange.start, dateRange.end, ['400','410']) - getMovementForPeriod(dateRange.start, dateRange.end, ['500']))}
                     </td>
-                    <td className="p-2 text-right pr-4 underline decoration-double">
+                    <td className="p-1 text-right pr-4 underline decoration-double">
                       {formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, ['400','410']) - getMovementForPeriod(prevYearStart, prevYearEnd, ['500']))}
                     </td>
                   </tr>
@@ -485,7 +462,7 @@ export default function ReportsPage() {
               </table>
             </div>
 
-            <div className="mt-32 grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+            <div className="mt-24 grid grid-cols-3 gap-16 text-[11px] font-black text-center uppercase tracking-widest text-black">
               <div className="border-t-2 border-black pt-4">Prepared by</div>
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
@@ -495,21 +472,21 @@ export default function ReportsPage() {
 
         {/* --- STATEMENT OF RECEIPT & PAYMENT --- */}
         <TabsContent value="receipt" className="animate-in fade-in duration-500">
-          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-16 print:p-0 font-ledger">
-            <div className="text-center mb-10 text-black">
+          <Card className="border-2 border-black shadow-2xl rounded-none bg-white p-12 print:p-0 font-ledger print-container">
+            <div className="text-center mb-6 report-header text-black">
               <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
-              <p className="text-lg font-black uppercase tracking-[0.2em] mt-1">Employees' Provident Fund</p>
-              <h2 className="text-xl font-black mt-6 uppercase underline underline-offset-8">Statement of Receipt & Payment</h2>
-              <p className="text-sm font-black mt-6">For the Year Ended June 30, {dateRange.end ? format(parseISO(dateRange.end), 'yyyy') : '...'}</p>
+              <p className="text-sm font-black uppercase tracking-[0.2em] mt-0.5">Employees' Provident Fund</p>
+              <h2 className="text-lg font-black mt-2 uppercase underline underline-offset-4">Statement of Receipt & Payment</h2>
+              <p className="text-xs font-black mt-2">For the Year Ended June 30, {dateRange.end ? format(parseISO(dateRange.end), 'yyyy') : '...'}</p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black">
+              <table className="w-full border-collapse border-2 border-black text-[11px] font-black tabular-nums text-black financial-table">
                 <thead>
                   <tr className="bg-slate-50 border-b-2 border-black">
-                    <th className="border-r border-black p-3 text-center w-[60px]">SL</th>
-                    <th className="border-r border-black p-3 text-left">Particulars</th>
-                    <th colSpan={2} className="p-3 text-center border-b border-black">Amount in Taka</th>
+                    <th className="border-r border-black p-2 text-center w-[60px]">SL</th>
+                    <th className="border-r border-black p-2 text-left">Particulars</th>
+                    <th colSpan={2} className="p-2 text-center border-b border-black">Amount in Taka</th>
                   </tr>
                   <tr className="bg-slate-100 border-b-2 border-black">
                     <th className="border-r border-black"></th>
@@ -519,38 +496,18 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Opening Cash Balance */}
-                  <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-b border-black uppercase text-[10px]">Opening Balance:</td></tr>
-                  <tr className="border-b border-black hover:bg-slate-50/50">
-                    <td className="border-r border-black p-2 text-center">1</td>
-                    <td className="border-r border-black p-2 pl-4">Bank Balance Accounts (STD)</td>
-                    <td className="border-r border-black p-2 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.start, '131.10.0000'))}</td>
-                    <td className="p-2 text-right pr-4">{formatValue(getBalanceAtDate(prevYearStart, '131.10.0000'))}</td>
-                  </tr>
-
-                  {/* Receipts List */}
-                  <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-y border-black uppercase text-[10px]">RECEIPTS:</td></tr>
+                  <tr className="bg-slate-50 font-black"><td colSpan={2} className="p-1 pl-4 border-b border-black uppercase text-[9px]">Opening Balance:</td><td className="border-r border-black p-1 text-right pr-4">{formatValue(getBalanceAtDate(dateRange.start, '131.10.0000'))}</td><td className="p-1 text-right pr-4">{formatValue(getBalanceAtDate(prevYearStart, '131.10.0000'))}</td></tr>
+                  <tr className="bg-slate-50 font-black"><td colSpan={4} className="p-1 pl-4 border-y border-black uppercase text-[9px]">RECEIPTS:</td></tr>
                   {receiptItems.map((row) => (
-                    <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 text-center">{row.sl}</td>
-                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code, 'Receipt'))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Receipt'))}</td>
+                    <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 text-center">{row.sl}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code, 'Receipt'))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Receipt'))}</td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-100 font-black h-10 border-y-2 border-black">
-                    <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase">Total RECEIPTS</td>
-                    <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Receipt'), 0))}
-                    </td>
-                    <td className="p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Receipt'), 0))}
-                    </td>
-                  </tr>
-                  <tr className="bg-black text-white font-black h-10 border-b-2 border-black">
-                    <td className="border-r border-white/20"></td>
-                    <td className="border-r border-white/20 p-2 pl-4 uppercase">Total Receipts with Opening Balance (A)</td>
+                  <tr className="bg-black text-white font-black h-12">
+                    <td colSpan={2} className="border-r border-white/20 p-2 pl-4 uppercase tracking-widest text-[9px]">Total Resources (A)</td>
                     <td className="border-r border-white/20 p-2 text-right pr-4">
                       {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Receipt'), 0) + getBalanceAtDate(dateRange.start, '131.10.0000'))}
                     </td>
@@ -558,32 +515,17 @@ export default function ReportsPage() {
                       {formatValue(receiptItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Receipt'), 0) + getBalanceAtDate(prevYearStart, '131.10.0000'))}
                     </td>
                   </tr>
-
-                  {/* Payments List */}
-                  <tr className="bg-slate-50 font-black"><td className="border-r border-black p-2 text-center"></td><td colSpan={3} className="p-2 pl-4 border-y border-black uppercase text-[10px]">Payment:</td></tr>
+                  <tr className="bg-slate-50 font-black"><td colSpan={4} className="p-1 pl-4 border-y border-black uppercase text-[9px]">PAYMENTS:</td></tr>
                   {paymentItems.map((row) => (
-                    <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50">
-                      <td className="border-r border-black p-2 text-center">{row.sl}</td>
-                      <td className="border-r border-black p-2 pl-4">{row.label}</td>
-                      <td className="border-r border-black p-2 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code, 'Payment'))}</td>
-                      <td className="p-2 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Payment'))}</td>
+                    <tr key={row.sl} className="border-b border-black hover:bg-slate-50/50 h-8">
+                      <td className="border-r border-black p-1 text-center">{row.sl}</td>
+                      <td className="border-r border-black p-1 pl-4">{row.label}</td>
+                      <td className="border-r border-black p-1 text-right pr-4">{formatValue(getMovementForPeriod(dateRange.start, dateRange.end, row.code, 'Payment'))}</td>
+                      <td className="p-1 text-right pr-4">{formatValue(getMovementForPeriod(prevYearStart, prevYearEnd, row.code, 'Payment'))}</td>
                     </tr>
                   ))}
-                  <tr className="bg-slate-100 font-black h-10 border-y-2 border-black">
-                    <td className="border-r border-black"></td>
-                    <td className="border-r border-black p-2 pl-4 uppercase">Total Payment: (B)</td>
-                    <td className="border-r border-black p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(paymentItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Payment'), 0))}
-                    </td>
-                    <td className="p-2 text-right pr-4 underline decoration-double">
-                      {formatValue(paymentItems.reduce((sum, r) => sum + getMovementForPeriod(prevYearStart, prevYearEnd, r.code, 'Payment'), 0))}
-                    </td>
-                  </tr>
-
-                  {/* Final Reconciliation */}
                   <tr className="bg-black text-white font-black h-12">
-                    <td className="border-r border-white/20"></td>
-                    <td className="border-r border-white/20 p-2 pl-4 uppercase tracking-widest">Net Assets Available at End of Year</td>
+                    <td colSpan={2} className="border-r border-white/20 p-2 pl-4 uppercase tracking-widest text-[9px]">Closing Liquid Assets at Period End</td>
                     <td className="border-r border-white/20 p-2 text-right pr-4 underline decoration-double">
                       {formatValue(
                         (receiptItems.reduce((sum, r) => sum + getMovementForPeriod(dateRange.start, dateRange.end, r.code, 'Receipt'), 0) + getBalanceAtDate(dateRange.start, '131.10.0000')) - 
@@ -601,7 +543,7 @@ export default function ReportsPage() {
               </table>
             </div>
 
-            <div className="mt-32 grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+            <div className="mt-20 grid grid-cols-3 gap-16 text-[11px] font-black text-center uppercase tracking-widest text-black">
               <div className="border-t-2 border-black pt-4">Prepared by</div>
               <div className="border-t-2 border-black pt-4">Checked by</div>
               <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
