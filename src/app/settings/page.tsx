@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -240,9 +241,14 @@ export default function SettingsPage() {
   };
 
   const handleDeleteCoaAccount = (id: string, name: string) => {
+    const pw = window.prompt("Enter Authorization Code to Delete Account:");
+    if (pw !== "321") {
+      if (pw !== null) toast({ title: "Access Denied", description: "Incorrect authorization code.", variant: "destructive" });
+      return;
+    }
     showAlert({
       title: "Are you sure?",
-      description: `Delete account: ${name}?`,
+      description: `Permanently remove account: ${name} from registry?`,
       type: "warning",
       showCancel: true,
       confirmText: "Delete Account",
@@ -254,7 +260,6 @@ export default function SettingsPage() {
     });
   };
 
-  // --- SERVER-SIDE DB PORTABILITY HANDLERS ---
   const handleExportDB = async () => {
     setIsProcessingDB(true);
     try {
@@ -499,7 +504,7 @@ export default function SettingsPage() {
                     <td className="text-right pr-6 py-0">
                       <div className="flex justify-end gap-1 h-full items-center">
                         <Button variant="ghost" size="icon" className="h-6 w-6 text-black" disabled={!isUnlocked} onClick={() => { setEditingCoaAccount(account); setIsCoaAddOpen(true); }}><Edit2 className="size-3" /></Button>
-                        {account.id && <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-rose-600" disabled={!isUnlocked} onClick={() => handleDeleteCoaAccount(account.id, account.name || account.accountName)}><Trash2 className="size-3" /></Button>}
+                        {(account.id || true) && <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-300 hover:text-rose-600" disabled={!isUnlocked} onClick={() => handleDeleteCoaAccount(account.id || account.code, account.name || account.accountName)}><Trash2 className="size-3" /></Button>}
                       </div>
                     </td>
                   </TableRow>
@@ -616,7 +621,7 @@ export default function SettingsPage() {
            <Card className="max-w-2xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
              <CardHeader className="bg-slate-50 border-b-4 border-black flex flex-row items-center justify-between">
                <div><CardTitle className="text-xl font-black uppercase">Institutional Branding</CardTitle></div>
-               <Button handleSaveGeneral} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Commit</Button>
+               <Button onClick={handleSaveGeneral} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Commit</Button>
              </CardHeader>
              <CardContent className="p-10 space-y-6">
                 <div className="space-y-2">
