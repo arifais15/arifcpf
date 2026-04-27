@@ -233,25 +233,39 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             size: A4 landscape;
             margin: 10mm;
           }
-          .print-container {
+          /* CRITICAL: Purge scrollbars and layout constraints */
+          html, body, main, [data-sidebar="inset"], .print-container {
             overflow: visible !important;
+            height: auto !important;
             width: 100% !important;
             max-width: none !important;
-            padding: 0 !important;
+            min-width: 0 !important;
             margin: 0 !important;
+            padding: 0 !important;
             border: none !important;
             box-shadow: none !important;
+            display: block !important;
           }
+          
           table {
             width: 100% !important;
             min-width: 0 !important;
             table-layout: fixed !important;
           }
+          
           .min-w-[1050px] {
             min-width: 0 !important;
+            width: 100% !important;
           }
+          
           .md\\:p-10 {
             padding: 0 !important;
+          }
+
+          /* Hide scrollbars during print buffer rendering */
+          ::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
           }
         }
       `}} />
