@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useRef, useMemo, useEffect } from "react";
@@ -566,20 +565,35 @@ export default function MembersPage() {
           <DialogHeader className="bg-slate-50 p-6 border-b-4 border-black">
             <DialogTitle className="font-black uppercase text-2xl flex items-center gap-4 text-black">
               <UserCircle className="size-8 text-blue-700" /> 
-              Employee Registration
+              EMPLOYEE REGISTRATION
             </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleAddMember} className="p-8 space-y-8 text-black bg-white">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-amber-700 ml-1 tracking-widest">PayID</Label><Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-12 border-black border-2 font-black text-xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} /></div>
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-blue-700 ml-1 tracking-widest">Name</Label><Input name="name" defaultValue={editingMember?.name} required className="h-12 border-black border-2 font-black text-base uppercase" /></div>
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Designation</Label><Input name="designation" defaultValue={editingMember?.designation} required className="h-12 border-black border-2 font-black text-sm uppercase" /></div>
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-indigo-700 ml-1 tracking-widest">Joining Date</Label><Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-12 border-black border-2 font-black text-black" /></div>
-              <div className="space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Assigned Office</Label><Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-12 border-black border-2 font-black text-black" /></div>
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase text-rose-700 ml-1 tracking-widest">Status</Label>
+          <form onSubmit={handleAddMember} className="p-8 space-y-10 text-black bg-white">
+            <div className="grid grid-cols-2 gap-10">
+              <div className="space-y-2.5">
+                <Label className="text-sm font-black uppercase text-amber-800 ml-1 tracking-widest">PayID</Label>
+                <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-14 border-black border-2 font-black text-2xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-sm font-black uppercase text-blue-800 ml-1 tracking-widest">Name</Label>
+                <Input name="name" defaultValue={editingMember?.name} required className="h-14 border-black border-2 font-black text-xl uppercase" />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-sm font-black uppercase text-slate-700 ml-1 tracking-widest">Designation</Label>
+                <Input name="designation" defaultValue={editingMember?.designation} required className="h-14 border-black border-2 font-black text-lg uppercase" />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-sm font-black uppercase text-indigo-800 ml-1 tracking-widest">Joining Date</Label>
+                <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-14 border-black border-2 font-black text-xl text-black" />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-sm font-black uppercase text-slate-700 ml-1 tracking-widest">Assigned Office</Label>
+                <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-14 border-black border-2 font-black text-lg text-black uppercase" />
+              </div>
+              <div className="space-y-2.5">
+                <Label className="text-sm font-black uppercase text-rose-800 ml-1 tracking-widest">Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
-                  <SelectTrigger className="h-12 border-black border-2 font-black text-black uppercase">
+                  <SelectTrigger className="h-14 border-black border-2 font-black text-lg text-black uppercase">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="font-black uppercase">
@@ -591,11 +605,14 @@ export default function MembersPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="col-span-2 space-y-2"><Label className="text-xs font-black uppercase text-slate-500 ml-1 tracking-widest">Permanent Registry Address</Label><Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[80px] uppercase text-xs" /></div>
+              <div className="col-span-2 space-y-2.5">
+                <Label className="text-sm font-black uppercase text-slate-700 ml-1 tracking-widest">Permanent Registry Address</Label>
+                <Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[100px] uppercase text-sm" />
+              </div>
             </div>
-            <Button type="submit" className="w-full h-16 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group">
-              <Plus className="size-6 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
-              Commit Profile
+            <Button type="submit" className="w-full h-20 font-black uppercase tracking-[0.4em] shadow-2xl bg-black text-white hover:bg-slate-900 border-none transition-all group text-lg">
+              <Plus className="size-7 mr-4 group-hover:scale-110 transition-transform text-emerald-400" />
+              COMMIT PROFILE
             </Button>
           </form>
         </DialogContent>

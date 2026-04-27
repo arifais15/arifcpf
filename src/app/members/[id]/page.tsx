@@ -251,7 +251,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
         <div className="grid grid-cols-3 border border-black mb-0 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Employee-Name:</span>
+            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Name:</span>
             <span className="text-xs flex-1 truncate text-black font-black">{member?.name}</span>
           </div>
           <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
@@ -263,15 +263,15 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             <span className="text-xs font-mono flex-1 text-black font-black">{member?.memberIdNumber}</span>
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">OFFICE:</span>
+            <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Office:</span>
             <span className="text-xs flex-1 truncate text-black font-black">{member?.zonalOffice || "Head Office"}</span>
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-rose-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">STATUS:</span>
+            <span className="text-rose-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Status:</span>
             <span className={cn("text-[11px] font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
           <div className="py-1 px-4 flex gap-4 items-center h-[21px]">
-            <span className="text-indigo-700 text-[11px] uppercase tracking-tighter font-black w-[100px]">DATE REGULAR:</span>
+            <span className="text-indigo-700 text-[11px] uppercase tracking-tighter font-black w-[100px]">Regular Date:</span>
             <span className="text-xs flex-1 text-black font-black">{member?.dateJoined}</span>
           </div>
         </div>
