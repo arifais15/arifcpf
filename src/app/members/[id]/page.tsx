@@ -62,9 +62,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const availableFYs = useMemo(() => {
     const fys = [];
     const now = new Date();
-    const curYear = now.getFullYear();
+    const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const startYear = currentMonth >= 7 ? curYear : currentYear - 1;
+    const startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -379,7 +379,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                <Calculator className="size-8 text-black" />
                <div>
                   <DialogTitle className="text-xl font-black uppercase tracking-tight">Manual Ledger Posting Terminal</DialogTitle>
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Direct  Modification Interface</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 mt-1">Direct Modification Interface</p>
                </div>
             </div>
           </DialogHeader>
