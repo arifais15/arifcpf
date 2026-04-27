@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -43,7 +42,9 @@ export default function TrialBalancePage() {
   const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
 
   useEffect(() => {
-    setAsOfDate(new Date().toISOString().split('T')[0]);
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    setAsOfDate(today);
   }, []);
 
   const coaRef = useMemoFirebase(() => collection(firestore, "chartOfAccounts"), [firestore]);
@@ -60,7 +61,6 @@ export default function TrialBalancePage() {
     if (!allEntries || !asOfDate) return [];
     const cutOff = new Date(`${asOfDate}T23:59:59`).getTime();
 
-    // 1. Aggregate all balances by account code
     const balances: Record<string, { debit: number, credit: number }> = {};
     
     allEntries.forEach(entry => {
@@ -75,7 +75,6 @@ export default function TrialBalancePage() {
       }
     });
 
-    // 2. Map COA and calculate final balances
     return activeCOA.map(acc => {
       const code = acc.code || acc.accountCode;
       const aggregated = balances[code] || { debit: 0, credit: 0 };
@@ -83,7 +82,6 @@ export default function TrialBalancePage() {
       let finalDebit = 0;
       let finalCredit = 0;
 
-      // Netting logic for trial balance
       if (aggregated.debit > aggregated.credit) {
         finalDebit = aggregated.debit - aggregated.credit;
       } else {
@@ -122,7 +120,6 @@ export default function TrialBalancePage() {
       "Credit Balance": r.credit
     }));
     
-    // Add Totals Row
     exportRows.push({
       "Account Code": "",
       "Account Name": "GRAND TOTALS",
@@ -144,8 +141,8 @@ export default function TrialBalancePage() {
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 10mm;
+            size: A4 portrait !important;
+            margin: 12mm !important;
           }
           .no-print { display: none !important; }
           .print-container {
@@ -155,7 +152,13 @@ export default function TrialBalancePage() {
             margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
+            display: block !important;
             overflow: visible !important;
+          }
+          main, [data-sidebar="inset"], body { 
+            overflow: visible !important; 
+            height: auto !important; 
+            min-height: auto !important;
           }
           table { 
             width: 100% !important; 
@@ -163,18 +166,15 @@ export default function TrialBalancePage() {
             border-collapse: collapse !important;
           }
           th, td { 
-            border: 1pt solid black !important;
+            border: 0.5pt solid black !important;
             padding: 4px !important;
           }
           thead { display: table-header-group !important; }
           tfoot { display: table-footer-group !important; }
-          body { background-color: white !important; }
-          main { overflow: visible !important; height: auto !important; }
-          [data-sidebar="inset"] { height: auto !important; overflow: visible !important; }
+          tr { break-inside: avoid !important; }
         }
       `}} />
 
-      {/* Navigation & Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
           <Link href="/reports" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors">
@@ -183,7 +183,7 @@ export default function TrialBalancePage() {
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tight uppercase">Trial Balance</h1>
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">
-              Institutional Mathematical Reconciliation Matrix
+            Institutional Account Reconciliation
             </p>
           </div>
         </div>
@@ -208,7 +208,6 @@ export default function TrialBalancePage() {
         </div>
       </div>
 
-      {/* Trial Balance Status Cards */}
       <div className="grid gap-6 md:grid-cols-3 no-print">
         <div className="bg-white border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] p-6">
           <p className="text-[10px] font-black uppercase text-black/60 tracking-widest mb-1">Total Debits</p>
@@ -226,97 +225,99 @@ export default function TrialBalancePage() {
             <ShieldCheck className={cn("size-6", isBalanced ? "text-emerald-600" : "text-rose-600")} />
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest">Balance Status</p>
-              <p className="text-xl font-black uppercase">{isBalanced ? "Balanced" : "Discrepancy Detected"}</p>
+              <p className="text-xl font-black uppercase">{isBalanced ? "Balanced" : "Discrepancy"}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Print Header */}
-      <div className="hidden print:block text-center space-y-2 mb-10 border-b-4 border-black pb-8">
-        <h1 className="text-3xl font-black uppercase tracking-tighter">{pbsName}</h1>
-        <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
-        <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Statement of Trial Balance</h2>
-        <div className="flex justify-between text-[11px] font-black pt-8">
-          <span>As of Date: {asOfDate}</span>
-          <span>Print Date: {new Date().toLocaleDateString('en-GB')}</span>
-        </div>
-      </div>
-
-      {/* Trial Balance Matrix */}
-      <div className="bg-white border-2 border-black rounded-none shadow-2xl overflow-hidden print-container">
-        <div className="p-3 border-b-2 border-black bg-slate-50 flex items-center justify-between no-print">
-          <div className="relative max-w-xs w-full">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 opacity-40 text-black" />
-            <Input 
-              className="pl-8 h-8 border-black border-2 font-black text-[10px] bg-white text-black" 
-              placeholder="Search Code or Account Name..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-            />
+      <div className="print-container">
+        <div className="hidden print:block text-center mb-10 text-black font-ledger">
+          <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
+          <p className="text-sm font-black uppercase tracking-[0.3em] mt-1">Employees' Contributory Provident Fund</p>
+          <div className="mt-6 flex justify-center">
+            <div className="border-4 border-black px-12 py-2">
+              <h2 className="text-xl font-black uppercase tracking-[0.4em]">Trial Balance</h2>
+            </div>
           </div>
-          <Badge className="bg-black text-white font-black text-[9px] uppercase tracking-widest rounded-none">
-            {trialBalanceData.length} Active Accounts
-          </Badge>
+          <div className="flex justify-between items-end mt-8 border-b-2 border-black pb-2 text-[10px] font-black uppercase tracking-widest">
+            <span>As at: {asOfDate ? new Date(asOfDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }) : '...'}</span>
+            <span>Print Date: {new Date().toLocaleDateString('en-GB')}</span>
+          </div>
         </div>
 
-        <Table className="text-black font-black tabular-nums border-collapse">
-          <TableHeader className="bg-slate-100 border-b-2 border-black uppercase text-[9px]">
-            <TableRow>
-              <TableHead className="w-[120px] border-r-2 border-black p-4 font-black text-black">Account Code</TableHead>
-              <TableHead className="border-r-2 border-black p-4 font-black text-black">Account Description</TableHead>
-              <TableHead className="text-right w-[150px] border-r-2 border-black p-4 font-black text-black">Debit Balance (৳)</TableHead>
-              <TableHead className="text-right w-[150px] p-4 font-black text-black">Credit Balance (৳)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="text-[11px]">
-            {trialBalanceData.map((row, i) => (
-              <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-10 transition-colors">
-                <td className="p-3 pl-4 border-r border-black font-mono font-black">{row.code}</td>
-                <td className="p-3 pl-4 border-r border-black uppercase font-black">{row.name}</td>
-                <td className="p-3 text-right border-r border-black font-black">
-                  {row.debit > 0 ? row.debit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "—"}
-                </td>
-                <td className="p-3 text-right font-black">
-                  {row.credit > 0 ? row.credit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "—"}
-                </td>
+        <div className="bg-white border-2 border-black rounded-none shadow-2xl overflow-hidden print:border-none print:shadow-none">
+          <div className="p-3 border-b-2 border-black bg-slate-50 flex items-center justify-between no-print">
+            <div className="relative max-w-xs w-full">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 opacity-40 text-black" />
+              <Input
+                className="pl-8 h-8 border-black border-2 font-black text-[10px] bg-white text-black"
+                placeholder="Filter by code or name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <Badge className="bg-black text-white font-black text-[9px] uppercase tracking-widest rounded-none">
+              {trialBalanceData.length} Ledger Items
+            </Badge>
+          </div>
+
+          <Table className="text-black font-black tabular-nums border-collapse">
+            <TableHeader className="bg-slate-100 border-b-2 border-black uppercase text-[9px]">
+              <TableRow>
+                <TableHead className="w-[120px] border-r border-black p-4 font-black text-black">Account Code</TableHead>
+                <TableHead className="border-r border-black p-4 font-black text-black">Account Description</TableHead>
+                <TableHead className="text-right w-[180px] border-r border-black p-4 font-black text-black">Debit Balance (৳)</TableHead>
+                <TableHead className="text-right w-[180px] p-4 font-black text-black">Credit Balance (৳)</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter className="bg-slate-100 border-t-4 border-black text-black font-black">
-            <TableRow className="h-16">
-              <TableCell colSpan={2} className="text-right uppercase tracking-[0.4em] text-sm pr-10 border-r-2 border-black">
-                Trial Balance Grand Totals:
-              </TableCell>
-              <TableCell className="text-right text-xl border-r-2 border-black font-black">
-                ৳ {stats.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </TableCell>
-              <TableCell className="text-right text-xl font-black">
-                ৳ {stats.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
+            </TableHeader>
+            <TableBody className="text-[11px] print:text-[10px]">
+              {trialBalanceData.map((row, i) => (
+                <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-10 transition-colors">
+                  <td className="p-3 pl-4 border-r border-black font-mono font-black">{row.code}</td>
+                  <td className="p-3 pl-4 border-r border-black uppercase font-black">{row.name}</td>
+                  <td className="p-3 text-right border-r border-black font-black">
+                    {row.debit > 0 ? row.debit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "—"}
+                  </td>
+                  <td className="p-3 text-right font-black">
+                    {row.credit > 0 ? row.credit.toLocaleString(undefined, { minimumFractionDigits: 2 }) : "—"}
+                  </td>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="bg-slate-50 border-t-4 border-black text-black font-black">
+              <TableRow className="h-16 print:h-12">
+                <TableCell colSpan={2} className="text-right uppercase tracking-[0.4em] text-[11px] pr-10 border-r border-black">
+                  Institutional Grand Totals:
+                </TableCell>
+                <TableCell className="text-right text-xl print:text-base border-r border-black font-black">
+                  ৳ {stats.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </TableCell>
+                <TableCell className="text-right text-xl print:text-base font-black">
+                  ৳ {stats.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
+
+        <div className="hidden print:block mt-24">
+          <div className="grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+            <div className="border-t-2 border-black pt-4">Prepared by</div>
+            <div className="border-t-2 border-black pt-4">Checked by</div>
+            <div className="border-t-2 border-black pt-4">Approved by Trustee</div>
+          </div>
+          <div className="mt-12 pt-4 border-t border-black/10 flex justify-between items-center text-[8px] font-black uppercase text-slate-400">
+            <span>CPF Management Matrix v1.2</span>
+            <span>Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+          </div>
+        </div>
       </div>
 
-      {/* Print Footer */}
-      <div className="hidden print:block mt-32">
-        <div className="grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest">
-          <div className="border-t-2 border-black pt-4">Prepared by</div>
-          <div className="border-t-2 border-black pt-4">Checked by</div>
-          <div className="border-t-2 border-black pt-4">Approved by Trustee</div>
-        </div>
-        <div className="mt-20 pt-4 border-t-2 border-black flex justify-between items-center text-[8px] text-black font-black uppercase tracking-widest">
-          <span>CPF Management Software trial balance matrix</span>
-          <span className="italic">Institutional Trust Registry v1.0</span>
-        </div>
-      </div>
-
-      {/* Digital Footer */}
       <div className="no-print mt-auto pt-10 border-t flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4" />
-          <span>Statutory Compliance v1.0</span>
+          <span>Statutory Compliance Matrix</span>
         </div>
         <p className="italic">Developed by: Ariful Islam, AGMF, Gazipur PBS-2</p>
       </div>
