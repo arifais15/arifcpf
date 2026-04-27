@@ -79,10 +79,28 @@ export default function AllLedgersPrintPage() {
         let rows = inR;
         if (dateRange.start && pre.length > 0) rows = [{ summaryDate: dateRange.start, particulars: "Opening Balance BF", ...preS, col4: lastPre.col4, col7: lastPre.col7, col10: lastPre.col10, col11: lastPre.col11, isOpening: true }, ...inR];
         
-        const last = allC[allC.length-1] || { col4:0, col7:0, col10:0, col11:0 };
-        const grand = rows.reduce((acc, r) => ({ c1: acc.c1 + r.c1, c2: acc.c2 + r.c2, c3: acc.c3 + r.c3, c5: acc.c5 + r.c5, c6: acc.c6 + r.c6, c8: acc.c8 + r.c8, c9: acc.c9 + r.c9 }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
+        const grand = rows.reduce((acc, r) => ({ c1: acc.c1 + (r.isOpening?0:r.c1), c2: acc.c2 + (r.isOpening?0:r.c2), c3: acc.c3 + (r.isOpening?0:r.c3), c5: acc.c5 + (r.isOpening?0:r.c5), c6: acc.c6 + (r.isOpening?0:r.c6), c8: acc.c8 + (r.isOpening?0:r.c8), c9: acc.c9 + (r.isOpening?0:r.c9) }), { c1: 0, c2: 0, c3: 0, c5: 0, c6: 0, c8: 0, c9: 0 });
 
-        return { member: m, rows, grand: { ...grand, c4: lastPre.col4 + rows.reduce((s,r) => s+(r.isOpening?0:r.c2-r.c3), 0), c7: lastPre.col7 + rows.reduce((s,r) => s+(r.isOpening?0:r.c1-r.c2+r.c3+r.c5+r.c6), 0), c10: lastPre.col10 + rows.reduce((s,r) => s+(r.isOpening?0:r.c8+r.c9), 0), c11: lastPre.col11 + rows.reduce((s,r) => s+(r.isOpening?0:r.c1-r.c2+r.c3+r.c5+r.c6+r.c8+r.c9), 0) } };
+        const lastRowInView = rows[rows.length - 1] || { col4: 0, col7: 0, col10: 0, col11: 0 };
+
+        return { 
+          member: m, 
+          rows, 
+          grand: { 
+            ...grand, 
+            c1: grand.c1 + preS.c1,
+            c2: grand.c2 + preS.c2,
+            c3: grand.c3 + preS.c3,
+            c5: grand.c5 + preS.c5,
+            c6: grand.c6 + preS.c6,
+            c8: grand.c8 + preS.c8,
+            c9: grand.c9 + preS.c9,
+            c4: lastRowInView.col4, 
+            c7: lastRowInView.col7, 
+            c10: lastRowInView.col10, 
+            c11: lastRowInView.col11 
+          } 
+        };
       });
   }, [members, allSummaries, dateRange]);
 
@@ -109,26 +127,75 @@ export default function AllLedgersPrintPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
+      {/* 
+        CRITICAL: CSS for Page Breaks
+        Injected directly to ensure flex containers and overflow wrappers don't block breaking.
+      */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 8mm;
+          }
+          .no-print { display: none !important; }
+          
+          /* Force physical block flow for page breaking */
+          html, body, main, [data-sidebar="inset"] { 
+            height: auto !important; 
+            overflow: visible !important; 
+            display: block !important;
+          }
+          
+          .print-container {
+            display: block !important;
+            width: 100% !important;
+          }
+          
+          .ledger-page {
+            display: block !important;
+            break-after: page !important;
+            page-break-after: always !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            width: 100% !important;
+          }
+          
+          .ledger-page:last-child {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+          }
+
+          table { page-break-inside: auto; }
+          tr { page-break-inside: avoid; page-break-after: auto; }
+          thead { display: table-header-group; }
+          tfoot { display: table-footer-group; }
+        }
+      `}} />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
-        <Link href="/reports" className="p-2 hover:bg-slate-100 rounded-full border-2 border-black"><ArrowLeft className="size-6" /></Link>
+        <Link href="/reports" className="p-2 hover:bg-slate-100 rounded-full border-2 border-black transition-colors"><ArrowLeft className="size-6" /></Link>
         <div className="flex items-center gap-4 bg-slate-50 p-2 border-2 border-black rounded-xl shadow-inner">
           <Select value={selectedFY} onValueChange={(fy) => { setSelectedFY(fy); if(fy==="all") setDateRange({start:"2010-01-01", end:new Date().toISOString().split('T')[0]}); else { const s = parseInt(fy.split("-")[0]); setDateRange({start:`${s}-07-01`, end:`${s+1}-06-30`}); } }}>
-            <SelectTrigger className="h-8 w-[120px] font-black text-[10px] uppercase border-black"><SelectValue /></SelectTrigger>
-            <SelectContent>{availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}<SelectItem value="all" className="font-black text-xs">All Historical</SelectItem></SelectContent>
+            <SelectTrigger className="h-8 w-[120px] font-black text-[10px] uppercase border-black bg-white"><SelectValue /></SelectTrigger>
+            <SelectContent className="border-2 border-black">
+              {availableFYs.map(fy => <SelectItem key={fy} value={fy} className="font-black text-xs">FY {fy}</SelectItem>)}
+              <SelectItem value="all" className="font-black text-xs">All Historical</SelectItem>
+            </SelectContent>
           </Select>
-          <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-black font-black text-[10px]" />
+          <Input type="date" value={dateRange.start} onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 w-32 border-2 border-black font-black text-[10px] bg-white" />
           <ArrowRightLeft className="size-3 text-black opacity-20" />
-          <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-black font-black text-[10px]" />
+          <Input type="date" value={dateRange.end} onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 w-32 border-2 border-black font-black text-[10px] bg-white" />
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={exportToExcel} className="h-11 border-2 border-black font-black uppercase text-xs px-8"><FileSpreadsheet className="size-4 mr-2" /> Export Excel</Button>
-          <Button onClick={() => window.print()} className="h-11 bg-black text-white font-black uppercase text-xs px-10 shadow-xl">Commit Batch Print</Button>
+          <Button variant="outline" onClick={exportToExcel} className="h-11 border-2 border-black font-black uppercase text-xs px-8 hover:bg-slate-50 shadow-md"><FileSpreadsheet className="size-4 mr-2" /> Export Excel</Button>
+          <Button onClick={() => window.print()} className="h-11 bg-black text-white font-black uppercase text-xs px-10 shadow-2xl hover:bg-slate-900 transition-all">Commit Batch Print</Button>
         </div>
       </div>
 
       <div className="print-container">
         {memberLedgers.map((l, i) => (
-          <div key={l.member.id} className={cn("p-12 print:p-0 mb-20 bg-white border-2 border-black print:border-none print:shadow-none shadow-2xl rounded-none", i < memberLedgers.length - 1 && "print:break-after-page")}>
+          <div key={l.member.id} className="ledger-page p-12 mb-20 bg-white border-2 border-black print:mb-0 shadow-2xl rounded-none relative">
             <div className="relative mb-6 text-center">
               <div className="absolute top-0 left-0 bg-slate-50 border border-black px-3 py-1 font-black text-[9px] uppercase tracking-widest text-black">BREB Form-224</div>
               <h1 className="text-2xl font-black uppercase tracking-tight text-black leading-none">{pbsName}</h1>
@@ -162,21 +229,21 @@ export default function AllLedgersPrintPage() {
               </div>
             </div>
 
-            <table className="w-full text-[8px] border-collapse border border-black font-black tabular-nums text-black">
+            <table className="w-full text-[8.5px] border-collapse border border-black font-black tabular-nums text-black">
               <thead className="bg-slate-100 border-b border-black uppercase text-center font-black">
                 <tr className="border-b border-black">
-                  <th rowSpan={2} className="border border-black p-1 w-[70px] bg-indigo-50 text-indigo-800">Date</th>
+                  <th rowSpan={2} className="border border-black p-1 w-[80px] bg-indigo-50 text-indigo-800">Date</th>
                   <th rowSpan={2} className="border border-black p-1 text-blue-800">Particulars</th>
                   <th rowSpan={2} className="border border-black p-1 bg-blue-50/50 text-blue-900">Emp<br/>Contrib</th>
                   <th rowSpan={2} className="border border-black p-1 bg-rose-50/50 text-rose-900">Loan<br/>Drw</th>
                   <th rowSpan={2} className="border border-black p-1 bg-emerald-50/50 text-emerald-900">Loan<br/>Repay</th>
-                  <th rowSpan={2} className="border border-black p-1 bg-slate-100 text-black w-[75px]">Loan<br/>Balance</th>
+                  <th rowSpan={2} className="border border-black p-1 bg-slate-100 text-black w-[90px]">Loan<br/>Balance</th>
                   <th colSpan={2} className="border border-black p-1 bg-amber-50/50 text-amber-900">Profit on</th>
-                  <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[85px]">Total<br/>Equity</th>
+                  <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[100px]">Total<br/>Equity</th>
                   <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">PBS<br/>Contrib</th>
                   <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">Profit on<br/>PBS Cont</th>
-                  <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[85px]">Total<br/>Office</th>
-                  <th rowSpan={2} className="border border-black p-1 bg-slate-100 text-black w-[100px]">Cumulative<br/>Total</th>
+                  <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[100px]">Total<br/>Office</th>
+                  <th rowSpan={2} className="border border-black p-1 bg-slate-50 text-black w-[120px]">Cumulative<br/>Total</th>
                 </tr>
                 <tr className="border-b border-black">
                   <th className="border border-black p-1 bg-amber-50/20 text-[7px]">Member</th>
@@ -185,42 +252,42 @@ export default function AllLedgersPrintPage() {
               </thead>
               <tbody>
                 {l.rows.map((r: any, idx: number) => (
-                  <tr key={idx} className={cn("border border-black h-[20px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
-                    <td className="border border-black p-0 text-center font-mono text-indigo-800">{r.summaryDate}</td>
-                    <td className="border border-black p-0 px-2 uppercase truncate max-w-[150px] leading-none">{r.particulars}</td>
-                    <td className="border border-black p-0 px-1 text-right">{r.c1.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right text-rose-700">{r.c2.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right text-emerald-700">{r.c3.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right bg-slate-50 font-mono">{r.col4.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right">{r.c5.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right">{r.c6.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right bg-slate-100 font-bold">{r.col7.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right">{r.c8.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right">{r.c9.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right bg-slate-100 font-bold">{r.col10.toLocaleString()}</td>
-                    <td className="border border-black p-0 px-1 text-right bg-slate-50 font-bold">৳ {r.col11.toLocaleString()}</td>
+                  <tr key={idx} className={cn("border border-black h-[21px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
+                    <td className="border border-black p-0 text-center font-mono text-indigo-800 text-[8.5px]">{r.summaryDate}</td>
+                    <td className="border border-black p-0 px-2 uppercase truncate max-w-[150px] leading-none text-[8.5px]">{r.particulars}</td>
+                    <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c1).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{Number(r.c2).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{Number(r.c3).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right bg-slate-50 font-mono text-[8.5px]">{Number(r.col4).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c5).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c6).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{Number(r.col7).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c9).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{Number(r.col10).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="border border-black p-0 px-2 text-right bg-slate-50 font-bold text-[9px]">৳ {Number(r.col11).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-100 font-black border-t-2 border-black text-[8px] uppercase tabular-nums">
-                <tr className="h-9">
+              <tfoot className="bg-slate-100 font-black border-t-2 border-black text-[9px] uppercase tabular-nums">
+                <tr className="h-10">
                   <td colSpan={2} className="border border-black p-2 text-right bg-slate-200 tracking-widest font-black text-black">Total:</td>
-                  <td className="border border-black p-0 px-1 text-right">{l.grand.c1.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right text-rose-800">{l.grand.c2.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right text-emerald-800">{l.grand.c3.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right bg-white">{l.grand.c4.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right">{l.grand.c5.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right">{l.grand.c6.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right bg-white">{l.grand.c7.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right">{l.grand.c8.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right">{l.grand.c9.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right bg-white">{l.grand.c10.toLocaleString()}</td>
-                  <td className="border border-black p-0 px-1 text-right bg-slate-50 font-black underline decoration-double decoration-black/20">৳ {l.grand.c11.toLocaleString()}</td>
+                  <td className="border border-black p-0 px-2 text-right font-black">{l.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right text-rose-800 font-black">{l.grand.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right text-emerald-800 font-black">{l.grand.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right bg-white font-black">{l.grand.c4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right font-black">{l.grand.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right font-black">{l.grand.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right bg-white font-black">{l.grand.c7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right font-black">{l.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right font-black">{l.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right bg-white font-black">{l.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  <td className="border border-black p-0 px-2 text-right bg-slate-50 text-sm font-black underline decoration-double decoration-black/20">৳ {l.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 </tr>
               </tfoot>
             </table>
 
-            <div className="mt-8 flex justify-between items-end border-t border-black pt-2">
+            <div className="mt-8 flex justify-between items-end border-t-2 border-black pt-2">
               <div className="flex items-center gap-2 text-emerald-600">
                  <ShieldCheck className="size-4" />
                  <span className="text-[9px] font-black uppercase tracking-widest">Institutional Audit Reconciled</span>
