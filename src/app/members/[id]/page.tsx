@@ -231,41 +231,42 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         @media print {
           @page {
             size: A4 landscape;
-            margin: 10mm;
+            margin: 8mm;
           }
-          /* CRITICAL: Purge scrollbars and layout constraints */
-          html, body, main, [data-sidebar="inset"], .print-container {
-            overflow: visible !important;
-            height: auto !important;
+          .no-print { display: none !important; }
+          
+          /* Force physical block flow for high-fidelity rendering */
+          html, body, main, [data-sidebar="inset"] { 
+            height: auto !important; 
+            overflow: visible !important; 
+            display: block !important;
+            background: white !important;
+          }
+          
+          .print-container {
+            display: block !important;
             width: 100% !important;
             max-width: none !important;
-            min-width: 0 !important;
-            margin: 0 !important;
             padding: 0 !important;
+            margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
-            display: block !important;
           }
           
           table {
             width: 100% !important;
             min-width: 0 !important;
             table-layout: fixed !important;
+            border-collapse: collapse !important;
           }
           
-          .min-w-[1050px] {
-            min-width: 0 !important;
-            width: 100% !important;
-          }
-          
-          .md\\:p-10 {
-            padding: 0 !important;
+          th, td { 
+            border: 0.5pt solid black !important;
           }
 
-          /* Hide scrollbars during print buffer rendering */
+          /* Purge scrollbars artifacts */
           ::-webkit-scrollbar {
             display: none !important;
-            width: 0 !important;
           }
         }
       `}} />
@@ -300,21 +301,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      <div className="bg-white p-4 md:p-10 shadow-2xl border-2 border-black max-w-[1500px] mx-auto w-full print-container overflow-x-auto rounded-none">
-        <div className="text-center min-w-[1050px] relative mb-6">
+      <div className="bg-white p-4 md:p-12 shadow-2xl border-2 border-black max-w-[1500px] mx-auto w-full print-container overflow-x-auto rounded-none">
+        <div className="text-center min-w-[1050px] print:min-w-0 relative mb-6">
           <div className="absolute top-0 left-0 bg-slate-50 border border-black px-3 py-1 font-black text-[9px] uppercase tracking-widest text-black">BREB Form-224</div>
           <h1 className="text-2xl font-black uppercase tracking-tight text-black leading-none">{pbsName}</h1>
-          <h2 className="text-base font-black uppercase tracking-[0.3em] mt-2 text-black">Provident Fund Subsidiary Ledger</h2>
+          <h2 className="text-base font-black uppercase tracking-[0.3em] mt-2 text-black underline underline-offset-4">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 border border-black mb-0 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
+        <div className="grid grid-cols-3 border border-black mb-0 text-[11px] font-black min-w-[1050px] print:min-w-0 tabular-nums bg-white text-black">
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Name:</span>
-            <span className="text-xs flex-1 truncate text-black font-black">{member?.name}</span>
+            <span className="text-xs flex-1 truncate text-black font-black uppercase">{member?.name}</span>
           </div>
           <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Designation:</span>
-            <span className="text-xs flex-1 truncate text-black font-black">{member?.designation}</span>
+            <span className="text-xs flex-1 truncate text-black font-black uppercase">{member?.designation}</span>
           </div>
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-amber-800 text-[11px] uppercase tracking-tighter font-black w-[80px]">PayID:</span>
@@ -322,11 +323,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Office:</span>
-            <span className="text-xs flex-1 truncate text-black font-black">{member?.zonalOffice || "Head Office"}</span>
+            <span className="text-xs flex-1 truncate text-black font-black uppercase">{member?.zonalOffice || "Head Office"}</span>
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-rose-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Status:</span>
-            <span className={cn("text-[11px] font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
+            <span className={cn("text-[11px] font-black uppercase", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
           <div className="py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-indigo-700 text-[11px] uppercase tracking-tighter font-black w-[100px]">Regular Date:</span>
@@ -334,26 +335,26 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <table className="w-full text-[8.5px] border-collapse border border-black font-black tabular-nums min-w-[1050px] text-black">
+        <table className="w-full text-[8.5px] border-collapse border border-black font-black tabular-nums min-w-[1050px] print:min-w-0 text-black">
           <thead className="bg-slate-100 border-b border-black uppercase text-center font-black">
             <tr className="border-b border-black">
               <th rowSpan={2} className="border border-black p-1 w-[80px] bg-indigo-50 text-indigo-800">Date</th>
-              <th rowSpan={2} className="border border-black p-1 text-blue-800">Transaction Detail</th>
-              <th rowSpan={2} className="border border-black p-1 bg-blue-50/50 text-blue-900">Employee<br/>Contrib</th>
-              <th rowSpan={2} className="border border-black p-1 bg-rose-50/50 text-rose-900">Loan<br/>Disburse</th>
+              <th rowSpan={2} className="border border-black p-1 text-blue-800">Particulars</th>
+              <th rowSpan={2} className="border border-black p-1 bg-blue-50/50 text-blue-900">Emp<br/>Contrib</th>
+              <th rowSpan={2} className="border border-black p-1 bg-rose-50/50 text-rose-900">Loan<br/>Drw</th>
               <th rowSpan={2} className="border border-black p-1 bg-emerald-50/50 text-emerald-900">Loan<br/>Repay</th>
               <th rowSpan={2} className="border border-black p-1 bg-slate-100 text-black w-[90px]">Loan<br/>Balance</th>
               <th colSpan={2} className="border border-black p-1 bg-amber-50/50 text-amber-900">Profit on</th>
               <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[100px]">Total<br/>Equity</th>
               <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">PBS<br/>Contrib</th>
-              <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">Profit on<br/>PBS Contrib</th>
+              <th rowSpan={2} className="border border-black p-1 bg-indigo-50/50 text-indigo-900">Profit on<br/>PBS Cont</th>
               <th rowSpan={2} className="border border-black p-1 bg-slate-200 text-black w-[100px]">Total<br/>Office</th>
-              <th rowSpan={2} className="border border-black p-1 bg-green text-black w-[120px]">Cumulative<br/>Fund Total</th>
+              <th rowSpan={2} className="border border-black p-1 bg-slate-50 text-black w-[120px]">Cumulative<br/>Total</th>
               <th rowSpan={2} className="p-1 no-print bg-slate-100 w-[80px] border border-black">Actions</th>
             </tr>
             <tr className="border-b border-black">
-              <th className="border border-black p-1 bg-amber-50/20">Member<br/>Fund</th>
-              <th className="border border-black p-1 bg-amber-50/20">CPF Loan</th>
+              <th className="border border-black p-1 bg-amber-50/20 text-[7px]">Member</th>
+              <th className="border border-black p-1 bg-amber-50/20 text-[7px]">Loan</th>
             </tr>
           </thead>
           <tbody>
@@ -361,17 +362,17 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <tr key={idx} className={cn("border border-black h-[21px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
                 <td className="border border-black p-0 text-center font-mono text-[8.5px] text-indigo-800">{r.summaryDate}</td>
                 <td className="border border-black p-0 px-2 uppercase truncate max-w-[200px] leading-none text-[8.5px]">{r.particulars}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{r.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{r.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-50 font-mono text-[8.5px]">{r.col4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{r.col7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{r.col10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-50 text-[9px] font-bold">৳ {r.col11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c1).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{Number(r.c2).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{Number(r.c3).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-50 font-mono text-[8.5px]">{Number(r.col4).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c5).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c6).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{Number(r.col7).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c9).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{Number(r.col10).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-50 text-[9px] font-bold">৳ {Number(r.col11).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="p-0 text-center no-print bg-slate-50/30 border border-black">
                   {!r.isOpening && (
                     <div className="flex gap-1 justify-center">
@@ -383,7 +384,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               </tr>
             ))}
           </tbody>
-          <tfoot className="bg-slate-100 font-black border-t-2 border-black text-[9px] uppercase tabular-nums text-black">
+          <tfoot className="bg-slate-100 font-black border-t-2 border-black text-[9px] uppercase tabular-nums">
             <tr className="h-10">
               <td colSpan={2} className="border border-black p-2 text-right bg-slate-200 tracking-widest font-black text-black">Total:</td>
               <td className="border border-black p-0 px-2 text-right font-black">{ledgerLogic.grand.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -396,18 +397,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
               <td className="border border-black p-0 px-2 text-right font-black">{ledgerLogic.grand.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               <td className="border border-black p-0 px-2 text-right font-black">{ledgerLogic.grand.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               <td className="border border-black p-0 px-2 text-right bg-white font-black">{ledgerLogic.grand.c10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border border-black p-0 px-2 text-right bg-slate-50 text-sm font-black underline decoration-double decoration-black/30">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              <td className="border border-black p-0 px-2 text-right bg-slate-50 text-sm font-black underline decoration-double decoration-black/20">৳ {ledgerLogic.grand.c11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
               <td className="no-print bg-slate-50 border border-black"></td>
             </tr>
           </tfoot>
         </table>
 
-        <div className="mt-12 flex justify-between items-end border-t-2 border-black pt-4 no-print">
+        <div className="mt-12 flex justify-between items-end border-t-2 border-black pt-4">
           <div className="space-y-1">
             <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Verification</p>
             <div className="flex items-center gap-1.5 text-emerald-600">
                <ShieldCheck className="size-5" />
-               <span className="text-[11px] font-black uppercase tracking-widest">Mathematical Consistency Verified</span>
+               <span className="text-[11px] font-black uppercase tracking-widest">Institutional Audit Reconciled</span>
             </div>
           </div>
           <p className="text-[10px] font-black uppercase text-slate-400 italic">Developed by Ariful Islam, AGM Finance, Gazipur PBS-2</p>
