@@ -32,7 +32,7 @@ export default function RootLayout({
               <HeaderActionsProvider>
                 <SidebarProvider>
                   <AppSidebar />
-                  <SidebarInset>
+                  <SidebarInset className="flex flex-col h-svh overflow-hidden">
                     <header className="flex h-16 shrink-0 items-center gap-2 border-b px-6 no-print sticky top-0 z-30 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                       <SidebarTrigger className="-ml-1" />
                       <Separator orientation="vertical" className="mr-2 h-4" />
@@ -40,7 +40,7 @@ export default function RootLayout({
                         <HeaderActionsDisplay />
                       </div>
                     </header>
-                    <main className="flex-1 min-h-screen relative">
+                    <main className="flex-1 overflow-auto relative">
                       {children}
                       {/* Local Distribution Badge */}
                       <div className="local-mode-banner no-print">
@@ -48,6 +48,11 @@ export default function RootLayout({
                         Active
                       </div>
                     </main>
+                    <footer className="h-8 shrink-0 border-t bg-background flex items-center px-6 no-print z-40">
+                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
+                        Developed by Ariful Islam, AGM Finance, Gazipur PBS-2
+                      </p>
+                    </footer>
                   </SidebarInset>
                 </SidebarProvider>
               </HeaderActionsProvider>
