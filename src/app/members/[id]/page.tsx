@@ -61,9 +61,9 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
   const availableFYs = useMemo(() => {
     const fys = [];
     const now = new Date();
-    const curYear = now.getFullYear();
+    const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
-    const startYear = currentMonth >= 7 ? curYear : curYear - 1;
+    const startYear = currentMonth >= 7 ? currentYear : currentYear - 1;
     for (let i = 0; i < 15; i++) {
       const s = startYear - i;
       fys.push(`${s}-${(s + 1).toString().slice(-2)}`);
@@ -211,6 +211,52 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
+      {/* 
+        CRITICAL: AGGRESSIVE PRINT PURGE
+        Targeting both vertical and horizontal scrollbars by forcing parent containers to behave.
+      */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 8mm;
+          }
+          .no-print { display: none !important; }
+          
+          /* RESET GLOBAL OVERFLOWS */
+          html, body, main, [data-sidebar="inset"] { 
+            height: auto !important; 
+            overflow: visible !important; 
+            display: block !important;
+            min-height: auto !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+          }
+
+          .print-container {
+            display: block !important;
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            border: none !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+          }
+
+          table { 
+            width: 100% !important; 
+            table-layout: fixed !important; 
+            border-collapse: collapse !important;
+            page-break-inside: auto !important;
+          }
+          tr { page-break-inside: avoid !important; }
+          th, td { overflow: visible !important; }
+        }
+      `}} />
+
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
       <div className="bg-white p-3 border-2 border-black shadow-lg flex flex-col md:flex-row items-center justify-between no-print gap-4">
@@ -243,20 +289,20 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
       </div>
 
       <div className="bg-white p-4 md:p-10 shadow-2xl border-2 border-black max-w-[1500px] mx-auto w-full print-container overflow-x-auto rounded-none">
-        <div className="text-center min-w-[1050px] relative mb-6">
+        <div className="text-center min-w-[1050px] print:min-w-0 relative mb-6">
           <div className="absolute top-0 left-0 bg-slate-50 border border-black px-3 py-1 font-black text-[9px] uppercase tracking-widest text-black">BREB Form-224</div>
           <h1 className="text-2xl font-black uppercase tracking-tight text-black leading-none">{pbsName}</h1>
           <h2 className="text-base font-black uppercase tracking-[0.3em] mt-2 text-black">Provident Fund Subsidiary Ledger</h2>
         </div>
 
-        <div className="grid grid-cols-3 border border-black mb-0 text-[11px] font-black min-w-[1050px] tabular-nums bg-white text-black">
+        <div className="grid grid-cols-3 border border-black mb-0 text-[11px] font-black min-w-[1050px] print:min-w-0 tabular-nums bg-white text-black">
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Name:</span>
-            <span className="text-xs flex-1 truncate text-black font-black">{member?.name}</span>
+            <span className="text-xs flex-1 truncate text-black font-black uppercase">{member?.name}</span>
           </div>
           <div className="border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Designation:</span>
-            <span className="text-xs flex-1 truncate text-black font-black">{member?.designation}</span>
+            <span className="text-xs flex-1 truncate text-black font-black uppercase">{member?.designation}</span>
           </div>
           <div className="border-r border-b border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-amber-800 text-[11px] uppercase tracking-tighter font-black w-[80px]">PayID:</span>
@@ -264,11 +310,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-blue-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Office:</span>
-            <span className="text-xs flex-1 truncate text-black font-black">{member?.zonalOffice || "Head Office"}</span>
+            <span className="text-xs flex-1 truncate text-black font-black uppercase">{member?.zonalOffice || "Head Office"}</span>
           </div>
           <div className="border-r border-black py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-rose-700 text-[11px] uppercase tracking-tighter font-black w-[80px]">Status:</span>
-            <span className={cn("text-[11px] font-black", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
+            <span className={cn("text-[11px] font-black uppercase", member?.status === 'Active' ? "text-emerald-700" : "text-rose-700")}>{member?.status || "Active"}</span>
           </div>
           <div className="py-1 px-4 flex gap-4 items-center h-[21px]">
             <span className="text-indigo-700 text-[11px] uppercase tracking-tighter font-black w-[100px]">Regular Date:</span>
@@ -276,7 +322,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        <table className="w-full text-[8.5px] border-collapse border border-black font-black tabular-nums min-w-[1050px] text-black">
+        <table className="w-full text-[8.5px] border-collapse border border-black font-black tabular-nums min-w-[1050px] print:min-w-0 text-black">
           <thead className="bg-slate-100 border-b border-black uppercase text-center font-black">
             <tr className="border-b border-black">
               <th rowSpan={2} className="border border-black p-1 w-[80px] bg-indigo-50 text-indigo-800">Date</th>
@@ -302,18 +348,18 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             {ledgerLogic.rows.map((r: any, idx: number) => (
               <tr key={idx} className={cn("border border-black h-[21px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
                 <td className="border border-black p-0 text-center font-mono text-[8.5px] text-indigo-800">{r.summaryDate}</td>
-                <td className="border border-black p-0 px-2 Propercase truncate max-w-[200px] leading-none text-[8.5px]">{r.particulars}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c1.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{r.c2.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{r.c3.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-50 font-mono text-[8.5px]">{r.col4.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c5.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c6.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{r.col7.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c8.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{r.c9.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{r.col10.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-0 px-2 text-right bg-slate-50 text-[9px] font-bold">৳ {r.col11.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 uppercase truncate max-w-[200px] leading-none text-[8.5px]">{r.particulars}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c1).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{Number(r.c2).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{Number(r.c3).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-50 font-mono text-[8.5px]">{Number(r.col4).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c5).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c6).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{Number(r.col7).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c8).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c9).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-100 font-bold text-[8.5px]">{Number(r.col10).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border border-black p-0 px-2 text-right bg-slate-50 text-[9px] font-bold">৳ {Number(r.col11).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="p-0 text-center no-print bg-slate-50/30 border border-black">
                   {!r.isOpening && (
                     <div className="flex gap-1 justify-center">
@@ -352,7 +398,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
                <span className="text-[11px] font-black uppercase tracking-widest">Mathematical Consistency Verified</span>
             </div>
           </div>
-          <p className="text-[10px] font-black uppercase text-Yellow-400 italic">Developed by Ariful Islam, AGM Finance, Gazipur PBS-2</p>
+          <p className="text-[10px] font-black uppercase text-slate-400 italic">Developed by Ariful Islam, AGM Finance, Gazipur PBS-2</p>
         </div>
       </div>
 
