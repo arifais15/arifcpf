@@ -227,6 +227,34 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
+          .print-container {
+            overflow: visible !important;
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          table {
+            width: 100% !important;
+            min-width: 0 !important;
+            table-layout: fixed !important;
+          }
+          .min-w-[1050px] {
+            min-width: 0 !important;
+          }
+          .md\\:p-10 {
+            padding: 0 !important;
+          }
+        }
+      `}} />
       <PageHeaderActions>{headerActions}</PageHeaderActions>
 
       <div className="bg-white p-3 border-2 border-black shadow-lg flex flex-col md:flex-row items-center justify-between no-print gap-4">
