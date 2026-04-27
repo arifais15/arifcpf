@@ -15,7 +15,7 @@
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 35%; /* DARKER for high visibility */
+    --muted-foreground: 215.4 16.3% 20%; /* EXTREME DARK for maximum visibility */
     --accent: 226 70% 45%; /* Stable Indigo Accent */
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84.2% 60.2%;
@@ -38,7 +38,7 @@
 @layer base {
   * { @apply border-border; }
   body {
-    @apply bg-background text-foreground font-body text-[16px] antialiased; /* Increased to 16px */
+    @apply bg-background text-foreground font-body text-[16px] antialiased; /* Base 16px */
   }
   h1 { @apply font-extrabold tracking-tight text-primary uppercase text-3xl; }
   h2 { @apply font-bold tracking-tight text-primary uppercase text-xl; }

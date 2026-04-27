@@ -352,7 +352,7 @@ export default function InvestmentsPage() {
               <form onSubmit={handleSaveInvestment} className="space-y-6 pt-4">
                 <div className="grid grid-cols-2 gap-6">
                   <div className="col-span-2 space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">Bank / Institution Name</Label>
+                    <Label className="uppercase tracking-widest">Bank / Institution Name</Label>
                     <Input 
                       name="bankName" 
                       list="bank-names" 
@@ -364,9 +364,9 @@ export default function InvestmentsPage() {
                       {uniqueBankNames.map(name => <option key={name} value={name} />)}
                     </datalist>
                   </div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Ref No</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} className="h-11 border-2 border-black font-black" required /></div>
+                  <div className="space-y-2"><Label className="uppercase tracking-widest">Ref No</Label><Input name="referenceNumber" defaultValue={editingInvestment?.referenceNumber} className="h-11 border-2 border-black font-black" required /></div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">Instrument Type</Label>
+                    <Label className="uppercase tracking-widest">Instrument Type</Label>
                     <Select name="instrumentType" defaultValue={editingInvestment?.instrumentType || "FDR"}>
                       <SelectTrigger className="h-11 border-2 border-black font-black"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -378,7 +378,7 @@ export default function InvestmentsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">Current Principal (৳)</Label>
+                    <Label className="uppercase tracking-widest">Current Principal (৳)</Label>
                     <Input 
                       name="principalAmount" 
                       type="number" 
@@ -394,7 +394,7 @@ export default function InvestmentsPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">Initial Principal (৳)</Label>
+                    <Label className="uppercase tracking-widest">Initial Principal (৳)</Label>
                     <Input 
                       name="initialPrincipalAmount" 
                       type="number" 
@@ -405,11 +405,11 @@ export default function InvestmentsPage() {
                       className="h-11 border-2 border-black font-black tabular-nums" 
                     />
                   </div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
+                  <div className="space-y-2"><Label className="uppercase tracking-widest">Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={editingInvestment ? (editingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
                   
                   <div className="col-span-2 grid grid-cols-3 gap-4 p-6 bg-slate-50 rounded-2xl border-2 border-black">
                     <div className="space-y-2">
-                      <Label className="text-[9px] uppercase font-black text-slate-500">First Opening</Label>
+                      <Label className="uppercase text-slate-500">First Opening</Label>
                       <Input 
                         name="firstOpeningDate" 
                         type="date" 
@@ -424,7 +424,7 @@ export default function InvestmentsPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[9px] uppercase font-black text-slate-500">Cycle Renew</Label>
+                      <Label className="uppercase text-slate-500">Cycle Renew</Label>
                       <Input 
                         name="issueDate" 
                         type="date" 
@@ -435,11 +435,11 @@ export default function InvestmentsPage() {
                         required 
                       />
                     </div>
-                    <div className="space-y-2"><Label className="text-[9px] uppercase font-black text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" max="9999-12-31" defaultValue={editingInvestment?.maturityDate} className="font-black text-xs border-2 border-slate-300" /></div>
+                    <div className="space-y-2"><Label className="uppercase text-slate-500">Maturity Date</Label><Input name="maturityDate" type="date" max="9999-12-31" defaultValue={editingInvestment?.maturityDate} className="font-black text-xs border-2 border-slate-300" /></div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">GL Account</Label>
+                    <Label className="uppercase tracking-widest">GL Account</Label>
                     <Select name="chartOfAccountId" defaultValue={editingInvestment?.chartOfAccountId || "101.10.0000"}>
                       <SelectTrigger className="h-11 border-2 border-black font-black"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -448,7 +448,7 @@ export default function InvestmentsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">Status</Label>
+                    <Label className="uppercase tracking-widest">Status</Label>
                     <Select name="status" defaultValue={editingInvestment?.status || "Active"}>
                       <SelectTrigger className="h-11 border-2 border-black font-black"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -481,7 +481,7 @@ export default function InvestmentsPage() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <Label className="text-[10px] font-black uppercase text-slate-400">Display</Label>
+              <Label className="uppercase text-slate-400">Display</Label>
               <Select 
                 value={pageSize.toString()} 
                 onValueChange={(v) => { 
@@ -603,11 +603,11 @@ export default function InvestmentsPage() {
           </DialogHeader>
           <form onSubmit={handleRenewInvestment} className="space-y-6 pt-4">
             <div className="grid gap-6">
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Cycle Principal (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
-              <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">New Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={renewingInvestment ? (renewingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
+              <div className="space-y-2"><Label className="uppercase tracking-widest">New Cycle Principal (৳)</Label><Input name="principalAmount" type="number" step="0.01" defaultValue={renewingInvestment?.principalAmount} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
+              <div className="space-y-2"><Label className="uppercase tracking-widest">New Yield Rate (%)</Label><Input name="interestRate" type="number" step="0.01" defaultValue={renewingInvestment ? (renewingInvestment.interestRate * 100).toFixed(2) : ""} onKeyDown={handleNumericKeyDown} className="h-11 border-2 border-black font-black tabular-nums" required /></div>
               <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Renew Date</Label><Input name="renewDate" type="date" max="9999-12-31" required value={renewDate} onChange={(e) => handleRenewDateChange(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
-                <div className="space-y-2"><Label className="text-[10px] font-black uppercase tracking-widest">Maturity Date</Label><Input name="maturityDate" type="date" max="9999-12-31" required value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
+                <div className="space-y-2"><Label className="uppercase tracking-widest">Renew Date</Label><Input name="renewDate" type="date" max="9999-12-31" required value={renewDate} onChange={(e) => handleRenewDateChange(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
+                <div className="space-y-2"><Label className="uppercase tracking-widest">Maturity Date</Label><Input name="maturityDate" type="date" max="9999-12-31" required value={maturityDate} onChange={(e) => setMaturityDate(e.target.value)} className="h-11 border-2 border-black font-black" /></div>
               </div>
             </div>
             <DialogFooter className="gap-3 pt-4"><Button type="button" variant="outline" className="h-12 border-2 border-black font-black px-8 uppercase" onClick={() => setIsRenewOpen(false)}>Cancel</Button><Button type="submit" className="h-12 bg-black text-white font-black px-10 uppercase tracking-widest shadow-xl">Confirm Cycle</Button></DialogFooter>

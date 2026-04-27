@@ -399,15 +399,15 @@ function TransactionForm() {
       <div className="bg-white border-2 border-black shadow-2xl rounded-none overflow-hidden animate-in fade-in duration-500">
         <div className="grid grid-cols-1 md:grid-cols-4 border-b border-black font-black bg-slate-50">
           <div className="p-5 border-r border-black space-y-2.5">
-            <Label className="text-sm uppercase tracking-widest text-indigo-900 font-black block">Posting Date</Label>
+            <Label className="uppercase tracking-widest text-indigo-900 font-black block">Posting Date</Label>
             <Input type="date" value={entryDate} max="9999-12-31" onChange={(e) => setEntryDate(e.target.value)} className="h-12 border-black border-2 bg-white font-black text-lg focus-visible:ring-0 text-black uppercase" />
           </div>
           <div className="p-5 border-r border-black space-y-2.5">
-            <Label className="text-sm uppercase tracking-widest text-amber-900 font-black block">Voucher/Ref No</Label>
+            <Label className="uppercase tracking-widest text-amber-900 font-black block">Voucher/Ref No</Label>
             <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} className="h-12 border-black border-2 bg-white font-black text-lg focus-visible:ring-0 text-black" placeholder="INSERT REF..." />
           </div>
           <div className="md:col-span-2 p-5 space-y-2.5">
-            <Label className="text-sm uppercase tracking-widest text-blue-900 font-black block">Institutional Narrative</Label>
+            <Label className="uppercase tracking-widest text-blue-900 font-black block">Institutional Narrative</Label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-12 border-black border-2 bg-white font-black text-lg focus-visible:ring-0 text-black uppercase" placeholder="ENTER TRANSACTION DESCRIPTION..." />
           </div>
         </div>

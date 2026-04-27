@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Plus, UserCircle, Upload, Trash2, Edit2, Loader2, FileSpreadsheet, Download, ChevronLeft, ChevronRight, Info, ShieldCheck, FileType, Save, AlertCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { useCollection, useFirestore, useMemoFirebase, setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking, getDocuments } from "@/firebase";
-import { collection, doc, query, where, collectionGroup, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
+import { collection, doc, query, where, QueryConstraint, orderBy, limit, startAfter } from "firebase/firestore";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -391,7 +391,7 @@ export default function MembersPage() {
         </div>
         <div className="flex items-center gap-6 border-l-2 border-black/10 pl-8 ml-8">
           <div className="flex items-center gap-3">
-            <Label className="text-xs font-black uppercase text-slate-500 tracking-widest">Display Rows</Label>
+            <Label className="uppercase text-slate-500 tracking-widest">Display Rows</Label>
             <Select 
               value={pageSize.toString()} 
               onValueChange={(v) => { 
@@ -456,6 +456,14 @@ export default function MembersPage() {
         </Table>
       </div>
 
+      <div className="flex justify-between items-center no-print px-2">
+        <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest italic">Institutional Registry Interface</p>
+        <div className="flex items-center gap-2">
+           <Button variant="outline" disabled={currentPage === 1} onClick={() => { setCurrentPage(p => p - 1); setLastVisible(null); }} className="h-8 border-2 border-black font-black uppercase text-[9px] px-4">Previous</Button>
+           <Button variant="outline" disabled={members.length < pageSize} onClick={() => { setLastVisible(rawMembers?.[rawMembers.length - 2]); setCurrentPage(p => p + 1); }} className="h-8 border-2 border-black font-black uppercase text-[9px] px-4">Next</Button>
+        </div>
+      </div>
+
       <Dialog open={isBulkOpen} onOpenChange={setIsBulkOpen}>
         <DialogContent className="max-w-xl bg-white border-2 border-black p-0 rounded-none shadow-2xl font-ledger">
           <DialogHeader className="bg-slate-50 p-6 border-b-2 border-black flex flex-row items-center justify-between">
@@ -464,7 +472,7 @@ export default function MembersPage() {
                 <FileType className="size-6 text-emerald-600" />
                 Monthly Data Import
               </DialogTitle>
-              <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1">
+              <DialogDescription className="font-black uppercase tracking-widest text-slate-500 mt-1">
                 Phase 1: Excel Integration
               </DialogDescription>
             </div>
@@ -504,7 +512,7 @@ export default function MembersPage() {
               <ShieldCheck className="size-6 text-emerald-400" />
              Reconciliation
             </DialogTitle>
-            <DialogDescription className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
+            <DialogDescription className="text-slate-400 font-black uppercase tracking-widest mt-1">
               Phase 2: Confirmation of Statutory Totals
             </DialogDescription>
           </DialogHeader>
@@ -512,19 +520,19 @@ export default function MembersPage() {
           <div className="p-8 space-y-8">
             <div className="grid grid-cols-2 gap-4">
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">Total Employees</p>
+                  <p className="uppercase text-slate-400">Total Employees</p>
                   <p className="text-2xl font-black text-black">{bulkPreview?.totalMembers} Members</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">Emp Contrib (Col 1)</p>
+                  <p className="uppercase text-slate-400">Emp Contrib (Col 1)</p>
                   <p className="text-2xl font-black text-indigo-700">৳ {bulkPreview?.totalEmpCont.toLocaleString()}</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">PBS Matching (Col 8)</p>
+                  <p className="uppercase text-slate-400">PBS Matching (Col 8)</p>
                   <p className="text-2xl font-black text-emerald-700">৳ {bulkPreview?.totalPbsCont.toLocaleString()}</p>
                </div>
                <div className="p-4 bg-slate-50 border-2 border-black rounded-xl space-y-1">
-                  <p className="text-[9px] font-black uppercase text-slate-400">Net Loan Movement</p>
+                  <p className="uppercase text-slate-400">Net Loan Movement</p>
                   <p className={cn("text-2xl font-black", bulkPreview?.totalLoanAct >= 0 ? "text-rose-700" : "text-emerald-700")}>
                     ৳ {Math.abs(bulkPreview?.totalLoanAct || 0).toLocaleString()} {bulkPreview?.totalLoanAct >= 0 ? "(Disbursed)" : "(Recovered)"}
                   </p>
@@ -534,7 +542,7 @@ export default function MembersPage() {
             <div className="bg-amber-50 border-2 border-amber-200 p-4 rounded-xl flex gap-3 items-start">
                <AlertCircle className="size-5 text-amber-600 mt-1 shrink-0" />
                <div className="space-y-1">
-                 <p className="text-[10px] font-black uppercase text-amber-900 tracking-wider">Institutional Data Integrity Safe</p>
+                 <p className="uppercase text-amber-900 tracking-wider">Institutional Data Integrity Safe</p>
                  <p className="text-[11px] leading-relaxed text-amber-800 font-bold italic">
                    This will synchronize balanced Journal Entries against "Receivable from PBS (107.10.0000)". Any existing data for these members on these dates will be reconciled (updated) automatically.
                  </p>
@@ -571,27 +579,27 @@ export default function MembersPage() {
           <form onSubmit={handleAddMember} className="p-8 space-y-10 text-black bg-white">
             <div className="grid grid-cols-2 gap-10">
               <div className="space-y-2.5">
-                <Label className="text-sm font-black uppercase text-amber-800 ml-1 tracking-widest">PayID</Label>
+                <Label className="uppercase text-amber-800 ml-1 tracking-widest">PayID</Label>
                 <Input name="memberIdNumber" defaultValue={editingMember?.memberIdNumber} required className="h-14 border-black border-2 font-black text-2xl tabular-nums bg-slate-50 focus:bg-white" disabled={!!editingMember} />
               </div>
               <div className="space-y-2.5">
-                <Label className="text-sm font-black uppercase text-blue-800 ml-1 tracking-widest">Name</Label>
+                <Label className="uppercase text-blue-800 ml-1 tracking-widest">Name</Label>
                 <Input name="name" defaultValue={editingMember?.name} required className="h-14 border-black border-2 font-black text-xl uppercase" />
               </div>
               <div className="space-y-2.5">
-                <Label className="text-sm font-black uppercase text-slate-700 ml-1 tracking-widest">Designation</Label>
+                <Label className="uppercase text-slate-700 ml-1 tracking-widest">Designation</Label>
                 <Input name="designation" defaultValue={editingMember?.designation} required className="h-14 border-black border-2 font-black text-lg uppercase" />
               </div>
               <div className="space-y-2.5">
-                <Label className="text-sm font-black uppercase text-indigo-800 ml-1 tracking-widest">Joining Date</Label>
+                <Label className="uppercase text-indigo-800 ml-1 tracking-widest">Joining Date</Label>
                 <Input name="dateJoined" type="date" max="9999-12-31" defaultValue={editingMember?.dateJoined} required className="h-14 border-black border-2 font-black text-xl text-black" />
               </div>
               <div className="space-y-2.5">
-                <Label className="text-sm font-black uppercase text-slate-700 ml-1 tracking-widest">Assigned Office</Label>
+                <Label className="uppercase text-slate-700 ml-1 tracking-widest">Assigned Office</Label>
                 <Input name="zonalOffice" defaultValue={editingMember?.zonalOffice} className="h-14 border-black border-2 font-black text-lg text-black uppercase" />
               </div>
               <div className="space-y-2.5">
-                <Label className="text-sm font-black uppercase text-rose-800 ml-1 tracking-widest">Status</Label>
+                <Label className="uppercase text-rose-800 ml-1 tracking-widest">Status</Label>
                 <Select name="status" defaultValue={editingMember?.status || "Active"}>
                   <SelectTrigger className="h-14 border-black border-2 font-black text-lg text-black uppercase">
                     <SelectValue />
@@ -606,7 +614,7 @@ export default function MembersPage() {
                 </Select>
               </div>
               <div className="col-span-2 space-y-2.5">
-                <Label className="text-sm font-black uppercase text-slate-700 ml-1 tracking-widest">Permanent Registry Address</Label>
+                <Label className="uppercase text-slate-700 ml-1 tracking-widest">Permanent Registry Address</Label>
                 <Textarea name="permanentAddress" defaultValue={editingMember?.permanentAddress} className="border-black border-2 font-black text-black min-h-[100px] uppercase text-sm" />
               </div>
             </div>

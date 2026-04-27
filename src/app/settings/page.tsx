@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
@@ -332,7 +331,7 @@ export default function SettingsPage() {
               {isUnlocked ? <Unlock className="size-5" /> : <Lock className="size-5" />}
             </div>
             <div className="space-y-0.5">
-              <Label className="text-[10px] uppercase font-black text-slate-400">Security Authorization</Label>
+              <Label className="uppercase text-slate-400">Security Authorization</Label>
               <div className="relative">
                 <KeyRound className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-slate-400" />
                 <Input 
@@ -445,9 +444,9 @@ export default function SettingsPage() {
                 <DialogHeader className="bg-slate-100 p-6 border-b-4 border-black"><DialogTitle className="text-xl font-black uppercase">{editingCoaAccount ? "Edit" : "New"} Ledger Head</DialogTitle></DialogHeader>
                 <form onSubmit={handleSaveCoaAccount} className="p-8 space-y-6">
                   <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Code</Label><Input name="code" className="h-10 border-2 border-black font-black font-mono" defaultValue={editingCoaAccount?.code || editingCoaAccount?.accountCode} required /></div>
+                    <div className="space-y-2"><Label className="uppercase">Code</Label><Input name="code" className="h-10 border-2 border-black font-black font-mono" defaultValue={editingCoaAccount?.code || editingCoaAccount?.accountCode} required /></div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Type</Label>
+                      <Label className="uppercase">Type</Label>
                       <Select name="type" defaultValue={editingCoaAccount ? (editingCoaAccount.type || editingCoaAccount.accountType || "none") : "Asset"}>
                         <SelectTrigger className="h-10 border-2 border-black font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
                         <SelectContent className="font-black uppercase text-[10px]">
@@ -456,17 +455,17 @@ export default function SettingsPage() {
                       </Select>
                     </div>
                   </div>
-                  <div className="space-y-2"><Label className="text-[10px] font-black uppercase">Account Label</Label><Input name="name" className="h-10 border-2 border-black font-black uppercase text-xs" defaultValue={editingCoaAccount?.name || editingCoaAccount?.accountName} required /></div>
+                  <div className="space-y-2"><Label className="uppercase">Account Label</Label><Input name="name" className="h-10 border-2 border-black font-black uppercase text-xs" defaultValue={editingCoaAccount?.name || editingCoaAccount?.accountName} required /></div>
                   <div className="grid grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Normal Balance</Label>
+                      <Label className="uppercase">Normal Balance</Label>
                       <Select name="balance" defaultValue={editingCoaAccount ? (editingCoaAccount.balance || editingCoaAccount.normalBalance || "none") : "Debit"}>
                         <SelectTrigger className="h-10 border-2 border-black font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
                         <SelectContent className="font-black uppercase text-[10px]"><SelectItem value="Debit">Debit</SelectItem><SelectItem value="Credit">Credit</SelectItem><SelectItem value="none">None</SelectItem></SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase">Header Row</Label>
+                      <Label className="uppercase">Header Row</Label>
                       <Select name="isHeader" defaultValue={editingCoaAccount?.isHeader?.toString() || "false"}>
                         <SelectTrigger className="h-10 border-2 border-black font-black uppercase text-[10px]"><SelectValue /></SelectTrigger>
                         <SelectContent className="font-black uppercase text-[10px]"><SelectItem value="true">YES</SelectItem><SelectItem value="false">NO</SelectItem></SelectContent>
@@ -524,12 +523,12 @@ export default function SettingsPage() {
                 {ledgerCols.map((col) => (
                   <div key={col.key} className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 hover:bg-slate-50 transition-colors">
                     <div className="space-y-1">
-                      <Label className="text-sm font-black uppercase text-indigo-700">{col.label}</Label>
+                      <Label className="uppercase text-indigo-700">{col.label}</Label>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{col.description}</p>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="flex flex-col items-center gap-1.5 border-r border-black/10 pr-6">
-                        <Label className="text-[9px] uppercase text-slate-400 font-black">Normal Balance</Label>
+                        <Label className="uppercase text-slate-400 font-black">Normal Balance</Label>
                         <div className="flex items-center gap-3">
                           <span className={cn("text-[9px] font-black uppercase", !debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Credit</span>
                           <span className={cn("text-[9px] font-black uppercase", debitAccounts.includes(mapping[col.key] || "") ? "text-primary" : "text-slate-300")}>Debit</span>
@@ -568,7 +567,7 @@ export default function SettingsPage() {
                        {interestTiers.map((tier, idx) => (
                         <div key={idx} className="grid grid-cols-12 gap-6 items-center p-6 bg-slate-50 border-2 border-black rounded-xl">
                           <div className="col-span-6 space-y-2">
-                             <Label className="text-[10px] font-black uppercase text-slate-500">Tier Cap Limit (৳)</Label>
+                             <Label className="uppercase text-slate-500">Tier Cap Limit (৳)</Label>
                              {tier.limit === null ? (
                                <div className="h-11 flex items-center px-4 bg-slate-200 border-2 border-slate-300 rounded-lg text-slate-500 text-xs font-black uppercase italic tracking-widest">Surplus Balances</div>
                              ) : (
@@ -576,7 +575,7 @@ export default function SettingsPage() {
                              )}
                           </div>
                           <div className="col-span-4 space-y-2">
-                             <Label className="text-[10px] font-black uppercase text-slate-500">Yield Rate (%)</Label>
+                             <Label className="uppercase text-slate-500">Yield Rate (%)</Label>
                              <div className="relative">
                                <Input type="number" step="0.01" className="h-11 border-2 border-black font-black text-lg tabular-nums pr-8 text-center" value={tier.rate} disabled={!isUnlocked} onKeyDown={handleNumericKeyDown} onChange={(e) => updateInterestTier(idx, { rate: Number(e.target.value) })} />
                                <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black text-slate-400">%</span>
@@ -599,7 +598,7 @@ export default function SettingsPage() {
                   <CardContent className="p-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-10 p-8 border-2 border-indigo-200 bg-indigo-50/20 rounded-3xl">
                       <div className="space-y-2">
-                        <Label className="text-sm font-black uppercase text-indigo-900">Institutional TDS Rate (%)</Label>
+                        <Label className="uppercase text-indigo-900">Institutional TDS Rate (%)</Label>
                         <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest leading-relaxed">Default deduction for annual provisions.</p>
                       </div>
                       <div className="relative w-full md:w-[220px]">
@@ -617,11 +616,11 @@ export default function SettingsPage() {
            <Card className="max-w-2xl border-4 border-black rounded-none shadow-2xl bg-white overflow-hidden">
              <CardHeader className="bg-slate-50 border-b-4 border-black flex flex-row items-center justify-between">
                <div><CardTitle className="text-xl font-black uppercase">Institutional Branding</CardTitle></div>
-               <Button onClick={handleSaveGeneral} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Commit</Button>
+               <Button handleSaveGeneral} disabled={isSaving || !isUnlocked} className="h-10 bg-black text-white font-black uppercase text-[10px] px-10 shadow-xl">{isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4 mr-2" />} Commit</Button>
              </CardHeader>
              <CardContent className="p-10 space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Full PBS Identity</Label>
+                  <Label className="uppercase tracking-widest text-slate-500 ml-1">Full PBS Identity</Label>
                   <Input value={pbsName} disabled={!isUnlocked} onChange={(e) => setPbsName(e.target.value)} className="h-14 border-2 border-black font-black text-xl uppercase px-6" />
                 </div>
                 <div className="bg-slate-50 p-6 rounded-2xl border border-black/5 flex gap-4 items-center">
