@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -166,10 +165,30 @@ export default function AllLedgersPrintPage() {
             page-break-after: avoid !important;
           }
 
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
+          table { 
+            width: 100% !important; 
+            table-layout: fixed !important; 
+            border-collapse: collapse !important;
+            page-break-inside: auto !important;
+          }
+          tr { 
+            page-break-inside: avoid !important; 
+            page-break-after: auto !important;
+            height: auto !important;
+          }
+          th, td { 
+            height: auto !important;
+            vertical-align: middle !important;
+          }
           thead { display: table-header-group; }
           tfoot { display: table-footer-group; }
+          
+          .particulars-cell {
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.2 !important;
+            padding: 4px 8px !important;
+          }
         }
       `}} />
 
@@ -252,9 +271,11 @@ export default function AllLedgersPrintPage() {
               </thead>
               <tbody>
                 {l.rows.map((r: any, idx: number) => (
-                  <tr key={idx} className={cn("border border-black h-[21px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
-                    <td className="border border-black p-0 text-center font-mono text-indigo-800 text-[8.5px]">{r.summaryDate}</td>
-                    <td className="border border-black p-0 px-2 uppercase truncate max-w-[150px] leading-none text-[8.5px]">{r.particulars}</td>
+                  <tr key={idx} className={cn("border border-black h-auto hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
+                    <td className="border border-black p-1 text-center font-mono text-indigo-800 text-[8.5px]">{r.summaryDate}</td>
+                    <td className="border border-black p-1 px-2 uppercase text-[8.5px] particulars-cell">
+                      <div className="max-w-[200px] print:max-w-none">{r.particulars}</div>
+                    </td>
                     <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c1).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{Number(r.c2).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{Number(r.c3).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>

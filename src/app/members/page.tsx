@@ -593,7 +593,7 @@ export default function MembersPage() {
              <Button variant="outline" onClick={() => setIsPreviewOpen(false)} disabled={isCommitting} className="border-black border-2 font-black uppercase text-[11px] px-8 h-12 bg-white">Abandon</Button>
              <Button onClick={handleConfirmUpload} disabled={isCommitting} className="bg-black text-white font-black uppercase text-[11px] px-12 h-12 shadow-xl group">
                <CheckCircle2 className="size-4 mr-2 group-hover:scale-110 transition-transform text-emerald-400" />
-               Commit to Project Vault
+               Commit to Project 
              </Button>
           </DialogFooter>
         </DialogContent>

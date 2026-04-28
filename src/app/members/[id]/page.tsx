@@ -171,7 +171,7 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
     
     const entry = { 
       summaryDate: sDate, 
-      particulars: `FINAL SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ` (LOAN BAL ${currentLoanBal.toLocaleString()} ADJUSTED)` : ''}`, 
+      particulars: `SETTLEMENT - ${reason.toUpperCase()}${currentLoanBal > 0 ? ` (LOAN BAL ${currentLoanBal.toLocaleString()} ADJUSTED)` : ''}`, 
       employeeContribution: -(ledgerLogic.totalAllTime.c1 || 0), 
       loanWithdrawal: 0, 
       loanRepayment: currentLoanBal > 0 ? currentLoanBal : 0,
@@ -252,8 +252,21 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
             border-collapse: collapse !important;
             page-break-inside: auto !important;
           }
-          tr { page-break-inside: avoid !important; }
-          th, td { overflow: visible !important; }
+          tr { 
+            page-break-inside: avoid !important; 
+            height: auto !important;
+          }
+          th, td { 
+            overflow: visible !important; 
+            height: auto !important;
+            vertical-align: middle !important;
+          }
+          .particulars-cell {
+            white-space: normal !important;
+            word-break: break-word !important;
+            line-height: 1.2 !important;
+            padding: 4px 8px !important;
+          }
         }
       `}} />
 
@@ -346,9 +359,11 @@ export default function MemberLedgerPage({ params }: { params: Promise<{ id: str
           </thead>
           <tbody>
             {ledgerLogic.rows.map((r: any, idx: number) => (
-              <tr key={idx} className={cn("border border-black h-[21px] hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
-                <td className="border border-black p-0 text-center font-mono text-[8.5px] text-indigo-800">{r.summaryDate}</td>
-                <td className="border border-black p-0 px-2 uppercase truncate max-w-[200px] leading-none text-[8.5px]">{r.particulars}</td>
+              <tr key={idx} className={cn("border border-black h-auto hover:bg-slate-50 transition-colors bg-transparent", r.isOpening && "bg-slate-50/50 italic")}>
+                <td className="border border-black p-1 text-center font-mono text-[8.5px] text-indigo-800">{r.summaryDate}</td>
+                <td className="border border-black p-1 px-2 uppercase text-[8.5px] particulars-cell">
+                   <div className="max-w-[250px] print:max-w-none">{r.particulars}</div>
+                </td>
                 <td className="border border-black p-0 px-2 text-right text-[8.5px]">{Number(r.c1).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="border border-black p-0 px-2 text-right text-rose-700 text-[8.5px]">{Number(r.c2).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="border border-black p-0 px-2 text-right text-emerald-700 text-[8.5px]">{Number(r.c3).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
