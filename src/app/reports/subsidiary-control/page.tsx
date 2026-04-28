@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useMemo, useState, useEffect } from "react";
@@ -18,14 +19,14 @@ import {
   LayoutList,
   History,
   ShieldCheck,
-  FileSpreadsheet
+  FileSpreadsheet,
+  ArrowLeft
 } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Dialog, 
   DialogContent, 
@@ -36,6 +37,8 @@ import {
 import { cn } from "@/lib/utils";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import Link from "next/link";
+import { format, parseISO } from "date-fns";
 
 export default function SubsidiaryControlLedgerPage() {
   const firestore = useFirestore();
@@ -133,9 +136,50 @@ export default function SubsidiaryControlLedgerPage() {
 
   return (
     <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-[#000000]">
+      {/* PROFESSIONAL PRINT CSS INJECTION */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 12mm;
+          }
+          .no-print { display: none !important; }
+          .print-container {
+            display: block !important;
+            width: 100% !important;
+            max-width: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+          main, [data-sidebar="inset"], body { 
+            overflow: visible !important; 
+            height: auto !important; 
+            min-height: auto !important;
+          }
+          table { 
+            width: 100% !important; 
+            table-layout: fixed !important; 
+            border-collapse: collapse !important;
+          }
+          th, td { 
+            border: 0.5pt solid black !important;
+            padding: 4px !important;
+            word-break: break-word !important;
+          }
+          thead { display: table-header-group !important; }
+          tfoot { display: table-footer-group !important; }
+          tr { break-inside: avoid !important; }
+        }
+      `}} />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
-          <div className="bg-black p-3 rounded-2xl shadow-lg"><LayoutList className="size-8 text-white" /></div>
+          <Link href="/reports" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors">
+            <ArrowLeft className="size-6 text-black" />
+          </Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tight uppercase">Subsidiary Control</h1>
             <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Audit Matrix</p>
@@ -146,88 +190,151 @@ export default function SubsidiaryControlLedgerPage() {
             <FileSpreadsheet className="size-4" /> Export Excel
           </Button>
           <Button onClick={() => window.print()} className="gap-2 h-10 font-black bg-black text-white shadow-xl uppercase tracking-widest text-[10px] px-8">
-            <Printer className="size-4" /> Print Control Ledger
+            <Printer className="size-4" /> Print Statement
           </Button>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl border-4 border-black shadow-2xl flex items-center justify-between no-print">
+      <div className="bg-white p-6 rounded-2xl border-4 border-black shadow-2xl flex flex-col md:flex-row items-center justify-between no-print gap-8">
         <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-xl border-2 border-black">
           <div className="grid gap-1">
             <Label className="text-[9px] uppercase font-black text-black">Ledger Start</Label>
-            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-2 border-black bg-white" />
+            <Input type="date" value={dateRange.start} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, start: e.target.value})} className="h-8 text-xs border-2 border-black bg-white font-black" />
           </div>
           <ArrowRightLeft className="size-3 text-black opacity-30 mt-4" />
           <div className="grid gap-1">
             <Label className="text-[9px] uppercase font-black text-black">Ledger End</Label>
-            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-2 border-black bg-white" />
+            <Input type="date" value={dateRange.end} max="9999-12-31" onChange={(e) => setDateRange({...dateRange, end: e.target.value})} className="h-8 text-xs border-2 border-black bg-white font-black" />
           </div>
         </div>
         <div className="flex gap-4">
-          <Badge variant="outline" className="bg-white border-black font-black uppercase text-[10px]">Opening BF: ৳{ledgerResult.opening.toLocaleString()}</Badge>
-          <Badge className="bg-black text-white font-black uppercase text-[10px]">Closing CF: ৳{ledgerResult.closing.toLocaleString()}</Badge>
+          <Badge variant="outline" className="bg-white border-black font-black uppercase text-[10px] rounded-none py-1.5 px-4 h-auto shadow-sm">Opening BF: ৳{ledgerResult.opening.toLocaleString()}</Badge>
+          <Badge className="bg-black text-white font-black uppercase text-[10px] rounded-none py-1.5 px-4 h-auto shadow-md">Closing CF: ৳{ledgerResult.closing.toLocaleString()}</Badge>
         </div>
       </div>
 
-      <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden no-print animate-in fade-in duration-500">
-        <Table className="text-black font-black tabular-nums">
-          <TableHeader>
-            <TableRow className="bg-slate-50 border-b-2 border-black">
-              <TableHead className="font-black text-black uppercase text-[10px] py-5 pl-6">Date</TableHead>
-              <TableHead className="font-black text-black uppercase text-[10px] py-5">Consolidated Particulars</TableHead>
-              <TableHead className="text-right font-black text-black uppercase text-[10px] py-5">Debit (৳)</TableHead>
-              <TableHead className="text-right font-black text-black uppercase text-[10px] py-5">Credit (৳)</TableHead>
-              <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest py-5 bg-slate-100 pr-6">Running Balance (৳)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow className="bg-slate-50/50 italic border-b-2 border-black h-12">
-              <td className="p-4 pl-6 font-mono text-xs">{dateRange.start}</td>
-              <td className="p-4 uppercase text-[11px] font-black">Opening Balance Brought Forward</td>
-              <td className="text-right p-4">—</td>
-              <td className="text-right p-4">—</td>
-              <td className="text-right p-4 pr-6 font-black bg-slate-100/50">৳ {ledgerResult.opening.toLocaleString()}</td>
-            </TableRow>
-            {ledgerResult.rows.map((item: any, idx: number) => (
-              <TableRow key={idx} className="hover:bg-slate-50 border-b border-black">
-                <td className="font-mono text-xs p-5 pl-6">{item.date}</td>
-                <td className="p-5 text-[11px] uppercase opacity-70 font-black">{item.particulars}</td>
-                <td className="text-right p-5 text-base cursor-pointer hover:bg-rose-50 font-black text-rose-600" onClick={() => item.debit > 0 && setViewingDayDetails(item)}>{item.debit > 0 ? item.debit.toLocaleString() : "—"}</td>
-                <td className="text-right p-5 text-base cursor-pointer hover:bg-emerald-50 font-black text-emerald-600" onClick={() => item.credit > 0 && setViewingDayDetails(item)}>{item.credit > 0 ? item.credit.toLocaleString() : "—"}</td>
-                <td className="text-right p-5 bg-slate-50 font-black text-lg pr-6 underline">৳ {item.balance.toLocaleString()}</td>
+      <div className="print-container">
+        {/* INSTITUTIONAL PRINT HEADER */}
+        <div className="hidden print:block text-center mb-8 text-black font-ledger">
+          <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
+          <p className="text-sm font-black uppercase tracking-[0.3em] mt-1">Employees' Contributory Provident Fund</p>
+          <div className="mt-6 flex justify-center">
+            <div className="border-4 border-black px-12 py-2">
+              <h2 className="text-xl font-black uppercase tracking-[0.4em]">Subsidiary Control Ledger</h2>
+            </div>
+          </div>
+          <div className="flex justify-between items-end mt-8 border-b-2 border-black pb-2 text-[10px] font-black uppercase tracking-widest">
+            <span>Period: {dateRange.start ? format(parseISO(dateRange.start), 'dd-MMM-yy') : '...'} to {dateRange.end ? format(parseISO(dateRange.end), 'dd-MMM-yy') : '...'}</span>
+            <span>Print Date: {new Date().toLocaleDateString('en-GB')}</span>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden print:border-none print:shadow-none animate-in fade-in duration-500">
+          <Table className="text-black font-black tabular-nums border-collapse">
+            <TableHeader>
+              <TableRow className="bg-slate-50 border-b-2 border-black uppercase text-[9px]">
+                <TableHead className="font-black text-black uppercase text-[10px] py-5 pl-6 border-r border-black w-[110px]">Date</TableHead>
+                <TableHead className="font-black text-black uppercase text-[10px] py-5 border-r border-black">Consolidated Particulars</TableHead>
+                <TableHead className="text-right font-black text-black uppercase text-[10px] py-5 border-r border-black w-[150px]">Debit (৳)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase text-[10px] py-5 border-r border-black w-[150px]">Credit (৳)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest py-5 bg-slate-100 pr-6 w-[180px]">Balance (৳)</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody className="text-[11px] print:text-[10px]">
+              <TableRow className="bg-slate-50/50 italic border-b-2 border-black h-12">
+                <td className="p-4 pl-6 font-mono text-xs border-r border-black">{dateRange.start}</td>
+                <td className="p-4 uppercase font-black border-r border-black">Opening Balance Brought Forward</td>
+                <td className="text-right p-4 border-r border-black">—</td>
+                <td className="text-right p-4 border-r border-black">—</td>
+                <td className="text-right p-4 pr-6 font-black bg-slate-100/50">৳ {ledgerResult.opening.toLocaleString()}</td>
+              </TableRow>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
+              ) : ledgerResult.rows.length === 0 ? (
+                <TableRow><TableCell colSpan={5} className="text-center py-32 text-slate-400 font-black uppercase text-xl italic opacity-20">No audit movements found in this period</TableCell></TableRow>
+              ) : ledgerResult.rows.map((item: any, idx: number) => (
+                <TableRow key={idx} className="hover:bg-slate-50 border-b border-black h-10">
+                  <td className="font-mono text-xs p-4 pl-6 border-r border-black">{item.date}</td>
+                  <td className="p-4 uppercase opacity-70 font-black border-r border-black">{item.particulars}</td>
+                  <td 
+                    className="text-right p-4 text-base cursor-pointer hover:bg-rose-50 font-black text-rose-600 border-r border-black no-print" 
+                    onClick={() => item.debit > 0 && setViewingDayDetails(item)}
+                  >
+                    {item.debit > 0 ? item.debit.toLocaleString() : "—"}
+                  </td>
+                  {/* Print-specific cells without hover effects */}
+                  <td className="text-right p-4 font-black text-rose-600 border-r border-black hidden print:table-cell">
+                    {item.debit > 0 ? item.debit.toLocaleString() : "—"}
+                  </td>
+                  <td 
+                    className="text-right p-4 text-base cursor-pointer hover:bg-emerald-50 font-black text-emerald-600 border-r border-black no-print" 
+                    onClick={() => item.credit > 0 && setViewingDayDetails(item)}
+                  >
+                    {item.credit > 0 ? item.credit.toLocaleString() : "—"}
+                  </td>
+                  <td className="text-right p-4 font-black text-emerald-600 border-r border-black hidden print:table-cell">
+                    {item.credit > 0 ? item.credit.toLocaleString() : "—"}
+                  </td>
+                  <td className="text-right p-4 bg-slate-50 font-black text-lg pr-6 underline decoration-black/20">৳ {item.balance.toLocaleString()}</td>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="bg-slate-900 text-white font-black border-t-4 border-black no-print">
+              <TableRow className="h-16">
+                <TableCell colSpan={2} className="text-right uppercase tracking-[0.3em] text-[10px] pr-10 border-r border-white/10">Period Closing Position:</TableCell>
+                <TableCell className="text-right border-r border-white/10 font-black text-rose-400">৳ {ledgerResult.rows.reduce((s,r) => s + (r.debit||0), 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 font-black text-emerald-400">৳ {ledgerResult.rows.reduce((s,r) => s + (r.credit||0), 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right bg-white text-black text-2xl pr-6 underline decoration-double decoration-black/30">৳ {ledgerResult.closing.toLocaleString()}</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
+        </div>
+
+        {/* PRINT FOOTER */}
+        <div className="hidden print:block mt-24">
+          <div className="grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+            <div className="border-t-2 border-black pt-4">Prepared by</div>
+            <div className="border-t-2 border-black pt-4">Checked by</div>
+            <div className="border-t-2 border-black pt-4">Approved by Trustee</div>
+          </div>
+          <div className="mt-12 pt-4 border-t border-black/10 flex justify-between items-center text-[8px] font-black uppercase text-slate-400">
+            <span>CPF Management Matrix v1.2</span>
+            <span>Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+          </div>
+        </div>
       </div>
 
+      {/* DETAIL TRACE DIALOG */}
       <Dialog open={!!viewingDayDetails} onOpenChange={(open) => !open && setViewingDayDetails(null)}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto font-ledger text-black border-4 border-black p-0 rounded-none shadow-2xl">
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
             <DialogTitle className="flex items-center gap-4 text-3xl font-black uppercase tracking-tight">Source Trace Audit</DialogTitle>
-            <DialogDescription className="font-mono text-sm font-black text-slate-500 mt-2">Posting Date: {viewingDayDetails?.date}</DialogDescription>
+            <DialogDescription className="font-mono text-sm font-black text-slate-500 mt-2 uppercase tracking-widest">Posting Date: {viewingDayDetails?.date} • {viewingDayDetails?.count} Personnel Matrix</DialogDescription>
           </DialogHeader>
           <div className="p-8">
             <Table className="font-black text-black tabular-nums border-2 border-black">
               <TableHeader className="bg-slate-100 border-b-2 border-black">
-                <TableRow>
-                  <TableHead className="font-black uppercase text-[10px] py-4 pl-6">ID & Personnel Name</TableHead>
-                  <TableHead className="font-black uppercase text-[10px] py-4">Voucher Detail</TableHead>
-                  <TableHead className="text-right font-black uppercase text-[10px] py-4">Debit (৳)</TableHead>
-                  <TableHead className="text-right font-black uppercase text-[10px] py-4 pr-6">Credit (৳)</TableHead>
+                <TableRow className="uppercase text-[9px] font-black">
+                  <TableHead className="font-black uppercase text-[10px] py-4 pl-6 border-r border-black text-black">ID & Personnel Name</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] py-4 border-r border-black text-black">Voucher Detail</TableHead>
+                  <TableHead className="text-right font-black uppercase text-[10px] py-4 border-r border-black text-black">Debit (৳)</TableHead>
+                  <TableHead className="text-right font-black uppercase text-[10px] py-4 pr-6 text-black">Credit (৳)</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
+              <TableBody className="text-[11px]">
                 {viewingDayDetails?.entries.map((entry: any, i: number) => (
                   <TableRow key={i} className="hover:bg-slate-50 border-b border-black">
-                    <td className="p-4 pl-6"><div className="flex flex-col"><span className="font-mono text-xs">{memberMap[entry.memberId]?.memberIdNumber}</span><span className="text-[10px] uppercase opacity-60">{memberMap[entry.memberId]?.name}</span></div></td>
-                    <td className="p-4 text-[10px] uppercase truncate">{entry.particulars}</td>
-                    <td className="text-right p-4 text-rose-600">{entry.netEffect < 0 ? Math.abs(entry.netEffect).toLocaleString() : "—"}</td>
-                    <td className="text-right p-4 pr-6 text-emerald-600">{entry.netEffect > 0 ? entry.netEffect.toLocaleString() : "—"}</td>
+                    <td className="p-4 pl-6 border-r border-black"><div className="flex flex-col"><span className="font-mono text-xs font-black">{memberMap[entry.memberId]?.memberIdNumber}</span><span className="text-[10px] uppercase opacity-60 font-black">{memberMap[entry.memberId]?.name}</span></div></td>
+                    <td className="p-4 text-[10px] uppercase truncate border-r border-black">{entry.particulars}</td>
+                    <td className="text-right p-4 text-rose-600 border-r border-black font-black">{entry.netEffect < 0 ? Math.abs(entry.netEffect).toLocaleString() : "—"}</td>
+                    <td className="text-right p-4 pr-6 text-emerald-600 font-black">{entry.netEffect > 0 ? entry.netEffect.toLocaleString() : "—"}</td>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </div>
+          <div className="bg-slate-100 p-6 border-t-4 border-black text-right">
+            <Button variant="ghost" onClick={() => setViewingDayDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-8">Close Audit</Button>
           </div>
         </DialogContent>
       </Dialog>
