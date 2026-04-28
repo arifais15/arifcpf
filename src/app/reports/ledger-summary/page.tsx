@@ -4,7 +4,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer, Loader2, Search, ArrowLeft, FileSpreadsheet } from "lucide-react";
+import { Printer, Loader2, Search, ArrowLeft, FileSpreadsheet, ShieldCheck } from "lucide-react";
 import { useCollection, useFirestore, useMemoFirebase, useDoc } from "@/firebase";
 import { collection, collectionGroup, doc } from "firebase/firestore";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import * as XLSX from "xlsx";
 import { useToast } from "@/hooks/use-toast";
+import { format, parseISO } from "date-fns";
 
 export default function LedgerSummaryReportPage() {
   const firestore = useFirestore();
@@ -21,7 +22,7 @@ export default function LedgerSummaryReportPage() {
   
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
-  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
+  const pbsName = (generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2").toUpperCase();
 
   const [asOfDate, setAsOfDate] = useState("");
   const [search, setSearch] = useState("");
@@ -56,7 +57,7 @@ export default function LedgerSummaryReportPage() {
       const c7 = c1 - c2 + c3 + c5 + c6; 
       const c10 = c8 + c9; 
       const c11 = c7 + c10;
-      return { id: m.memberIdNumber, name: m.name, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 };
+      return { id: m.memberIdNumber, name: m.name, designation: m.designation, c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11 };
     })
     .filter(r => r.name.toLowerCase().includes(search.toLowerCase()) || r.id?.includes(search))
     .sort((a,b) => (a.id||"").localeCompare(b.id||""));
@@ -95,85 +96,172 @@ export default function LedgerSummaryReportPage() {
 
   return (
     <div className="p-8 flex flex-col gap-6 bg-white min-h-screen font-ledger text-[#000000]">
+      {/* PROFESSIONAL PRINT CSS */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            size: A4 landscape;
+            margin: 10mm;
+          }
+          .no-print { display: none !important; }
+          
+          html, body, main, [data-sidebar="inset"] { 
+            height: auto !important; 
+            overflow: visible !important; 
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+          }
+
+          .print-container {
+            display: block !important;
+            width: 100% !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+          }
+
+          table { 
+            width: 100% !important; 
+            table-layout: fixed !important; 
+            border-collapse: collapse !important;
+            page-break-inside: auto !important;
+          }
+          tr { break-inside: avoid !important; }
+          th, td { border: 0.5pt solid black !important; padding: 2px 4px !important; }
+          thead { display: table-header-group !important; }
+          tfoot { display: table-footer-group !important; }
+        }
+      `}} />
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
         <div className="flex items-center gap-3">
-          <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border border-black"><ArrowLeft className="size-5" /></Link>
-          <h1 className="text-2xl font-black uppercase tracking-tight">Ledger Summary Matrix</h1>
+          <Link href="/reports" className="p-1.5 hover:bg-slate-100 rounded-full border-2 border-black transition-colors"><ArrowLeft className="size-5" /></Link>
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-black uppercase tracking-tight">Ledger Summary Matrix</h1>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Cumulative Status Analysis for All Personnel</p>
+          </div>
         </div>
-        <div className="flex items-center gap-3 bg-slate-50 p-2 border border-black rounded-xl">
+        <div className="flex items-center gap-3 bg-slate-50 p-2 border-2 border-black rounded-xl shadow-xl">
           <div className="grid gap-1">
             <Label className="text-[9px] font-black uppercase ml-1">Statement Cut-off</Label>
-            <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-32 border-black text-[10px] font-black" />
+            <Input type="date" value={asOfDate} max="9999-12-31" onChange={(e) => setAsOfDate(e.target.value)} className="h-8 w-36 border-black border-2 text-[10px] font-black bg-white" />
           </div>
-          <Button variant="outline" onClick={exportToExcel} className="h-9 border-black font-black text-[10px] px-6 uppercase tracking-widest"><FileSpreadsheet className="size-3.5 mr-2" /> Export</Button>
-          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-8 uppercase tracking-widest"><Printer className="size-3.5 mr-2" /> Print</Button>
+          <Button variant="outline" onClick={exportToExcel} className="h-9 border-black border-2 font-black text-[10px] px-6 uppercase tracking-widest bg-white hover:bg-slate-50 shadow-md"><FileSpreadsheet className="size-3.5 mr-2" /> Export</Button>
+          <Button onClick={() => window.print()} className="h-9 bg-black text-white font-black text-[10px] px-8 uppercase tracking-widest shadow-lg"><Printer className="size-3.5 mr-2" /> Print Audit</Button>
         </div>
       </div>
 
-      <div className="bg-white rounded-none border border-black overflow-hidden shadow-2xl">
-        <div className="p-2 border-b border-black bg-slate-50 flex items-center justify-between no-print">
-          <div className="relative flex-1 max-xs">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3 opacity-40" />
-            <Input className="pl-7 h-8 border-black font-black text-[10px] bg-white" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="bg-white rounded-none border-2 border-black overflow-hidden print-container shadow-2xl">
+        {/* INSTITUTIONAL PRINT HEADER */}
+        <div className="hidden print:block text-center mb-8 text-black">
+          <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
+          <p className="text-sm font-black uppercase tracking-[0.3em] mt-1">Employees' Contributory Provident Fund</p>
+          <div className="mt-6 flex justify-center">
+            <div className="border-4 border-black px-12 py-2">
+              <h2 className="text-xl font-black uppercase tracking-[0.4em]">Ledger Summary Matrix</h2>
+            </div>
           </div>
-          <Badge className="bg-black text-white font-black text-[9px] uppercase tracking-widest rounded-none">{reportData.length} Personnel</Badge>
+          <div className="flex justify-between items-end mt-8 border-b-2 border-black pb-2 text-[10px] font-black uppercase tracking-widest">
+            <span>Statement Cut-off: {asOfDate ? format(parseISO(asOfDate), 'dd MMMM yyyy') : '...'}</span>
+            <span>Print Date: {new Date().toLocaleDateString('en-GB')}</span>
+          </div>
+        </div>
+
+        <div className="p-3 border-b-2 border-black bg-slate-100 flex items-center justify-between no-print">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 opacity-40" />
+            <Input className="pl-8 h-8 border-black border-2 font-black text-[10px] bg-white text-black" placeholder="Search ID or Name..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          </div>
+          <Badge className="bg-black text-white font-black text-[9px] uppercase tracking-widest rounded-none px-4 py-1.5 shadow-sm">{reportData.length} Personnel Audited</Badge>
         </div>
         
         <div className="overflow-x-auto">
-          <Table className="w-full text-[8px] font-black table-fixed border-collapse">
-            <TableHeader className="bg-slate-100 border-b border-black uppercase text-[7px] leading-tight">
+          <Table className="w-full text-[8px] font-black table-fixed border-collapse text-[#000000]">
+            <TableHeader className="bg-slate-100 border-b-2 border-black uppercase text-[7px] leading-tight font-black">
               <TableRow>
-                <TableHead className="border-r border-black p-0.5 w-[40px] font-black text-black text-center h-8">ID No</TableHead>
-                <TableHead className="border-r border-black p-0.5 text-left w-[110px] font-black text-black h-8">Personnel Name</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Emp(1)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Draw(2)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">Repay(3)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[70px] bg-slate-200 font-black text-black h-8">L.Bal(4)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">E.Profit(5)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">L.Int(6)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[75px] bg-slate-300 font-black text-black h-8">Equity(7)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">PBS(8)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[60px] font-black text-black h-8">P.Profit(9)</TableHead>
-                <TableHead className="text-right border-r p-0.5 w-[75px] bg-slate-200 font-black text-black h-8">Office(10)</TableHead>
-                <TableHead className="text-right p-0.5 w-[90px] bg-black text-white font-black h-8">Total</TableHead>
+                <TableHead className="border-r border-black p-1 w-[40px] font-black text-black text-center h-10">ID No</TableHead>
+                <TableHead className="border-r-2 border-black p-1 text-left w-[110px] font-black text-black h-10">Personnel Name</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">Emp(1)</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">Draw(2)</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">Repay(3)</TableHead>
+                <TableHead className="text-right border-r-2 p-1 w-[70px] bg-slate-200 font-black text-black h-10">L.Bal(4)</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">E.Profit(5)</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">L.Int(6)</TableHead>
+                <TableHead className="text-right border-r-2 p-1 w-[75px] bg-slate-300 font-black text-black h-10">Equity(7)</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">PBS(8)</TableHead>
+                <TableHead className="text-right border-r p-1 w-[60px] font-black text-black h-10">P.Profit(9)</TableHead>
+                <TableHead className="text-right border-r-2 p-1 w-[75px] bg-slate-200 font-black text-black h-10">Office(10)</TableHead>
+                <TableHead className="text-right p-1 w-[95px] bg-black text-white font-black h-10 uppercase tracking-widest">Total Fund</TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="tabular-nums">
               {reportData.map((r, i) => (
-                <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-8">
-                  <TableCell className="p-0.5 border-r border-black font-mono text-center text-black">{r.id}</TableCell>
-                  <TableCell className="p-0.5 border-r border-black truncate uppercase font-black text-black">{r.name}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c1.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c2.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c3.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r bg-slate-50 font-bold text-black">{r.c4.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c5.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c6.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r bg-slate-100 font-bold text-black">{r.c7.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c8.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r text-black">{r.c9.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 border-r bg-slate-50 font-bold text-black">{r.c10.toLocaleString()}</TableCell>
-                  <TableCell className="text-right p-0.5 bg-slate-200 font-black text-black">{r.c11.toLocaleString()}</TableCell>
+                <TableRow key={i} className="border-b border-black hover:bg-slate-50 h-10 transition-colors bg-transparent">
+                  <TableCell className="p-1 border-r border-black font-mono text-center text-black font-bold">{r.id}</TableCell>
+                  <TableCell className="p-1 border-r-2 border-black truncate uppercase font-black text-black text-[9px]">{r.name}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c1.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c2.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c3.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r-2 bg-slate-50 font-bold text-black">{r.c4.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c5.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c6.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r-2 bg-slate-100 font-bold text-black">{r.c7.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c8.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r text-black">{r.c9.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 border-r-2 bg-slate-100 font-bold text-black">{r.c10.toLocaleString()}</TableCell>
+                  <TableCell className="text-right p-1 bg-slate-200 font-black text-black text-[9px] underline decoration-black underline-offset-4">৳ {r.c11.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
-            <TableFooter className="bg-black text-white font-black h-10 border-t-2 border-white/20">
-              <TableRow className="h-10 hover:bg-black">
-                <TableCell colSpan={2} className="text-right pr-2 uppercase font-black text-white">Aggregates:</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c1.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c2.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c3.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 bg-white/10 text-white">{stats.c4.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c5.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c6.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 bg-white/20 text-white">{stats.c7.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c8.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 text-white">{stats.c9.toLocaleString()}</TableCell>
-                <TableCell className="text-right border-l border-white/10 bg-white/10 text-white">{stats.c10.toLocaleString()}</TableCell>
-                <TableCell className="text-right bg-white text-black font-black text-[9px]">৳ {stats.c11.toLocaleString()}</TableCell>
+            <TableFooter className="bg-slate-900 text-white font-black h-14 border-t-4 border-black no-print">
+              <TableRow className="h-14 hover:bg-slate-900">
+                <TableCell colSpan={2} className="text-right pr-4 uppercase font-black text-white text-[10px] tracking-widest border-r-2 border-white/10">Institutional Totals:</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c1.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c2.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c3.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r-2 border-white/10 bg-white/10 text-white">{stats.c4.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c5.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c6.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r-2 border-white/10 bg-white/20 text-white">{stats.c7.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c8.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 text-white">{stats.c9.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r-2 border-white/10 bg-white/10 text-white">{stats.c10.toLocaleString()}</TableCell>
+                <TableCell className="text-right bg-white text-black text-xl font-black pr-2 underline decoration-double">৳ {stats.c11.toLocaleString()}</TableCell>
+              </TableRow>
+            </TableFooter>
+            {/* PRINT SPECIFIC FOOTER TOTALS */}
+            <TableFooter className="hidden print:table-footer-group bg-slate-100 text-black font-black border-t-4 border-black">
+              <TableRow className="h-12 font-black text-black">
+                <TableCell colSpan={2} className="text-right pr-4 uppercase font-black text-[10px] border-r-2 border-black">Institutional Aggregates:</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c1.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c2.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c3.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r-2 border-black bg-slate-200">{stats.c4.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c5.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c6.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r-2 border-black bg-slate-200">{stats.c7.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c8.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black">{stats.c9.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r-2 border-black bg-slate-200">{stats.c10.toLocaleString()}</TableCell>
+                <TableCell className="text-right font-black text-lg underline decoration-double decoration-black/30 bg-white">৳ {stats.c11.toLocaleString()}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
+        </div>
+
+        {/* PRINT FOOTER SIGN-OFF */}
+        <div className="hidden print:block mt-24">
+          <div className="grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
+            <div className="border-t-2 border-black pt-4">Prepared by</div>
+            <div className="border-t-2 border-black pt-4">Checked by</div>
+            <div className="border-t-2 border-black pt-4">Approved by Trustee</div>
+          </div>
+          <div className="mt-12 pt-4 border-t border-black/10 flex justify-between items-center text-[8px] font-black uppercase text-slate-400">
+            <span>CPF Management Softawre v1.2</span>
+            <span>Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
+          </div>
         </div>
       </div>
     </div>
