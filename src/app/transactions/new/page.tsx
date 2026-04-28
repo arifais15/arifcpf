@@ -345,6 +345,8 @@ function TransactionForm() {
         const vals = getSubsidiaryValues(l.accountCode, Number(l.debit) || 0, Number(l.credit) || 0);
         if (vals) {
           const deterministicId = `${dateKey}&${l.memberId}&${l.accountCode}&${savedId}`;
+          const finalParticulars = `${description}${refNo ? ` - ${refNo}` : ''}`;
+          
           batchOps.push({
             type: 'set',
             path: `members/${l.memberId}/fundSummaries/${deterministicId}`,
@@ -352,7 +354,7 @@ function TransactionForm() {
               ...vals,
               id: deterministicId,
               summaryDate: entryDate,
-              particulars: description,
+              particulars: finalParticulars,
               journalEntryId: savedId,
               memberId: l.memberId,
               createdAt: timestamp,
@@ -394,7 +396,7 @@ function TransactionForm() {
         </div>
         <Button onClick={handleAIClassify} disabled={isClassifying} variant="outline" className="border-2 border-black font-black uppercase h-11 px-8 bg-white hover:bg-slate-50 transition-all text-indigo-800 shadow-lg">
           {isClassifying ? <Loader2 className="size-4 animate-spin mr-2" /> : <Sparkles className="size-4 mr-2" />}
-          AI Matrix Assistant
+          AI Assistant
         </Button>
       </div>
 
@@ -409,7 +411,7 @@ function TransactionForm() {
             <Input value={refNo} onChange={(e) => setRefNo(e.target.value)} className="h-12 border-black border-2 bg-white font-black text-lg focus-visible:ring-0 text-black" placeholder="INSERT REF..." />
           </div>
           <div className="md:col-span-2 p-5 space-y-2.5">
-            <Label className="uppercase tracking-widest text-blue-900 font-black block">Institutional Narrative</Label>
+            <Label className="uppercase tracking-widest text-blue-900 font-black block">Transaction Particulars</Label>
             <Input value={description} onChange={(e) => setDescription(e.target.value)} className="h-12 border-black border-2 bg-white font-black text-lg focus-visible:ring-0 text-black uppercase" placeholder="ENTER TRANSACTION DESCRIPTION..." />
           </div>
         </div>
@@ -445,7 +447,7 @@ function TransactionForm() {
                   <td className="border-r border-black p-0">
                     <Input 
                       type="number" 
-                      step="0.01"
+                      step="0.00"
                       value={l.debit || ''} 
                       onKeyDown={handleNumericKeyDown} 
                       onChange={(e) => updateLine(l.id, { debit: Number(e.target.value), credit: 0 })} 
@@ -455,7 +457,7 @@ function TransactionForm() {
                   <td className="border-r border-black p-0">
                     <Input 
                       type="number" 
-                      step="0.01"
+                      step="0.00"
                       value={l.credit || ''} 
                       onKeyDown={handleNumericKeyDown} 
                       onChange={(e) => updateLine(l.id, { credit: Number(e.target.value), debit: 0 })} 
@@ -475,11 +477,11 @@ function TransactionForm() {
                 <td colSpan={2} className="border-r border-black px-8 text-right uppercase text-xs font-black tracking-[0.3em] text-slate-800">
                   <div className="flex items-center justify-end gap-3">
                      <Calculator className="size-5" />
-                     RECONCILIATION MATRIX:
+                     RECONCILIATION :
                   </div>
                 </td>
-                <td className="border-r border-black text-right px-4 text-3xl font-black tabular-nums text-emerald-800">৳ {totals.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border-r border-black text-right px-4 text-3xl font-black tabular-nums text-rose-800">৳ {totals.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black text-right px-4 text-3xl font-black tabular-nums text-emerald-800"> {totals.debit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td className="border-r border-black text-right px-4 text-3xl font-black tabular-nums text-rose-800"> {totals.credit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                 <td className="px-4 text-center bg-white">
                   {isBalanced ? (
                     <Badge className="bg-emerald-600 text-white border-none font-black uppercase text-xs rounded-none px-4 py-1.5 tracking-widest">Balanced</Badge>
@@ -512,7 +514,7 @@ function TransactionForm() {
       <div className="mt-auto pt-10 border-t border-black flex justify-between items-center text-xs font-black text-slate-500 uppercase tracking-[0.2em]">
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-5 text-emerald-600" />
-          <span>Institutional Trust Registry v1.2</span>
+          <span>CPF Trust Registry v1.2</span>
         </div>
         <p className="italic">Developed by: Ariful Islam, AGM Finance, Gazipur PBS-2</p>
       </div>
