@@ -67,7 +67,7 @@
 
 /* Portable Mode Indicator */
 .local-mode-banner {
-  @apply fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest shadow-2xl z-50 flex items-center gap-2 border border-white/10 backdrop-blur-md;
+  @apply fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest shadow-2xl z-50 flex items-center gap-2 border border-white/10 backdrop-blur-md;
 }
 
 @media print {
@@ -113,6 +113,6 @@
   }
 
   .font-ledger {
-    font-family: 'Calibri', 'Segoe UI', Arial, sans-serif !important;
+    font-family: 'Calibri', 'Segoe UI', Arial, Cambria !important;
   }
 }

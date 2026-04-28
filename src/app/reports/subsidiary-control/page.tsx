@@ -114,7 +114,7 @@ export default function SubsidiaryControlLedgerPage() {
   const exportToExcel = () => {
     if (ledgerResult.rows.length === 0) return;
     const exportRows = [
-      { Date: dateRange.start, Particulars: "Opening Balance Brought Forward", Debit: 0, Credit: 0, Balance: ledgerResult.opening }
+      { Date: dateRange.start, Particulars: "Opening Balance BF", Debit: 0, Credit: 0, Balance: ledgerResult.opening }
     ];
 
     ledgerResult.rows.forEach(r => {
@@ -183,7 +183,7 @@ export default function SubsidiaryControlLedgerPage() {
           </Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tight uppercase">Subsidiary Control</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Audit Matrix</p>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Consolidated Trust Audit </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -209,8 +209,8 @@ export default function SubsidiaryControlLedgerPage() {
           </div>
         </div>
         <div className="flex gap-4">
-          <Badge variant="outline" className="bg-white border-black font-black uppercase text-[10px] rounded-none py-1.5 px-4 h-auto shadow-sm">Opening BF: ৳{ledgerResult.opening.toLocaleString()}</Badge>
-          <Badge className="bg-black text-white font-black uppercase text-[10px] rounded-none py-1.5 px-4 h-auto shadow-md">Closing CF: ৳{ledgerResult.closing.toLocaleString()}</Badge>
+          <Badge variant="outline" className="bg-white border-black font-black uppercase text-[10px] rounded-none py-1.5 px-4 h-auto shadow-sm">Opening BF: {ledgerResult.opening.toLocaleString()}</Badge>
+          <Badge className="bg-black text-white font-black uppercase text-[10px] rounded-none py-1.5 px-4 h-auto shadow-md">Closing CF: {ledgerResult.closing.toLocaleString()}</Badge>
         </div>
       </div>
 
@@ -247,7 +247,7 @@ export default function SubsidiaryControlLedgerPage() {
                 <td className="p-4 uppercase font-black border-r border-black">Opening Balance Brought Forward</td>
                 <td className="text-right p-4 border-r border-black">—</td>
                 <td className="text-right p-4 border-r border-black">—</td>
-                <td className="text-right p-4 pr-6 font-black bg-slate-100/50">৳ {ledgerResult.opening.toLocaleString()}</td>
+                <td className="text-right p-4 pr-6 font-black bg-slate-100/50"> {ledgerResult.opening.toLocaleString()}</td>
               </TableRow>
               {isLoading ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-20"><Loader2 className="size-10 animate-spin mx-auto text-black" /></TableCell></TableRow>
@@ -276,25 +276,25 @@ export default function SubsidiaryControlLedgerPage() {
                   <td className="text-right p-4 font-black text-emerald-600 border-r border-black hidden print:table-cell">
                     {item.credit > 0 ? item.credit.toLocaleString() : "—"}
                   </td>
-                  <td className="text-right p-4 bg-slate-50 font-black text-lg pr-6 underline decoration-black/20">৳ {item.balance.toLocaleString()}</td>
+                  <td className="text-right p-4 bg-slate-50 font-black text-lg pr-6 underline decoration-black/20"> {item.balance.toLocaleString()}</td>
                 </TableRow>
               ))}
             </TableBody>
             <TableFooter className="bg-slate-900 text-white font-black border-t-4 border-black no-print">
               <TableRow className="h-16">
                 <TableCell colSpan={2} className="text-right uppercase tracking-[0.3em] text-[10px] pr-10 border-r border-white/10">Period Closing Position:</TableCell>
-                <TableCell className="text-right border-r border-white/10 font-black text-rose-400">৳ {ledgerResult.rows.reduce((s,r) => s + (r.debit||0), 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right border-r border-white/10 font-black text-emerald-400">৳ {ledgerResult.rows.reduce((s,r) => s + (r.credit||0), 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right bg-white text-black text-2xl pr-6 underline decoration-double decoration-black/30">৳ {ledgerResult.closing.toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 font-black text-rose-400"> {ledgerResult.rows.reduce((s,r) => s + (r.debit||0), 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-white/10 font-black text-emerald-400"> {ledgerResult.rows.reduce((s,r) => s + (r.credit||0), 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right bg-white text-black text-2xl pr-6 underline decoration-double decoration-black/30"> {ledgerResult.closing.toLocaleString()}</TableCell>
               </TableRow>
             </TableFooter>
             {/* PRINT FOOTER TOTALS */}
             <TableFooter className="hidden print:table-footer-group bg-slate-100 text-black font-black border-t-4 border-black">
               <TableRow className="h-12 font-black text-black">
-                <TableCell colSpan={2} className="text-right pr-4 uppercase font-black text-[10px] border-r border-black">Institutional Matrix Totals:</TableCell>
+                <TableCell colSpan={2} className="text-right pr-4 uppercase font-black text-[10px] border-r border-black"> Totals:</TableCell>
                 <TableCell className="text-right border-r border-black text-rose-700">{ledgerResult.rows.reduce((s,r) => s + (r.debit||0), 0).toLocaleString()}</TableCell>
                 <TableCell className="text-right border-r border-black text-emerald-700">{ledgerResult.rows.reduce((s,r) => s + (r.credit||0), 0).toLocaleString()}</TableCell>
-                <TableCell className="text-right font-black text-lg underline decoration-double decoration-black/30 bg-white">৳ {ledgerResult.closing.toLocaleString()}</TableCell>
+                <TableCell className="text-right font-black text-lg underline decoration-double decoration-black/30 bg-white"> {ledgerResult.closing.toLocaleString()}</TableCell>
               </TableRow>
             </TableFooter>
           </Table>
@@ -308,7 +308,7 @@ export default function SubsidiaryControlLedgerPage() {
             <div className="border-t-2 border-black pt-4">Approved by Trustee</div>
           </div>
           <div className="mt-12 pt-4 border-t border-black/10 flex justify-between items-center text-[8px] font-black uppercase text-slate-400">
-            <span>CPF Management Matrix v1.2</span>
+            <span>CPF Management Softawre v1.2</span>
             <span>Developed by: Ariful Islam, AGMF, Gazipur PBS-2</span>
           </div>
         </div>

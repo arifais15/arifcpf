@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useMemo, useEffect } from "react";
@@ -85,7 +86,6 @@ export default function SpecialInterestDPPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: members, isLoading: isMembersLoading } = useCollection(membersRef);
   
-  // Rule: Only process members with 'Active' status
   const activeMembers = useMemo(() => members?.filter(m => m.status === 'Active') || [], [members]);
 
   const interestSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "interest"), [firestore]);
@@ -128,13 +128,12 @@ export default function SpecialInterestDPPage() {
     const auditStart = new Date(dateRange.start);
     const auditEnd = new Date(dateRange.end);
     
-    // Target calculation: Focus only on active members
     const targetMembers = selectedMember === "all" 
       ? activeMembers 
       : activeMembers.filter(m => m.id === selectedMember);
 
     if (targetMembers.length === 0 && selectedMember !== "all") {
-       toast({ title: "Ineligible Member", description: "Interest accrual is strictly restricted to Active personnel.", variant: "destructive" });
+       toast({ title: "Ineligible Member", description: "Interest accrual restricted to Active personnel.", variant: "destructive" });
        setIsCalculating(false);
        return;
     }
@@ -142,8 +141,12 @@ export default function SpecialInterestDPPage() {
     const auditResults = [];
     for (const member of targetMembers) {
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
-      const snapshot = await getDocuments(query(summariesRef, orderBy("summaryDate", "asc")));
-      const allEntries = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+      const snapshot = await getDocuments(summariesRef);
+      
+      // Explicit Sort for Local PC Accuracy
+      const allEntries = snapshot.docs
+        .map(d => ({ ...d.data(), id: d.id }))
+        .sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
       
       let totalInterest = 0;
       let dailyLog = [];
@@ -151,7 +154,10 @@ export default function SpecialInterestDPPage() {
       const openingRefDate = new Date(auditStart);
       openingRefDate.setDate(openingRefDate.getDate() - 1);
       
-      let runningBalance = allEntries.filter((e: any) => new Date(e.summaryDate).getTime() <= openingRefDate.getTime()).reduce((sum, e: any) => sum + ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0) + (Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)), 0);
+      let runningBalance = allEntries
+        .filter((e: any) => new Date(e.summaryDate).getTime() <= openingRefDate.getTime())
+        .reduce((sum, e: any) => sum + ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0) + (Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)), 0);
+      
       const openingBalance = runningBalance;
       
       while (currentDate <= auditEnd) {
@@ -165,7 +171,12 @@ export default function SpecialInterestDPPage() {
       }
       
       let currentEmpFund = 0, currentPbsFund = 0;
-      allEntries.forEach((e: any) => { if (new Date(e.summaryDate).getTime() <= auditEnd.getTime()) { currentEmpFund += ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0)); currentPbsFund += ((Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)); } });
+      allEntries.forEach((e: any) => { 
+        if (new Date(e.summaryDate).getTime() <= auditEnd.getTime()) { 
+          currentEmpFund += ((Number(e.employeeContribution)||0) - (Number(e.loanWithdrawal)||0) + (Number(e.loanRepayment)||0) + (Number(e.profitEmployee)||0) + (Number(e.profitLoan)||0)); 
+          currentPbsFund += ((Number(e.pbsContribution)||0) + (Number(e.profitPbs)||0)); 
+        } 
+      });
       const totalFund = currentEmpFund + currentPbsFund;
       
       auditResults.push({ 
@@ -184,7 +195,7 @@ export default function SpecialInterestDPPage() {
     }
     setResults(auditResults);
     setIsCalculating(false);
-    toast({ title: "Day-Product Audit Complete", description: `Calculated DP yield for ${auditResults.length} active members.` });
+    toast({ title: "Audit Complete", description: `Day-Product yield computed via project folder vault.` });
   };
 
   const handlePostAll = async () => {
@@ -194,14 +205,14 @@ export default function SpecialInterestDPPage() {
       if (res.totalInterest <= 0) continue;
       const entry = { 
         summaryDate: postingDate, 
-        particulars: `Profit ${dateRange.start} to ${dateRange.end}`, 
+        particulars: `Profit (DP Basis) ${dateRange.start} to ${dateRange.end}`, 
         employeeContribution: 0, 
         loanWithdrawal: 0, 
         loanRepayment: 0, 
         profitEmployee: Math.round(res.empProfit), 
         profitLoan: 0, 
         pbsContribution: 0, 
-        profitPbs: Math.round(res.pbsProfit), // Map correctly to Column 9
+        profitPbs: Math.round(res.pbsProfit), 
         lastUpdateDate: new Date().toISOString(), 
         createdAt: new Date().toISOString(), 
         memberId: res.memberId, 
@@ -211,7 +222,7 @@ export default function SpecialInterestDPPage() {
     }
     setIsCalculating(false);
     setResults([]);
-    toast({ title: "Sync Successful", description: "Special interest distribution recorded in all active ledgers." });
+    toast({ title: "Local Sync Success", description: "Interest distribution recorded in vault SQLite." });
   };
 
   const exportToExcel = () => {
@@ -229,8 +240,7 @@ export default function SpecialInterestDPPage() {
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Special Interest Audit");
-    XLSX.writeFile(wb, `Special_Profit_${dateRange.start}.xlsx`);
-    toast({ title: "Exported", description: "Detailed yield matrix saved to Excel." });
+    XLSX.writeFile(wb, `Special_Profit_DP_${dateRange.start}.xlsx`);
   };
 
   const monthlyBreakdown = useMemo(() => {
@@ -261,7 +271,7 @@ export default function SpecialInterestDPPage() {
       <div className="bg-white p-6 rounded-2xl border-2 border-black shadow-xl flex flex-col gap-6 no-print">
         <div className="grid gap-6 md:grid-cols-3 items-end">
           <div className="space-y-1.5">
-            <Label className="text-[10px] uppercase font-black text-black ml-1">Active Member Focus</Label>
+            <Label className="text-[10px] uppercase font-black text-black ml-1">Local PC Member Focus</Label>
             <Select value={selectedMember} onValueChange={setSelectedMember}>
               <SelectTrigger className="h-11 border-black border-2 font-black uppercase text-xs"><SelectValue /></SelectTrigger>
               <SelectContent className="max-h-[300px]">
@@ -282,7 +292,7 @@ export default function SpecialInterestDPPage() {
           </div>
           <Button onClick={handleCalculate} disabled={isCalculating || isMembersLoading} className="h-11 font-black bg-black text-white uppercase tracking-widest shadow-xl">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run Profit Distribution
+            Compute DP Profit
           </Button>
         </div>
       </div>
@@ -296,11 +306,11 @@ export default function SpecialInterestDPPage() {
             </Card>
             <div className="bg-white p-4 rounded-xl border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between no-print h-full">
               <div className="space-y-1">
-                <Label className="text-[10px] uppercase font-black text-black">Ledger Post Date</Label>
+                <Label className="text-[10px] uppercase font-black text-black">Sync Date</Label>
                 <Input type="date" value={postingDate} max="9999-12-31" onChange={(e) => setPostingDate(e.target.value)} className="h-8 font-black text-xs border-black border-2" />
               </div>
               <Button onClick={handlePostAll} disabled={!postingDate} className="bg-black text-white h-10 font-black uppercase text-[10px] tracking-widest">
-                <ShieldCheck className="size-4" /> Post to Ledger 
+                <ShieldCheck className="size-4" /> Sync to vault
               </Button>
             </div>
           </div>
@@ -315,7 +325,7 @@ export default function SpecialInterestDPPage() {
                     <Printer className="size-3.5" /> Print Statement
                   </Button>
                </div>
-               <Badge className="bg-black text-white rounded-none uppercase text-[9px] font-black">Audit Results: {results.length} Personnel</Badge>
+               <Badge className="bg-black text-white rounded-none uppercase text-[9px] font-black">Local PC Audit: {results.length} Personnel</Badge>
             </div>
             <Table className="text-black font-black">
               <TableHeader className="bg-slate-100 border-b-2 border-black">
@@ -403,81 +413,21 @@ export default function SpecialInterestDPPage() {
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h3 className="text-base font-black flex items-center gap-3 uppercase tracking-widest border-b-2 border-black pb-2">
-                <CalendarDays className="size-5" />
-                Granular Daily Ledger Log
-              </h3>
-              <div className="border-2 border-black overflow-hidden shadow-lg">
-                <Table className="font-black text-black tabular-nums">
-                  <TableHeader className="bg-slate-100 border-b-2 border-black">
-                    <TableRow>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-4 pl-6 text-black">Audit Date</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-black">Day-End Balance (৳)</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest py-4 text-black">Interest (৳)</TableHead>
-                      <TableHead className="text-center text-[10px] font-black uppercase tracking-widest py-4 pr-6 text-black">Activity</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody className="font-black text-black">
-                    {viewingDetails?.dailyLog.map((day: any, i: number) => (
-                      <TableRow key={i} className={cn("hover:bg-slate-50 border-b border-black", day.hasActivity && "bg-amber-50/20")}>
-                        <td className="font-mono text-xs p-3 pl-6 text-black">{day.date}</td>
-                        <td className="text-right p-3 font-black text-black"> {day.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                        <td className="text-right p-3 font-black text-black"> {day.interest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</td>
-                        <td className="text-center p-3 pr-6">
-                          {day.hasActivity ? <Badge className="bg-black text-white text-[8px] h-4 uppercase font-black rounded-none">Trxn</Badge> : <span className="text-[8px] text-slate-300 font-black">—</span>}
-                        </td>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                  <TableFooter className="bg-slate-50 font-black border-t-2 border-black">
-                    <TableRow className="h-14">
-                      <TableCell colSpan={2} className="text-right uppercase tracking-widest text-[10px] pl-6 text-black">Sum of Daily Portions:</TableCell>
-                      <TableCell className="text-right text-black font-mono text-xs pr-6" colSpan={2}>৳ {viewingDetails?.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 6 })}</TableCell>
-                    </TableRow>
-                  </TableFooter>
-                </Table>
-              </div>
-            </div>
-
             <div className="bg-black p-6 border-2 border-black flex gap-4 items-start shadow-xl">
               <ShieldCheck className="size-6 text-white mt-0.5 shrink-0" />
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Day-Product Logic Verification</p>
+                <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Day-Product Vault Verification</p>
                 <p className="text-[11px] leading-relaxed text-slate-400 font-black italic uppercase">
-                  This calculation captures exact fund utilization for Active members. Interest is computed daily using the formula: (Daily Balance * Annual  Rate) / 365. This ensures that mid-month loan disbursements or repayments are perfectly adjusted for interest accrual.
+                  Interest is computed daily using the local SQLite balance matrix: (Daily Balance * Annual Tiered Rate) / 365. This high-fidelity audit captures exact fund utilization for Active members only.
                 </p>
               </div>
             </div>
           </div>
           <div className="bg-slate-100 p-6 border-t-4 border-black text-right">
-            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-8">Close Matrix</Button>
+            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-8">Close Audit</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* PRINT VIEW */}
-      <div className="hidden print:block print-container text-black font-black">
-        <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
-          <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
-          <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
-          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Day-Product Special Interest Statement</h2>
-          <div className="flex justify-between text-[11px] font-black pt-8">
-            <span>Period: {dateRange.start} to {dateRange.end}</span>
-            <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
-          </div>
-        </div>
-        <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums font-black text-black">
-          <thead><tr className="bg-slate-100 font-black text-black"><th className="border border-black p-2 uppercase text-black">ID No</th><th className="border border-black p-2 text-left uppercase text-black">Name & Designation</th><th className="border border-black p-2 text-right uppercase text-black">Days</th><th className="border border-black p-2 text-right uppercase text-black">Opening Bal</th><th className="border border-black p-2 text-right uppercase text-black">Total Interest</th></tr></thead>
-          <tbody className="font-black text-black">{results.map((r, i) => (<tr key={i} className="border-b border-black"><td className="border border-black p-2 text-center font-mono text-black">{r.memberIdNumber}</td><td className="border border-black p-2 uppercase text-black"><b>{r.name}</b><br/>{r.designation}</td><td className="border border-black p-2 text-right text-black">{r.days}</td><td className="border border-black p-2 text-right text-black">{r.openingBalance.toLocaleString()}</td><td className="border border-black p-2 text-right font-black text-black">{r.totalInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr>))}</tbody>
-          <tfoot><tr className="bg-slate-50 font-black h-12 text-black"><td colSpan={4} className="border border-black p-2 text-right uppercase tracking-widest text-black">Grand Total Special Interest:</td><td className="border border-black p-2 text-right text-lg underline decoration-double text-black font-black">৳ {results.reduce((s, r) => s + r.totalInterest, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td></tr></tfoot>
-        </table>
-        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest text-black">
-          <div className="border-t-2 border-black pt-4">Prepared by</div>
-          <div className="border-t-2 border-black pt-4">Checked by</div>
-          <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
-        </div>
-      </div>
     </div>
   );
 }

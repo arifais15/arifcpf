@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from "react";
@@ -116,7 +117,6 @@ export default function CPFInterestPage() {
   const membersRef = useMemoFirebase(() => collection(firestore, "members"), [firestore]);
   const { data: rawMembers, isLoading: isMembersLoading } = useCollection(membersRef);
   
-  // Filter for calculations: Only process Active members
   const activeMembers = useMemo(() => rawMembers?.filter(m => m.status === 'Active') || [], [rawMembers]);
 
   const calculateTieredAnnual = (balance: number) => {
@@ -141,8 +141,6 @@ export default function CPFInterestPage() {
 
   const handleRunCPFCalculation = async () => {
     if (activeMembers.length === 0) return;
-    if (calculationMode === 'custom' && (!customRange.start || !customRange.end)) return;
-
     setIsCalculating(true);
     setPreviewData([]);
     setProgress(0);
@@ -160,9 +158,12 @@ export default function CPFInterestPage() {
     for (let i = 0; i < activeMembers.length; i++) {
       const member = activeMembers[i];
       const summariesRef = collection(firestore, "members", member.id, "fundSummaries");
-      const q = query(summariesRef, orderBy("summaryDate", "asc"));
-      const snapshot = await getDocuments(q);
-      const summaries = snapshot.docs.map(doc => doc.data());
+      const snapshot = await getDocuments(summariesRef);
+      
+      // Explicit Sort for Local PC Accuracy
+      const summaries = snapshot.docs
+        .map(doc => doc.data())
+        .sort((a, b) => new Date(a.summaryDate).getTime() - new Date(b.summaryDate).getTime());
 
       const isAlreadyPosted = summaries.some(s => s.particulars?.includes(`Profit ${modeLabel}`));
 
@@ -201,7 +202,7 @@ export default function CPFInterestPage() {
       for (const targetDate of basisDates) {
         let runningBalanceBasis = 0;
         summaries.forEach((row: any) => {
-          if (new Date(row.summaryDate) <= targetDate) {
+          if (new Date(row.summaryDate).getTime() <= targetDate.getTime()) {
             const v = { c1: Number(row.employeeContribution)||0, c2: Number(row.loanWithdrawal)||0, c3: Number(row.loanRepayment)||0, c5: Number(row.profitEmployee)||0, c6: Number(row.profitLoan)||0, c8: Number(row.pbsContribution)||0, c9: Number(row.profitPbs)||0 };
             runningBalanceBasis += (v.c1 - v.c2 + v.c3 + v.c5 + v.c6 + v.c8 + v.c9);
           }
@@ -240,12 +241,12 @@ export default function CPFInterestPage() {
         profitEmployee: Math.round(item.employeeProfit), 
         profitLoan: 0, 
         pbsContribution: 0, 
-        profitPbs: Math.round(item.pbsProfit), // Map to Column 9
+        profitPbs: Math.round(item.pbsProfit),
         lastUpdateDate: new Date().toISOString(), 
         createdAt: new Date().toISOString(), 
         memberId: item.memberId 
       };
-      addDocumentNonBlocking(collection(firestore, "members", item.memberId, "fundSummaries"), entryData);
+      await addDocumentNonBlocking(collection(firestore, "members", item.memberId, "fundSummaries"), entryData);
     }
     setIsPosting(false);
     setPreviewData([]);
@@ -276,10 +277,10 @@ export default function CPFInterestPage() {
     <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-black">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 no-print">
         <div className="flex items-center gap-4">
-          <Link href="/investments" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors"><ArrowLeft className="size-6" /></Link>
+          <Link href="/investments" className="p-2 border-2 border-black rounded-full hover:bg-slate-100 transition-colors"><ArrowLeft className="size-6 text-black" /></Link>
           <div className="flex flex-col gap-1">
             <h1 className="text-3xl font-black text-black tracking-tight uppercase">Member Interest Accrual</h1>
-            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Annual Profit Distribution</p>
+            <p className="text-black uppercase tracking-widest text-[10px] font-black bg-black text-white px-2 py-0.5 inline-block rounded">Annual Profit Distribution Matrix</p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-2xl border-2 border-black shadow-xl">
@@ -307,7 +308,7 @@ export default function CPFInterestPage() {
 
           <Button onClick={handleRunCPFCalculation} disabled={isCalculating || isPosting || isMembersLoading} className="gap-2 font-black uppercase text-[10px] h-9 px-6 bg-black text-white hover:bg-black/90 shadow-lg">
             {isCalculating ? <Loader2 className="size-4 animate-spin" /> : <Calculator className="size-4" />}
-            Run Profit Distribution 
+            Run Audit
           </Button>
         </div>
       </div>
@@ -333,7 +334,7 @@ export default function CPFInterestPage() {
 
       {isCalculating && (
         <div className="max-w-md mx-auto text-center space-y-4 no-print py-12">
-          <p className="text-xs font-black uppercase tracking-[0.2em]">Auditing Active Personnel Ledger Volume...</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em]">Auditing Local PC Registry...</p>
           <Progress value={progress} className="h-3 border-2 border-black bg-slate-100 rounded-none" />
           <p className="text-[10px] font-black uppercase">{progress}% Complete</p>
         </div>
@@ -344,14 +345,14 @@ export default function CPFInterestPage() {
           <div className="p-6 border-b-4 border-black bg-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex flex-col gap-3">
               <h2 className="font-black text-sm uppercase tracking-widest flex items-center gap-3">
-                <ShieldCheck className="size-5" /> Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
+                <ShieldCheck className="size-5" /> Local PC Audit Preview: {calculationMode === 'fy' ? `FY ${selectedFY}` : `Range`}
               </h2>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={exportToExcel} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
                   <FileSpreadsheet className="size-3.5" /> Export Excel
                 </Button>
                 <Button variant="outline" size="sm" onClick={() => window.print()} className="h-8 gap-2 font-black text-[10px] border-black border-2 bg-white hover:bg-slate-50 uppercase tracking-widest">
-                  <Printer className="size-3.5" /> Print  Report
+                  <Printer className="size-3.5" /> Print Statement
                 </Button>
               </div>
             </div>
@@ -368,7 +369,7 @@ export default function CPFInterestPage() {
                 className={cn("gap-2 font-black uppercase text-[10px] h-9 px-6", hasUnpostedEntries && postingDate ? "bg-black text-white" : "bg-slate-200 text-slate-400")}
               >
                 {isPosting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-                Post To Ledger Now
+                Sync to Local Ledger
               </Button>
             </div>
           </div>
@@ -416,7 +417,7 @@ export default function CPFInterestPage() {
           <DialogHeader className="p-8 border-b-4 border-black bg-slate-50">
             <DialogTitle className="flex items-center gap-4 text-2xl font-black uppercase tracking-tight">
               <Calculator className="size-8 text-black" />
-              Profit  Calculation Breakdown
+              Profit Calculation Breakdown
             </DialogTitle>
             <DialogDescription className="font-black text-slate-500 text-[11px] uppercase tracking-[0.25em] mt-2">
               {viewingDetails?.name} ({viewingDetails?.memberIdNumber}) • {calculationMode === 'fy' ? `FY ${selectedFY}` : `Custom Audit Range`}
@@ -478,66 +479,18 @@ export default function CPFInterestPage() {
             <div className="bg-slate-900 p-6 border-2 border-black flex gap-4 items-start shadow-xl">
               <ShieldCheck className="size-6 text-emerald-400 mt-0.5 shrink-0" />
               <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Institutional Audit Logic Verification</p>
+                <p className="text-[10px] font-black uppercase text-white tracking-[0.2em]">Local PC Logic Verification</p>
                 <p className="text-[11px] leading-relaxed text-slate-400 font-bold uppercase italic">
-                  Profit is computed by aggregating 12 month snapshots for Active members only. Each snapshot captures the total cumulative fund value at the end of the basis month. The final amount represents the weighted annual profit share based on real-time ledger contributions.
+                  Profit is computed by aggregating 12 monthly snapshots derived from the project vault SQLite file. Each snapshot captures the total cumulative fund value at the end of the basis month, ensuring high-fidelity interest accrual.
                 </p>
               </div>
             </div>
           </div>
           <div className="bg-slate-100 p-6 border-t-4 border-black text-right">
-            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-6">Close Terminal</Button>
+            <Button variant="ghost" onClick={() => setViewingDetails(null)} className="font-black text-xs uppercase tracking-widest border-2 border-black hover:bg-white px-6">Close Matrix</Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* PRINT VIEW */}
-      <div className="hidden print:block print-container text-black font-black">
-        <div className="text-center space-y-2 mb-10 border-b-4 border-black pb-8">
-          <h1 className="text-3xl font-black uppercase">{pbsName}</h1>
-          <p className="text-base font-black uppercase tracking-[0.3em]">Contributory Provident Fund</p>
-          <h2 className="text-xl font-black underline underline-offset-8 uppercase tracking-[0.4em] mt-4">Member Interest Accrual Audit Statement</h2>
-          <div className="flex justify-between text-[11px] font-black pt-8">
-            <span>Basis: {calculationMode === 'fy' ? `Fiscal Year ${selectedFY}` : `Custom Range`}</span>
-            <span>Run Date: {new Date().toLocaleDateString('en-GB')}</span>
-          </div>
-        </div>
-        <table className="w-full text-[9px] border-collapse border-2 border-black tabular-nums font-black text-black">
-          <thead>
-            <tr className="bg-slate-100 border-b-2 border-black">
-              <th className="border border-black p-2 uppercase tracking-widest text-black">ID No</th>
-              <th className="border border-black p-2 text-left uppercase tracking-widest text-black">Member Details</th>
-              <th className="border border-black p-2 text-right uppercase tracking-widest text-black">Profit (Emp)</th>
-              <th className="border border-black p-2 text-right uppercase tracking-widest text-black">Profit (PBS)</th>
-              <th className="border border-black p-2 text-right uppercase tracking-widest text-black">Total Profit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {previewData.map((item, i) => (
-              <tr key={i} className="border-b border-black">
-                <td className="border border-black p-2 text-center font-mono text-black">{item.memberIdNumber}</td>
-                <td className="border border-black p-2 uppercase text-black"><p className="font-black">{item.name}</p><p className="text-[7px] italic">{item.designation}</p></td>
-                <td className="border border-black p-2 text-right text-black">{item.employeeProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-2 text-right text-black">{item.pbsProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                <td className="border border-black p-2 text-right font-black text-black">{item.calculatedInterest.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="bg-slate-50 font-black h-12 border-t-2 border-black">
-              <td colSpan={2} className="border border-black p-2 text-right uppercase tracking-widest text-black">Consolidated Totals:</td>
-              <td className="border border-black p-2 text-right text-black">{previewData.reduce((s, i) => s + i.employeeProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border border-black p-2 text-right text-black">{previewData.reduce((s, i) => s + i.pbsProfit, 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              <td className="border border-black p-2 text-right text-lg underline decoration-double text-black font-black">৳ {totalCPFProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-            </tr>
-          </tfoot>
-        </table>
-        <div className="mt-32 grid grid-cols-3 gap-16 text-[13px] font-black text-center uppercase tracking-widest text-black">
-          <div className="border-t-2 border-black pt-4">Prepared by</div>
-          <div className="border-t-2 border-black pt-4">Checked by</div>
-          <div className="border-t-2 border-black pt-4">Approved By Trustee</div>
-        </div>
-      </div>
     </div>
   );
 }

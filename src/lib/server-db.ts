@@ -5,6 +5,10 @@ import path from 'path';
 /**
  * @fileOverview Server-Side SQLite Database Instance
  * Optimized for high-fidelity persistence in the Project Folder.
+ * 
+ * Performance Tuning for Local PC:
+ * - WAL Mode: Allows concurrent reads while writing.
+ * - Synchronous Normal: Fast disk writes with power-failure safety.
  */
 
 const DB_PATH = path.join(process.cwd(), 'pbs_cpf_vault_v7.sqlite3');
@@ -12,11 +16,13 @@ const DB_PATH = path.join(process.cwd(), 'pbs_cpf_vault_v7.sqlite3');
 let db: Database.Database;
 
 try {
-  // Opening the database. better-sqlite3 handles concurrent reads/writes efficiently.
   db = new Database(DB_PATH);
+  
+  // High-performance pragmas for Local PC environment
   db.pragma('journal_mode = WAL');
   db.pragma('synchronous = NORMAL');
   db.pragma('temp_store = MEMORY');
+  db.pragma('cache_size = -64000'); // 64MB cache
 
   // Initialize Tables with consistent structure
   db.exec(`
@@ -28,8 +34,10 @@ try {
     CREATE TABLE IF NOT EXISTS settings (id TEXT PRIMARY KEY, data TEXT);
     CREATE TABLE IF NOT EXISTS audit_logs (id TEXT PRIMARY KEY, data TEXT);
     
+    -- Optimized Indexes for Interest Calculation speed
     CREATE INDEX IF NOT EXISTS idx_fs_m ON fund_summaries(memberId);
     CREATE INDEX IF NOT EXISTS idx_fs_je ON fund_summaries(journalEntryId);
+    CREATE INDEX IF NOT EXISTS idx_m_idnum ON members(id);
   `);
 
   console.log(`[Institutional Vault Engaged]: ${DB_PATH}`);
