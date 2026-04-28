@@ -46,7 +46,7 @@ export default function SubsidiaryControlLedgerPage() {
   
   const generalSettingsRef = useMemoFirebase(() => doc(firestore, "settings", "general"), [firestore]);
   const { data: generalSettings } = useDoc(generalSettingsRef);
-  const pbsName = generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2";
+  const pbsName = (generalSettings?.pbsName || "Gazipur Palli Bidyut Samity-2").toUpperCase();
 
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
   const [viewingDayDetails, setViewingDayDetails] = useState<any | null>(null);
@@ -135,43 +135,44 @@ export default function SubsidiaryControlLedgerPage() {
   };
 
   return (
-    <div className="p-8 flex flex-col gap-8 bg-background min-h-screen font-ledger text-[#000000]">
-      {/* PROFESSIONAL PRINT CSS INJECTION */}
+    <div className="p-8 flex flex-col gap-8 bg-white min-h-screen font-ledger text-[#000000]">
+      {/* PROFESSIONAL LANDSCAPE PRINT CSS */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 12mm;
+            size: A4 landscape;
+            margin: 10mm;
           }
           .no-print { display: none !important; }
+          
+          /* PURGE OVERFLOWS */
+          html, body, main, [data-sidebar="inset"] { 
+            height: auto !important; 
+            overflow: visible !important; 
+            display: block !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: white !important;
+          }
+
           .print-container {
             display: block !important;
             width: 100% !important;
-            max-width: none !important;
-            padding: 0 !important;
-            margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
             overflow: visible !important;
           }
-          main, [data-sidebar="inset"], body { 
-            overflow: visible !important; 
-            height: auto !important; 
-            min-height: auto !important;
-          }
+
           table { 
             width: 100% !important; 
             table-layout: fixed !important; 
             border-collapse: collapse !important;
+            page-break-inside: auto !important;
           }
-          th, td { 
-            border: 0.5pt solid black !important;
-            padding: 4px !important;
-            word-break: break-word !important;
-          }
+          tr { break-inside: avoid !important; }
+          th, td { border: 0.5pt solid black !important; padding: 4px 8px !important; }
           thead { display: table-header-group !important; }
           tfoot { display: table-footer-group !important; }
-          tr { break-inside: avoid !important; }
         }
       `}} />
 
@@ -213,9 +214,9 @@ export default function SubsidiaryControlLedgerPage() {
         </div>
       </div>
 
-      <div className="print-container">
+      <div className="print-container bg-white rounded-none border-2 border-black overflow-hidden shadow-2xl print:border-none print:shadow-none">
         {/* INSTITUTIONAL PRINT HEADER */}
-        <div className="hidden print:block text-center mb-8 text-black font-ledger">
+        <div className="hidden print:block text-center mb-8 text-black">
           <h1 className="text-2xl font-black uppercase tracking-tight">{pbsName}</h1>
           <p className="text-sm font-black uppercase tracking-[0.3em] mt-1">Employees' Contributory Provident Fund</p>
           <div className="mt-6 flex justify-center">
@@ -229,15 +230,15 @@ export default function SubsidiaryControlLedgerPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-none shadow-2xl border-4 border-black overflow-hidden print:border-none print:shadow-none animate-in fade-in duration-500">
-          <Table className="text-black font-black tabular-nums border-collapse">
-            <TableHeader>
-              <TableRow className="bg-slate-50 border-b-2 border-black uppercase text-[9px]">
+        <div className="overflow-x-auto">
+          <Table className="text-black font-black tabular-nums border-collapse w-full">
+            <TableHeader className="bg-slate-100 border-b-2 border-black uppercase text-[9px]">
+              <TableRow>
                 <TableHead className="font-black text-black uppercase text-[10px] py-5 pl-6 border-r border-black w-[110px]">Date</TableHead>
                 <TableHead className="font-black text-black uppercase text-[10px] py-5 border-r border-black">Consolidated Particulars</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] py-5 border-r border-black w-[150px]">Debit (৳)</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] py-5 border-r border-black w-[150px]">Credit (৳)</TableHead>
-                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest py-5 bg-slate-100 pr-6 w-[180px]">Balance (৳)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase text-[10px] py-5 border-r border-black w-[180px]">Debit (৳)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase text-[10px] py-5 border-r border-black w-[180px]">Credit (৳)</TableHead>
+                <TableHead className="text-right font-black text-black uppercase text-[10px] tracking-widest py-5 bg-slate-200 pr-6 w-[200px]">Balance (৳)</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody className="text-[11px] print:text-[10px]">
@@ -262,7 +263,7 @@ export default function SubsidiaryControlLedgerPage() {
                   >
                     {item.debit > 0 ? item.debit.toLocaleString() : "—"}
                   </td>
-                  {/* Print-specific cells without hover effects */}
+                  {/* Print-specific cells */}
                   <td className="text-right p-4 font-black text-rose-600 border-r border-black hidden print:table-cell">
                     {item.debit > 0 ? item.debit.toLocaleString() : "—"}
                   </td>
@@ -287,10 +288,19 @@ export default function SubsidiaryControlLedgerPage() {
                 <TableCell className="text-right bg-white text-black text-2xl pr-6 underline decoration-double decoration-black/30">৳ {ledgerResult.closing.toLocaleString()}</TableCell>
               </TableRow>
             </TableFooter>
+            {/* PRINT FOOTER TOTALS */}
+            <TableFooter className="hidden print:table-footer-group bg-slate-100 text-black font-black border-t-4 border-black">
+              <TableRow className="h-12 font-black text-black">
+                <TableCell colSpan={2} className="text-right pr-4 uppercase font-black text-[10px] border-r border-black">Institutional Matrix Totals:</TableCell>
+                <TableCell className="text-right border-r border-black text-rose-700">{ledgerResult.rows.reduce((s,r) => s + (r.debit||0), 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right border-r border-black text-emerald-700">{ledgerResult.rows.reduce((s,r) => s + (r.credit||0), 0).toLocaleString()}</TableCell>
+                <TableCell className="text-right font-black text-lg underline decoration-double decoration-black/30 bg-white">৳ {ledgerResult.closing.toLocaleString()}</TableCell>
+              </TableRow>
+            </TableFooter>
           </Table>
         </div>
 
-        {/* PRINT FOOTER */}
+        {/* PRINT SIGN-OFF BLOCKS */}
         <div className="hidden print:block mt-24">
           <div className="grid grid-cols-3 gap-16 text-[12px] font-black text-center uppercase tracking-widest text-black">
             <div className="border-t-2 border-black pt-4">Prepared by</div>

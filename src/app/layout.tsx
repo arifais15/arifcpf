@@ -49,9 +49,9 @@ export default function RootLayout({
                       </div>
                     </main>
                     <footer className="h-8 shrink-0 border-t bg-background flex items-center px-6 no-print z-40">
-                      <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">
-                        Developed by Ariful Islam, AGM Finance, Gazipur PBS-2
-                      </p>
+                    <p className="inline-block px-3 py-1 bg-blue-50/50 border border-gray-200 rounded text-[9px] font-black uppercase tracking-widest text-gray-500">
+  Developed by Ariful Islam, AGM Finance, Gazipur PBS-2
+</p>
                     </footer>
                   </SidebarInset>
                 </SidebarProvider>
